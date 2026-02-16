@@ -223,7 +223,7 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
   },
   activeToggle: {
-    backgroundColor: '#ffb700',
+    backgroundColor: '#F5A623',
     borderWidth: 0,
   },
   toggleText: {
@@ -261,7 +261,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   activeOption: {
-    backgroundColor: '#ffb700',
+    backgroundColor: '#F5A623',
     borderWidth: 0,
   },
   optionText: {
@@ -327,7 +327,7 @@ const styles = StyleSheet.create({
     color: '#666',
   },
   selectedBreed: {
-    color: '#ffb700',
+    color: '#F5A623',
     fontWeight: '700',
   },
   uploadBox: {
@@ -351,7 +351,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#fec942',
     padding: 15,
     borderRadius: 8,
     marginRight: 5,
@@ -359,7 +359,7 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 1,
-    backgroundColor: '#ffb700',
+    backgroundColor: '#F5A623',
     padding: 15,
     borderRadius: 8,
     marginLeft: 5,

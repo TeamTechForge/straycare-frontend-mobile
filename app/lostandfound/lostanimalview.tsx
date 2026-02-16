@@ -102,17 +102,17 @@ export default function LostAnimalScreen() {
           <Text style={styles.title}>
             {item.breed} {item.name !== "Unknown" ? `- ${item.name}` : ""}
           </Text>
-          <View style={[styles.badge, { backgroundColor: item.type === "Dog" ? "#ffb700" : "#ffb700" }]}>
+          <View style={[styles.badge, { backgroundColor: item.type === "Dog" ? "#F5A623" : "#F5A623" }]}>
             <Text style={styles.badgeText}>{item.type}</Text>
           </View>
         </View>
         <Text style={styles.description}>{item.description}</Text>
         <View style={styles.metaRow}>
-          <MaterialIcons name="location-on" size={14} color="#ffb700" />
+          <MaterialIcons name="location-on" size={14} color="#F5A623" />
           <Text style={styles.meta}>{item.location}</Text>
         </View>
         <View style={styles.metaRow}>
-          <MaterialIcons name="access-time" size={14} color="#ffb700" />
+          <MaterialIcons name="access-time" size={14} color="#F5A623" />
           <Text style={styles.meta}>{item.time}</Text>
         </View>
         <TouchableOpacity style={styles.contactBtn}>
@@ -213,7 +213,7 @@ const styles = StyleSheet.create({
     borderWidth: 0,
   },
   filterActive: {
-    backgroundColor: "#f9b848",
+    backgroundColor: "#F5A623",
     borderWidth: 0,
   },
   filterText: {
@@ -287,7 +287,7 @@ const styles = StyleSheet.create({
   },
   contactBtn: {
     marginTop: 10,
-    backgroundColor: "#f9b848",
+    backgroundColor: "#F5A623",
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 6,

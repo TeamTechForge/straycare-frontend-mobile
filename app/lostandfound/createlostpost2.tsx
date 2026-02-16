@@ -63,12 +63,8 @@ const CreateLostPost2 = () => {
       </View>
 
       
-      {/* Progress Bar */}
-      <View style={styles.progressBar}>
-        <View style={[styles.progressSegment, styles.activeSegment]} />
-        <View style={[styles.progressSegment, styles.activeSegment]} />
-        <View style={styles.progressSegment} />
-      </View>
+
+      
 
       {/* Location & Time */}
       <Text style={styles.sectionTitle}>Location & Time</Text>
@@ -76,7 +72,7 @@ const CreateLostPost2 = () => {
       {/* Location Search */}
       <Text style={styles.label}>Location</Text>
       <View style={styles.locationSearchContainer}>
-        <Ionicons name="search" size={20} color="#ffb700" style={{ marginRight: 10 }} />
+        <Ionicons name="search" size={20} color="#F5A623" style={{ marginRight: 10 }} />
         <TextInput
           style={styles.locationInput}
           placeholder="Search address or park name"
@@ -89,7 +85,7 @@ const CreateLostPost2 = () => {
       {/* Map Placeholder */}
       <View style={styles.mapBox}>
         <View style={{ alignItems: 'center' }}>
-          <Ionicons name="map-outline" size={48} color="#ffb700" />
+          <Ionicons name="map-outline" size={48} color="#F5A623" />
           <Text style={styles.mapText}>Tap to pin location on map</Text>
           <Text style={styles.mapPlaceholder}>
             {form.location ? `📍 ${form.location}` : 'Search or pin location'}
@@ -110,7 +106,7 @@ const CreateLostPost2 = () => {
           editable={false}
           placeholderTextColor="#ccc"
         />
-        <Ionicons name="calendar-outline" size={24} color="#ffb700" />
+        <Ionicons name="calendar-outline" size={24} color="#F5A623" />
       </TouchableOpacity>
       {showDatePicker && (
         <DateTimePicker
@@ -134,7 +130,7 @@ const CreateLostPost2 = () => {
           editable={false}
           placeholderTextColor="#ccc"
         />
-        <Ionicons name="time-outline" size={24} color="#ffb700" />
+        <Ionicons name="time-outline" size={24} color="#F5A623" />
       </TouchableOpacity>
       {showTimePicker && (
         <DateTimePicker
@@ -225,7 +221,7 @@ const styles = StyleSheet.create({
     borderRadius: 3,
   },
   activeSegment: {
-    backgroundColor: '#ffb700',
+    backgroundColor: '#F5A623',
   },
   sectionTitle: {
     fontSize: 18,
@@ -316,7 +312,7 @@ const styles = StyleSheet.create({
   },
   backButton: {
     flex: 1,
-    backgroundColor: '#f0f0f0',
+    backgroundColor: '#fec942',
     padding: 15,
     borderRadius: 8,
     marginRight: 5,
@@ -324,7 +320,7 @@ const styles = StyleSheet.create({
   },
   nextButton: {
     flex: 1,
-    backgroundColor: '#ffb700',
+    backgroundColor: '#F5A623',
     padding: 15,
     borderRadius: 8,
     marginLeft: 5,
