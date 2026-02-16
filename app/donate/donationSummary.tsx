@@ -41,13 +41,13 @@ export default function DonationSummary() {
                 </TouchableOpacity>
             </View>
 
-            {/* Bottom Navigation */}
-            <View style={styles.bottomNav}>
-                <Ionicons name="home-outline" size={24} />
-                <Ionicons name="people-outline" size={24} />
-                <Ionicons name="location-outline" size={24} />
-                <Ionicons name="chatbubble-outline" size={24} />
-                <Ionicons name="person-outline" size={24} />
+            {/* Bottom Navigation (all icons black, light dark-yellow background) */}
+            <View style={styles.bottomBar}>
+                <Ionicons name="home" size={24} color="#000" />
+                <Ionicons name="people-outline" size={24} color="#000" />
+                <Ionicons name="add-circle-outline" size={24} color="#000" />
+                <Ionicons name="chatbubble-outline" size={24} color="#000" />
+                <Ionicons name="person-outline" size={24} color="#000" />
             </View>
         </View>
     );
@@ -67,17 +67,20 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     label: { fontSize: 16, marginVertical: 5 },
-    button: { backgroundColor: "#FFD700", padding: 15, marginTop: 20, borderRadius: 8 },
-    buttonText: { textAlign: "center", fontSize: 18, fontWeight: "bold" },
-    bottomNav: {
+    button: { backgroundColor: "#F5A623", padding: 15, marginTop: 20, borderRadius: 8 },
+    buttonText: { textAlign: "center", fontSize: 18, fontWeight: "bold", color: "#000" },
+    bottomBar: {
         flexDirection: "row",
         justifyContent: "space-around",
         padding: 15,
         borderTopWidth: 1,
         borderColor: "#ddd",
         marginTop: "auto",
+        backgroundColor: "#FFF9E6",
     },
 });
+
+
 
 
 

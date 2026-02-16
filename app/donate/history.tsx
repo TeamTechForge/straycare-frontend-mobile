@@ -62,12 +62,12 @@ export default function DonationHistory() {
             />
 
             {/* Bottom Navigation */}
-            <View style={styles.bottomNav}>
-                <Ionicons name="home-outline" size={24} />
-                <Ionicons name="people-outline" size={24} />
-                <Ionicons name="location-outline" size={24} />
-                <Ionicons name="chatbubble-outline" size={24} />
-                <Ionicons name="person-outline" size={24} />
+            <View style={styles.bottomBar}>
+                <Ionicons name="home" size={24} color="#000" />
+                <Ionicons name="people-outline" size={24} color="#000" />
+                <Ionicons name="add-circle-outline" size={24} color="#000" />
+                <Ionicons name="chatbubble-outline" size={24} color="#000" />
+                <Ionicons name="person-outline" size={24} color="#000" />
             </View>
         </View>
     );
@@ -99,32 +99,32 @@ const styles = StyleSheet.create({
         marginTop: 10,
     },
     statusPill: {
-        backgroundColor: "#d4edda", // light green
+        backgroundColor: "#d4edda",
         paddingVertical: 4,
         paddingHorizontal: 12,
         borderRadius: 20,
     },
     statusText: {
-        color: "#155724", // dark green
+        color: "#155724",
         fontWeight: "bold",
         fontSize: 12,
     },
     receiptButton: {
-        backgroundColor: "#FFD700",
+        backgroundColor: "#F5A623",
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 20,
     },
-    receiptText: { fontSize: 14, fontWeight: "bold" },
-    bottomNav: {
+    receiptText: { fontSize: 14, fontWeight: "bold", color: "#000" },
+    bottomBar: {
         flexDirection: "row",
         justifyContent: "space-around",
         padding: 15,
         borderTopWidth: 1,
         borderColor: "#ddd",
-        position: "absolute",
-        bottom: 0,
-        width: "100%",
-        backgroundColor: "#fff",
+        marginTop: "auto",
+        backgroundColor: "#FFF9E6",
     },
 });
+
+
