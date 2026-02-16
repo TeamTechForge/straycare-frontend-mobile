@@ -1,3 +1,4 @@
+import { AntDesign } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
@@ -62,6 +63,19 @@ export default function LoginScreen() {
           onPress={() => router.push("/Home")}
         />
 
+        {/* 🔹 DIVIDER */}
+        <View style={styles.dividerRow}>
+          <View style={styles.dividerLine} />
+          <Text style={styles.dividerText}>OR</Text>
+          <View style={styles.dividerLine} />
+        </View>
+
+        {/* 🔹 GOOGLE BUTTON (visual only) */}
+        <TouchableOpacity style={styles.googleButton} onPress={() => {}}>
+          <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
+          <Text style={styles.googleButtonText}>Continue with Google</Text>
+        </TouchableOpacity>
+        
         {/* 🔹 SIGNUP LINK */}
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account? </Text>
@@ -148,5 +162,38 @@ const styles = StyleSheet.create({
     color: BRAND_COLOR,
     fontSize: 14,
     fontWeight: "bold",
+  },
+  dividerRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginVertical: 16,
+  },
+  dividerLine: {
+    flex: 1,
+    height: 1,
+    backgroundColor: "#E5E7EB",
+  },
+  dividerText: {
+    marginHorizontal: 12,
+    color: "#9CA3AF",
+    fontWeight: "600",
+  },
+  googleButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: "#FFF",
+  },
+  googleIcon: {
+    marginRight: 10,
+  },
+  googleButtonText: {
+    fontSize: 15,
+    color: "#111827",
+    fontWeight: "600",
   },
 });
