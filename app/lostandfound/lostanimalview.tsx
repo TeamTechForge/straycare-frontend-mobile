@@ -102,7 +102,7 @@ export default function LostAnimalScreen() {
           <Text style={styles.title}>
             {item.breed} {item.name !== "Unknown" ? `- ${item.name}` : ""}
           </Text>
-          <View style={[styles.badge, { backgroundColor: item.type === "Dog" ? "#F5A623" : "#F5A623" }]}>
+          <View style={[styles.badge, { backgroundColor: item.type === "Dog" ? "#F5A623" : "#ffb700" }]}>
             <Text style={styles.badgeText}>{item.type}</Text>
           </View>
         </View>
