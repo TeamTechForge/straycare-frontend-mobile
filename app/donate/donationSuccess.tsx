@@ -18,7 +18,7 @@ export default function DonationSuccess() {
                     <Ionicons
                         name="checkmark-circle"
                         size={80}
-                        color="#FFD700"
+                        color="#F5A623"
                         style={styles.icon}
                     />
 
@@ -84,7 +84,7 @@ const styles = StyleSheet.create({
     subMessage: { fontSize: 16, marginBottom: 15 },
     transaction: { fontSize: 14, marginBottom: 30 },
     button: {
-        backgroundColor: "#FFD700",
+        backgroundColor: "#F5A623",
         padding: 12,
         borderRadius: 8,
         marginVertical: 5,

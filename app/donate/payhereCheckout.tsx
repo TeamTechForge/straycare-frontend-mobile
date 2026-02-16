@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
     row: { flexDirection: "row", justifyContent: "space-between" },
     halfInput: { flex: 1, marginRight: 10 },
     payButton: {
-        backgroundColor: "#FFD700",
+        backgroundColor: "#F5A623",
         padding: 15,
         borderRadius: 8,
         marginTop: 10,

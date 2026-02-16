@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
         fontSize: 12,
     },
     receiptButton: {
-        backgroundColor: "#FFD700",
+        backgroundColor: "#F5A623",
         paddingVertical: 6,
         paddingHorizontal: 12,
         borderRadius: 20,

@@ -67,7 +67,7 @@ const styles = StyleSheet.create({
         elevation: 2,
     },
     label: { fontSize: 16, marginVertical: 5 },
-    button: { backgroundColor: "#FFD700", padding: 15, marginTop: 20, borderRadius: 8 },
+    button: { backgroundColor: "#F5A623", padding: 15, marginTop: 20, borderRadius: 8 },
     buttonText: { textAlign: "center", fontSize: 18, fontWeight: "bold" },
     bottomNav: {
         flexDirection: "row",
