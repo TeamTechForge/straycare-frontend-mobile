@@ -39,7 +39,7 @@ export default function RegisterScreen() {
         title="Register"
         onPress={() => {
           // later connect API
-          router.push("/home");
+          router.push("/Home");
         }}
       />
       <PrimaryButton

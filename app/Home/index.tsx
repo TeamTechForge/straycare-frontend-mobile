@@ -1,7 +1,9 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function HomeScreen() {
+  const router = useRouter();
   return (
     <View style={styles.container}>
 
@@ -58,6 +60,7 @@ export default function HomeScreen() {
         <ActionCard
           icon={<MaterialCommunityIcons name="dog" size={24} color="#F5A623" />}
           label="Report a Case"
+          onPress={() => router.push("/reporting")}
         />
 
         <ActionCard
@@ -85,9 +88,9 @@ export default function HomeScreen() {
   );
 }
 
-function ActionCard({ icon, label }: any) {
+function ActionCard({ icon, label, onPress }: any) {
   return (
-    <TouchableOpacity style={styles.card}>
+    <TouchableOpacity style={styles.card} onPress={onPress}>
       <View style={styles.iconCircle}>
         {icon}
       </View>
