@@ -24,7 +24,7 @@ export default function WelcomeScreen() {
 
       {/* 🔹 MAIN HEADLINE */}
       <Text style={styles.heading}>
-        Every an{"\n"}
+        Every animal{"\n"}
         <Text style={styles.highlight}>deserves a home.</Text>
       </Text>
 

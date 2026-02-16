@@ -59,7 +59,7 @@ export default function AnimalDetails() {
         )}
 
         {/* breed input field */}
-        <Text style={styles.label}>Breed</Text>
+        <Text style={styles.label}>Breed (if known) </Text>
         <InputField
           placeholder="Enter breed (e.g., Labrador)"
           value={breed}
