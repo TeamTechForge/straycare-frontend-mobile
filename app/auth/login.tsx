@@ -59,7 +59,7 @@ export default function LoginScreen() {
         {/* 🔹 LOGIN BUTTON */}
         <PrimaryButton
           title="Log in"
-          onPress={() => router.push("/home")}
+          onPress={() => router.push("/Home")}
         />
 
         {/* 🔹 SIGNUP LINK */}
