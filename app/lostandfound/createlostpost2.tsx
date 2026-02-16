@@ -58,13 +58,11 @@ const CreateLostPost2 = () => {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Report lost or found</Text>
+        <Text style={styles.headerTitle}>Report lost or found pet</Text>
         <View style={{ width: 28 }} />
       </View>
 
-      {/* Title */}
-      <Text style={styles.title}>Where was the pet lost/found?</Text>
-
+      
       {/* Progress Bar */}
       <View style={styles.progressBar}>
         <View style={[styles.progressSegment, styles.activeSegment]} />

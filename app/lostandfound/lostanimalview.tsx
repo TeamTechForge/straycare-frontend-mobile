@@ -64,7 +64,7 @@ const samplePets: Pet[] = [
     description: "Cream-colored Siamese cat found in Queens. Very vocal and playful.",
     location: "Queens, NY",
     time: "6h ago",
-    image: require("../../assets/images/images (2).jpg"),
+    image: require("../../assets/images/download (4).jpg"),
   },
   {
     id: 7,

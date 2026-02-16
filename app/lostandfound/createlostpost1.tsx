@@ -112,7 +112,7 @@ const CreateLostPost = () => {
       </TouchableOpacity>
 
       {showBreedDropdown && (
-        <View style={styles.dropdownMenu}>
+        <ScrollView style={styles.dropdownMenu} showsVerticalScrollIndicator={false}>
           {getBreedOptions().map(breed => (
             <TouchableOpacity
               key={breed}
@@ -122,12 +122,12 @@ const CreateLostPost = () => {
                 setShowBreedDropdown(false);
               }}
             >
-              <Text style={[styles.dropdownText, form.breed === breed && styles.selectedBreed]}>
+              <Text style={[styles.dropdownText, form.breed === breed && styles.selectedBreed]} numberOfLines={1}>
                 {breed}
               </Text>
             </TouchableOpacity>
           ))}
-        </View>
+        </ScrollView>
       )}
 
 
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
     marginTop: -20,
     marginBottom: 20,
     paddingTop: 4,
-    maxHeight: 250,
+    maxHeight: 200,
   },
   dropdownItem: {
     paddingVertical: 12,
