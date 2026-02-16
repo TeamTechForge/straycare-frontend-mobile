@@ -1,9 +1,8 @@
-import { useRouter } from "expo-router";
+
 import { Text, View } from "react-native";
-import PrimaryButton from "../components/PrimaryButton";
 
 export default function Index() {
-  const router = useRouter();
+ 
 
   return (
     <View
@@ -18,10 +17,7 @@ export default function Index() {
         Edit app/index.tsx to edit this screen.
       </Text>
 
-      <PrimaryButton
-        title="Go to Reporting Module"
-        onPress={() => router.push("/reporting")}
-      />
+     
     </View>
   );
 }
