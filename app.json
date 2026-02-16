@@ -34,7 +34,15 @@
           "resizeMode": "contain",
           "backgroundColor": "#FFFFFF"
         }
-      ]
+      ],
+      [
+    "expo-image-picker",
+    {
+      "photosPermission": "Allow StrayCare to access your photos.",
+      "cameraPermission": "Allow StrayCare to use your camera."
+    }
+  ]
+      
     ],
 
     "experiments": {
