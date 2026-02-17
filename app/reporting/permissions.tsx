@@ -44,7 +44,7 @@ export default function Permissions() {
         </View>
 
         {/* skip for now  */}
-        <TouchableOpacity onPress={() => router.push("/reporting/upload-photos")}>
+        <TouchableOpacity onPress={() => router.push("/reporting/review")}>
           <Text style={styles.skipText}>Skip for now</Text>
         </TouchableOpacity>
       </ScrollView>

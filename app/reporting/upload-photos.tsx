@@ -20,7 +20,7 @@ export default function UploadPhotos() {
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.header}>Upload Photos</Text>
-        <Text style={styles.subtext}>Add up to 5 clear photos.</Text>
+        <Text style={styles.subtext}>Add photos here.</Text>
 
         {/* big first image */}
         <View style={styles.mainPhotoBox}>
@@ -29,11 +29,11 @@ export default function UploadPhotos() {
 
         {/* placeholder grid */}
         <View style={styles.grid}>
-          {[1, 2, 3, 4].map((i) => (
+          {[1, 2].map((i) => (
             <View key={i} style={styles.smallPhotoBox}>
               <MaterialCommunityIcons
                 name="image-outline"
-                size={32}
+                size={35}
                 color="#ccc"
               />
             </View>
@@ -41,13 +41,13 @@ export default function UploadPhotos() {
 
           {/* add */}
           <View style={styles.addBox}>
-            <MaterialCommunityIcons name="plus" size={32} color="#777" />
+            <MaterialCommunityIcons name="plus" size={35} color="#777" />
           </View>
         </View>
 
         {/* camera button */}
         <TouchableOpacity style={styles.cameraButton}>
-          <MaterialCommunityIcons name="camera" size={28} color="white" />
+          <MaterialCommunityIcons name="camera" size={25} color="white" />
         </TouchableOpacity>
       </ScrollView>
 
@@ -82,13 +82,13 @@ const styles = StyleSheet.create({
   header: {
     fontSize: 26,
     fontWeight: "700",
-    marginBottom: 6,
+    marginBottom: 20,
   },
 
   subtext: {
     fontSize: 14,
     color: "#666",
-    marginBottom: 20,
+    marginBottom: 25,
   },
 
   // BIG PLACEHOLDER
@@ -144,7 +144,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFB700",
     width: 60,
     height: 60,
-    borderRadius: 30,
+    borderRadius: 35,
     justifyContent: "center",
     alignItems: "center",
     shadowColor: "#000",
