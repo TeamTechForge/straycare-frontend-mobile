@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+
 import React from "react";
 import {
   ScrollView,
@@ -12,6 +13,8 @@ import PrimaryButton from "../../components/PrimaryButton";
 
 export default function Permissions() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+
 
   return (
     <View style={styles.container}>
@@ -41,18 +44,23 @@ export default function Permissions() {
         </View>
 
         {/* skip for now  */}
-        <TouchableOpacity onPress={() => router.push("/reporting/location")}>
+        <TouchableOpacity onPress={() => router.push("/reporting/upload-photos")}>
           <Text style={styles.skipText}>Skip for now</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* navigation bottom button */}
-      <View style={styles.bottomButtonWrapper}>
-        <PrimaryButton
-          title="Allow Access"
-          onPress={() => router.push("/reporting/location")}
-        />
-      </View>
+{/* navigation bottom button */}
+<View style={styles.bottomButtonWrapper}>
+  <PrimaryButton
+    title="Allow Access"
+    onPress={() =>
+      router.push({
+        pathname: "/reporting/location",
+        params: { ...params },
+      })
+    }
+  />
+</View>
     </View>
   );
 }

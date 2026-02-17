@@ -1,5 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
+
 import React from "react";
 import {
   ScrollView,
@@ -12,6 +13,8 @@ import PrimaryButton from "../../components/PrimaryButton";
 
 export default function UploadPhotos() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+
 
   return (
     <View style={styles.container}>
@@ -52,7 +55,13 @@ export default function UploadPhotos() {
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
           title="Next Step →"
-          onPress={() => router.push("/reporting/permissions")}
+          onPress={() =>
+  router.push({
+    pathname: "/reporting/permissions",
+    params: { ...params }
+  })
+}
+
         />
       </View>
     </View>
