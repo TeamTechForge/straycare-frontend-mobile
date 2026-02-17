@@ -110,7 +110,7 @@ export default function DonateScreen() {
                 <Picker selectedValue={paymentMethod} onValueChange={(val) => setPaymentMethod(val)} style={styles.picker}>
                     <Picker.Item label="Select payment method" value="" />
                     <Picker.Item label="Card Payment" value="Card Payment" />
-                    <Picker.Item label="Bank Transfer" value="bank Transfer" />
+                    <Picker.Item label="Bank Transfer" value="Bank Transfer" />
                     <Picker.Item label="eZ cash/mCash/FriMi" value="Bank Transfer" />
                 </Picker>
 
@@ -120,13 +120,13 @@ export default function DonateScreen() {
                 </TouchableOpacity>
             </View>
 
-            {/* Bottom Navigation */}
-            <View style={styles.bottomNav}>
-                <Ionicons name="home-outline" size={24} />
-                <Ionicons name="people-outline" size={24} />
-                <Ionicons name="location-outline" size={24} />
-                <Ionicons name="chatbubble-outline" size={24} />
-                <Ionicons name="person-outline" size={24} />
+            {/* Bottom Navigation (all icons black, light dark-yellow background) */}
+            <View style={styles.bottomBar}>
+                <Ionicons name="home" size={24} color="#000" />
+                <Ionicons name="people-outline" size={24} color="#000" />
+                <Ionicons name="add-circle-outline" size={24} color="#000" />
+                <Ionicons name="chatbubble-outline" size={24} color="#000" />
+                <Ionicons name="person-outline" size={24} color="#000" />
             </View>
         </View>
     );
@@ -149,14 +149,32 @@ const styles = StyleSheet.create({
     picker: { backgroundColor: '#f2f2f2', marginVertical: 5 },
     input: { backgroundColor: '#f2f2f2', padding: 10, marginVertical: 5 },
     button: { backgroundColor: '#F5A623', padding: 15, marginTop: 20, borderRadius: 8 },
-    buttonText: { textAlign: 'center', fontSize: 18, fontWeight: 'bold' },
-    bottomNav: { flexDirection: 'row', justifyContent: 'space-around', padding: 15, borderTopWidth: 1, borderColor: '#ddd', marginTop: 'auto' },
+    buttonText: { textAlign: 'center', fontSize: 18, fontWeight: 'bold', color: '#000' },
+    bottomBar: {
+        flexDirection: 'row',
+        justifyContent: 'space-around',
+        padding: 15,
+        borderTopWidth: 1,
+        borderColor: '#ddd',
+        marginTop: 'auto',
+        backgroundColor: '#FFF9E6',
+    },
     switchContainer: { flexDirection: 'row', justifyContent: 'center', marginVertical: 10 },
-    switchButton: { paddingVertical: 10, paddingHorizontal: 20, borderWidth: 1, borderColor: '#ccc', borderRadius: 8, marginHorizontal: 5, backgroundColor: '#f2f2f2' },
-    switchButtonActive: { backgroundColor: '#F5A623', borderColor: '#F5A623' },
+    switchButton: {
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        borderWidth: 1,
+        borderColor: '#ccc',
+        borderRadius: 8,
+        marginHorizontal: 5,
+        backgroundColor: '#f2f2f2',
+    },
+    switchButtonActive: { backgroundColor: '#F5A623', borderColor: '#F5A623' }, // updated color
     switchText: { fontSize: 16, color: '#333' },
     switchTextActive: { fontWeight: 'bold', color: '#000' },
 });
+
+
 
 
 

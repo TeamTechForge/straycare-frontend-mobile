@@ -1,3 +1,4 @@
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
@@ -55,13 +56,13 @@ export default function PayHereMock() {
                 <Text style={styles.payButtonText}>Pay 1000.00</Text>
             </TouchableOpacity>
 
-            {/* Bottom nav mock */}
-            <View style={styles.bottomNav}>
-                <Text style={styles.navIcon}>🏠</Text>
-                <Text style={styles.navIcon}>👥</Text>
-                <Text style={styles.navIcon}>📍</Text>
-                <Text style={styles.navIcon}>💬</Text>
-                <Text style={styles.navIcon}>👤</Text>
+            {/* Bottom Navigation */}
+            <View style={styles.bottomBar}>
+                <Ionicons name="home" size={24} color="#000" />
+                <Ionicons name="people-outline" size={24} color="#000" />
+                <Ionicons name="add-circle-outline" size={24} color="#000" />
+                <Ionicons name="chatbubble-outline" size={24} color="#000" />
+                <Ionicons name="person-outline" size={24} color="#000" />
             </View>
         </View>
     );
@@ -87,17 +88,18 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         marginTop: 10,
     },
-    payButtonText: { textAlign: "center", fontSize: 18, fontWeight: "bold" },
-    bottomNav: {
+    payButtonText: { textAlign: "center", fontSize: 18, fontWeight: "bold", color: "#000" },
+    bottomBar: {
         flexDirection: "row",
         justifyContent: "space-around",
         padding: 15,
         borderTopWidth: 1,
         borderColor: "#ddd",
         marginTop: "auto",
+        backgroundColor: "#FFF9E6",
     },
-    navIcon: { fontSize: 20 },
 });
+
 
 
 
