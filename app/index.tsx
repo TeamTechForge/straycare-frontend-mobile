@@ -1,53 +1,31 @@
-import { useRouter } from "expo-router";
-import { Image, StyleSheet, Text, View } from "react-native";
-import PrimaryButton from "../components/PrimaryButton";
 
-export default function WelcomeScreen() {
-  const router = useRouter();
+import { Link } from "expo-router";
+import { Text, TouchableOpacity, View } from "react-native";
 
   return (
-    <View style={styles.container}>
-      
-      {/* 🔹 TOP LOGO SECTION */}
-      <Image
-        source={require("../assets/images/straycarelogo.png")}
-        style={styles.logo}
-      />
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
 
-      {/* 🔹 IMAGE CARD SECTION */}
-      <View style={styles.imageCard}>
-        <Image
-          source={require("../assets/images/welocmepageimg.jpg")} // ← your dog image
-          style={styles.dogImage}
-        />
-      </View>
-
-      {/* 🔹 MAIN HEADLINE */}
-      <Text style={styles.heading}>
-        Every an{"\n"}
-        <Text style={styles.highlight}>deserves a home.</Text>
-      </Text>
-
-      {/* 🔹 SUBTITLE */}
-      <Text style={styles.subtitle}>
-        Coordinate rescues, report strays, and{"\n"}
-        support animal welfare in your community.
-      </Text>
-
-      {/* 🔹 BUTTONS */}
-      <View style={styles.buttonContainer}>
-        <PrimaryButton
-          title="Create Account"
-          onPress={() => router.push("/auth/register")}
-        />
-
-        <PrimaryButton
-          title="Login"
-          variant="outline"
-          onPress={() => router.push("/auth/login")}
-        />
-      </View>
-
+      <Link href="/lostandfound/lostandfound" asChild>
+        <TouchableOpacity
+          style={{
+            backgroundColor: "orange",
+            paddingVertical: 12,
+            paddingHorizontal: 32,
+            borderRadius: 8,
+            marginTop: 24,
+          }}
+        >
+          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
+            Go to Lost and Found
+          </Text>
+        </TouchableOpacity>
+      </Link>
     </View>
   );
 }
