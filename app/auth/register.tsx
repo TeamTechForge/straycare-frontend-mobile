@@ -2,13 +2,13 @@ import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 
@@ -25,13 +25,13 @@ export default function RegisterScreen() {
       contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* 🔶 TOP IMAGE */}
+      {/* TOP IMAGE */}
       <Image
         source={require("../../assets/images/signupimg.jpg")}
         style={styles.topImage}
       />
 
-      {/* 🔶 CARD */}
+      {/* CARD */}
       <View style={styles.card}>
 
         <Text style={styles.title}>
@@ -42,28 +42,28 @@ export default function RegisterScreen() {
           Join our community and help save lives
         </Text>
 
-        {/* 🔶 NAME */}
+        {/* NAME */}
         <InputField
           icon={<Feather name="user" size={18} color="#777" />}
           placeholder="John Doe"
           label="Name"
         />
 
-        {/* 🔶 EMAIL */}
+        {/*  EMAIL */}
         <InputField
           icon={<Feather name="mail" size={18} color="#777" />}
           placeholder="Johndoe@gmail.com"
           label="Email Address"
         />
 
-        {/* 🔶 PHONE */}
+        {/* PHONE */}
         <InputField
           icon={<Feather name="phone" size={18} color="#777" />}
           placeholder="+94 77 555 5555"
           label="Phone Number"
         />
 
-        {/* 🔶 PASSWORD */}
+        {/* PASSWORD */}
         <InputField
           icon={<Feather name="lock" size={18} color="#777" />}
           placeholder="********"
@@ -71,7 +71,7 @@ export default function RegisterScreen() {
           secure
         />
 
-        {/* 🔶 CONFIRM PASSWORD */}
+        {/*  CONFIRM PASSWORD */}
         <InputField
           icon={<Feather name="lock" size={18} color="#777" />}
           placeholder="********"
@@ -79,7 +79,7 @@ export default function RegisterScreen() {
           secure
         />
 
-        {/* 🔶 TERMS */}
+        {/* TERMS */}
         <TouchableOpacity
           style={styles.termsContainer}
           onPress={() => setAgree(!agree)}
@@ -97,20 +97,20 @@ export default function RegisterScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* 🔶 CREATE BUTTON */}
+        {/* CREATE BUTTON */}
         <PrimaryButton
           title="Create Account"
           onPress={() => router.push("/Home")}
         />
 
-        {/* 🔶 OR DIVIDER */}
+        {/* OR DIVIDER */}
         <View style={styles.dividerContainer}>
           <View style={styles.line} />
           <Text style={styles.orText}>OR</Text>
           <View style={styles.line} />
         </View>
 
-        {/* 🔶 GOOGLE BUTTON */}
+        {/*  GOOGLE BUTTON */}
         <TouchableOpacity style={styles.googleButton}>
           <MaterialCommunityIcons
             name="google"
@@ -123,7 +123,7 @@ export default function RegisterScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* 🔶 LOGIN LINK */}
+        {/* LOGIN LINK */}
         <View style={styles.loginContainer}>
           <Text style={{ fontSize: 13 }}>
             Already have an account?
@@ -140,7 +140,7 @@ export default function RegisterScreen() {
   );
 }
 
-/* 🔶 Reusable Input Component */
+/* Reusable Input Component */
 function InputField({ icon, placeholder, label, secure }: any) {
   return (
     <View style={{ marginBottom: 15 }}>
