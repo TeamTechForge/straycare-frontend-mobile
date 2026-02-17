@@ -2,12 +2,12 @@ import { AntDesign } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 
@@ -19,7 +19,7 @@ export default function LoginScreen() {
   return (
     <View style={styles.container}>
       
-      {/* 🔹 CURVED IMAGE HEADER */}
+      {/* CURVED IMAGE HEADER */}
       <View style={styles.imageContainer}>
         <Image
           source={require("../../assets/images/login-dogs.jpg")} 
@@ -28,14 +28,14 @@ export default function LoginScreen() {
         <View style={styles.curveOverlay} />
       </View>
 
-      {/* 🔹 CONTENT AREA */}
+      {/* CONTENT AREA */}
       <View style={styles.content}>
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>
           Helping street animals, one paw at a time.
         </Text>
 
-        {/* 🔹 INPUTS */}
+        {/* INPUTS */}
         <TextInput
           style={styles.input}
           placeholder="Email Address"
@@ -52,31 +52,31 @@ export default function LoginScreen() {
           onChangeText={setPassword}
         />
 
-        {/* 🔹 FORGOT PASSWORD */}
+        {/*  FORGOT PASSWORD */}
         <TouchableOpacity style={styles.forgotContainer}>
           <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
-        {/* 🔹 LOGIN BUTTON */}
+        {/* LOGIN BUTTON */}
         <PrimaryButton
           title="Log in"
           onPress={() => router.push("/Home")}
         />
 
-        {/* 🔹 DIVIDER */}
+        {/* DIVIDER */}
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>OR</Text>
           <View style={styles.dividerLine} />
         </View>
 
-        {/* 🔹 GOOGLE BUTTON (visual only) */}
+        {/* GOOGLE BUTTON (visual only) */}
         <TouchableOpacity style={styles.googleButton} onPress={() => {}}>
           <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
           <Text style={styles.googleButtonText}>Continue with Google</Text>
         </TouchableOpacity>
         
-        {/* 🔹 SIGNUP LINK */}
+        {/*  SIGNUP LINK */}
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account? </Text>
           <TouchableOpacity onPress={() => router.push("/auth/register")}>

@@ -7,7 +7,7 @@ export default function HomeScreen() {
   return (
     <View style={styles.container}>
 
-      {/* 🔶 HEADER */}
+      {/*  HEADER */}
       <View style={styles.header}>
         <Image
           source={require("../../assets/images/straycarelogo.png")}
@@ -19,7 +19,7 @@ export default function HomeScreen() {
         </TouchableOpacity>
       </View>
 
-      {/* 🔶 GREETING */}
+      {/*  GREETING */}
       <Text style={styles.greeting}>
         Hello, User 👋{"\n"}
         <Text style={styles.greetingSub}>
@@ -27,7 +27,7 @@ export default function HomeScreen() {
         </Text>
       </Text>
 
-      {/* 🔶 ABOUT CARD */}
+      {/* ABOUT CARD */}
       <View style={styles.aboutCard}>
         <Text style={styles.aboutTitle}>About Us</Text>
         <View style={styles.aboutBox}>
@@ -38,7 +38,7 @@ export default function HomeScreen() {
         </View>
       </View>
 
-      {/* 🔶 SEARCH BAR */}
+      {/* SEARCH BAR */}
       <View style={styles.searchBar}>
         <Feather name="search" size={18} color="#888" />
         <TextInput
@@ -47,7 +47,7 @@ export default function HomeScreen() {
         />
       </View>
 
-      {/* 🔶 QUICK ACTIONS */}
+      {/* QUICK ACTIONS */}
       <Text style={styles.sectionTitle}>Quick Actions</Text>
 
       <View style={styles.grid}>
@@ -78,7 +78,7 @@ export default function HomeScreen() {
 
       </View>
 
-      {/* 🔶 BOTTOM NAVIGATION */}
+      {/* BOTTOM NAVIGATION */}
       <View style={styles.bottomBar}>
         <Ionicons name="home" size={24} color="#F5A623" />
         <Ionicons name="people-outline" size={24} color="#555" />
