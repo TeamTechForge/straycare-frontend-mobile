@@ -17,7 +17,7 @@ export default function Location() {
 
   // Fake address as sample
   const fakeAddress =
-    "124 Maple Street, Northside, Springfield, Illinois 62704";
+    "50/C ,Main Street,Moratuwa ";
 
   // Draggable pin to mark location on map
   const pan = useRef(new Animated.ValueXY({ x: 150, y: 120 })).current;

@@ -59,7 +59,7 @@ export default function AnimalDetails() {
         )}
 
         {/* breed input field */}
-        <Text style={styles.label}>Breed</Text>
+        <Text style={styles.label}>Breed(if known)</Text>
         <InputField
           placeholder="Enter breed (e.g., Labrador)"
           value={breed}
@@ -81,7 +81,7 @@ export default function AnimalDetails() {
         </View>
 
         {/* special notes field */}
-        <Text style={styles.label}>Condition Notes</Text>
+        <Text style={styles.label}>Condition Notes(optional)</Text>
         <InputField
           placeholder="Describe the animal's behavior or injuries..."
           value={notes}
