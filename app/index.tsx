@@ -1,6 +1,10 @@
 
-import { Link } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
+import PrimaryButton from "@/components/PrimaryButton";
+import { useRouter } from "expo-router";
+import { Image, StyleSheet, Text, View } from "react-native";
+
+export default function HomePage() {
+  const router = useRouter();
 
   return (
     <View style={styles.container}>
