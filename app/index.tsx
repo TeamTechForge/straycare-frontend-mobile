@@ -1,9 +1,6 @@
-import { useRouter } from "expo-router";
-import { Image, StyleSheet, Text, View } from "react-native";
-import PrimaryButton from "../components/PrimaryButton";
 
-export default function WelcomeScreen() {
-  const router = useRouter();
+import { Link } from "expo-router";
+import { Text, TouchableOpacity, View } from "react-native";
 
   return (
     <View style={styles.container}>
