@@ -1,6 +1,5 @@
 import { AntDesign } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import {
   Image,
   StyleSheet,
@@ -11,10 +10,32 @@ import {
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = (data: any) => {
+    console.log(data);
+
+    // Later we will call backend API here
+    router.push("/home");
+  };
 
   return (
     <View style={styles.container}>
@@ -35,22 +56,47 @@ export default function LoginScreen() {
           Helping street animals, one paw at a time.
         </Text>
 
-        {/* INPUTS */}
-        <TextInput
-          style={styles.input}
-          placeholder="Email Address"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-        />
+        {/* EMAIL INPUT */}
+<Controller
+  control={control}
+  name="email"
+  render={({ field: { onChange, value } }) => (
+    <TextInput
+      style={styles.input}
+      placeholder="Email Address"
+      value={value}
+      onChangeText={onChange}
+      keyboardType="email-address"
+    />
+  )}
+/>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+{errors.email && (
+  <Text style={{ color: "red", marginBottom: 10 }}>
+    {errors.email.message}
+  </Text>
+)}
+
+{/* PASSWORD INPUT */}
+<Controller
+  control={control}
+  name="password"
+  render={({ field: { onChange, value } }) => (
+    <TextInput
+      style={styles.input}
+      placeholder="Password"
+      secureTextEntry
+      value={value}
+      onChangeText={onChange}
+    />
+  )}
+/>
+
+{errors.password && (
+  <Text style={{ color: "red", marginBottom: 10 }}>
+    {errors.password.message}
+  </Text>
+)}
 
         {/*  FORGOT PASSWORD */}
         <TouchableOpacity style={styles.forgotContainer}>
@@ -60,7 +106,7 @@ export default function LoginScreen() {
         {/* LOGIN BUTTON */}
         <PrimaryButton
           title="Log in"
-          onPress={() => router.push("/Home")}
+           onPress={handleSubmit(onSubmit)}
         />
 
         {/* DIVIDER */}
