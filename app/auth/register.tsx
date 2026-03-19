@@ -100,7 +100,7 @@ export default function RegisterScreen() {
         {/* CREATE BUTTON */}
         <PrimaryButton
           title="Create Account"
-          onPress={() => router.push("/Home")}
+          onPress={() => router.push("/home")}
         />
 
         {/* OR DIVIDER */}
