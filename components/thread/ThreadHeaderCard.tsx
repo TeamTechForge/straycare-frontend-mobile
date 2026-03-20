@@ -2,6 +2,7 @@ import React from "react";
 import { View, Text } from "react-native";
 import { threadStyles as styles } from "../../styles/thread.styles";
 
+// header card for thread
 export default function ThreadHeaderCard({ title, likes }: { title: string; likes: number }) {
   return (
     <View style={styles.headerCard}>

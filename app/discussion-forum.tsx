@@ -7,8 +7,10 @@ import ForumTabs from "../components/forum/ForumTabs";
 import ForumPostCard, { ForumPost } from "../components/forum/ForumPostCard";
 import ForumBottomActions from "../components/forum/ForumBottomActions";
 
+// three tab types
 type TabKey = "Newest" | "Active" | "Unanswered";
 
+// starting posts (dummy data)
 const INITIAL_POSTS: ForumPost[] = [
   {
     id: "p1",
@@ -35,26 +37,31 @@ const INITIAL_POSTS: ForumPost[] = [
 export default function DiscussionForumScreen() {
   const router = useRouter();
 
-  // ✅ read the new post text sent from "Done" button screen
+  // get the post text from previous screen
   const params = useLocalSearchParams<{ newPost?: string }>();
 
+  // default tab is Newest
   const [tab, setTab] = useState<TabKey>("Newest");
+
+  // store all posts here
   const [posts, setPosts] = useState<ForumPost[]>(INITIAL_POSTS);
 
-  // ✅ add the new post to the top when we come back with params
+  // when user comes back after creating post, add it to top
   useEffect(() => {
     if (!params.newPost) return;
 
     const text = String(params.newPost).trim();
     if (!text) return;
 
-    // prevent duplicate insert if route re-renders with same param
     setPosts((prev) => {
-      const alreadyAdded = prev.some((p) => p.title === text && p.author === "You");
+      // avoid adding same post again
+      const alreadyAdded = prev.some(
+        (p) => p.title === text && p.author === "You"
+      );
       if (alreadyAdded) return prev;
 
       const newItem: ForumPost = {
-        id: Date.now().toString(),
+        id: Date.now().toString(), // simple id using time
         title: text,
         tag: "GENERAL",
         time: "Just now",
@@ -64,17 +71,26 @@ export default function DiscussionForumScreen() {
         comments: [],
       };
 
+      // add new post at top
       return [newItem, ...prev];
     });
   }, [params.newPost]);
 
+  // filter posts based on selected tab
   const filtered = useMemo(() => {
     if (tab === "Newest") return posts;
+
+    // Active = most comments first
     if (tab === "Active")
-      return [...posts].sort((a, b) => b.comments.length - a.comments.length);
+      return [...posts].sort(
+        (a, b) => b.comments.length - a.comments.length
+      );
+
+    // Unanswered = no comments
     return posts.filter((p) => p.comments.length === 0);
   }, [tab, posts]);
 
+  // like button logic
   function toggleLike(id: string) {
     setPosts((prev) =>
       prev.map((p) =>
@@ -92,10 +108,13 @@ export default function DiscussionForumScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.page}>
+        {/* screen heading */}
         <Text style={styles.title}>Discussion Forum</Text>
 
+        {/* tab buttons */}
         <ForumTabs tab={tab} onChange={setTab} />
 
+        {/* list of posts */}
         <ScrollView style={styles.list}>
           {filtered.map((post) => (
             <ForumPostCard
@@ -106,6 +125,7 @@ export default function DiscussionForumScreen() {
           ))}
         </ScrollView>
 
+        {/* bottom actions like close */}
         <ForumBottomActions onClose={() => router.back()} />
       </View>
     </SafeAreaView>

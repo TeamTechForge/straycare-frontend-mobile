@@ -13,20 +13,27 @@ import ThreadBottomBar from "../../components/thread/ThreadBottomBar";
 
 export default function DiscussionThreadScreen() {
   const router = useRouter();
+
+  // get thread id from route
   const { id } = useLocalSearchParams<{ id: string }>();
 
+  // find thread using id (if not found use default)
   const initialThread = useMemo<ThreadData>(() => {
     return THREADS[id ?? "p1"] ?? THREADS["p1"];
   }, [id]);
 
+  // store thread data in state
   const [thread, setThread] = useState<ThreadData>(initialThread);
 
+  // like / unlike a message
   function toggleMessageLike(messageId: string) {
     setThread((prev) => ({
       ...prev,
       messages: prev.messages.map((m) => {
         if (m.id !== messageId) return m;
+
         const nextLiked = !m.likedByMe;
+
         return {
           ...m,
           likedByMe: nextLiked,
@@ -36,12 +43,13 @@ export default function DiscussionThreadScreen() {
     }));
   }
 
+  // add new reply
   function addReply(text: string) {
     const clean = text.trim();
-    if (!clean) return;
+    if (!clean) return; // don't add empty reply
 
     const newMsg: ThreadMessage = {
-      id: `m${Date.now()}`,
+      id: `m${Date.now()}`, // simple id
       name: "You",
       role: "NGO",
       subtitle: "Community Member",
@@ -51,16 +59,20 @@ export default function DiscussionThreadScreen() {
       likedByMe: false,
     };
 
+    // add message to end
     setThread((prev) => ({ ...prev, messages: [...prev.messages, newMsg] }));
   }
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.page}>
+        {/* page title */}
         <Text style={styles.pageTitle}>Discussion Thread</Text>
 
+        {/* thread header */}
         <ThreadHeaderCard title={thread.title} likes={thread.likes} />
 
+        {/* message list */}
         <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
           {thread.messages.map((m) => (
             <ThreadMessageCard
@@ -71,8 +83,10 @@ export default function DiscussionThreadScreen() {
           ))}
         </ScrollView>
 
+        {/* reply input box */}
         <ThreadComposer onSend={addReply} />
 
+        {/* bottom close button */}
         <ThreadBottomBar onClose={() => router.back()} />
       </View>
     </SafeAreaView>
