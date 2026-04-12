@@ -1,6 +1,6 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -16,6 +16,15 @@ import InputField from "../../components/InputField"; // ✅ USING REUSABLE
 const BRAND_COLOR = "#F5A623";
 
 export default function RegisterScreen() {
+  const [isChecked, setIsChecked] = useState(false);
+  const params = useLocalSearchParams();
+    
+    useEffect(() => {
+      if (params.agreed === "true") {
+      setIsChecked(true);
+      }
+    }, [params.agreed]);
+
   const router = useRouter();
 
   const [agree, setAgree] = useState(false);
@@ -29,6 +38,7 @@ export default function RegisterScreen() {
 
   const [errors, setErrors] = useState<any>({});
 
+  
   const validateForm = () => {
     let newErrors: any = {};
 
@@ -135,26 +145,28 @@ export default function RegisterScreen() {
           <Text style={styles.error}>{errors.confirmPassword}</Text>
         )}
 
-        {/* TERMS */}
-        <TouchableOpacity
-          style={styles.termsContainer}
-          onPress={() => setAgree(!agree)}
-        >
-          <Ionicons
-            name={agree ? "checkbox" : "square-outline"}
-            size={20}
-            color={agree ? BRAND_COLOR : "#999"}
-          />
-          <Text style={styles.termsText}>
-            I agree to the{" "}
-            <Text style={{ color: BRAND_COLOR }}>
-              Terms & Privacy Policy
-            </Text>
-          </Text>
-        </TouchableOpacity>
+{/* TERMS */}
+<TouchableOpacity
+  style={styles.termsContainer}
+  onPress={() => setAgree(!agree)}
+>
+  <Ionicons
+    name={agree ? "checkbox" : "square-outline"}
+    size={20}
+    color={agree ? BRAND_COLOR : "#999"}
+  />
+  <Text style={styles.termsText}>
+    I agree to the{" "}
+    <Text
+      style={{ color: BRAND_COLOR }}
+      onPress={() => router.push("/auth/termsPrivacyScreen")}
+    >
+      Terms & Privacy Policy
+    </Text>
+  </Text>
+</TouchableOpacity>
 
-        {errors.terms && <Text style={styles.error}>{errors.terms}</Text>}
-
+{errors.terms && <Text style={styles.error}>{errors.terms}</Text>}
         {/* BUTTON */}
         <PrimaryButton
           title="Create Account"
