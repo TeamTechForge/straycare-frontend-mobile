@@ -172,7 +172,7 @@ export default function RegisterScreen() {
           title="Create Account"
           onPress={() => {
             if (validateForm()) {
-              router.push("/home");
+              router.push("/auth/roleSelection");
             }
           }}
         />
