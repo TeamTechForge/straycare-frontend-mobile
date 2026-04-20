@@ -22,6 +22,7 @@ export default function SelectRoleScreen() {
 
   // ✅ handle continue
   const handleContinue = () => {
+
     if (!selectedRole) {
       alert("Please select a role");
       return;
@@ -30,8 +31,12 @@ export default function SelectRoleScreen() {
     // 🔥 TODO: SEND selectedRole to backend / save in database
     console.log("Selected Role:", selectedRole);
 
-    // 👉 navigate next (example)
-    router.replace("/home"); // change later
+    if (selectedRole === "reporter") {
+      router.push("/auth/reporterProfileSetup");
+    } else if (selectedRole === "rescuer") {
+      router.push("/auth/rescuerTypeSelection");
+    }
+    
   };
 
   return (
@@ -115,10 +120,10 @@ export default function SelectRoleScreen() {
       <View style={{ marginTop: 20 }}>
         <PrimaryButton
           title="Continue"
-          onPress={() => router.push("/auth/rescuerTypeSelection")}
+          
 
           
-          //onPress={handleContinue}
+          onPress={handleContinue}
           // 🔥 disable until selected
           disabled={!selectedRole}
         />

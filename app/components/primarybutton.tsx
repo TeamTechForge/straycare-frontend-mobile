@@ -4,26 +4,31 @@ type Props = {
   title: string;
   onPress: () => void;
   variant?: "filled" | "outline";
+  disabled?: boolean;
 };
 
 export default function PrimaryButton({
   title,
   onPress,
   variant = "filled",
+  disabled = false,
 }: Props) {
   return (
     <TouchableOpacity
       style={[
         styles.button,
         variant === "outline" && styles.outlineButton,
+        disabled && styles.disabledButton,
       ]}
       onPress={onPress}
       activeOpacity={0.8}
+      disabled={disabled}
     >
       <Text
         style={[
           styles.text,
           variant === "outline" && styles.outlineText,
+          disabled && styles.disabledText,
         ]}
       >
         {title}
@@ -52,5 +57,11 @@ const styles = StyleSheet.create({
   },
   outlineText: {
     color: "#F5A623",
+  },
+  disabledButton: {
+    backgroundColor: "#ccc",
+  },
+  disabledText: {
+    color: "#666",
   },
 });
