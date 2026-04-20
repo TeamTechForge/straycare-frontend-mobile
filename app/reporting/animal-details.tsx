@@ -1,6 +1,7 @@
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Switch,
@@ -17,19 +18,37 @@ export default function AnimalDetails() {
   const [animalType, setAnimalType] = useState("");
   const [showDropdown, setShowDropdown] = useState(false);
   const [breed, setBreed] = useState("");
-  const [status, setStatus] = useState("");
+  const [category, setCategory] = useState(""); // FIXED
   const [notes, setNotes] = useState("");
   const [anonymous, setAnonymous] = useState(true);
 
-  const types = ["Dog", "Cat"];
-  const statuses = ["Injured", "Abandoned", "Aggressive"];
+  const types = ["Dog", "Cat", "Other"];
+  const categories = ["Injured", "Abandoned", "Aggressive"]; // FIXED
+
+  const handleNext = () => {
+    if (!animalType || !category) {
+      Alert.alert("Missing fields", "Please select animal type and category.");
+      return;
+    }
+
+    router.push({
+      pathname: "/reporting/location", // FIXED
+      params: {
+        animalType,
+        breed,
+        category,
+        notes,
+        anonymous: anonymous.toString(),
+      },
+    });
+  };
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
         <Text style={styles.header}>Animal Details</Text>
 
-        {/* ANIMAL TYPE DROPDOWN  LIST*/}
+        {/* ANIMAL TYPE DROPDOWN */}
         <Text style={styles.label}>Animal Type</Text>
 
         <TouchableOpacity
@@ -58,90 +77,64 @@ export default function AnimalDetails() {
           </View>
         )}
 
-        {/* breed input field */}
-        <Text style={styles.label}>Breed(if known)</Text>
+        {/* BREED */}
+        <Text style={styles.label}>Breed (optional)</Text>
         <InputField
           placeholder="Enter breed (e.g., Labrador)"
           value={breed}
           onChangeText={setBreed}
         />
 
-        
-        <Text style={styles.label}>Current Status</Text>
+        {/* CATEGORY */}
+        <Text style={styles.label}>Category</Text>
         <View style={styles.row}>
-          {statuses.map((s) => (
+          {categories.map((c) => (
             <TouchableOpacity
-              key={s}
-              style={[styles.chip, status === s && styles.chipSelected]}
-              onPress={() => setStatus(s)}
+              key={c}
+              style={[styles.chip, category === c && styles.chipSelected]}
+              onPress={() => setCategory(c)}
             >
-              <Text style={styles.chipText}>{s}</Text>
+              <Text style={styles.chipText}>{c}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* special notes field */}
-        <Text style={styles.label}>Condition Notes(optional)</Text>
+        {/* NOTES */}
+        <Text style={styles.label}>Condition Notes (optional)</Text>
         <InputField
           placeholder="Describe the animal's behavior or injuries..."
           value={notes}
           onChangeText={setNotes}
         />
 
-        {/* anonymous toggle button */}
+        {/* ANONYMOUS TOGGLE */}
         <View style={styles.toggleRow}>
           <Text style={styles.label}>Report Anonymously</Text>
           <Switch value={anonymous} onValueChange={setAnonymous} />
         </View>
       </ScrollView>
 
-      {/* bottom navigation to next page button */}
+      {/* NEXT BUTTON */}
       <View style={styles.bottomButtonWrapper}>
-        <PrimaryButton
-          title="Next Step →"
-          onPress={() =>
-            router.push({
-              pathname: "/reporting/upload-photos",
-              params: {
-                animalType,
-                breed,
-                status,
-                notes,
-                anonymous: anonymous.toString(),
-              },
-            })
-          }
-        />
+        <PrimaryButton title="Next Step →" onPress={handleNext} />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fafafa",
-  },
-
-  scrollContent: {
-    padding: 20,
-    paddingBottom: 140, 
-  },
-
+  container: { flex: 1, backgroundColor: "#fafafa" },
+  scrollContent: { padding: 20, paddingBottom: 140 },
   header: { fontSize: 26, fontWeight: "700", marginBottom: 20 },
   label: { fontSize: 16, marginTop: 20, marginBottom: 8 },
 
-  // dropdown list for animal type styles
   dropdown: {
     borderWidth: 1,
     borderColor: "#ccc",
     padding: 14,
     borderRadius: 10,
   },
-  dropdownText: {
-    fontSize: 14,
-    color: "#333",
-  },
+  dropdownText: { fontSize: 14, color: "#333" },
   dropdownList: {
     borderWidth: 1,
     borderColor: "#ccc",
@@ -155,7 +148,6 @@ const styles = StyleSheet.create({
     borderBottomColor: "#eee",
   },
 
-  
   row: { flexDirection: "row", gap: 10 },
   chip: {
     paddingVertical: 10,
