@@ -22,18 +22,27 @@ export default function RescuerTypeScreen() {
   >(null);
 
   // ✅ handle continue
-  const handleContinue = () => {
-    if (!selectedType) {
-      alert("Please select a type");
-      return;
-    }
+const handleContinue = () => {
+  if (!selectedType) {
+    alert("Please select a type");
+    return;
+  }
 
-    // 🔥 TODO: send selectedType to backend / save in DB
-    console.log("Selected Rescuer Type:", selectedType);
+  console.log("Selected Rescuer Type:", selectedType);
 
-    // 👉 next step (profile setup or dashboard)
-    router.replace("/auth/profileSetup"); // change later
-  };
+  // 🔥 role-based navigation
+  if (selectedType === "volunteer") {
+    router.replace("/auth/ReporterProfileSetupScreen"); 
+    // 👉 or create VolunteerProfileSetupScreen later
+  } 
+  else if (selectedType === "ngo") {
+    router.replace("/auth/NGOProfileSetupScreen");
+  } 
+  else if (selectedType === "vet") {
+    router.replace("/auth/VetProfileSetupScreen"); 
+    // 👉 create this later
+  }
+};
 
   return (
     <View style={styles.container}>
