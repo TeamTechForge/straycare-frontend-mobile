@@ -32,14 +32,14 @@ const handleContinue = () => {
 
   // 🔥 role-based navigation
   if (selectedType === "volunteer") {
-    router.replace("/auth/ReporterProfileSetupScreen"); 
+    router.replace("/auth/volunteerProfileSetup"); 
     // 👉 or create VolunteerProfileSetupScreen later
   } 
   else if (selectedType === "ngo") {
     router.replace("/auth/NGOProfileSetupScreen");
   } 
   else if (selectedType === "vet") {
-    router.replace("/auth/VetProfileSetupScreen"); 
+    router.push("/auth/vetProfileSetup"); 
     // 👉 create this later
   }
 };
