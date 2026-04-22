@@ -2,16 +2,17 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { getReportByCaseId } from "../../api/strayApi";
+import { getReportByCaseId, updateCaseStatus } from "../../api/strayApi";
 import PrimaryButton from "../../components/PrimaryButton";
 
-// ------------------ TYPE FIX ------------------
+// ------------------ TYPES ------------------
 type Report = {
   caseId: string;
   animalType: string;
@@ -28,9 +29,39 @@ type Report = {
   photos?: string[];
 };
 
+// ------------------ STATUS COLOR HELPER ------------------
+const getStatusColor = (status: string) => {
+  switch (status) {
+    case "Needs Help":
+      return "red";
+    case "Under Rescue":
+      return "E6B800";
+    case "Treated":
+      return "green";
+    case "Ready for Adoption":
+      return "blue";
+    default:
+      return "gray";
+  }
+};
+
+// ------------------ NEXT STATUS HELPER ------------------
+const getNextStatus = (current: string) => {
+  switch (current) {
+    case "Needs Help":
+      return "Under Rescue";
+    case "Under Rescue":
+      return "Treated";
+    case "Treated":
+      return "Ready for Adoption";
+    default:
+      return null;
+  }
+};
+
 export default function CaseDetailsScreen() {
   const { caseId } = useLocalSearchParams();
-  const [report, setReport] = useState<Report | null>(null); // FIXED
+  const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
 
   const router = useRouter();
@@ -50,6 +81,20 @@ export default function CaseDetailsScreen() {
     loadCase();
   }, []);
 
+  const handleStatusUpdate = async () => {
+    if (!report) return;
+
+    const next = getNextStatus(report.status);
+    if (!next) return;
+
+    try {
+      const updated = await updateCaseStatus(report.caseId, next);
+      setReport(updated); // update UI instantly
+    } catch (err) {
+      console.log("Failed to update status:", err);
+    }
+  };
+
   if (loading || !report) {
     return (
       <View style={styles.center}>
@@ -59,23 +104,29 @@ export default function CaseDetailsScreen() {
     );
   }
 
-  // ------------------ STATUS COLORS FIX ------------------
-  const statusColor =
-    report.status === "Needs Help"
-      ? "red"
-      : report.status === "Under Rescue"
-      ? "yellow"
-      : report.status === "Treated"
-      ? "green"
-      : "blue";
+  const statusColor = getStatusColor(report.status);
+  const nextStatus = getNextStatus(report.status);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
+      {/* ------------------ HEADER ------------------ */}
       <Text style={styles.caseId}>Case ID: {report.caseId}</Text>
 
       <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
         <Text style={styles.statusText}>{report.status}</Text>
       </View>
+
+      {/* ------------------ PHOTOS ------------------ */}
+      <Text style={styles.label}>Photos</Text>
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
+        {report.photos && report.photos.length > 0 ? (
+          report.photos.map((uri, index) => (
+            <Image key={index} source={{ uri }} style={styles.photo} />
+          ))
+        ) : (
+          <Text style={styles.value}>No photos available</Text>
+        )}
+      </ScrollView>
 
       {/* ------------------ BASIC INFO ------------------ */}
       <Text style={styles.label}>Animal Type</Text>
@@ -97,6 +148,7 @@ export default function CaseDetailsScreen() {
       <Text style={styles.value}>{report.location.address}</Text>
 
       <MapView
+        provider="google"
         style={styles.map}
         initialRegion={{
           latitude: report.location.lat,
@@ -116,6 +168,14 @@ export default function CaseDetailsScreen() {
       {/* ------------------ NOTES ------------------ */}
       <Text style={styles.label}>Notes</Text>
       <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
+
+      {/* ------------------ STATUS UPDATE BUTTON ------------------ */}
+      {nextStatus && (
+        <PrimaryButton
+          title={`Mark as "${nextStatus}"`}
+          onPress={handleStatusUpdate}
+        />
+      )}
 
       {/* ------------------ BACK BUTTON ------------------ */}
       <PrimaryButton title="Back to Map" onPress={() => router.push("/reporting")} />
@@ -141,6 +201,14 @@ const styles = StyleSheet.create({
 
   label: { fontSize: 14, fontWeight: "600", marginTop: 20, color: "#444" },
   value: { fontSize: 16, marginTop: 4 },
+
+  photo: {
+    width: 140,
+    height: 140,
+    borderRadius: 12,
+    marginRight: 12,
+    backgroundColor: "#ddd",
+  },
 
   map: {
     width: "100%",

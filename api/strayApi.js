@@ -39,3 +39,20 @@ export const getReportByCaseId = async (caseId) => {
     throw error;
   }
 };
+// 4️⃣ Update case status
+export const updateCaseStatus = async (caseId, status) => {
+  try {
+    const response = await fetch(`${BASE_URL}/report/${caseId}/status`, {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ status }),
+    });
+
+    return await response.json();
+  } catch (error) {
+    console.error("Error updating case status:", error);
+    throw error;
+  }
+};
