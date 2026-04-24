@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
@@ -14,6 +14,7 @@ interface LocationDetails {
 
 const CreateLostPost2 = () => {
   const router = useRouter();
+  const { status } = useLocalSearchParams<{ status?: string }>();
 
   const [form, setForm] = useState<LocationDetails>({
     location: '',
@@ -172,7 +173,10 @@ const CreateLostPost2 = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.nextButton}
-          onPress={() => router.push('/lostandfound/lostanimalview')}
+          onPress={() => {
+            const target = status === 'found' ? '/lostandfound/foundAnimalView' : '/lostandfound/lostanimalview';
+            router.push(target);
+          }}
         >
           <Text style={styles.buttonText}>Submit</Text>
         </TouchableOpacity>

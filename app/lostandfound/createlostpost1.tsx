@@ -171,7 +171,7 @@ const CreateLostPost = () => {
         </TouchableOpacity>
         <TouchableOpacity
           style={styles.nextButton}
-          onPress={() => router.push('/lostandfound/createlostpost2')}
+          onPress={() => router.push(`/lostandfound/createlostpost2?status=${form.status}`)}
         >
           <Text style={styles.buttonText}>Next</Text>
         </TouchableOpacity>
