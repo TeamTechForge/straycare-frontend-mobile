@@ -34,7 +34,7 @@ export default function LoginScreen() {
     console.log(data);
 
     // Later we will call backend API here
-    router.push("/home");
+    router.replace("/(tabs)/home");
   };
 
   return (

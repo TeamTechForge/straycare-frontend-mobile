@@ -1,3 +1,4 @@
+import { Feather } from "@expo/vector-icons";
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -125,4 +126,12 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
+  
+  label: {
+  fontSize: 13,
+  marginBottom: 6,
+  fontWeight: "500",
+  color: "#333",
+},
+  
 });
