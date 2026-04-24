@@ -4,6 +4,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 import React, { useState } from 'react';
 import {
+  Alert,
   Image,
   Platform,
   ScrollView,
@@ -34,17 +35,84 @@ const CreatePost = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [dateObj, setDateObj] = useState(new Date());
   const [breedDropdownOpen, setBreedDropdownOpen] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [errorMessage, setErrorMessage] = useState('');
 
   const updateForm = (key: string, value: any) => {
     setForm(prev => ({ ...prev, [key]: value }));
+    setErrors(prev => ({ ...prev, [key]: '' }));
+    if (errorMessage) setErrorMessage('');
   };
 
-  // IMAGE PICKER
+  const validateField = (field: string) => {
+    let message = '';
+    const description = form.description.trim();
+    const location = form.location.trim();
+    const contactName = form.contactName.trim();
+    const contactNumber = form.contactNumber.trim();
+    const customType = form.customType.trim();
+
+    switch (field) {
+      case 'customType':
+        if (form.type === 'other' && !customType) {
+          message = 'Please enter the animal type.';
+        }
+        break;
+      case 'breed':
+        if ((form.type === 'dog' || form.type === 'cat') && !form.breed) {
+          message = 'Please select a breed.';
+        }
+        break;
+      case 'description':
+        if (!description) {
+          message = 'Please enter a description.';
+        } else if (description.length < 10) {
+          message = 'Description must be at least 10 characters.';
+        }
+        break;
+      case 'location':
+        if (!location) {
+          message = 'Please enter the location.';
+        }
+        break;
+      case 'date':
+        if (!form.date) {
+          message = 'Please select a date.';
+        } else {
+          const selectedDate = new Date(form.date);
+          const today = new Date();
+          today.setHours(0, 0, 0, 0);
+          if (selectedDate > today) {
+            message = 'Date cannot be in the future.';
+          }
+        }
+        break;
+      case 'contactName':
+        if (!contactName) {
+          message = 'Please enter your name.';
+        } else if (contactName.length < 2) {
+          message = 'Name must be at least 2 characters.';
+        }
+        break;
+      case 'contactNumber':
+        if (!contactNumber) {
+          message = 'Please enter your contact number.';
+        } else if (!/^07\d{8}$/.test(contactNumber)) {
+          message = 'Enter a valid Sri Lankan phone number (07XXXXXXXX).';
+        }
+        break;
+    }
+
+    setErrors(prev => ({ ...prev, [field]: message }));
+    return !message;
+  };
+
+  // IMAGE PICKER WITH LIMIT
   const pickImages = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      alert("Permission required!");
+      Alert.alert('Permission required', 'Permission is needed to choose images from your library.');
       return;
     }
 
@@ -55,11 +123,18 @@ const CreatePost = () => {
 
     if (!result.canceled) {
       const uris = result.assets.map(a => a.uri);
+
+      // 🔒 Limit to 5 images
+      if (form.images.length + uris.length > 5) {
+        Alert.alert('Image limit', 'You can only upload up to 5 images.');
+        return;
+      }
+
       updateForm('images', [...form.images, ...uris]);
     }
   };
 
-  // REMOVE IMAGE
+  // ❌ REMOVE IMAGE
   const removeImage = (index: number) => {
     const updated = form.images.filter((_, i) => i !== index);
     updateForm('images', updated);
@@ -70,7 +145,88 @@ const CreatePost = () => {
     if (selected) {
       setDateObj(selected);
       updateForm('date', selected.toDateString());
+      validateField('date');
     }
+  };
+
+  const showValidationError = (message: string) => {
+    setErrorMessage(message);
+    Alert.alert('Validation', message);
+  };
+
+  // FORM VALIDATION 
+  const validateForm = () => {
+    setErrorMessage('');
+    const validationErrors: Record<string, string> = {};
+    const description = form.description.trim();
+    const location = form.location.trim();
+    const contactName = form.contactName.trim();
+    const contactNumber = form.contactNumber.trim();
+    const customType = form.customType.trim();
+
+    if (form.type === 'other' && !customType) {
+      validationErrors.customType = 'Please enter the animal type.';
+    }
+
+    if ((form.type === 'dog' || form.type === 'cat') && !form.breed) {
+      validationErrors.breed = 'Please select a breed.';
+    }
+
+    if (!description) {
+      validationErrors.description = 'Please enter a description.';
+    } else if (description.length < 10) {
+      validationErrors.description = 'Description must be at least 10 characters.';
+    }
+
+    if (form.images.length === 0) {
+      validationErrors.images = 'Please upload at least one image.';
+    }
+
+    if (form.images.length > 5) {
+      validationErrors.images = 'You can upload a maximum of 5 images.';
+    }
+
+    const uniqueImages = new Set(form.images);
+    if (uniqueImages.size !== form.images.length) {
+      validationErrors.images = 'Duplicate images are not allowed.';
+    }
+
+    if (!location) {
+      validationErrors.location = 'Please enter the location.';
+    }
+
+    if (!form.date) {
+      validationErrors.date = 'Please select a date.';
+    } else {
+      const selectedDate = new Date(form.date);
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      if (selectedDate > today) {
+        validationErrors.date = 'Date cannot be in the future.';
+      }
+    }
+
+    if (!contactName) {
+      validationErrors.contactName = 'Please enter your name.';
+    } else if (contactName.length < 2) {
+      validationErrors.contactName = 'Name must be at least 2 characters.';
+    }
+
+    if (!contactNumber) {
+      validationErrors.contactNumber = 'Please enter your contact number.';
+    } else if (!/^07\d{8}$/.test(contactNumber)) {
+      validationErrors.contactNumber = 'Enter a valid Sri Lankan phone number (07XXXXXXXX).';
+    }
+
+    setErrors(validationErrors);
+
+    const firstError = Object.values(validationErrors).find(Boolean);
+    if (firstError) {
+      showValidationError(firstError);
+      return false;
+    }
+
+    return true;
   };
 
   const dogBreeds = [
@@ -84,6 +240,8 @@ const CreatePost = () => {
     'Rottweiler',
     'Yorkshire Terrier',
     'Doberman',
+    'Unknown',
+
   ];
 
   const catBreeds = [
@@ -97,6 +255,7 @@ const CreatePost = () => {
     'Scottish Fold',
     'American Shorthair',
     'Abyssinian',
+    'Unknown',
   ];
 
   return (
@@ -110,6 +269,12 @@ const CreatePost = () => {
         <Text style={styles.headerTitle}>Create Animal Post</Text>
         <View style={{ width: 26 }} />
       </View>
+
+      {errorMessage ? (
+        <View style={styles.errorBox}>
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        </View>
+      ) : null}
 
       {/* LOST / FOUND */}
       <View style={styles.toggle}>
@@ -149,7 +314,6 @@ const CreatePost = () => {
           ))}
         </View>
 
-        {/* OTHER TYPE */}
         {form.type === 'other' && (
           <>
             <Text style={styles.label}>Add Animal Type</Text>
@@ -157,11 +321,14 @@ const CreatePost = () => {
               style={styles.input}
               placeholder="Enter animal type"
               onChangeText={t => updateForm('customType', t)}
+              onBlur={() => validateField('customType')}
             />
+            {errors.customType ? (
+              <Text style={styles.fieldError}>{errors.customType}</Text>
+            ) : null}
           </>
         )}
 
-        {/* BREED */}
         {(form.type === 'dog' || form.type === 'cat') && (
           <>
             <Text style={styles.label}>Select Breed</Text>
@@ -170,7 +337,7 @@ const CreatePost = () => {
               onPress={() => setBreedDropdownOpen(prev => !prev)}
             >
               <Text style={form.breed ? styles.dropdownText : styles.placeholderText}>
-                {form.breed || `Choose a ${form.type === 'dog' ? 'dog' : 'cat'} breed`}
+                {form.breed || `Choose a ${form.type} breed`}
               </Text>
               <Ionicons
                 name={breedDropdownOpen ? 'chevron-up' : 'chevron-down'}
@@ -191,17 +358,19 @@ const CreatePost = () => {
                     onPress={() => {
                       updateForm('breed', b);
                       setBreedDropdownOpen(false);
+                      setErrors(prev => ({ ...prev, breed: '' }));
                     }}
                   >
-                    <Text
-                      style={form.breed === b ? styles.dropdownItemActiveText : undefined}
-                    >
+                    <Text style={form.breed === b ? styles.dropdownItemActiveText : undefined}>
                       {b}
                     </Text>
                   </TouchableOpacity>
                 ))}
               </View>
             )}
+            {errors.breed ? (
+              <Text style={styles.fieldError}>{errors.breed}</Text>
+            ) : null}
           </>
         )}
 
@@ -218,17 +387,18 @@ const CreatePost = () => {
           placeholder="Enter description"
           multiline
           onChangeText={t => updateForm('description', t)}
+          onBlur={() => validateField('description')}
         />
+        {errors.description ? (
+          <Text style={styles.fieldError}>{errors.description}</Text>
+        ) : null}
 
-        {/* IMAGE UPLOAD */}
         <Text style={styles.label}>Upload Images</Text>
-
         <TouchableOpacity style={styles.uploadBox} onPress={pickImages}>
           <Ionicons name="add" size={30} color="#F5A623" />
           <Text>Add images from here</Text>
         </TouchableOpacity>
 
-        {/* IMAGE PREVIEW */}
         <ScrollView horizontal>
           {form.images.map((img, index) => (
             <View key={index}>
@@ -244,7 +414,7 @@ const CreatePost = () => {
         </ScrollView>
       </View>
 
-      {/* 📍 LOCATION */}
+      {/* LOCATION */}
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>
           <Ionicons name="location" size={16} color="#F5A623" /> Location
@@ -254,9 +424,12 @@ const CreatePost = () => {
           style={styles.input}
           placeholder="Search location"
           onChangeText={t => updateForm('location', t)}
+          onBlur={() => validateField('location')}
         />
+        {errors.location ? (
+          <Text style={styles.fieldError}>{errors.location}</Text>
+        ) : null}
 
-        {/* MAP PLACEHOLDER */}
         <View style={styles.mapBox}>
           <Text>Google Map Preview</Text>
         </View>
@@ -265,6 +438,9 @@ const CreatePost = () => {
         <TouchableOpacity style={styles.input} onPress={() => setShowDatePicker(true)}>
           <Text>{form.date || "Select Date"}</Text>
         </TouchableOpacity>
+        {errors.date ? (
+          <Text style={styles.fieldError}>{errors.date}</Text>
+        ) : null}
 
         {showDatePicker && (
           <DateTimePicker
@@ -285,7 +461,11 @@ const CreatePost = () => {
           style={styles.input}
           placeholder="Enter your name"
           onChangeText={t => updateForm('contactName', t)}
+          onBlur={() => validateField('contactName')}
         />
+        {errors.contactName ? (
+          <Text style={styles.fieldError}>{errors.contactName}</Text>
+        ) : null}
 
         <Text style={styles.label}>Contact Number</Text>
         <TextInput
@@ -293,7 +473,11 @@ const CreatePost = () => {
           placeholder="Enter phone number"
           keyboardType="phone-pad"
           onChangeText={t => updateForm('contactNumber', t)}
+          onBlur={() => validateField('contactNumber')}
         />
+        {errors.contactNumber ? (
+          <Text style={styles.fieldError}>{errors.contactNumber}</Text>
+        ) : null}
       </View>
 
       {/* BUTTONS */}
@@ -302,7 +486,19 @@ const CreatePost = () => {
           <Text style={styles.btnText}>Back</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.submitBtn}>
+        <TouchableOpacity
+          style={styles.submitBtn}
+          onPress={() => {
+            if (!validateForm()) return;
+
+            const route =
+              form.status === 'found'
+                ? '/lostandfound/foundAnimalView'
+                : '/lostandfound/lostanimalview';
+
+            router.push(route);
+          }}
+        >
           <Text style={styles.btnText}>Submit</Text>
         </TouchableOpacity>
       </View>
@@ -483,4 +679,23 @@ const styles = StyleSheet.create({
   btnText: { 
     color: '#fff', 
     fontWeight: 'bold' },
+
+  errorBox: {
+    padding: 12,
+    backgroundColor: '#fdecea',
+    borderColor: '#f5c6cb',
+    borderWidth: 1,
+    borderRadius: 8,
+    marginBottom: 15,
+  },
+
+  errorText: {
+    color: '#721c24',
+  },
+
+  fieldError: {
+    color: '#b00020',
+    marginTop: 5,
+    marginBottom: 10,
+  },
 });
