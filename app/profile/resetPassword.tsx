@@ -90,7 +90,6 @@ export default function ResetPasswordScreen() {
       
       <Text style={styles.label}>Current Password</Text>
       <InputField
-        label="Current Password"
         placeholder="Your current password"
         value={currentPassword}
         onChangeText={setCurrentPassword}
@@ -100,7 +99,6 @@ export default function ResetPasswordScreen() {
 
       <Text style={styles.label}>New Password</Text>
       <InputField
-        label="New Password"
         placeholder="At least 8 characters"
         value={newPassword}
         onChangeText={setNewPassword}
@@ -112,7 +110,6 @@ export default function ResetPasswordScreen() {
 
       <Text style={styles.label}>Confirm New Password</Text>
       <InputField
-        label="Confirm New Password"
         placeholder="Re-type your password"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
