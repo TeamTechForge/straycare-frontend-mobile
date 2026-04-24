@@ -1,19 +1,19 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Image,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
-import * as ImagePicker from "expo-image-picker";
-import * as Location from "expo-location";
 
-import PrimaryButton from "../../components/PrimaryButton";
 import InputField from "../../components/InputField";
+import PrimaryButton from "../../components/PrimaryButton";
+import ProfileImageUpload from "../../components/ProfileImageUpload";
 
 const BRAND_COLOR = "#f59e0b";
 
@@ -126,24 +126,10 @@ export default function ReporterProfileSetupScreen() {
       </View>
 
       {/* 📸 Profile Image (optional) */}
-      <View style={styles.imageContainer}>
-        <View style={styles.avatar}>
-          {image ? (
-            <Image source={{ uri: image }} style={styles.avatarImage} />
-          ) : (
-            <Ionicons name="person-outline" size={40} color="#999" />
-          )}
-        </View>
-
-        <TouchableOpacity style={styles.editIcon} onPress={handlePickImage}>
-          <Ionicons name="pencil" size={14} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
-      <Text style={styles.uploadText}>Upload Photo</Text>
-      <Text style={styles.subText}>
-        (Optional)
-      </Text>
+      <ProfileImageUpload
+        imageUri={image}
+        onPress={handlePickImage}
+      />
 
       {/* 📞 Phone */}
       <Text style={styles.label}>Phone Number *</Text>

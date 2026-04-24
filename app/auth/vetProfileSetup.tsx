@@ -2,22 +2,22 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Image,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
-import PrimaryButton from "../../components/PrimaryButton";
-import InputField from "../../components/InputField";
-import FormSection from "../../components/FormSection";
 import FileUploadField from "../../components/FileUploadField";
+import FormSection from "../../components/FormSection";
+import InputField from "../../components/InputField";
+import PrimaryButton from "../../components/PrimaryButton";
+import ProfileImageUpload from "../../components/ProfileImageUpload";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -202,23 +202,12 @@ export default function VetProfileSetupScreen() {
       </Text>
 
       {/* Profile Photo */}
-      <View style={styles.imageSection}>
-        <View style={styles.avatarWrapper}>
-          {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person-outline" size={42} color="#999" />
-            </View>
-          )}
-
-          <TouchableOpacity style={styles.editIcon} onPress={handlePickProfileImage}>
-            <Ionicons name="camera-outline" size={14} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.uploadText}>Upload profile photo</Text>
-      </View>
+      <ProfileImageUpload
+        imageUri={profileImage}
+        onPress={handlePickProfileImage}
+        label="Upload profile photo"
+        icon="medkit-outline"
+      />
 
       {/* Personal Details */}
       <FormSection title="Personal Details">
@@ -390,33 +379,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 22,
   },
-  avatarWrapper: {
-    position: "relative",
-  },
-  avatarPlaceholder: {
-    width: 92,
-    height: 92,
-    borderRadius: 10,
-    backgroundColor: "#FCE5D6",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarImage: {
-    width: 92,
-    height: 92,
-    borderRadius: 10,
-  },
-  editIcon: {
-    position: "absolute",
-    right: -6,
-    bottom: -6,
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    backgroundColor: BRAND_COLOR,
-    justifyContent: "center",
-    alignItems: "center",
-  },
+  
   uploadText: {
     marginTop: 10,
     fontSize: 12,

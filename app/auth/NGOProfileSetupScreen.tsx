@@ -2,21 +2,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Image,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
-import PrimaryButton from "../../components/PrimaryButton";
-import InputField from "../../components/InputField";
-import FormSection from "../../components/FormSection";
 import FileUploadField from "../../components/FileUploadField";
+import FormSection from "../../components/FormSection";
+import InputField from "../../components/InputField";
+import PrimaryButton from "../../components/PrimaryButton";
+import ProfileImageUpload from "../../components/ProfileImageUpload";
 
 const BRAND_COLOR = "#f59e0b";
 
@@ -100,19 +100,12 @@ export default function ngoProfileSetup() {
       </View>
 
       {/* Profile Image */}
-      <View style={styles.imageContainer}>
-        <View style={styles.avatar}>
-          {image ? (
-            <Image source={{ uri: image }} style={styles.avatarImage} />
-          ) : (
-            <Ionicons name="leaf-outline" size={40} color="#999" />
-          )}
-        </View>
-
-        <TouchableOpacity style={styles.editIcon} onPress={handlePickImage}>
-          <Ionicons name="pencil" size={14} color="#fff" />
-        </TouchableOpacity>
-      </View>
+      <ProfileImageUpload
+        imageUri={image}
+        onPress={handlePickImage}
+        label="Upload organization logo"
+        icon="business-outline"
+/>
 
       {/* ORGANIZATION DETAILS */}
       <FormSection title="Organization Details">
@@ -188,30 +181,5 @@ const styles = StyleSheet.create({
   },
   headerTitle: {
     fontWeight: "600",
-  },
-  imageContainer: {
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#e6f4ea",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 50,
-  },
-  editIcon: {
-    position: "absolute",
-    bottom: 0,
-    right: 120,
-    backgroundColor: BRAND_COLOR,
-    padding: 6,
-    borderRadius: 20,
   },
 });

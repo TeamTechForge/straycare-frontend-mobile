@@ -2,21 +2,21 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-  Image,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
-import PrimaryButton from "../../components/PrimaryButton";
-import InputField from "../../components/InputField";
 import FormSection from "../../components/FormSection";
+import InputField from "../../components/InputField";
+import PrimaryButton from "../../components/PrimaryButton";
+import ProfileImageUpload from "../../components/ProfileImageUpload";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -142,23 +142,10 @@ export default function VolunteerProfileSetupScreen() {
       </Text>
 
       {/* Profile Image */}
-      <View style={styles.imageSection}>
-        <View style={styles.avatarWrapper}>
-          {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person-outline" size={34} color={BRAND_COLOR} />
-            </View>
-          )}
-
-          <TouchableOpacity style={styles.editIcon} onPress={handlePickProfileImage}>
-            <Ionicons name="camera-outline" size={14} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        <Text style={styles.uploadText}>Upload profile photo</Text>
-      </View>
+     <ProfileImageUpload
+        imageUri={profileImage}
+        onPress={handlePickProfileImage}
+      />
 
       {/* Basic Information */}
       <FormSection title="Basic Information">
