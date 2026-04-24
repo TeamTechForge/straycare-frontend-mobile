@@ -134,7 +134,7 @@ const CreatePost = () => {
     }
   };
 
-  // ❌ REMOVE IMAGE
+  // REMOVE IMAGE
   const removeImage = (index: number) => {
     const updated = form.images.filter((_, i) => i !== index);
     updateForm('images', updated);
@@ -383,9 +383,10 @@ const CreatePost = () => {
 
         <Text style={styles.label}>Description</Text>
         <TextInput
-          style={styles.input}
+          style={[styles.input, styles.textArea]}
           placeholder="Enter description"
           multiline
+          textAlignVertical="top"
           onChangeText={t => updateForm('description', t)}
           onBlur={() => validateField('description')}
         />
@@ -595,13 +596,21 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#fff',
     marginTop: 5,
+    marginBottom: 10,
     maxHeight: 200,
+    zIndex: 1000,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
   },
 
   dropdownItem: {
     padding: 12,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
+    backgroundColor: '#fff',
   },
 
   dropdownItemActive: {
@@ -623,6 +632,11 @@ const styles = StyleSheet.create({
     borderColor: '#ddd', 
     padding: 12, 
     borderRadius: 8 },
+
+  textArea: {
+    minHeight: 120,
+    paddingTop: 12,
+  },
 
   uploadBox: {
     borderWidth: 1,
@@ -658,6 +672,7 @@ const styles = StyleSheet.create({
 
   buttons: { 
     flexDirection: 'row', 
+    marginTop: 20,
     marginBottom: 30 },
 
   backBtn: { 
