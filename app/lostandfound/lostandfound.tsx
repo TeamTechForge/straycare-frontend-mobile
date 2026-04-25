@@ -49,7 +49,9 @@ export default function LostAndFound() {
         </TouchableOpacity>
 
         <Text style={styles.title}>Lost & Found</Text>
-        <View style={{ width: 28 }} />
+        <TouchableOpacity onPress={() => router.push('/lostandfound/createPost')}>
+          <Ionicons name="add" size={28} color="#000" />
+        </TouchableOpacity>
       </View>
 
       <Text style={styles.subtitle}>
