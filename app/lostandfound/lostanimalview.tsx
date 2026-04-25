@@ -131,8 +131,7 @@ export default function LostAnimalScreen() {
           <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Lost Animal</Text>
-        <TouchableOpacity onPress={() => router.push("/lostandfound/createlostpost1")}>
-          <MaterialIcons name="add" size={28} color="#000" />
+        <TouchableOpacity onPress={() => router.push("/lostandfound/createPost")}>
         </TouchableOpacity>
       </View>
 
