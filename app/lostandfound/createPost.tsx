@@ -14,6 +14,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
+import { createAnimalPost } from '../../api/api';
 
 const CreatePost = () => {
   const router = useRouter();
@@ -37,11 +38,35 @@ const CreatePost = () => {
   const [breedDropdownOpen, setBreedDropdownOpen] = useState(false);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const updateForm = (key: string, value: any) => {
     setForm(prev => ({ ...prev, [key]: value }));
     setErrors(prev => ({ ...prev, [key]: '' }));
     if (errorMessage) setErrorMessage('');
+  };
+
+  const handleSubmit = async () => {
+    if (!validateForm()) return;
+
+    setIsSubmitting(true);
+    try {
+      await createAnimalPost(form);
+
+      const route =
+        form.status === 'found'
+          ? '/lostandfound/foundAnimalView'
+          : '/lostandfound/lostanimalview';
+
+      router.push(route);
+    } catch (error: any) {
+      const message =
+        error?.response?.data?.message ||
+        'Failed to create post. Please try again.';
+      showValidationError(message);
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const validateField = (field: string) => {
@@ -488,19 +513,11 @@ const CreatePost = () => {
         </TouchableOpacity>
 
         <TouchableOpacity
-          style={styles.submitBtn}
-          onPress={() => {
-            if (!validateForm()) return;
-
-            const route =
-              form.status === 'found'
-                ? '/lostandfound/foundAnimalView'
-                : '/lostandfound/lostanimalview';
-
-            router.push(route);
-          }}
+          style={[styles.submitBtn, isSubmitting && styles.disabledBtn]}
+          onPress={handleSubmit}
+          disabled={isSubmitting}
         >
-          <Text style={styles.btnText}>Submit</Text>
+          <Text style={styles.btnText}>{isSubmitting ? 'Submitting...' : 'Submit'}</Text>
         </TouchableOpacity>
       </View>
 
@@ -690,6 +707,10 @@ const styles = StyleSheet.create({
     marginLeft: 5, 
     borderRadius: 8, 
     alignItems: 'center' },
+
+  disabledBtn: {
+    backgroundColor: '#b8b8b8',
+  },
 
   btnText: { 
     color: '#fff', 
