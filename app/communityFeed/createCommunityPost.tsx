@@ -1,7 +1,10 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  Alert,
+  Image,
   ScrollView,
   StyleSheet,
   Text,
@@ -10,7 +13,7 @@ import {
   View,
 } from "react-native";
 
-// Category options matching the HTML chips
+// ── Category options ─────────────────────────────────────────────────────────
 const CATEGORIES = [
   "Pet Care Tips",
   "Health & First Aid",
@@ -21,6 +24,33 @@ const CATEGORIES = [
   "Events & Campaigns",
 ];
 
+// ── Validation ───────────────────────────────────────────────────────────────
+function validateForm(
+  title: string,
+  content: string,
+  authorName: string
+): Record<string, string> {
+  const errors: Record<string, string> = {};
+
+  if (!title.trim()) {
+    errors.title = "Please fill in the post title.";
+  } else if (title.trim().length < 5) {
+    errors.title = "Title must be at least 5 characters.";
+  }
+
+  if (!content.trim()) {
+    errors.content = "Please fill in the post content.";
+  } else if (content.trim().length < 20) {
+    errors.content = "Content must be at least 20 characters.";
+  }
+
+  if (!authorName.trim()) {
+    errors.authorName = "Please fill in your name.";
+  }
+
+  return errors;
+}
+
 export default function CreateCommunityPost() {
   const router = useRouter();
 
@@ -28,22 +58,76 @@ export default function CreateCommunityPost() {
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
   const [authorName, setAuthorName] = useState("");
-  const [sightingDate, setSightingDate] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Pet Care Tips");
 
-  // Handle form submission
-  const handleSubmit = () => {
-    console.log({
-      title,
-      content,
-      authorName,
-      sightingDate,
-      selectedCategory,
+  // Image state — stores the local URI of the picked image
+  const [imageUri, setImageUri] = useState<string | null>(null);
+
+  // Validation state
+  const [errors, setErrors] = useState<Record<string, string>>({});
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // ── Image picker ────────────────────────────────────────────────────────────
+  const handlePickImage = async () => {
+    const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (status !== "granted") {
+      Alert.alert(
+        "Permission needed",
+        "Please allow access to your photo library to upload an image."
+      );
+      return;
+    }
+
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      allowsEditing: true,
+      aspect: [5, 4],
+      quality: 0.8,
     });
 
-    
+    if (!result.canceled && result.assets.length > 0) {
+      setImageUri(result.assets[0].uri);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setImageUri(null);
+  };
+
+  // ── Blur handler ────────────────────────────────────────────────────────────
+  const handleBlur = (field: string) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+    setErrors(validateForm(title, content, authorName));
+  };
+
+  // ── Submit ──────────────────────────────────────────────────────────────────
+  const handleSubmit = () => {
+    // Mark all fields touched so all errors become visible
+    setTouched({ title: true, content: true, authorName: true });
+
+    const newErrors = validateForm(title, content, authorName);
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
+
+    // Auto-capture date & time at the moment of submission
+    const submittedAt = new Date().toISOString();
+
+    // ✅ All valid
+    console.log({
+      title: title.trim(),
+      content: content.trim(),
+      authorName: authorName.trim(),
+      selectedCategory,
+      imageUri,
+      submittedAt, // e.g. "2025-04-26T14:32:00.000Z"
+    });
+
     // TODO: connect to API
   };
+
+  // Helper: only show error if the field has been touched
+  const showError = (field: string) => touched[field] && errors[field];
 
   return (
     <View style={styles.container}>
@@ -56,7 +140,6 @@ export default function CreateCommunityPost() {
           <Ionicons name="chevron-back" size={24} color="#1f2937" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Create Community Post</Text>
-        {/* Spacer to centre the title */}
         <View style={styles.headerSpacer} />
       </View>
 
@@ -70,12 +153,21 @@ export default function CreateCommunityPost() {
         <View style={styles.section}>
           <Text style={styles.label}>Post Title</Text>
           <TextInput
-            style={styles.input}
+            style={[styles.input, showError("title") && styles.inputError]}
             placeholder="Enter the title of the post"
             placeholderTextColor="#94a3b8"
             value={title}
-            onChangeText={setTitle}
+            onChangeText={(text) => {
+              setTitle(text);
+              if (touched.title) {
+                setErrors(validateForm(text, content, authorName));
+              }
+            }}
+            onBlur={() => handleBlur("title")}
           />
+          {showError("title") && (
+            <Text style={styles.errorText}>{errors.title}</Text>
+          )}
         </View>
 
         {/* ── Category Chips ── */}
@@ -108,52 +200,93 @@ export default function CreateCommunityPost() {
         <View style={styles.section}>
           <Text style={styles.label}>Post Content</Text>
           <TextInput
-            style={[styles.input, styles.textArea]}
+            style={[
+              styles.input,
+              styles.textArea,
+              showError("content") && styles.inputError,
+            ]}
             placeholder="Enter the content of the post"
             placeholderTextColor="#94a3b8"
             value={content}
-            onChangeText={setContent}
+            onChangeText={(text) => {
+              setContent(text);
+              if (touched.content) {
+                setErrors(validateForm(title, text, authorName));
+              }
+            }}
+            onBlur={() => handleBlur("content")}
             multiline
             numberOfLines={5}
             textAlignVertical="top"
           />
+          {showError("content") && (
+            <Text style={styles.errorText}>{errors.content}</Text>
+          )}
+          <Text style={styles.charCount}>{content.length} characters</Text>
         </View>
 
         {/* ── Upload Photo (Optional) ── */}
         <View style={styles.section}>
           <Text style={styles.label}>Upload Photo (Optional)</Text>
-          <TouchableOpacity style={styles.uploadBox}>
-            <View style={styles.uploadIconCircle}>
-              <Ionicons name="camera-outline" size={24} color="#eab308" />
+
+          {imageUri ? (
+            // ── Filled state: full image preview ──
+            <View style={styles.imagePreviewContainer}>
+              <Image
+                source={{ uri: imageUri }}
+                style={styles.imagePreview}
+                resizeMode="cover"
+              />
+              {/* Badge bottom-left */}
+              <View style={styles.imageBadge}>
+                <Ionicons name="checkmark-circle" size={16} color="#ffffff" />
+                <Text style={styles.imageBadgeText}>Image added</Text>
+              </View>
+              {/* Remove button top-right */}
+              <TouchableOpacity
+                style={styles.removeImageButton}
+                onPress={handleRemoveImage}
+              >
+                <Ionicons name="close-circle" size={28} color="#ef4444" />
+              </TouchableOpacity>
             </View>
-            <Text style={styles.uploadPrimary}>Tap to upload animal photo</Text>
-            <Text style={styles.uploadSecondary}>PNG, JPG up to 10MB</Text>
-          </TouchableOpacity>
+          ) : (
+            // ── Empty state: upload prompt ──
+            <TouchableOpacity
+              style={styles.uploadBox}
+              onPress={handlePickImage}
+            >
+              <View style={styles.uploadIconCircle}>
+                <Ionicons name="camera-outline" size={24} color="#eab308" />
+              </View>
+              <Text style={styles.uploadPrimary}>Tap to upload animal photo</Text>
+              <Text style={styles.uploadSecondary}>PNG, JPG up to 10MB</Text>
+            </TouchableOpacity>
+          )}
         </View>
 
         {/* ── Author Name ── */}
         <View style={styles.section}>
           <Text style={styles.label}>Author Name</Text>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              showError("authorName") && styles.inputError,
+            ]}
             placeholder="Your name"
             placeholderTextColor="#94a3b8"
             value={authorName}
-            onChangeText={setAuthorName}
+            onChangeText={(text) => {
+              setAuthorName(text);
+              if (touched.authorName) {
+                setErrors(validateForm(title, content, text));
+              }
+            }}
+            onBlur={() => handleBlur("authorName")}
           />
-        </View>
-
-        {/* ── Date of Sighting ── */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Date of Sighting</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="YYYY-MM-DD"
-            placeholderTextColor="#94a3b8"
-            value={sightingDate}
-            onChangeText={setSightingDate}
-            keyboardType="numbers-and-punctuation"
-          />
+          {showError("authorName") && (
+            <Text style={styles.errorText}>{errors.authorName}</Text>
+          )}
         </View>
 
         {/* ── Vertical Spacer ── */}
@@ -162,7 +295,6 @@ export default function CreateCommunityPost() {
         {/* ── Action Buttons ── */}
         <View style={styles.actionsSection}>
           <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            
             <Text style={styles.submitButtonText}>Submit Post</Text>
           </TouchableOpacity>
 
@@ -178,9 +310,8 @@ export default function CreateCommunityPost() {
   );
 }
 
-// ── Styles ──────────────────────────────────────────────────────────────────
+// ── Styles ───────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  // Root container
   container: {
     flex: 1,
     backgroundColor: "#ffffff",
@@ -208,7 +339,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1f2937",
   },
-  // Balances the back button so the title stays centred
   headerSpacer: {
     width: 40,
   },
@@ -223,12 +353,10 @@ const styles = StyleSheet.create({
     paddingBottom: 40,
   },
 
-  // ── Generic Form Section Wrapper ──
+  // ── Section wrapper ──
   section: {
     marginBottom: 28,
   },
-
-  // Section label
   label: {
     fontSize: 13,
     fontWeight: "600",
@@ -247,11 +375,27 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#1f2937",
   },
-
-  // Multiline textarea variant
+  inputError: {
+    borderColor: "#ef4444",
+    borderWidth: 1.5,
+  },
   textArea: {
     minHeight: 120,
     paddingTop: 14,
+  },
+
+  // ── Validation ──
+  errorText: {
+    marginTop: 6,
+    fontSize: 12,
+    color: "#ef4444",
+    fontWeight: "500",
+  },
+  charCount: {
+    marginTop: 4,
+    fontSize: 11,
+    color: "#94a3b8",
+    textAlign: "right",
   },
 
   // ── Category Chips ──
@@ -268,7 +412,6 @@ const styles = StyleSheet.create({
     borderColor: "#e2e8f0",
     backgroundColor: "#ffffff",
   },
-  // Active / selected chip (yellow fill)
   chipActive: {
     backgroundColor: "#f5c542",
     borderColor: "#f5c542",
@@ -282,7 +425,7 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 
-  // ── Upload Photo Box ──
+  // ── Upload box — empty state ──
   uploadBox: {
     borderWidth: 2,
     borderColor: "#cbd5e1",
@@ -294,7 +437,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  // Yellow circle icon container
   uploadIconCircle: {
     width: 48,
     height: 48,
@@ -315,7 +457,44 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 
-  // ── Vertical Spacer ──
+  // ── Image preview — filled state ──
+  imagePreviewContainer: {
+    width: "100%",
+    height: 200,
+    borderRadius: 16,
+    overflow: "hidden",
+    position: "relative",
+  },
+  imagePreview: {
+    width: "100%",
+    height: "100%",
+  },
+  imageBadge: {
+    position: "absolute",
+    bottom: 10,
+    left: 10,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(0,0,0,0.55)",
+    paddingVertical: 4,
+    paddingHorizontal: 10,
+    borderRadius: 9999,
+    gap: 4,
+  },
+  imageBadgeText: {
+    fontSize: 12,
+    color: "#ffffff",
+    fontWeight: "600",
+  },
+  removeImageButton: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "#ffffff",
+    borderRadius: 9999,
+  },
+
+  // ── Spacer ──
   spacer: {
     height: 48,
   },
@@ -324,7 +503,6 @@ const styles = StyleSheet.create({
   actionsSection: {
     gap: 12,
   },
-  // Primary yellow submit button
   submitButton: {
     width: "100%",
     paddingVertical: 16,
@@ -342,7 +520,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#1f2937",
   },
-  // Secondary light cancel button
   cancelButton: {
     width: "100%",
     paddingVertical: 16,
