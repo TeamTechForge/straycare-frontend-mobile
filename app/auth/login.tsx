@@ -1,6 +1,7 @@
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { useState } from "react";
 import {
   Image,
   StyleSheet,
@@ -22,6 +23,8 @@ const loginSchema = z.object({
 
 export default function LoginScreen() {
   const router = useRouter();
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+
   
   const {
     control,
@@ -101,13 +104,25 @@ export default function LoginScreen() {
   control={control}
   name="password"
   render={({ field: { onChange, value } }) => (
-    <TextInput
-      style={styles.input}
-      placeholder="Password"
-      secureTextEntry
-      value={value}
-      onChangeText={onChange}
-    />
+    <View style={styles.passwordContainer}>
+      <TextInput
+        style={styles.passwordInput}
+        placeholder="Password"
+        secureTextEntry={!isPasswordVisible}
+        value={value}
+        onChangeText={onChange}
+      />
+      <TouchableOpacity
+        onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+        style={styles.eyeIcon}
+      >
+        <Ionicons
+          name={isPasswordVisible ? "eye-off" : "eye"}
+          size={20}
+          color="#6B7280"
+        />
+      </TouchableOpacity>
+    </View>
   )}
 />
 
@@ -207,6 +222,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
     backgroundColor: "#F9FAFB",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: "#F9FAFB",
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
+  },
+  eyeIcon: {
+    paddingHorizontal: 12,
   },
   forgotContainer: {
     alignSelf: "flex-end",

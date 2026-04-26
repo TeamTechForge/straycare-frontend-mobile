@@ -10,9 +10,7 @@ export default function VerificationPendingScreen() {
   const router = useRouter();
 
   const handleReturnHome = () => {
-    // TODO: later connect real navigation logic
-    // For now, send user to home or landing page
-    router.replace("/home");
+    router.replace("/(tabs)/home");
   };
 
   const handleContactSupport = () => {

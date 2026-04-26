@@ -1,9 +1,32 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 
 export default function HomeScreen() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        if (!token) return;
+
+        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setUser(data);
+        }
+      } catch (error) {
+        console.error("Home fetch user error:", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -14,14 +37,17 @@ export default function HomeScreen() {
           style={styles.logo}
         />
 
-        <TouchableOpacity style={styles.notificationIcon}>
+        <TouchableOpacity 
+          style={styles.notificationIcon}
+          onPress={() => router.push("/notifications")}
+        >
           <Ionicons name="notifications-outline" size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
       {/* GREETING */}
       <Text style={styles.greeting}>
-        Hello, User 👋{"\n"}
+        Hello, {user?.organizationName || user?.name || "User"} 👋{"\n"}
         <Text style={styles.greetingSub}>
           Together we can save more stray animals 🐾
         </Text>

@@ -1,4 +1,6 @@
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, Image } from "react-native";
 
 import PrimaryButton from "../../components/PrimaryButton";
@@ -7,13 +9,30 @@ const BRAND_COLOR = "#F5A623";
 
 export default function OnboardingCompleteScreen() {
   const router = useRouter();
+  const [userName, setUserName] = useState("User");
 
-  // TODO: later replace this with real user name from backend / auth context
-  const userName = "Name";
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        if (!token) return;
+
+        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setUserName(data.name);
+        }
+      } catch (error) {
+        console.error("Fetch user error:", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleGetStarted = () => {
-    // TODO: later navigate based on role/dashboard
-    router.replace("/home");
+    router.replace("/(tabs)/home");
   };
 
   return (
