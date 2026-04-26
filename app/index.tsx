@@ -1,4 +1,3 @@
-
 import { Link } from "expo-router";
 import { Text, TouchableOpacity, View } from "react-native";
 
@@ -11,6 +10,7 @@ export default function Index() {
         alignItems: "center",
       }}
     >
+
       <Link href="/lostandfound/lostandfound" asChild>
         <TouchableOpacity
           style={{
@@ -23,22 +23,6 @@ export default function Index() {
         >
           <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
             Go to Lost and Found
-          </Text>
-        </TouchableOpacity>
-      </Link>
-
-      <Link href="/communityFeed/communityPostMain" asChild>
-        <TouchableOpacity
-          style={{
-            backgroundColor: "purple",
-            paddingVertical: 12,
-            paddingHorizontal: 32,
-            borderRadius: 8,
-            marginTop: 24,
-          }}
-        >
-          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
-            Go to Community Feed
           </Text>
         </TouchableOpacity>
       </Link>
