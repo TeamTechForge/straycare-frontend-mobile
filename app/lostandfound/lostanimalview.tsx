@@ -1,90 +1,43 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { getLostPosts } from "../../api/api";
 
 type Pet = {
-  id: number;
+  _id: string; 
   type: string;
   breed: string;
   name: string;
   description: string;
   location: string;
   time: string;
-  image: any;
+  image: string; 
 };
-
-const samplePets: Pet[] = [
-  {
-    id: 1,
-    type: "Dog",
-    breed: "Golden Retriever",
-    name: "Max",
-    description: "Brown dog missing near Main Street. Wearing a blue collar.",
-    location: "Brooklyn, NY",
-    time: "2h ago",
-    image: require("../../assets/images/Dog_(128484081).jpeg"),
-  },
-  {
-    id: 2,
-    type: "Cat",
-    breed: "Tabby Cat",
-    name: "Luna",
-    description: "Found wandering in Central Park near the fountain. Very friendly.",
-    location: "Manhattan, NY",
-    time: "5h ago",
-    image: require("../../assets/images/cat main.jpeg"),
-  },
-  
-  {
-    id: 4,
-    type: "Cat",
-    breed: "Persian",
-    name: "Whiskers",
-    description: "White Persian cat found in the neighborhood. Looking for owner.",
-    location: "Bronx, NY",
-    time: "3h ago",
-    image: require("../../assets/images/images (1).jpg"),
-  },
-  {
-    id: 5,
-    type: "Dog",
-    breed: "Husky",
-    name: "Buddy",
-    description: "Gray and white Husky missing from West Side. Has a distinctive scar on nose.",
-    location: "Manhattan, NY",
-    time: "4h ago",
-    image: require("../../assets/images/happy-pet-dogs-playing-park_1359-280.avif"),
-  },
-  {
-    id: 6,
-    type: "Cat",
-    breed: "Siamese",
-    name: "Milo",
-    description: "Cream-colored Siamese cat found in Queens. Very vocal and playful.",
-    location: "Queens, NY",
-    time: "6h ago",
-    image: require("../../assets/images/download (4).jpg"),
-  },
-  {
-    id: 7,
-    type: "Dog",
-    breed: "Beagle",
-    name: "Scout",
-    description: "Small brown Beagle missing near the park. Answers to Scout.",
-    location: "Brooklyn, NY",
-    time: "8h ago",
-    image: require("../../assets/images/download.jpg"),
-  },
-  
-];
 
 export default function LostAnimalScreen() {
   const [filter, setFilter] = useState<string>("All");
   const [search, setSearch] = useState<string>("");
+  const [pets, setPets] = useState<Pet[]>([]);
   const router = useRouter();
 
-  const filteredPets = samplePets.filter((pet) => {
+  //FETCH FROM BACKEND
+  useEffect(() => {
+    fetchLostPosts();
+  }, []);
+
+  const fetchLostPosts = async () => {
+  try {
+    const response = await getLostPosts();
+
+    console.log("API RESPONSE:", response.data); 
+
+    setPets(response.data); 
+  } catch (error) {
+    console.log("Error fetching posts:", error);
+  }
+};
+  const filteredPets = pets.filter((pet) => {
     const matchesFilter = filter === "All" || pet.type === filter;
     const matchesSearch =
       search === "" ||
@@ -96,25 +49,31 @@ export default function LostAnimalScreen() {
 
   const renderPet = ({ item }: { item: Pet }) => (
     <View style={styles.card}>
-      <Image source={item.image} style={styles.image} />
+      {/* IMAGE FROM BACKEND */}
+    <Image source={{ uri: item.image?.[0] }} style={styles.image} /> 
       <View style={styles.info}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>
             {item.breed} {item.name !== "Unknown" ? `- ${item.name}` : ""}
           </Text>
+
           <View style={[styles.badge, { backgroundColor: item.type === "Dog" ? "#F5A623" : "#ffb700" }]}>
             <Text style={styles.badgeText}>{item.type}</Text>
           </View>
         </View>
+
         <Text style={styles.description}>{item.description}</Text>
+
         <View style={styles.metaRow}>
           <MaterialIcons name="location-on" size={14} color="#F5A623" />
           <Text style={styles.meta}>{item.location}</Text>
         </View>
+
         <View style={styles.metaRow}>
           <MaterialIcons name="access-time" size={14} color="#F5A623" />
           <Text style={styles.meta}>{item.time}</Text>
         </View>
+
         <TouchableOpacity style={styles.contactBtn}>
           <MaterialIcons name="phone" size={16} color="#fff" />
           <Text style={styles.contactText}>Contact Owner</Text>
@@ -130,12 +89,16 @@ export default function LostAnimalScreen() {
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Lost Animal</Text>
+
+        {/* ✅ ADDED PLUS BUTTON */}
         <TouchableOpacity onPress={() => router.push("/lostandfound/createPost")}>
+          <Ionicons name="add" size={28} color="#000" />
         </TouchableOpacity>
       </View>
 
-      {/* Search Bar */}
+      {/* Search */}
       <TextInput
         style={styles.searchBar}
         placeholder="Search by breed, name..."
@@ -159,12 +122,11 @@ export default function LostAnimalScreen() {
         ))}
       </View>
 
-      {/* Pet List */}
+      {/* List */}
       <FlatList
         data={filteredPets}
         renderItem={renderPet}
-        keyExtractor={(item) => item.id.toString()}
-        scrollEnabled={true}
+        keyExtractor={(item) => item._id} // ✅ changed
       />
     </View>
   );

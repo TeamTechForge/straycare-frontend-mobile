@@ -46,28 +46,41 @@ const CreatePost = () => {
     if (errorMessage) setErrorMessage('');
   };
 
-  const handleSubmit = async () => {
-    if (!validateForm()) return;
+ // handle the submit function with validation and API call
+ const handleSubmit = async () => {
+  //if (!validateForm()) return;
 
-    setIsSubmitting(true);
-    try {
-      await createAnimalPost(form);
+  setIsSubmitting(true);
 
-      const route =
-        form.status === 'found'
-          ? '/lostandfound/foundAnimalView'
-          : '/lostandfound/lostanimalview';
+  try {
+    console.log("FORM DATA:", form);
+    console.log("SENDING TO BACKEND:", form);
 
-      router.push(route);
-    } catch (error: any) {
-      const message =
-        error?.response?.data?.message ||
-        'Failed to create post. Please try again.';
-      showValidationError(message);
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
+    await createAnimalPost(form);
+
+    const route =
+      form.status === 'lost'
+        ? '/lostandfound/lostanimalview'
+        : '/lostandfound/foundAnimalView';
+
+    router.push(route);
+
+  } catch (error: any) {
+
+    console.log("FULL ERROR:", error);
+    console.log("RESPONSE:", error?.response);
+    console.log("MESSAGE:", error.message);
+
+    const message =
+      error?.response?.data?.message ||
+      'Failed to create post. Please try again.';
+
+    showValidationError(message);
+
+  } finally {
+    setIsSubmitting(false);
+  }
+};
 
   const validateField = (field: string) => {
     let message = '';
