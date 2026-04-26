@@ -26,7 +26,7 @@ export default function WelcomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex:1, justifyContent:"center", alignItems:"center", padding:20 },
+  container: { flex:1, justifyContent:"center", alignItems:"center", padding:50 },
   logo: { width:150, height:150, marginBottom:20, resizeMode:"contain" },
   title: { fontSize:24, fontWeight:"bold", marginBottom:30, textAlign:"center" }
 });
