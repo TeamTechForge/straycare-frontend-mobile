@@ -2,13 +2,13 @@ import { Ionicons, MaterialCommunityIcons, MaterialIcons } from "@expo/vector-ic
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 const C = {
@@ -69,7 +69,7 @@ function PostCard({ post }: { post: (typeof POSTS)[0] }) {
       activeOpacity={0.95}
       onPress={() =>
         router.push({
-          pathname: "/communityFeed/postView",
+          pathname: "/communityFeed/communityPostView",
           params: { id: post.id },
         })
       }
@@ -108,7 +108,7 @@ function PostCard({ post }: { post: (typeof POSTS)[0] }) {
             <TouchableOpacity
               style={styles.actionBtn}
               onPress={(e) => {
-                e.stopPropagation(); // prevent card navigation on like tap
+                e.stopPropagation();
                 setLiked(!liked);
               }}
             >
@@ -141,7 +141,7 @@ function PostCard({ post }: { post: (typeof POSTS)[0] }) {
 
           <TouchableOpacity
             onPress={(e) => {
-              e.stopPropagation(); // prevent card navigation on save tap
+              e.stopPropagation();
               setSaved(!saved);
             }}
           >
@@ -168,11 +168,11 @@ export default function CommunityFeed() {
     <View style={styles.container}>
       {/* Sticky Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.push("/")}>
           <Ionicons name="chevron-back" size={26} color={C.onSurface} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Community Feed</Text>
-        <TouchableOpacity onPress={() => router.push("/communityFeed/createPost")}>
+        <TouchableOpacity onPress={() => router.push("/communityFeed/createCommunityPost")}>
           <Ionicons name="add" size={26} color={C.onSurface} />
         </TouchableOpacity>
       </View>
