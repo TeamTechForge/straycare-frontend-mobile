@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import {
   StyleSheet,
   Text,
@@ -30,6 +31,25 @@ export default function ReporterProfileSetupScreen() {
     phone: "",
     location: "",
   });
+
+  // Fetch user details on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          if (data.phone) setPhone(data.phone);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   // ✅ image (optional)
   const handlePickImage = async () => {
@@ -100,18 +120,34 @@ export default function ReporterProfileSetupScreen() {
   };
 
   // ✅ submit
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
 
-    // 🔥 TODO: send to backend
-    console.log({
-      phone,
-      location,
-      bio,     // optional
-      image,   // optional
-    });
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      const response = await fetch("http://192.168.8.142:5000/api/profiles/general", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          location,
+          bio,
+          profileImage: image, // Frontend should ideally upload to cloudinary first, but we'll send URI for now as per controller expectation
+        }),
+      });
 
-    router.replace("/home");
+      const data = await response.json();
+      if (response.ok) {
+        router.replace("/auth/completedProfileSetup");
+      } else {
+        alert(data.message || "Failed to save profile");
+      }
+    } catch (error) {
+      console.error("Profile submission error:", error);
+      alert("Something went wrong. Please check connection.");
+    }
   };
 
   return (

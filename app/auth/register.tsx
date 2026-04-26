@@ -1,5 +1,6 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import {
   Image,
@@ -10,26 +11,17 @@ import {
   View,
 } from "react-native";
 
+import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
-import InputField from "../../components/InputField"; // ✅ USING REUSABLE
 
 const BRAND_COLOR = "#F5A623";
 
 export default function RegisterScreen() {
-  const [isChecked, setIsChecked] = useState(false);
-  const params = useLocalSearchParams();
-    
-    useEffect(() => {
-      if (params.agreed === "true") {
-      setIsChecked(true);
-      }
-    }, [params.agreed]);
-
   const router = useRouter();
+  const params = useLocalSearchParams();
 
   const [agree, setAgree] = useState(false);
 
-  // form states
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -38,7 +30,18 @@ export default function RegisterScreen() {
 
   const [errors, setErrors] = useState<any>({});
 
-  
+  useEffect(() => {
+    if (params.agreed === "true") {
+      setAgree(true);
+      // Restore typed values from params
+      if (params.name) setName(params.name as string);
+      if (params.email) setEmail(params.email as string);
+      if (params.phone) setPhone(params.phone as string);
+      if (params.password) setPassword(params.password as string);
+      if (params.confirmPassword) setConfirmPassword(params.confirmPassword as string);
+    }
+  }, [params]);
+
   const validateForm = () => {
     let newErrors: any = {};
 
@@ -74,29 +77,62 @@ export default function RegisterScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
+  const handleRegister = async () => {
+    try {
+      if (!validateForm()) return;
+
+      const response = await fetch(
+        "http://192.168.8.142:5000/api/auth/register",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            phone,
+            password,
+          }),
+        }
+      );
+
+      const data = await response.json();
+
+      console.log("Registration response:", data);
+
+      if (response.ok) {
+        // Store JWT securely — never pass userId through route params
+        await SecureStore.setItemAsync("authToken", data.token);
+
+        router.push("/auth/roleSelection");
+      } else {
+        alert(data.message || "Registration failed");
+      }
+    } catch (error) {
+      console.error("Registration error:", error);
+      alert("Something went wrong. Please check backend connection.");
+    }
+  };
+
   return (
     <ScrollView
       style={styles.container}
       contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* TOP IMAGE */}
       <Image
         source={require("../../assets/images/signupimg.jpg")}
         style={styles.topImage}
       />
 
-      {/* CARD */}
       <View style={styles.card}>
-        <Text style={styles.title}>
-          Create your StrayCare account
-        </Text>
+        <Text style={styles.title}>Create your StrayCare account</Text>
 
         <Text style={styles.subtitle}>
           Join our community and help save lives
         </Text>
 
-        {/* NAME */}
         <Text style={styles.label}>Name</Text>
         <InputField
           placeholder="John Doe"
@@ -105,7 +141,6 @@ export default function RegisterScreen() {
         />
         {errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
-        {/* EMAIL */}
         <Text style={styles.label}>Email Address</Text>
         <InputField
           placeholder="Johndoe@gmail.com"
@@ -114,7 +149,6 @@ export default function RegisterScreen() {
         />
         {errors.email && <Text style={styles.error}>{errors.email}</Text>}
 
-        {/* PHONE */}
         <Text style={styles.label}>Phone Number</Text>
         <InputField
           placeholder="+94 77 555 5555"
@@ -123,7 +157,6 @@ export default function RegisterScreen() {
         />
         {errors.phone && <Text style={styles.error}>{errors.phone}</Text>}
 
-        {/* PASSWORD */}
         <Text style={styles.label}>Password</Text>
         <InputField
           placeholder="********"
@@ -133,7 +166,6 @@ export default function RegisterScreen() {
         />
         {errors.password && <Text style={styles.error}>{errors.password}</Text>}
 
-        {/* CONFIRM PASSWORD */}
         <Text style={styles.label}>Confirm Password</Text>
         <InputField
           placeholder="********"
@@ -145,46 +177,41 @@ export default function RegisterScreen() {
           <Text style={styles.error}>{errors.confirmPassword}</Text>
         )}
 
-{/* TERMS */}
-<TouchableOpacity
-  style={styles.termsContainer}
-  onPress={() => setAgree(!agree)}
->
-  <Ionicons
-    name={agree ? "checkbox" : "square-outline"}
-    size={20}
-    color={agree ? BRAND_COLOR : "#999"}
-  />
-  <Text style={styles.termsText}>
-    I agree to the{" "}
-    <Text
-      style={{ color: BRAND_COLOR }}
-      onPress={() => router.push("/auth/termsPrivacyScreen")}
-    >
-      Terms & Privacy Policy
-    </Text>
-  </Text>
-</TouchableOpacity>
+        <TouchableOpacity
+          style={styles.termsContainer}
+          onPress={() => setAgree(!agree)}
+        >
+          <Ionicons
+            name={agree ? "checkbox" : "square-outline"}
+            size={20}
+            color={agree ? BRAND_COLOR : "#999"}
+          />
+          <Text style={styles.termsText}>
+            I agree to the{" "}
+            <Text
+              style={{ color: BRAND_COLOR }}
+              onPress={() => 
+                router.push({
+                  pathname: "/auth/termsPrivacyScreen",
+                  params: { name, email, phone, password, confirmPassword }
+                })
+              }
+            >
+              Terms & Privacy Policy
+            </Text>
+          </Text>
+        </TouchableOpacity>
 
-{errors.terms && <Text style={styles.error}>{errors.terms}</Text>}
-        {/* BUTTON */}
-        <PrimaryButton
-          title="Create Account"
-          onPress={() => {
-            if (validateForm()) {
-              router.push("/auth/roleSelection");
-            }
-          }}
-        />
+        {errors.terms && <Text style={styles.error}>{errors.terms}</Text>}
 
-        {/* OR */}
+        <PrimaryButton title="Create Account" onPress={handleRegister} />
+
         <View style={styles.dividerContainer}>
           <View style={styles.line} />
           <Text style={styles.orText}>OR</Text>
           <View style={styles.line} />
         </View>
 
-        {/* GOOGLE */}
         <TouchableOpacity style={styles.googleButton}>
           <MaterialCommunityIcons
             name="google"
@@ -192,19 +219,12 @@ export default function RegisterScreen() {
             color="#DB4437"
             style={{ marginRight: 8 }}
           />
-          <Text style={styles.googleText}>
-            Continue with Google
-          </Text>
+          <Text style={styles.googleText}>Continue with Google</Text>
         </TouchableOpacity>
 
-        {/* LOGIN */}
         <View style={styles.loginContainer}>
-          <Text style={{ fontSize: 13 }}>
-            Already have an account?
-          </Text>
-          <TouchableOpacity
-            onPress={() => router.push("/auth/login")}
-          >
+          <Text style={{ fontSize: 13 }}>Already have an account?</Text>
+          <TouchableOpacity onPress={() => router.push("/auth/login")}>
             <Text style={styles.loginText}> Log in</Text>
           </TouchableOpacity>
         </View>

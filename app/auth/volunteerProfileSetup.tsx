@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -35,6 +36,26 @@ export default function VolunteerProfileSetupScreen() {
     phone: "",
     location: "",
   });
+
+  // Fetch user details on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          if (data.name) setName(data.name);
+          if (data.phone) setPhone(data.phone);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handlePickProfileImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -108,20 +129,34 @@ export default function VolunteerProfileSetupScreen() {
     return valid;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
 
-    // TODO: later connect backend here
-    console.log({
-      profileImage,
-      name,
-      phone,
-      location,
-      bio,
-      role: "volunteer",
-    });
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      const response = await fetch("http://192.168.8.142:5000/api/profiles/volunteer", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          location,
+          bio,
+          profileImage,
+        }),
+      });
 
-    router.replace("/home");
+      const data = await response.json();
+      if (response.ok) {
+        router.replace("/auth/completedProfileSetup");
+      } else {
+        alert(data.message || "Failed to save profile");
+      }
+    } catch (error) {
+      console.error("Profile submission error:", error);
+      alert("Something went wrong. Please check connection.");
+    }
   };
 
   return (

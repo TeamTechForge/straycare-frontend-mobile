@@ -1,5 +1,6 @@
 import { AntDesign } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import {
   Image,
   StyleSheet,
@@ -30,11 +31,29 @@ export default function LoginScreen() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: any) => {
-    console.log(data);
+  const onSubmit = async (data: any) => {
+    try {
+      const response = await fetch("http://192.168.8.142:5000/api/auth/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email, password: data.password }),
+      });
 
-    // Later we will call backend API here
-    router.replace("/(tabs)/home");
+      const json = await response.json();
+
+      if (!response.ok) {
+        alert(json.message || "Login failed");
+        return;
+      }
+
+      // Store JWT securely — never in AsyncStorage
+      await SecureStore.setItemAsync("authToken", json.token);
+
+      router.replace("/(tabs)/home");
+    } catch (error) {
+      console.error("Login error:", error);
+      alert("Something went wrong. Please check your connection.");
+    }
   };
 
   return (

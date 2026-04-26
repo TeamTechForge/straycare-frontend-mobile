@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -37,6 +38,25 @@ export default function ngoProfileSetup() {
   const [document, setDocument] = useState(null);
   const [merchantId, setMerchantId] = useState("");
 
+  // Fetch user details on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          if (data.phone) setPhone(data.phone);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
   // 📸 image picker
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -71,21 +91,38 @@ export default function ngoProfileSetup() {
     setDocument("selected");
   };
 
-  const handleSubmit = () => {
-    console.log({
-      orgName,
-      contactPerson,
-      regNumber,
-      year,
-      phone,
-      location,
-      bio,
-      image,
-      document,
-      merchantId,
-    });
+  const handleSubmit = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      const response = await fetch("http://192.168.8.142:5000/api/profiles/ngo", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          orgName,
+          contactPerson,
+          regNumber,
+          foundedYear: year,
+          location,
+          bio,
+          profileImage: image,
+          verificationDocument: document,
+          merchantId,
+        }),
+      });
 
-    router.replace("/home");
+      const data = await response.json();
+      if (response.ok) {
+        router.replace("/auth/verificationPending");
+      } else {
+        alert(data.message || "Failed to save profile");
+      }
+    } catch (error) {
+      console.error("Profile submission error:", error);
+      alert("Something went wrong. Please check connection.");
+    }
   };
 
   return (
