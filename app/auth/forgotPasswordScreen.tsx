@@ -69,7 +69,8 @@ export default function ForgotPasswordScreen() {
       const data = await response.json();
       if (response.ok) {
         alert("Password reset successful! Please log in.");
-        router.push("/auth/login");
+        // Success! Replace the stack to ensure the user goes straight to login.
+        router.replace("/auth/login");
       } else {
         alert(data.message || "Reset failed");
       }

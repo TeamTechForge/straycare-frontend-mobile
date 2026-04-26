@@ -1,5 +1,6 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -195,9 +196,13 @@ export default function ProfileScreen() {
           setMenuVisible(false);
           router.push("/profile/settings");
         }}
-        onLogoutPress={() => {
+        onLogoutPress={async () => {
           setMenuVisible(false);
-          // TODO: add logout logic later
+          // 1. Remove sensitive token
+          await SecureStore.deleteItemAsync("authToken");
+          // 2. Use router.replace to go back to login and clear the app stack 
+          // so the back button doesn't return to the profile.
+          router.replace("/auth/login");
         }} 
       /> 
     </View>

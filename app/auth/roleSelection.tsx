@@ -63,7 +63,9 @@ export default function SelectRoleScreen() {
             await SecureStore.setItemAsync("authToken", data.token);
           }
 
-          router.push("/auth/reporterProfileSetup");
+          // Role selection is a critical setup step; replace current route 
+          // to ensure back button doesn't loop back to role choice.
+          router.replace("/auth/reporterProfileSetup");
         } else {
           alert(data.message || "Failed to select role");
         }
@@ -72,8 +74,8 @@ export default function SelectRoleScreen() {
         alert("Something went wrong. Please try again.");
       }
     } else if (selectedRole === "rescuer") {
-      // Navigate without passing userId — rescuerTypeSelection reads token itself
-      router.push("/auth/rescuerTypeSelection");
+      // Navigate to specialized selection; replace to clear the primary role stack.
+      router.replace("/auth/rescuerTypeSelection");
     }
   };
 

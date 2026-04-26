@@ -72,7 +72,9 @@ export default function RescuerTypeScreen() {
       } else if (selectedType === "ngo") {
         router.replace("/auth/NGOProfileSetupScreen");
       } else if (selectedType === "vet") {
-        router.push("/auth/vetProfileSetup");
+        // Use replace to ensure the user cannot return to the type selection screen 
+        // once they begin entering their professional vet details.
+        router.replace("/auth/vetProfileSetup");
       }
     } catch (error) {
       console.error("Rescuer type error:", error);

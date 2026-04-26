@@ -105,7 +105,9 @@ export default function RegisterScreen() {
         // Store JWT securely — never pass userId through route params
         await SecureStore.setItemAsync("authToken", data.token);
 
-        router.push("/auth/roleSelection");
+        // Use router.replace when finishing a major auth/setup step to prevent 
+        // the back button from returning to the completed registration form.
+        router.replace("/auth/roleSelection");
       } else {
         alert(data.message || "Registration failed");
       }
