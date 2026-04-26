@@ -29,9 +29,7 @@ export default function LostAnimalScreen() {
   const fetchLostPosts = async () => {
   try {
     const response = await getLostPosts();
-
     console.log("API RESPONSE:", response.data); 
-
     setPets(response.data); 
   } catch (error) {
     console.log("Error fetching posts:", error);
