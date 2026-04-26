@@ -35,11 +35,9 @@ export default function communityPostView() {
         <View style={styles.card}>
           {/* Hero Image */}
           <Image
-            source={{
-              uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuCGZgFp5IE78LHPUV5crp1xSrMloVw9KKXRgG2ksRvyzVngUAsByjGFC8aFawOTZjVH9DRXyo5TCIbGpcukzKTmgoF2jl4uoZXXAwPcgEazGkTK0MAXzM1uxTqW3vcZzW_UNwue3cEhxQM8lGJlZ_m4N58g5kBDrsIAh6-uZS6FT3rF3tbL8d_YknYhhjSa-Brvfee06EXClysWU12Ynt8jyFr0YLAAEHthv8nqmdFzwqADjoLxjEKCi1IOBiVBENqwmC7OLcy0Qu4E",
-            }}
-            style={styles.heroImage}
-            resizeMode="cover"
+              source={require("../../assets/images/download (5).jpg")}
+              style={styles.heroImage}
+              resizeMode="cover"
           />
 
           {/* Card Body */}
@@ -151,7 +149,7 @@ const styles = StyleSheet.create({
   },
   heroImage: {
     width: "100%",
-    aspectRatio: 16 / 10,
+    height: 220,
   },
   cardBody: {
     padding: 20,
