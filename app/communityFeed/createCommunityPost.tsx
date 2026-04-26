@@ -40,6 +40,8 @@ export default function CreateCommunityPost() {
       sightingDate,
       selectedCategory,
     });
+
+    
     // TODO: connect to API
   };
 
@@ -160,6 +162,7 @@ export default function CreateCommunityPost() {
         {/* ── Action Buttons ── */}
         <View style={styles.actionsSection}>
           <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
+            
             <Text style={styles.submitButtonText}>Submit Post</Text>
           </TouchableOpacity>
 
