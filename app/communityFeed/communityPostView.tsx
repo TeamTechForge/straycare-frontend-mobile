@@ -1,7 +1,8 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Image,
   ScrollView,
   StyleSheet,
@@ -9,9 +10,46 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { getCommunityPost } from "../../api/api";
 
-export default function communityPostView() {
+// ── Helper ────────────────────────────────────────────────────────────────────
+function formatDate(dateStr: string): string {
+  const date = new Date(dateStr);
+  return date.toLocaleDateString("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+  }).toUpperCase();
+}
+
+export default function CommunityPostView() {
   const router = useRouter();
+  const { id } = useLocalSearchParams<{ id: string }>();
+
+  const [post, setPost] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
+
+  useEffect(() => {
+    if (id) fetchPost();
+  }, [id]);
+
+  const fetchPost = async () => {
+    try {
+      setLoading(true);
+      setError(false);
+      const response = await getCommunityPost(id);
+      if (response.data.success) {
+        setPost(response.data.data);
+      } else {
+        setError(true);
+      }
+    } catch (err) {
+      setError(true);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -27,76 +65,95 @@ export default function communityPostView() {
         <View style={styles.iconBtn} />
       </View>
 
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Post Card */}
-        <View style={styles.card}>
-          {/* Hero Image */}
-          <Image
-              source={require("../../assets/images/download (5).jpg")}
-              style={styles.heroImage}
-              resizeMode="cover"
-          />
+      {/* ── Loading state ── */}
+      {loading && (
+        <View style={styles.centeredState}>
+          <ActivityIndicator size="large" color="#775a00" />
+          <Text style={styles.stateText}>Loading post...</Text>
+        </View>
+      )}
 
-          {/* Card Body */}
-          <View style={styles.cardBody}>
-            {/* Meta Row */}
-            <View style={styles.metaRow}>
-              <Text style={styles.dateText}>OCT 24, 2023</Text>
-              <View style={styles.tagBadge}>
-                <Text style={styles.tagText}>Pet Care Tips</Text>
+      {/* ── Error state ── */}
+      {!loading && error && (
+        <View style={styles.centeredState}>
+          <Ionicons name="cloud-offline-outline" size={40} color="#837565" />
+          <Text style={styles.stateText}>Failed to load post.</Text>
+          <TouchableOpacity style={styles.retryBtn} onPress={fetchPost}>
+            <Text style={styles.retryBtnText}>Retry</Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
+      {/* ── Post content ── */}
+      {!loading && !error && post && (
+        <ScrollView
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Post Card */}
+          <View style={styles.card}>
+            {/* Hero Image — only show if imageUrl exists */}
+            {post.imageUrl ? (
+              <Image
+                source={{ uri: `http://10.225.98.94:5000${post.imageUrl}` }}
+                style={styles.heroImage}
+                resizeMode="cover"
+              />
+            ) : null}
+
+            {/* Card Body */}
+            <View style={styles.cardBody}>
+              {/* Meta Row */}
+              <View style={styles.metaRow}>
+                <Text style={styles.dateText}>
+                  {formatDate(post.submittedAt)}
+                </Text>
+                <View style={styles.tagBadge}>
+                  <Text style={styles.tagText}>{post.category}</Text>
+                </View>
               </View>
+
+              {/* Headline */}
+              <Text style={styles.headline}>{post.title}</Text>
+
+              {/* Author Row */}
+              <View style={styles.authorRow}>
+                <Text style={styles.authorText}>
+                  Posted by{" "}
+                  <Text style={styles.authorName}>{post.authorName}</Text>
+                </Text>
+              </View>
+
+              {/* Content */}
+              <Text style={styles.description}>{post.content}</Text>
             </View>
-
-            {/* Headline */}
-            <Text style={styles.headline}>
-              Injured Golden Retriever found near Central Park fountain
-            </Text>
-
-            {/* Author Row */}
-            <View style={styles.authorRow}>
-              <Text style={styles.authorText}>
-                Posted by{" "}
-                <Text style={styles.authorName}>Sarah Jenkins</Text>
-              </Text>
-            </View>
-
-            {/* Description */}
-            <Text style={styles.description}>
-              I found this friendly Golden Retriever near the main fountain in
-              Central Park around 2:00 PM today. The poor thing seems to have a
-              minor limp in its front left paw but is otherwise very calm and
-              well-behaved.
-            </Text>
-            <Text style={styles.description}>
-              It was wearing a blue collar with no visible ID tag. I'm currently
-              staying near the 72nd Street entrance. Please message me if you
-              have any information or recognize this sweet dog!
-            </Text>
           </View>
-        </View>
 
-        {/* Action Buttons */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={styles.backBtn}
-            onPress={() => router.push("/communityFeed/communityPostMain")}
-          >
-            <Ionicons name="chevron-back" size={20} color="#704900" />
-            <Text style={styles.backBtnText}>Back</Text>
-          </TouchableOpacity>
+          {/* Action Buttons */}
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity
+              style={styles.backBtn}
+              onPress={() => router.push("/communityFeed/communityPostMain")}
+            >
+              <Ionicons name="chevron-back" size={20} color="#704900" />
+              <Text style={styles.backBtnText}>Back</Text>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={styles.reportBtn}
-            onPress={() => router.push("/communityFeed/reportCommunityPost")}
-          >
-            <MaterialIcons name="report" size={20} color="#E54D4D" />
-            <Text style={styles.reportBtnText}>Report Post</Text>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
+            <TouchableOpacity
+              style={styles.reportBtn}
+              onPress={() =>
+                router.push({
+                  pathname: "/communityFeed/reportCommunityPost",
+                  params: { id: post._id },
+                })
+              }
+            >
+              <MaterialIcons name="report" size={20} color="#E54D4D" />
+              <Text style={styles.reportBtnText}>Report Post</Text>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      )}
     </View>
   );
 }
@@ -130,6 +187,30 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#161c27",
+  },
+
+  // States
+  centeredState: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 12,
+  },
+  stateText: {
+    fontSize: 14,
+    color: "#837565",
+    fontWeight: "500",
+  },
+  retryBtn: {
+    backgroundColor: "#fcd371",
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 999,
+  },
+  retryBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#775a00",
   },
 
   // Scroll
