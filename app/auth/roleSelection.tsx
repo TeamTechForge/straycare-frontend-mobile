@@ -13,6 +13,7 @@ import {
 
 // ✅ reusable button
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#f59e0b";
 
@@ -44,7 +45,7 @@ export default function SelectRoleScreen() {
       try {
         console.log("📤 Updating role to general_user");
 
-        const response = await fetch("http://192.168.8.142:5000/api/auth/select-role", {
+        const response = await fetch(`${API_URL}/auth/select-role`, {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",

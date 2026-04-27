@@ -10,6 +10,7 @@ import {
 
 import PrimaryButton from "../../components/PrimaryButton";
 import InputField from "../../components/InputField";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#f59e0b";
 
@@ -30,7 +31,7 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://192.168.8.142:5000/api/auth/forgot-password", {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
@@ -60,7 +61,7 @@ export default function ForgotPasswordScreen() {
 
     setLoading(true);
     try {
-      const response = await fetch("http://192.168.8.142:5000/api/auth/reset-password", {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ token, newPassword }),

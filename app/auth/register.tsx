@@ -13,6 +13,7 @@ import {
 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -82,7 +83,7 @@ export default function RegisterScreen() {
       if (!validateForm()) return;
 
       const response = await fetch(
-        "http://192.168.8.142:5000/api/auth/register",
+        `${API_URL}/auth/register`,
         {
           method: "POST",
           headers: {

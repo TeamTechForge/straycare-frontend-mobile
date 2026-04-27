@@ -18,6 +18,7 @@ import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -42,7 +43,7 @@ export default function VolunteerProfileSetupScreen() {
     const fetchUser = async () => {
       try {
         const token = await SecureStore.getItemAsync("authToken");
-        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+        const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -66,7 +67,7 @@ export default function VolunteerProfileSetupScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       quality: 0.7,
       allowsEditing: true,
       aspect: [1, 1],
@@ -134,7 +135,7 @@ export default function VolunteerProfileSetupScreen() {
 
     try {
       const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch("http://192.168.8.142:5000/api/profiles/volunteer", {
+      const response = await fetch(`${API_URL}/profiles/volunteer`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -143,7 +144,7 @@ export default function VolunteerProfileSetupScreen() {
         body: JSON.stringify({
           location,
           bio,
-          profileImage,
+          profileImage: profileImage && typeof profileImage === 'object' ? (profileImage as any).uri : profileImage,
         }),
       });
 

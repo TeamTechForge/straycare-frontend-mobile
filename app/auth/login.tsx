@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/Config";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -36,7 +37,7 @@ export default function LoginScreen() {
 
   const onSubmit = async (data: any) => {
     try {
-      const response = await fetch("http://192.168.8.142:5000/api/auth/login", {
+      const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: data.email, password: data.password }),

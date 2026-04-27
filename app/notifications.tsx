@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
+import { API_URL } from "../constants/Config";
 import {
   FlatList,
   StyleSheet,
@@ -25,7 +26,7 @@ export default function NotificationsScreen() {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) return;
 
-      const response = await fetch("http://192.168.8.142:5000/api/notifications", {
+      const response = await fetch(`${API_URL}/notifications`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       const data = await response.json();
@@ -52,7 +53,7 @@ export default function NotificationsScreen() {
   const markAsRead = async (id: string) => {
     try {
       const token = await SecureStore.getItemAsync("authToken");
-      await fetch(`http://192.168.8.142:5000/api/notifications/${id}/read`, {
+      await fetch(`${API_URL}/notifications/${id}/read`, {
         method: "PUT",
         headers: { Authorization: `Bearer ${token}` },
       });

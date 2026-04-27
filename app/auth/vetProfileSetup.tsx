@@ -13,12 +13,14 @@ import {
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import * as DocumentPicker from "expo-document-picker";
 
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -55,7 +57,7 @@ export default function VetProfileSetupScreen() {
     const fetchUser = async () => {
       try {
         const token = await SecureStore.getItemAsync("authToken");
-        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+        const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -79,7 +81,7 @@ export default function VetProfileSetupScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       quality: 0.7,
       allowsEditing: true,
       aspect: [1, 1],
@@ -91,9 +93,20 @@ export default function VetProfileSetupScreen() {
   };
 
   const handlePickLicenseDocument = async () => {
-    // TODO: later connect real document picker here
-    // for now this is placeholder behavior
-    setLicenseDocument("selected-file");
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/*"],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled) {
+        // Show the file name in the UI and store the file object
+        setLicenseDocument(result.assets[0] as any);
+      }
+    } catch (error) {
+      console.error("Document picking error:", error);
+      alert("Failed to pick document");
+    }
   };
 
   const handleGetPrimaryLocation = async () => {
@@ -183,7 +196,7 @@ export default function VetProfileSetupScreen() {
 
     try {
       const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch("http://192.168.8.142:5000/api/profiles/vet", {
+      const response = await fetch(`${API_URL}/profiles/vet`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -196,8 +209,8 @@ export default function VetProfileSetupScreen() {
           clinicAddress,
           licenseNumber,
           yearsOfExperience,
-          profileImage,
-          licenseDocument,
+          profileImage: profileImage && typeof profileImage === 'object' ? (profileImage as any).uri : profileImage,
+          licenseDocument: licenseDocument && typeof licenseDocument === 'object' ? (licenseDocument as any).uri : licenseDocument,
           merchantId: payHereMerchantId,
         }),
       });

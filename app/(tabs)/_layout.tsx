@@ -2,6 +2,10 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useRouter, useSegments } from 'expo-router';
+import * as SecureStore from 'expo-secure-store';
+import { useEffect, useState } from 'react';
+import { API_URL } from '../../constants/Config';
 
 const BRAND_COLOR = "#F5A623";
 const TAB_BAR_BG = "#FFF7E6"; // Very light brand shade for a premium look
@@ -13,6 +17,52 @@ const TAB_BAR_BG = "#FFF7E6"; // Very light brand shade for a premium look
  */
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+  const segments = useSegments();
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const checkApproval = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        if (!token) {
+          // Only redirect to login if we are trying to access a tabbed screen without a token
+          if (segments[0] === "(tabs)") {
+            router.replace("/auth/login");
+          }
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const user = await response.json();
+
+        if (response.ok) {
+          // Gating logic for NGO and Vet users
+          const isRestrictedRole = user.role === 'ngo' || user.role === 'vet';
+          const isNotApproved = user.isApproved === false;
+
+          // Only redirect if we are actually currently within the tabs group
+          const isInsideTabs = segments[0] === "(tabs)";
+          
+          if (isInsideTabs && isRestrictedRole && isNotApproved) {
+            // Check if user is currently on an allowed screen (Notifications is outside tabs)
+            // If they are in tabs, they shouldn't be.
+            router.replace("/auth/verificationPending");
+          }
+        }
+      } catch (error) {
+        console.error("Approval check error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    checkApproval();
+  }, [segments]); // Re-check on navigation within tabs
+
+  if (loading) return null; // Or a splash/loader
 
   return (
     <Tabs

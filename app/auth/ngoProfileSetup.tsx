@@ -6,18 +6,21 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View
 } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import * as DocumentPicker from "expo-document-picker";
 
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#f59e0b";
 
@@ -43,7 +46,7 @@ export default function ngoProfileSetup() {
     const fetchUser = async () => {
       try {
         const token = await SecureStore.getItemAsync("authToken");
-        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+        const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -63,7 +66,7 @@ export default function ngoProfileSetup() {
     if (!permission.granted) return;
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
     });
 
     if (!result.canceled) {
@@ -85,16 +88,27 @@ export default function ngoProfileSetup() {
   };
 
   // 📄 file upload
-  const handlePickFile = () => {
-    // TODO: integrate document picker
-    console.log("Pick document");
-    setDocument("selected");
+  const handlePickFile = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/*"],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled) {
+        // Show the file name in the UI and store the file object
+        setDocument(result.assets[0] as any);
+      }
+    } catch (error) {
+      console.error("Document picking error:", error);
+      alert("Failed to pick document");
+    }
   };
 
   const handleSubmit = async () => {
     try {
       const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch("http://192.168.8.142:5000/api/profiles/ngo", {
+      const response = await fetch(`${API_URL}/profiles/ngo`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -107,8 +121,8 @@ export default function ngoProfileSetup() {
           foundedYear: year,
           location,
           bio,
-          profileImage: image,
-          verificationDocument: document,
+          profileImage: image && typeof image === 'object' ? (image as any).uri : image,
+          verificationDocument: document && typeof document === 'object' ? (document as any).uri : document,
           merchantId,
         }),
       });
@@ -126,15 +140,27 @@ export default function ngoProfileSetup() {
   };
 
   return (
-    <ScrollView style={styles.container}>
-      
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+
       {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} />
+          <Ionicons name="arrow-back" size={22} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>NGO Profile Setup</Text>
+
+        <Text style={styles.headerTitle}>NGO{"\n"}Profile Setup</Text>
+
+        <View style={styles.verificationBadge}>
+          <Ionicons name="shield-checkmark-outline" size={12} color={BRAND_COLOR} />
+          <Text style={styles.verificationText}>VERIFICATION REQUIRED</Text>
+        </View>
       </View>
+
+      {/* Title */}
+      <Text style={styles.mainTitle}>Complete Your Profile</Text>
+      <Text style={styles.subtitle}>
+        Join as an organization to coordinate large-scale rescues.
+      </Text>
 
       {/* Profile Image */}
       <ProfileImageUpload
@@ -142,27 +168,30 @@ export default function ngoProfileSetup() {
         onPress={handlePickImage}
         label="Upload organization logo"
         icon="business-outline"
-/>
+      />
 
       {/* ORGANIZATION DETAILS */}
       <FormSection title="Organization Details">
-        <InputField placeholder="Organization Name" value={orgName} onChangeText={setOrgName} />
-        <InputField placeholder="Contact Person Name" value={contactPerson} onChangeText={setContactPerson} />
-        <InputField placeholder="Registration Number" value={regNumber} onChangeText={setRegNumber} />
-        <InputField placeholder="Founded Year" value={year} onChangeText={setYear} />
+        <InputField label="Organization Name" placeholder="e.g. Save The Strays Foundation" value={orgName} onChangeText={setOrgName} />
+        <InputField label="Contact Person Name" placeholder="e.g. Jane Doe" value={contactPerson} onChangeText={setContactPerson} />
+        <InputField label="Registration Number" placeholder="e.g. NGO-SL-2024-001" value={regNumber} onChangeText={setRegNumber} />
+        <InputField label="Founded Year" placeholder="e.g. 2015" value={year} onChangeText={setYear} keyboardType="numeric" />
       </FormSection>
 
       {/* CONTACT */}
       <FormSection title="Contact & Location">
         <InputField
-          placeholder="Phone Number"
+          label="Phone Number"
+          placeholder="e.g. +94 11 234 5678"
           value={phone}
           onChangeText={setPhone}
           icon="call-outline"
+          keyboardType="phone-pad"
         />
 
         <InputField
-          placeholder="Address"
+          label="Address"
+          placeholder="e.g. 123 Rescue Road, Colombo 07"
           value={location}
           onChangeText={setLocation}
           icon="location-outline"
@@ -172,23 +201,40 @@ export default function ngoProfileSetup() {
       </FormSection>
 
       {/* BIO */}
-      <FormSection title="About">
-        <InputField
-          placeholder="Short Bio"
-          value={bio}
-          onChangeText={setBio}
-        />
+      <FormSection title="About Organization">
+        <View style={styles.bioWrapper}>
+          <Text style={styles.fieldLabel}>Organization Bio</Text>
+          <TextInput
+            style={styles.textArea}
+            placeholder="Tell us about your organization's mission and history..."
+            value={bio}
+            onChangeText={(text) => {
+              if (text.length <= 500) setBio(text);
+            }}
+            multiline
+            placeholderTextColor="#999"
+          />
+          <Text style={styles.charCount}>{bio.length}/500</Text>
+        </View>
       </FormSection>
 
       {/* VERIFICATION */}
-      <FormSection title="Verification">
+      <FormSection title="Verification Documents">
         <FileUploadField file={document} onPick={handlePickFile} />
+        <Text style={styles.helperText}>
+          Upload NGO registration documents for verification.
+        </Text>
       </FormSection>
 
       {/* PAYMENT */}
       <FormSection title="Donation Settings">
+        <Text style={styles.donationDescription}>
+          If you wish to receive donations for rescue cases, please provide your payment details below.
+        </Text>
+
         <InputField
-          placeholder="PayHere Merchant ID"
+          label="Pay Here Merchant ID"
+          placeholder="e.g. PH1234567"
           value={merchantId}
           onChangeText={setMerchantId}
         />
@@ -207,16 +253,88 @@ export default function ngoProfileSetup() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    flex: 1,
     backgroundColor: "#fff",
+  },
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 30,
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 20,
-    gap: 10,
+    marginBottom: 18,
   },
   headerTitle: {
+    flex: 1,
+    fontSize: 16,
     fontWeight: "600",
+    marginLeft: 10,
+    lineHeight: 18,
+  },
+  verificationBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFF4E5",
+    borderRadius: 20,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 4,
+  },
+  verificationText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#9A6A00",
+  },
+  mainTitle: {
+    textAlign: "center",
+    fontSize: 28,
+    fontWeight: "700",
+    color: "#222",
+    marginBottom: 8,
+  },
+  subtitle: {
+    textAlign: "center",
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 22,
+    lineHeight: 18,
+  },
+  bioWrapper: {
+    marginTop: 8,
+  },
+  fieldLabel: {
+    fontSize: 13,
+    marginBottom: 6,
+    fontWeight: "500",
+  },
+  textArea: {
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    minHeight: 100,
+    backgroundColor: "#f9f9f9",
+    textAlignVertical: "top",
+    fontSize: 14,
+    color: "#000",
+  },
+  charCount: {
+    textAlign: "right",
+    fontSize: 11,
+    color: "#888",
+    marginTop: 4,
+  },
+  helperText: {
+    marginTop: 8,
+    fontSize: 11,
+    color: "#888",
+  },
+  donationDescription: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 8,
+    lineHeight: 18,
   },
 });

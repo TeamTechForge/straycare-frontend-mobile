@@ -5,6 +5,7 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import {
+  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -15,6 +16,7 @@ import {
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#f59e0b";
 
@@ -37,7 +39,7 @@ export default function ReporterProfileSetupScreen() {
     const fetchUser = async () => {
       try {
         const token = await SecureStore.getItemAsync("authToken");
-        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+        const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
@@ -53,47 +55,47 @@ export default function ReporterProfileSetupScreen() {
 
   // ✅ image (optional)
   const handlePickImage = async () => {
-  // ask permission
-  const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    // ask permission
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
-  if (!permission.granted) {
-    alert("Permission to access gallery is required!");
-    return;
-  }
+    if (!permission.granted) {
+      alert("Permission to access gallery is required!");
+      return;
+    }
 
-  // open gallery
-  const result = await ImagePicker.launchImageLibraryAsync({
-    mediaTypes: ImagePicker.MediaTypeOptions.Images,
-    quality: 0.7,
-    allowsEditing: true,
-    aspect: [1, 1],
-  });
+    // open gallery
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: "images",
+      quality: 0.7,
+      allowsEditing: true,
+      aspect: [1, 1],
+    });
 
-  if (!result.canceled) {
-    setImage(result.assets[0].uri);
-  }
-};
+    if (!result.canceled) {
+      setImage(result.assets[0].uri);
+    }
+  };
 
   const handleGetLocation = async () => {
-  const { status } = await Location.requestForegroundPermissionsAsync();
+    const { status } = await Location.requestForegroundPermissionsAsync();
 
-  if (status !== "granted") {
-    alert("Permission denied for location");
-    return;
-  }
+    if (status !== "granted") {
+      alert("Permission denied for location");
+      return;
+    }
 
-  const loc = await Location.getCurrentPositionAsync({});
-  
-  const address = await Location.reverseGeocodeAsync({
-    latitude: loc.coords.latitude,
-    longitude: loc.coords.longitude,
-  });
+    const loc = await Location.getCurrentPositionAsync({});
 
-  if (address.length > 0) {
-    const place = `${address[0].city || ""}, ${address[0].country || ""}`;
-    setLocation(place);
-  }
-};
+    const address = await Location.reverseGeocodeAsync({
+      latitude: loc.coords.latitude,
+      longitude: loc.coords.longitude,
+    });
+
+    if (address.length > 0) {
+      const place = `${address[0].city || ""}, ${address[0].country || ""}`;
+      setLocation(place);
+    }
+  };
 
   // ✅ validation function
   const validate = () => {
@@ -125,7 +127,7 @@ export default function ReporterProfileSetupScreen() {
 
     try {
       const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch("http://192.168.8.142:5000/api/profiles/general", {
+      const response = await fetch(`${API_URL}/profiles/general`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -151,15 +153,22 @@ export default function ReporterProfileSetupScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      
-      {/* 🔙 Header */}
+    <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+
+      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} />
+          <Ionicons name="arrow-back" size={22} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Profile Setup</Text>
+
+        <Text style={styles.headerTitle}>General User{"\n"}Profile Setup</Text>
       </View>
+
+      {/* Title */}
+      <Text style={styles.mainTitle}>Complete Your Profile</Text>
+      <Text style={styles.subtitle}>
+        Join the community to help animals and report strays.
+      </Text>
 
       {/* 📸 Profile Image (optional) */}
       <ProfileImageUpload
@@ -167,47 +176,46 @@ export default function ReporterProfileSetupScreen() {
         onPress={handlePickImage}
       />
 
-      {/* 📞 Phone */}
-      <Text style={styles.label}>Phone Number *</Text>
+      {/* Phone */}
       <InputField
-        placeholder="+94 77 123 4567"
+        label="Phone Number *"
+        placeholder="e.g. +94 77 123 4567"
         value={phone}
         onChangeText={setPhone}
         icon="call-outline"
+        keyboardType="phone-pad"
+        error={errors.phone}
       />
-      {errors.phone ? <Text style={styles.error}>{errors.phone}</Text> : null}
 
-      {/* 📍 Location */}
-      <Text style={styles.label}>Location *</Text>
+      {/* Location */}
       <InputField
-    placeholder="Colombo, Sri Lanka"
-    value={location}
-    onChangeText={setLocation}
-    icon="location-outline"
-  />
-
-  {/* 📍 Auto detect button */}
-  <TouchableOpacity onPress={handleGetLocation}>
-    <Text style={{ color: BRAND_COLOR, marginTop: 5 }}>
-      Use Current Location
-    </Text>
-  </TouchableOpacity>
-      {errors.location ? (
-        <Text style={styles.error}>{errors.location}</Text>
-      ) : null}
-
-      {/* 📝 Bio (optional) */}
-      <Text style={styles.label}>Short Bio (Optional)</Text>
-      <TextInput
-        style={styles.textArea}
-        placeholder="Tell us a bit about yourself..."
-        value={bio}
-        onChangeText={(text) => {
-          if (text.length <= 150) setBio(text);
-        }}
-        multiline
+        label="Location *"
+        placeholder="e.g. Colombo, Sri Lanka"
+        value={location}
+        onChangeText={setLocation}
+        icon="location-outline"
+        rightIcon="locate-outline"
+        onRightIconPress={handleGetLocation}
+        error={errors.location}
       />
-      <Text style={styles.charCount}>{bio.length}/150</Text>
+
+      {/* 📍 Auto detect button */}
+
+      {/* Bio */}
+      <View style={styles.bioWrapper}>
+        <Text style={styles.fieldLabel}>Short Bio (Optional)</Text>
+        <TextInput
+          style={styles.textArea}
+          placeholder="Tell us a bit about yourself and why you want to help animals..."
+          value={bio}
+          onChangeText={(text) => {
+            if (text.length <= 150) setBio(text);
+          }}
+          multiline
+          placeholderTextColor="#999"
+        />
+        <Text style={styles.charCount}>{bio.length}/150</Text>
+      </View>
 
       {/* 🔘 Button */}
       <View style={{ marginTop: 20 }}>
@@ -216,15 +224,18 @@ export default function ReporterProfileSetupScreen() {
           onPress={handleSubmit}
         />
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
     backgroundColor: "#fff",
+  },
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 30,
   },
 
   header: {
@@ -237,75 +248,58 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 16,
     fontWeight: "600",
+    marginLeft: 10,
+    lineHeight: 18,
+  },
+  mainTitle: {
+    textAlign: "center",
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#222",
+    marginBottom: 8,
+    lineHeight: 36,
+  },
+  subtitle: {
+    textAlign: "center",
+    fontSize: 13,
+    color: "#666",
+    marginBottom: 26,
+    lineHeight: 18,
   },
 
   imageContainer: {
     alignItems: "center",
-    marginBottom: 10,
-  },
-
-  avatar: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
-    backgroundColor: "#fde7c7",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-
-  avatarImage: {
-    width: "100%",
-    height: "100%",
-    borderRadius: 50,
-  },
-
-  editIcon: {
-    position: "absolute",
-    bottom: 0,
-    right: 120,
-    backgroundColor: BRAND_COLOR,
-    padding: 6,
-    borderRadius: 20,
-  },
-
-  uploadText: {
-    textAlign: "center",
-    fontWeight: "bold",
-    marginTop: 10,
-  },
-
-  subText: {
-    textAlign: "center",
-    fontSize: 12,
-    color: "#888",
     marginBottom: 20,
   },
-
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    marginBottom: 5,
+  bioWrapper: {
+    marginTop: 8,
   },
-
+  fieldLabel: {
+    fontSize: 13,
+    marginBottom: 6,
+    fontWeight: "500",
+  },
   textArea: {
     borderWidth: 1,
-    borderColor: "#eee",
-    borderRadius: 10,
-    padding: 12,
-    height: 90,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    minHeight: 90,
+    backgroundColor: "#f9f9f9",
     textAlignVertical: "top",
+    fontSize: 14,
+    color: "#000",
   },
-
   charCount: {
     textAlign: "right",
-    fontSize: 12,
+    fontSize: 11,
     color: "#888",
-    marginTop: 5,
+    marginTop: 4,
   },
-
   error: {
     color: "red",
     fontSize: 12,
-    marginBottom: 5,
+    marginTop: 4,
   },
 });

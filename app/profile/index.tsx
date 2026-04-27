@@ -1,8 +1,10 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useEffect, useState } from "react";
+import { API_URL } from "../../constants/Config";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import EmptyStateCard from "../../components/profile/EmptyStateCard";
 import PostPreviewCard from "../../components/profile/PostPreviewCard";
@@ -12,6 +14,11 @@ import ProfileStatsRow from "../../components/profile/ProfileStatsRow";
 import ProfileTabBar from "../../components/profile/ProfileTabBar";
 import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
 import SavedPreviewCard from "../../components/profile/SavedPreviewCard";
+
+import GeneralUserProfile from "./generalUserProfile";
+import VolunteerProfile from "./volunteerProfile";
+import NGOProfile from "./ngoProfile";
+import VetProfile from "./vetProfile";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -80,133 +87,70 @@ export default function ProfileScreen() {
 
   const [activeTab, setActiveTab] = useState<"posts" | "reports" | "saved">("posts");
   const [menuVisible, setMenuVisible] = useState(false);
+  const [hasUnread, setHasUnread] = useState(false);
+  const [currentUser, setCurrentUser] = useState<any>(null);
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => setMenuVisible(true)}>
-          <Feather name="menu" size={20} color="#222" />
-        </TouchableOpacity>
-
-        <Text style={styles.headerTitle}>MY PROFILE</Text>
-
-        <TouchableOpacity>
-          <Ionicons name="notifications-outline" size={20} color="#222" />
-        </TouchableOpacity>
-      </View>
-
-
-
-
-
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
-  <ProfileHeaderCard
-    name={user.name}
-    location={user.location}
-    bio={user.bio}
-    memberSince={user.memberSince}
-    avatar={user.avatar}
-    onEditPress={() => {}}
-  />
-
-  <ProfileStatsRow stats={stats} />
-
-  <ProfileTabBar activeTab={activeTab} onChange={setActiveTab} />
-
-
-        <View style={styles.sectionContent}>
-          {activeTab === "posts" && (
-            posts.length > 0 ? (
-              posts.map((post) => (
-                <PostPreviewCard
-                  key={post.id}
-                  image={post.image}
-                  likes={post.likes}
-                  comments={post.comments}
-                  time={post.time}
-                />
-              ))
-            ) : ( 
-
-              <EmptyStateCard
-                icon="paw"
-                title="You haven't posted anything yet."
-                subtitle="Create posts and share them with the community."
-              />
-            )
-          )}
-
-          {activeTab === "reports" && (
-            reports.length > 0 ? (
-              reports.map((report) => (
-                <ReportPreviewCard
-                  key={report.id}
-                  title={report.title}
-                  date={report.date}
-                  status={report.status}
-                  image={report.image}
-                />
-              ))
-            ) : (
-              <EmptyStateCard
-                icon="document-text-outline"
-                title="You haven't reported anything yet."
-                subtitle="Rescue street animals by reporting and view the rescue progress."
-              />
-            )
-          )}
-
-          {activeTab === "saved" && (
-            savedItems.length > 0 ? (
-              <View style={styles.savedGrid}>
-                {savedItems.map((item) => (
-                  <SavedPreviewCard
-                    key={item.id}
-                    title={item.title}
-                    subtitle={item.subtitle}
-                    location={item.location}
-                    image={item.image}
-                  />
-                ))}
-              </View>
-            ) : (
-              <EmptyStateCard
-                icon="paw"
-                title="You haven't saved anything yet."
-                subtitle="Save adoption posts or community updates to view them later."
-              />
-            )
-          )}
-        </View>
-      </ScrollView>  
-
-       <ProfileMenuDrawer
-        visible={menuVisible}
-        onClose={() => setMenuVisible(false)}
-        user={{ name: user.name, avatar: user.avatar }}
-        onProfilePress={() => setMenuVisible(false)}
-        onAdoptionPress={() => {
-          setMenuVisible(false);
-        }}
-        onDonationsPress={() => {
-          setMenuVisible(false);
-          router.push("/donate");
-        }}
-        onSettingsPress={() => {
-          setMenuVisible(false);
-          router.push("/profile/settings");
-        }}
-        onLogoutPress={async () => {
-          setMenuVisible(false);
-          // 1. Remove sensitive token
-          await SecureStore.deleteItemAsync("authToken");
-          // 2. Use router.replace to go back to login and clear the app stack 
-          // so the back button doesn't return to the profile.
+  useEffect(() => {
+    const checkUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        if (!token) {
           router.replace("/auth/login");
-        }} 
-      /> 
-    </View>
-  );
+          return;
+        }
+
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const user = await response.json();
+        
+        if (response.ok) {
+          setCurrentUser(user);
+          
+          // Check for unread notifications
+          const notifRes = await fetch(`${API_URL}/notifications`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const notifications = await notifRes.json();
+          if (notifRes.ok) {
+            setHasUnread(notifications.some((n: any) => !n.isRead));
+          }
+
+          // Gating Logic
+          if ((user.role === 'ngo' || user.role === 'vet') && !user.isApproved) {
+            router.replace("/auth/verificationPending");
+            return;
+          }
+        }
+      } catch (error) {
+        console.error("Profile check error:", error);
+      }
+    };
+
+    checkUser();
+  }, []);
+
+  if (!currentUser) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={BRAND_COLOR} />
+      </View>
+    );
+  }
+
+  // Render specific profile views based on role directly to keep tabs visible
+  if (currentUser.role === 'general_user') {
+    return <GeneralUserProfile />;
+  } else if (currentUser.role === 'volunteer') {
+    return <VolunteerProfile />;
+  } else if (currentUser.role === 'ngo') {
+    return <NGOProfile />;
+  } else if (currentUser.role === 'vet') {
+    return <VetProfile />;
+  }
+
+  // Fallback (should not happen with role gating)
+  return null;
 }
 
 const styles = StyleSheet.create({
@@ -219,7 +163,7 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   header: {
-    paddingTop: 18,
+    paddingTop: 10,
     paddingHorizontal: 16,
     paddingBottom: 12,
     flexDirection: "row",
@@ -239,5 +183,20 @@ const styles = StyleSheet.create({
   savedGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
+  },
+  notificationBtn: {
+    position: "relative",
+    padding: 4,
+  },
+  unreadBadge: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "red",
+    borderWidth: 1,
+    borderColor: "#FAFAFA",
   },
 });

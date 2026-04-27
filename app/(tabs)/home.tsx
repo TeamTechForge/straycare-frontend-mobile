@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { API_URL } from "../../constants/Config";
 
 export default function HomeScreen() {
   const router = useRouter();
@@ -14,11 +15,12 @@ export default function HomeScreen() {
         const token = await SecureStore.getItemAsync("authToken");
         if (!token) return;
 
-        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+        const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
         if (response.ok) {
+          // data.organizationName is populated in the backend for NGO users
           setUser(data);
         }
       } catch (error) {

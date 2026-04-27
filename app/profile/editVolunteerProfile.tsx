@@ -23,10 +23,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const BRAND_COLOR = "#F5A623";
 
-export default function EditProfileScreen() {
+export default function EditVolunteerProfileScreen() {
   const router = useRouter();
 
-  // TODO: Replace these hardcoded values with backend/user context data later
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -61,7 +60,7 @@ export default function EditProfileScreen() {
           setProfileImage(profileData.profileImage || null);
         }
       } catch (error) {
-        console.error("Fetch profile edit data error:", error);
+        console.error("Fetch volunteer profile edit data error:", error);
       } finally {
         setLoading(false);
       }
@@ -77,7 +76,6 @@ export default function EditProfileScreen() {
   });
 
   const handlePickProfileImage = async () => {
-    // TODO: Later upload selected image to backend/storage
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
@@ -98,7 +96,6 @@ export default function EditProfileScreen() {
   };
 
   const handleGetLocation = async () => {
-    // TODO: Later save selected location to backend
     const { status } = await Location.requestForegroundPermissionsAsync();
 
     if (status !== "granted") {
@@ -136,16 +133,10 @@ export default function EditProfileScreen() {
     if (!email.trim()) {
       newErrors.email = "Email is required";
       valid = false;
-    } else if (!/\S+@\S+\.\S+/.test(email)) {
-      newErrors.email = "Enter a valid email address";
-      valid = false;
     }
 
     if (!phone.trim()) {
       newErrors.phone = "Phone number is required";
-      valid = false;
-    } else if (phone.trim().length < 8) {
-      newErrors.phone = "Enter a valid phone number";
       valid = false;
     }
 
@@ -163,7 +154,7 @@ export default function EditProfileScreen() {
 
     try {
       const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch(`${API_URL}/profiles/general`, {
+      const response = await fetch(`${API_URL}/profiles/volunteer`, {
         method: "PUT",
         headers: {
           "Content-Type": "application/json",
@@ -172,19 +163,19 @@ export default function EditProfileScreen() {
         body: JSON.stringify({
           location,
           bio,
-          profileImage, // Expecting Cloudinary URL (or handled by upload logic elsewhere)
+          profileImage,
         }),
       });
 
       if (response.ok) {
-        alert("Profile updated successfully");
+        alert("Volunteer profile updated successfully");
         router.back();
       } else {
         const data = await response.json();
         alert(data.message || "Failed to update profile");
       }
     } catch (error) {
-      console.error("Update profile error:", error);
+      console.error("Update volunteer profile error:", error);
       alert("Something went wrong");
     }
   };
@@ -208,103 +199,106 @@ export default function EditProfileScreen() {
         contentContainerStyle={styles.contentContainer}
         showsVerticalScrollIndicator={false}
       >
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#222" />
-        </TouchableOpacity>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <TouchableOpacity onPress={() => router.back()}>
+            <Ionicons name="arrow-back" size={22} color="#222" />
+          </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>Edit Profile</Text>
+          <Text style={styles.headerTitle}>Edit Volunteer Profile</Text>
 
-        <View style={styles.headerSpacer} />
-      </View>
+          <View style={styles.headerSpacer} />
+        </View>
 
-      {/* PROFILE IMAGE */}
-      <View style={styles.imageSection}>
-        <View style={styles.avatarWrapper}>
-          {profileImage ? (
-            <Image source={{ uri: profileImage }} style={styles.avatarImage} />
-          ) : (
-            <View style={styles.avatarPlaceholder}>
-              <Ionicons name="person" size={58} color="#F3E5D8" />
-            </View>
-          )}
+        {/* PROFILE IMAGE */}
+        <View style={styles.imageSection}>
+          <View style={styles.avatarWrapper}>
+            {profileImage ? (
+              <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+            ) : (
+              <View style={styles.avatarPlaceholder}>
+                <Ionicons name="person" size={58} color="#F3E5D8" />
+              </View>
+            )}
 
-          <TouchableOpacity style={styles.cameraIcon} onPress={handlePickProfileImage}>
-            <Ionicons name="camera-outline" size={14} color="#fff" />
+            <TouchableOpacity style={styles.cameraIcon} onPress={handlePickProfileImage}>
+              <Ionicons name="camera-outline" size={14} color="#fff" />
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity onPress={handlePickProfileImage}>
+            <Text style={styles.changePhotoText}>Change Profile Photo</Text>
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity onPress={handlePickProfileImage}>
-          <Text style={styles.changePhotoText}>Change Profile Photo</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* FORM */}
-      <Text style={styles.label}>Full Name</Text>
-      <InputField
-        placeholder="Enter your full name"
-        value={fullName}
-        onChangeText={setFullName}
-        icon="person-outline"
-        error={errors.fullName}
-      />
-
-      <Text style={styles.label}>Email Address</Text>
-      <InputField
-        placeholder="Enter your email"
-        value={email}
-        onChangeText={setEmail}
-        icon="mail-outline"
-        error={errors.email}
-      />
-
-      <Text style={styles.label}>Phone Number</Text>
-      <InputField
-        placeholder="Enter your phone number"
-        value={phone}
-        onChangeText={setPhone}
-        icon="call-outline"
-        error={errors.phone}
-      />
-
-      <Text style={styles.label}>Location</Text>
-      <InputField
-        placeholder="Enter your location"
-        value={location}
-        onChangeText={setLocation}
-        icon="location-outline"
-        rightIcon="locate-outline"
-        onRightIconPress={handleGetLocation}
-        error={errors.location}
-      />
-
-      <View style={styles.bioSection}>
-        <Text style={styles.bioLabel}>Short Bio</Text>
-        <TextInput
-          style={styles.bioInput}
-          placeholder="Tell us about yourself..."
-          value={bio}
-          onChangeText={(text) => {
-            if (text.length <= 180) setBio(text);
-          }}
-          multiline
-          placeholderTextColor="#999"
+        {/* FORM */}
+        <Text style={styles.label}>Full Name</Text>
+        <InputField
+          placeholder="Enter your full name"
+          value={fullName}
+          onChangeText={setFullName}
+          icon="person-outline"
+          error={errors.fullName}
+          editable={false} // Usually name is managed in auth
         />
-      </View>
 
-      {/* ACTION BUTTONS */}
-      <View style={styles.buttonSection}>
-        <PrimaryButton title="Save Changes" onPress={handleSaveChanges} />
+        <Text style={styles.label}>Email Address</Text>
+        <InputField
+          placeholder="Enter your email"
+          value={email}
+          onChangeText={setEmail}
+          icon="mail-outline"
+          error={errors.email}
+          editable={false} // Usually email is managed in auth
+        />
 
-        <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
-          <Text style={styles.cancelButtonText}>Cancel</Text>
-        </TouchableOpacity>
-      </View>
+        <Text style={styles.label}>Phone Number</Text>
+        <InputField
+          placeholder="Enter your phone number"
+          value={phone}
+          onChangeText={setPhone}
+          icon="call-outline"
+          error={errors.phone}
+          editable={false} // Phone is often verified
+        />
 
-      <Text style={styles.footerText}>
-        Thank you for being part of the StrayCare community!
-      </Text>
+        <Text style={styles.label}>Location</Text>
+        <InputField
+          placeholder="Enter your location"
+          value={location}
+          onChangeText={setLocation}
+          icon="location-outline"
+          rightIcon="locate-outline"
+          onRightIconPress={handleGetLocation}
+          error={errors.location}
+        />
+
+        <View style={styles.bioSection}>
+          <Text style={styles.bioLabel}>Short Bio</Text>
+          <TextInput
+            style={styles.bioInput}
+            placeholder="Tell us about yourself..."
+            value={bio}
+            onChangeText={(text) => {
+              if (text.length <= 150) setBio(text);
+            }}
+            multiline
+            placeholderTextColor="#999"
+          />
+        </View>
+
+        {/* ACTION BUTTONS */}
+        <View style={styles.buttonSection}>
+          <PrimaryButton title="Save Changes" onPress={handleSaveChanges} />
+
+          <TouchableOpacity style={styles.cancelButton} onPress={handleCancel}>
+            <Text style={styles.cancelButtonText}>Cancel</Text>
+          </TouchableOpacity>
+        </View>
+
+        <Text style={styles.footerText}>
+          Thank you for volunteering with StrayCare!
+        </Text>
       </ScrollView>
     </SafeAreaView>
   );

@@ -11,6 +11,7 @@ import {
 } from "react-native";
 
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#f59e0b";
 
@@ -40,18 +41,14 @@ export default function RescuerTypeScreen() {
     setIsLoading(true);
 
     try {
-      const response = await fetch(
-        "http://192.168.8.142:5000/api/auth/select-role",
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            // JWT identifies the user — no userId needed in body
-            Authorization: `Bearer ${token}`,
-          },
-          body: JSON.stringify({ role: selectedType }),
-        }
-      );
+      const response = await fetch(`${API_URL}/auth/select-role`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ role: selectedType }),
+      });
 
       const data = await response.json();
 
@@ -70,7 +67,7 @@ export default function RescuerTypeScreen() {
       if (selectedType === "volunteer") {
         router.replace("/auth/volunteerProfileSetup");
       } else if (selectedType === "ngo") {
-        router.replace("/auth/NGOProfileSetupScreen");
+        router.replace("/auth/ngoProfileSetup");
       } else if (selectedType === "vet") {
         // Use replace to ensure the user cannot return to the type selection screen 
         // once they begin entering their professional vet details.

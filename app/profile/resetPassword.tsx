@@ -3,8 +3,11 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+import * as SecureStore from "expo-secure-store";
+import { API_URL } from "../../constants/Config";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
+import { Alert } from "react-native";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -55,17 +58,44 @@ export default function ResetPasswordScreen() {
     return valid;
   };
 
-  const handleUpdatePassword = () => {
+  const handleUpdatePassword = async () => {
     if (!validate()) return;
 
-    // TODO: later call backend/Firebase password update API
-    console.log({
-      currentPassword,
-      newPassword,
-      confirmPassword,
-    });
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) {
+        Alert.alert("Error", "You must be logged in to change your password.");
+        return;
+      }
 
-    router.back();
+      const response = await fetch(`${API_URL}/auth/change-password`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          currentPassword,
+          newPassword,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        Alert.alert("Success", "Password updated successfully");
+        router.back();
+      } else {
+        if (data.message === "Incorrect current password") {
+          setErrors((prev) => ({ ...prev, currentPassword: "The password you entered is incorrect" }));
+        } else {
+          Alert.alert("Error", data.message || "Failed to update password");
+        }
+      }
+    } catch (error) {
+      console.error("Password update error:", error);
+      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+    }
   };
 
   return (

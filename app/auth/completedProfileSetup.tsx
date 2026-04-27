@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, Image } from "react-native";
 
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -17,7 +18,7 @@ export default function OnboardingCompleteScreen() {
         const token = await SecureStore.getItemAsync("authToken");
         if (!token) return;
 
-        const response = await fetch("http://192.168.8.142:5000/api/auth/me", {
+        const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
