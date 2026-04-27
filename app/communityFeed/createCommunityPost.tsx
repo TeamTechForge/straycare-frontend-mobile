@@ -3,6 +3,7 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -12,6 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { createCommunityPost } from "../../services/apiService";
 
 // ── Category options ─────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -51,6 +53,8 @@ function validateForm(
   return errors;
 }
 
+console.log("createCommunityPost:", createCommunityPost); 
+
 export default function CreateCommunityPost() {
   const router = useRouter();
 
@@ -60,12 +64,15 @@ export default function CreateCommunityPost() {
   const [authorName, setAuthorName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Pet Care Tips");
 
-  // Image state — stores the local URI of the picked image
+  // Image state
   const [imageUri, setImageUri] = useState<string | null>(null);
 
   // Validation state
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [touched, setTouched] = useState<Record<string, boolean>>({});
+
+  // Loading state
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ── Image picker ────────────────────────────────────────────────────────────
   const handlePickImage = async () => {
@@ -90,9 +97,7 @@ export default function CreateCommunityPost() {
     }
   };
 
-  const handleRemoveImage = () => {
-    setImageUri(null);
-  };
+  const handleRemoveImage = () => setImageUri(null);
 
   // ── Blur handler ────────────────────────────────────────────────────────────
   const handleBlur = (field: string) => {
@@ -101,29 +106,54 @@ export default function CreateCommunityPost() {
   };
 
   // ── Submit ──────────────────────────────────────────────────────────────────
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     // Mark all fields touched so all errors become visible
     setTouched({ title: true, content: true, authorName: true });
 
     const newErrors = validateForm(title, content, authorName);
     setErrors(newErrors);
-
     if (Object.keys(newErrors).length > 0) return;
 
-    // Auto-capture date & time at the moment of submission
-    const submittedAt = new Date().toISOString();
+    setIsSubmitting(true);
 
-    // ✅ All valid
-    console.log({
-      title: title.trim(),
-      content: content.trim(),
-      authorName: authorName.trim(),
-      selectedCategory,
-      imageUri,
-      submittedAt, // e.g. "2025-04-26T14:32:00.000Z"
-    });
+    try {
+      // Build FormData — sends image as real file, not a string path
+      const formData = new FormData();
+      formData.append("title", title.trim());
+      formData.append("category", selectedCategory);
+      formData.append("content", content.trim());
+      formData.append("authorName", authorName.trim());
+      formData.append("submittedAt", new Date().toISOString());
 
-    // TODO: connect to API
+      // Only attach image if the user picked one
+      if (imageUri) {
+        const filename = imageUri.split("/").pop() ?? "photo.jpg";
+        const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";
+        const mimeType = ext === "png" ? "image/png" : "image/jpeg";
+
+        formData.append("image", {
+          uri: imageUri,
+          name: filename,
+          type: mimeType,
+        } as any);
+      }
+
+      const response = await createCommunityPost(formData);
+
+      if (response.data.success) {
+        router.replace("/communityFeed/communityPostMain");
+      } else {
+        Alert.alert("Error", "Something went wrong. Please try again.");
+      }
+    } catch (error) {
+      console.log("Submit error:", error);
+      Alert.alert(
+        "Error",
+        "Failed to submit post. Please check your connection and try again."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   // Helper: only show error if the field has been touched
@@ -159,9 +189,7 @@ export default function CreateCommunityPost() {
             value={title}
             onChangeText={(text) => {
               setTitle(text);
-              if (touched.title) {
-                setErrors(validateForm(text, content, authorName));
-              }
+              if (touched.title) setErrors(validateForm(text, content, authorName));
             }}
             onBlur={() => handleBlur("title")}
           />
@@ -210,9 +238,7 @@ export default function CreateCommunityPost() {
             value={content}
             onChangeText={(text) => {
               setContent(text);
-              if (touched.content) {
-                setErrors(validateForm(title, text, authorName));
-              }
+              if (touched.content) setErrors(validateForm(title, text, authorName));
             }}
             onBlur={() => handleBlur("content")}
             multiline
@@ -278,9 +304,7 @@ export default function CreateCommunityPost() {
             value={authorName}
             onChangeText={(text) => {
               setAuthorName(text);
-              if (touched.authorName) {
-                setErrors(validateForm(title, content, text));
-              }
+              if (touched.authorName) setErrors(validateForm(title, content, text));
             }}
             onBlur={() => handleBlur("authorName")}
           />
@@ -294,13 +318,22 @@ export default function CreateCommunityPost() {
 
         {/* ── Action Buttons ── */}
         <View style={styles.actionsSection}>
-          <TouchableOpacity style={styles.submitButton} onPress={handleSubmit}>
-            <Text style={styles.submitButtonText}>Submit Post</Text>
+          <TouchableOpacity
+            style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? (
+              <ActivityIndicator color="#1f2937" />
+            ) : (
+              <Text style={styles.submitButtonText}>Submit Post</Text>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.cancelButton}
             onPress={() => router.back()}
+            disabled={isSubmitting}
           >
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>
@@ -316,8 +349,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#ffffff",
   },
-
-  // ── Header ──
   header: {
     flexDirection: "row",
     alignItems: "center",
@@ -342,8 +373,6 @@ const styles = StyleSheet.create({
   headerSpacer: {
     width: 40,
   },
-
-  // ── Scroll View ──
   scrollView: {
     flex: 1,
   },
@@ -352,8 +381,6 @@ const styles = StyleSheet.create({
     paddingTop: 24,
     paddingBottom: 40,
   },
-
-  // ── Section wrapper ──
   section: {
     marginBottom: 28,
   },
@@ -363,8 +390,6 @@ const styles = StyleSheet.create({
     color: "#334155",
     marginBottom: 8,
   },
-
-  // ── Text Input ──
   input: {
     width: "100%",
     padding: 16,
@@ -383,8 +408,6 @@ const styles = StyleSheet.create({
     minHeight: 120,
     paddingTop: 14,
   },
-
-  // ── Validation ──
   errorText: {
     marginTop: 6,
     fontSize: 12,
@@ -397,8 +420,6 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     textAlign: "right",
   },
-
-  // ── Category Chips ──
   chipsContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -424,8 +445,6 @@ const styles = StyleSheet.create({
     color: "#000000",
     fontWeight: "600",
   },
-
-  // ── Upload box — empty state ──
   uploadBox: {
     borderWidth: 2,
     borderColor: "#cbd5e1",
@@ -456,8 +475,6 @@ const styles = StyleSheet.create({
     color: "#94a3b8",
     marginTop: 4,
   },
-
-  // ── Image preview — filled state ──
   imagePreviewContainer: {
     width: "100%",
     height: 200,
@@ -493,13 +510,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#ffffff",
     borderRadius: 9999,
   },
-
-  // ── Spacer ──
   spacer: {
     height: 48,
   },
-
-  // ── Action Buttons ──
   actionsSection: {
     gap: 12,
   },
@@ -514,6 +527,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 6,
     elevation: 4,
+  },
+  submitButtonDisabled: {
+    opacity: 0.6,
   },
   submitButtonText: {
     fontSize: 16,
