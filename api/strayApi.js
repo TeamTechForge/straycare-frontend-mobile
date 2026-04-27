@@ -39,6 +39,7 @@ export const getReportByCaseId = async (caseId) => {
     throw error;
   }
 };
+
 // 4️⃣ Update case status
 export const updateCaseStatus = async (caseId, status) => {
   try {

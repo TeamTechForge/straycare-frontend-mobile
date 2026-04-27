@@ -12,7 +12,6 @@ import MapView, { Marker } from "react-native-maps";
 import { getReportByCaseId, updateCaseStatus } from "../../api/strayApi";
 import PrimaryButton from "../../components/PrimaryButton";
 
-// ------------------ TYPES ------------------
 type Report = {
   caseId: string;
   animalType: string;
@@ -29,13 +28,12 @@ type Report = {
   photos?: string[];
 };
 
-// ------------------ STATUS COLOR HELPER ------------------
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Needs Help":
       return "red";
     case "Under Rescue":
-      return "E6B800";
+      return "yellow";
     case "Treated":
       return "green";
     case "Ready for Adoption":
@@ -45,7 +43,6 @@ const getStatusColor = (status: string) => {
   }
 };
 
-// ------------------ NEXT STATUS HELPER ------------------
 const getNextStatus = (current: string) => {
   switch (current) {
     case "Needs Help":
@@ -89,7 +86,7 @@ export default function CaseDetailsScreen() {
 
     try {
       const updated = await updateCaseStatus(report.caseId, next);
-      setReport(updated); // update UI instantly
+      setReport(updated);
     } catch (err) {
       console.log("Failed to update status:", err);
     }
@@ -109,14 +106,12 @@ export default function CaseDetailsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
-      {/* ------------------ HEADER ------------------ */}
       <Text style={styles.caseId}>Case ID: {report.caseId}</Text>
 
       <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
         <Text style={styles.statusText}>{report.status}</Text>
       </View>
 
-      {/* ------------------ PHOTOS ------------------ */}
       <Text style={styles.label}>Photos</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
         {report.photos && report.photos.length > 0 ? (
@@ -128,7 +123,6 @@ export default function CaseDetailsScreen() {
         )}
       </ScrollView>
 
-      {/* ------------------ BASIC INFO ------------------ */}
       <Text style={styles.label}>Animal Type</Text>
       <Text style={styles.value}>{report.animalType}</Text>
 
@@ -143,7 +137,6 @@ export default function CaseDetailsScreen() {
         {report.anonymous ? "Anonymous User" : "Identified User"}
       </Text>
 
-      {/* ------------------ LOCATION ------------------ */}
       <Text style={styles.label}>Location</Text>
       <Text style={styles.value}>{report.location.address}</Text>
 
@@ -165,11 +158,9 @@ export default function CaseDetailsScreen() {
         />
       </MapView>
 
-      {/* ------------------ NOTES ------------------ */}
       <Text style={styles.label}>Notes</Text>
       <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
 
-      {/* ------------------ STATUS UPDATE BUTTON ------------------ */}
       {nextStatus && (
         <PrimaryButton
           title={`Mark as "${nextStatus}"`}
@@ -177,7 +168,6 @@ export default function CaseDetailsScreen() {
         />
       )}
 
-      {/* ------------------ BACK BUTTON ------------------ */}
       <PrimaryButton title="Back to Map" onPress={() => router.push("/reporting")} />
     </ScrollView>
   );

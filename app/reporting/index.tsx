@@ -11,7 +11,6 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import { getAllReports } from "../../api/strayApi";
 
-// ---------- TYPES ----------
 type Report = {
   caseId: string;
   animalType: string;
@@ -24,7 +23,6 @@ type Report = {
   };
 };
 
-// ---------- COLOR HELPER ----------
 const getMarkerColor = (status: string) => {
   switch (status) {
     case "Needs Help":
@@ -56,12 +54,10 @@ export default function ReportingMapScreen() {
     }
   };
 
-  // Load once on mount
   useEffect(() => {
     loadReports();
   }, []);
 
-  // Refresh when returning to screen
   useFocusEffect(
     useCallback(() => {
       loadReports();
@@ -118,7 +114,6 @@ export default function ReportingMapScreen() {
         })}
       </MapView>
 
-      {/* ADD A CASE BUTTON */}
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => router.push("/reporting/animal-details")}
