@@ -1,11 +1,16 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { getAllReports } from "../../api/strayApi";
 
-// ---------- TYPES ----------
 type Report = {
   caseId: string;
   animalType: string;
@@ -16,6 +21,21 @@ type Report = {
     lng: number;
     address?: string;
   };
+};
+
+const getMarkerColor = (status: string) => {
+  switch (status) {
+    case "Needs Help":
+      return "red";
+    case "Under Rescue":
+      return "yellow";
+    case "Treated":
+      return "green";
+    case "Ready for Adoption":
+      return "blue";
+    default:
+      return "gray";
+  }
 };
 
 export default function ReportingMapScreen() {
@@ -34,12 +54,10 @@ export default function ReportingMapScreen() {
     }
   };
 
-  // Load once on mount
   useEffect(() => {
     loadReports();
   }, []);
 
-  // Refresh when returning to screen
   useFocusEffect(
     useCallback(() => {
       loadReports();
@@ -57,6 +75,7 @@ export default function ReportingMapScreen() {
   return (
     <View style={styles.container}>
       <MapView
+        provider="google"
         style={styles.map}
         initialRegion={{
           latitude: 6.9271,
@@ -66,12 +85,13 @@ export default function ReportingMapScreen() {
         }}
       >
         {reports.map((report) => {
-          if (!report.location ||
-  report.location.lat == null ||
-  report.location.lng == null
-) {
-  return null;
-}
+          if (
+            !report.location ||
+            report.location.lat == null ||
+            report.location.lng == null
+          ) {
+            return null;
+          }
 
           return (
             <Marker
@@ -80,17 +100,9 @@ export default function ReportingMapScreen() {
                 latitude: report.location.lat,
                 longitude: report.location.lng,
               }}
-              pinColor={
-                report.status === "Needs Help"
-                  ? "red"
-                  : report.status === "Under Rescue"
-                  ? "yellow"
-                  : report.status === "Treated"
-                  ? "green"
-                  : "blue"
-              }
-              title={report.caseId}
-              description={report.animalType}
+              pinColor={getMarkerColor(report.status)}
+              title={report.animalType}
+              description={report.status}
               onPress={() =>
                 router.push({
                   pathname: "/reporting/casedetails",
@@ -102,7 +114,6 @@ export default function ReportingMapScreen() {
         })}
       </MapView>
 
-      {/* ADD A CASE BUTTON */}
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => router.push("/reporting/animal-details")}
@@ -125,12 +136,12 @@ const styles = StyleSheet.create({
 
   addButton: {
     position: "absolute",
-    bottom: 30,
-    right: 20,
+    bottom: 50,
+    right: 120,
     backgroundColor: "#FFB700",
-    paddingVertical: 14,
-    paddingHorizontal: 20,
-    borderRadius: 30,
+    paddingVertical: 20,
+    paddingHorizontal: 24,
+    borderRadius: 40,
     shadowColor: "#000",
     shadowOpacity: 0.2,
     shadowRadius: 6,
@@ -138,8 +149,8 @@ const styles = StyleSheet.create({
   },
 
   addButtonText: {
-    color: "white",
-    fontSize: 16,
+    color: "black",
+    fontSize: 18,
     fontWeight: "700",
   },
 });
