@@ -1,86 +1,96 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import React, { useEffect } from "react";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function DonationSummary() {
-    const { category, organization, frequency, plan, amount, paymentMethod } = useLocalSearchParams();
-    const router = useRouter();
+  const { category, organization, frequency, plan, amount, paymentMethod, paymentFailed } =
+    useLocalSearchParams();
 
-    return (
-        <View style={styles.container}>
-            {/* Headings outside the box */}
-            <Text style={styles.title}>Donate & Support♡</Text>
-            <Text style={styles.subtitle}>Help Provide Care for Stray Animals</Text>
+  const router = useRouter();
+  const formattedAmount = parseFloat(amount as string).toFixed(2);
 
-            {/* Content inside off-white box */}
-            <View style={styles.summaryBox}>
-                <Text style={styles.label}>Donation Type: {category}</Text>
-                <Text style={styles.label}>Organization: {organization}</Text>
-                <Text style={styles.label}>Frequency: {frequency}</Text>
+  useEffect(() => {
+    if (paymentFailed === "true") {
+      Alert.alert("Payment Failed", "Your payment was not successful. Please try again.");
+    }
+  }, [paymentFailed]);
 
-                {frequency === "Recurring" && plan ? (
-                    <Text style={styles.label}>Donation Plan: {plan}</Text>
-                ) : null}
+  return (
+    <View style={styles.container}>
+      <Text style={styles.title}>Donate & Support♡</Text>
+      <Text style={styles.subtitle}>Help Provide Care for Stray Animals</Text>
 
-                <Text style={styles.label}>Amount: Rs. {amount}</Text>
-                <Text style={styles.label}>Payment Method: {paymentMethod}</Text>
+      <View style={styles.summaryBox}>
+        <Text style={styles.label}>Donation Type: {category}</Text>
+        <Text style={styles.label}>Organization: {organization}</Text>
+        <Text style={styles.label}>Frequency: {frequency}</Text>
+        {frequency === "Recurring" && plan ? (
+          <Text style={styles.label}>Donation Plan: {plan}</Text>
+        ) : null}
+        <Text style={styles.label}>Amount: Rs. {formattedAmount}</Text>
+        <Text style={styles.label}>Payment Method: {paymentMethod}</Text>
 
-                <TouchableOpacity
-                    style={styles.button}
-                    onPress={() =>
-                        router.push({
-                            pathname: "/donate/payhereCheckout",
-                            params: {
-                                amount: amount ? amount : "100.00" // always a valid numeric string
-                            }
-                        })
-                    }
-                >
-                    <Text style={styles.buttonText}>Pay with PayHere</Text>
-                </TouchableOpacity>
-            </View>
+        <TouchableOpacity
+          style={styles.button}
+          onPress={() =>
+            router.push({
+              pathname: "/donate/payhereCheckout",
+              params: { amount: formattedAmount, category, organization, frequency, plan },
+            })
+          }
+        >
+          <Text style={styles.buttonText}>Pay with PayHere</Text>
+        </TouchableOpacity>
+      </View>
 
-            {/* Bottom Navigation (all icons black, light dark-yellow background) */}
-            <View style={styles.bottomBar}>
-                <Ionicons name="home" size={24} color="#000" />
-                <Ionicons name="people-outline" size={24} color="#000" />
-                <Ionicons name="add-circle-outline" size={24} color="#000" />
-                <Ionicons name="chatbubble-outline" size={24} color="#000" />
-                <Ionicons name="person-outline" size={24} color="#000" />
-            </View>
-        </View>
-    );
+      <View style={styles.bottomBar}>
+        <Ionicons name="home" size={24} color="#000" />
+        <Ionicons name="people-outline" size={24} color="#000" />
+        <Ionicons name="add-circle-outline" size={24} color="#000" />
+        <Ionicons name="chatbubble-outline" size={24} color="#000" />
+        <Ionicons name="person-outline" size={24} color="#000" />
+      </View>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, padding: 20, backgroundColor: "#fff" },
-    title: { fontSize: 22, fontWeight: "bold", marginBottom: 5, textAlign: "left" },
-    subtitle: { fontSize: 16, marginBottom: 20, textAlign: "left", color: "#555" },
-    summaryBox: {
-        backgroundColor: "#f9f9f9",
-        padding: 15,
-        borderRadius: 10,
-        shadowColor: "#000",
-        shadowOpacity: 0.1,
-        shadowRadius: 5,
-        elevation: 2,
-    },
-    label: { fontSize: 16, marginVertical: 5 },
-    button: { backgroundColor: "#F5A623", padding: 15, marginTop: 20, borderRadius: 8 },
-    buttonText: { textAlign: "center", fontSize: 18, fontWeight: "bold", color: "#000" },
-    bottomBar: {
-        flexDirection: "row",
-        justifyContent: "space-around",
-        padding: 15,
-        borderTopWidth: 1,
-        borderColor: "#ddd",
-        marginTop: "auto",
-        backgroundColor: "#FFF9E6",
-    },
+  container: { flex: 1, padding: 20, backgroundColor: "#fff" },
+  title: { fontSize: 22, fontWeight: "bold", marginBottom: 5 },
+  subtitle: { fontSize: 16, marginBottom: 20, color: "#555" },
+  summaryBox: {
+    backgroundColor: "#f9f9f9",
+    padding: 15,
+    borderRadius: 10,
+    shadowColor: "#000",
+    shadowOpacity: 0.1,
+    shadowRadius: 5,
+    elevation: 2,
+  },
+  label: { fontSize: 16, marginVertical: 5 },
+  button: {
+    backgroundColor: "#F5A623",
+    padding: 15,
+    marginTop: 20,
+    borderRadius: 8,
+  },
+  buttonText: {
+    textAlign: "center",
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#000",
+  },
+  bottomBar: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    padding: 15,
+    borderTopWidth: 1,
+    borderColor: "#ddd",
+    marginTop: "auto",
+    backgroundColor: "#FFF9E6",
+  },
 });
-
-
 
 
 

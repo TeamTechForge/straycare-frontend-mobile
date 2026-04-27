@@ -8,23 +8,20 @@
     "scheme": "straycare",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
-
     "ios": {
       "supportsTablet": true
     },
-
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#FFFFFF"
       },
       "edgeToEdgeEnabled": true
     },
-
     "web": {
       "favicon": "./assets/images/favicon.png"
     },
-
     "plugins": [
       "expo-router",
       [
@@ -36,15 +33,14 @@
         }
       ],
       [
-    "expo-image-picker",
-    {
-      "photosPermission": "Allow StrayCare to access your photos.",
-      "cameraPermission": "Allow StrayCare to use your camera."
-    }
-  ]
-      
+        "expo-image-picker",
+        {
+          "photosPermission": "Allow StrayCare to access your photos.",
+          "cameraPermission": "Allow StrayCare to use your camera."
+        }
+      ],
+      "expo-asset"
     ],
-
     "experiments": {
       "typedRoutes": true
     }
