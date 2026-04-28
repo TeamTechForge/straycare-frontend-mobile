@@ -5,8 +5,8 @@ import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import PrimaryButton from "../../components/PrimaryButton";
 
-// -------------- TYPES --------------
-type MapRegion = {
+
+type MapRegion = {     // Represents the map viewport region including center coordinates and zoom level
   latitude: number;
   longitude: number;
   latitudeDelta: number;
@@ -14,25 +14,29 @@ type MapRegion = {
 };
 
 export default function LocationPicker() {
-  const [region, setRegion] = useState<MapRegion | null>(null);
-  const [address, setAddress] = useState("");
-  const [loading, setLoading] = useState(true);
+  //  STATE 
+  const [region, setRegion] = useState<MapRegion | null>(null);     // Map center + zoom
+  const [address, setAddress] = useState("");                       // readable address
+  const [loading, setLoading] = useState(true);                     // Loading state for location fetch
 
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams();                            // Data passed from AnimalDetails screen
 
-  // -------------- GET USER LOCATION --------------
+  
   useEffect(() => {
     (async () => {
+      // Request permission
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         alert("Location permission denied");
         return;
       }
 
+      // Get current GPS location
       const loc = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = loc.coords;
 
+      // Set initial map region
       const initialRegion: MapRegion = {
         latitude,
         longitude,
@@ -41,12 +45,15 @@ export default function LocationPicker() {
       };
 
       setRegion(initialRegion);
+
+      // Fetch readable address
       fetchAddress(latitude, longitude);
+
       setLoading(false);
     })();
   }, []);
 
-  // -------------- REVERSE GEOCODE --------------
+ // Converts latitude + longitude into a readable address. Uses Expo's reverse geocoding API.
   const fetchAddress = async (lat: number, lng: number) => {
     const result = await Location.reverseGeocodeAsync({
       latitude: lat,
@@ -57,35 +64,40 @@ export default function LocationPicker() {
       const item = result[0];
       const formatted =
         `${item.name || ""}, ${item.street || ""}, ${item.city || ""}, ${item.region || ""}`;
+
       setAddress(formatted || "Unknown location");
     } else {
       setAddress("Unknown location");
     }
   };
 
-  // -------------- DRAG MARKER HANDLER --------------
+   // Triggered when the user drags the map marker.
   const onMarkerDragEnd = (e: any) => {
     if (!region) return;
 
     const { latitude, longitude } = e.nativeEvent.coordinate;
 
+    // Update map region
     setRegion({
       ...region,
       latitude,
       longitude,
     });
 
+    // Fetch new address
     fetchAddress(latitude, longitude);
   };
 
-  // -------------- CONTINUE BUTTON --------------
+ 
+   // Navigates to the Upload Photos screen passing animal details from previous screen,selected location (lat, lng, address)
+  
   const handleNext = () => {
     if (!region) return;
 
     router.push({
-      pathname: "/reporting/upload-photos", // FIXED FLOW
+      pathname: "/reporting/upload-photos",
       params: {
-        ...params,
+        ...params,     // animalType, breed, category, notes, anonymous
         locationLat: region.latitude.toString(),
         locationLng: region.longitude.toString(),
         locationAddress: address,
@@ -93,7 +105,7 @@ export default function LocationPicker() {
     });
   };
 
-  // -------------- LOADING UI --------------
+  //  LOADING UI 
   if (loading || !region) {
     return (
       <View style={styles.center}>
@@ -103,18 +115,21 @@ export default function LocationPicker() {
     );
   }
 
-  // -------------- MAIN UI --------------
+  //  MAIN UI 
   return (
     <View style={styles.container}>
+      {/* Map with draggable marker */}
       <MapView style={styles.map} region={region}>
         <Marker coordinate={region} draggable onDragEnd={onMarkerDragEnd} />
       </MapView>
 
+      {/* Address display */}
       <View style={styles.addressBox}>
         <Text style={styles.label}>INCIDENT LOCATION</Text>
         <Text style={styles.address}>{address}</Text>
       </View>
 
+      {/* Continue button */}
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton title="Continue Report →" onPress={handleNext} />
       </View>
@@ -122,7 +137,7 @@ export default function LocationPicker() {
   );
 }
 
-// -------------- STYLES --------------
+//  STYLES 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fafafa" },
   map: { flex: 1 },

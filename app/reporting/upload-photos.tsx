@@ -18,31 +18,35 @@ import PrimaryButton from "../../components/PrimaryButton";
 
 export default function UploadPhotos() {
   const router = useRouter();
-  const params = useLocalSearchParams();
+  const params = useLocalSearchParams();                // Data from previous screens
 
-  const [images, setImages] = useState<string[]>([]);
-  const [uploading, setUploading] = useState(false);
+  // STATE 
+  const [images, setImages] = useState<string[]>([]);  // Selected photo URIs
+  const [uploading, setUploading] = useState(false);   // Loading state for Next button
 
-  // ---------- HELPERS ----------
-  const canAddMore = () => images.length < 5;
+  //  HELPERS 
+ 
+  const canAddMore = () => images.length < 5;          // Check if user can add more photos (max 5)
 
-  const removeImage = (index: number) => {
+  const removeImage = (index: number) => {             // Remove a selected image by index
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  // ---------- IMAGE PICKER (GALLERY) ----------
+  //  IMAGE PICKER (GALLERY) 
   const pickImages = async () => {
     if (!canAddMore()) {
       Alert.alert("Limit reached", "You can upload a maximum of 5 photos.");
       return;
     }
 
+    // Request gallery permission
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission needed", "Gallery access is required.");
       return;
     }
 
+    // Open gallery
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
@@ -52,6 +56,7 @@ export default function UploadPhotos() {
     if (!result.canceled) {
       const uris = result.assets.map((a) => a.uri);
 
+      // Respect the 5-photo limit
       const remainingSlots = 5 - images.length;
       const toAdd = uris.slice(0, remainingSlots);
 
@@ -66,19 +71,21 @@ export default function UploadPhotos() {
     }
   };
 
-  // ---------- CAMERA ----------
+  // CAMERA 
   const openCamera = async () => {
     if (!canAddMore()) {
       Alert.alert("Limit reached", "You can upload a maximum of 5 photos.");
       return;
     }
 
+    // Request camera permission
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission needed", "Camera access is required.");
       return;
     }
 
+    // Open camera
     const result = await ImagePicker.launchCameraAsync({
       quality: 0.7,
     });
@@ -89,8 +96,9 @@ export default function UploadPhotos() {
     }
   };
 
-  // ---------- NEXT STEP (NO UPLOAD) ----------
-  const handleNext = async () => {
+  //  NEXT STEP  
+
+  const handleNext = async () => {   // Validates that at least one image is selected.Passes all selected image URIs to the Review screen.
     if (images.length === 0) {
       Alert.alert("No images", "Please select at least one photo.");
       return;
@@ -98,25 +106,27 @@ export default function UploadPhotos() {
 
     setUploading(true);
 
-    // DUMMY — just pass local URIs
     router.push({
       pathname: "/reporting/review",
       params: {
         ...params,
-        photos: JSON.stringify(images),
+        photos: JSON.stringify(images),     // Pass URIs as JSON string
       },
     });
 
     setUploading(false);
   };
 
+  //  UI 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
+        
+        {/* HEADER */}
         <Text style={styles.header}>Upload Photos</Text>
         <Text style={styles.subtext}>Add up to 5 photos.</Text>
 
-        {/* BIG FIRST IMAGE */}
+        {/* MAIN PHOTO PREVIEW  */}
         <View style={styles.mainPhotoBox}>
           {images.length > 0 ? (
             <Image
@@ -128,11 +138,13 @@ export default function UploadPhotos() {
           )}
         </View>
 
-        {/* GRID OF IMAGES */}
+        {/* PHOTO GRID */}
         <View style={styles.grid}>
           {images.map((uri, index) => (
             <View key={index} style={styles.imageWrapper}>
               <Image source={{ uri }} style={styles.smallPhotoBox} />
+
+              {/* Delete button */}
               <TouchableOpacity
                 style={styles.deleteBadge}
                 onPress={() => removeImage(index)}
@@ -142,7 +154,7 @@ export default function UploadPhotos() {
             </View>
           ))}
 
-          {/* ADD BUTTON */}
+          {/* Add more photos */}
           {canAddMore() && (
             <TouchableOpacity style={styles.addBox} onPress={pickImages}>
               <MaterialCommunityIcons name="plus" size={35} color="#777" />
@@ -150,13 +162,13 @@ export default function UploadPhotos() {
           )}
         </View>
 
-        {/* CAMERA BUTTON */}
+        {/* CAMERA BUTTON  */}
         <TouchableOpacity style={styles.cameraButton} onPress={openCamera}>
           <MaterialCommunityIcons name="camera" size={25} color="white" />
         </TouchableOpacity>
       </ScrollView>
 
-      {/* NEXT BUTTON */}
+      {/* NEXT BUTTON  */}
       <View style={styles.bottomButtonWrapper}>
         {uploading ? (
           <ActivityIndicator size="large" color="#FFB700" />
@@ -168,6 +180,7 @@ export default function UploadPhotos() {
   );
 }
 
+// STYLES 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fafafa" },
   scrollContent: { padding: 20, paddingBottom: 160 },

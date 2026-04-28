@@ -11,8 +11,7 @@ import {
 import MapView, { Marker } from "react-native-maps";
 import { getAllReports } from "../../api/strayApi";
 
-// ---------- TYPES ----------
-type Report = {
+type Report = {     // Represents the minimal data needed to display a case on the map
   caseId: string;
   animalType: string;
   category: string;
@@ -24,7 +23,7 @@ type Report = {
   };
 };
 
-// ---------- COLOR HELPER ----------
+// Maps each rescue status to a specific marker color.Used to visually differentiate case statuses on the map.
 const getMarkerColor = (status: string) => {
   switch (status) {
     case "Needs Help":
@@ -41,12 +40,16 @@ const getMarkerColor = (status: string) => {
 };
 
 export default function ReportingMapScreen() {
-  const [reports, setReports] = useState<Report[]>([]);
-  const [loading, setLoading] = useState(true);
   const router = useRouter();
 
+  // ------------------ STATE ------------------
+  const [reports, setReports] = useState<Report[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  
+  // Fetches all reports from backend
   const loadReports = async () => {
-    try {
+    try {  // Error handling to catch any issues during data fetching and prevent app crashes. 
       const data = await getAllReports();
       setReports(data);
     } catch (err) {
@@ -56,18 +59,19 @@ export default function ReportingMapScreen() {
     }
   };
 
-  // Load once on mount
+// Runs once when the screen mounts to load initial data
   useEffect(() => {
     loadReports();
   }, []);
 
-  // Refresh when returning to screen
+  //Runs every time the user returns to this screen.Ensures the map always shows the latest case updates.
   useFocusEffect(
     useCallback(() => {
       loadReports();
     }, [])
   );
 
+  // LOADING STATE 
   if (loading) {
     return (
       <View style={styles.center}>
@@ -78,17 +82,20 @@ export default function ReportingMapScreen() {
 
   return (
     <View style={styles.container}>
+      {/* MAP VIEW  */}
       <MapView
         provider="google"
         style={styles.map}
         initialRegion={{
-          latitude: 6.9271,
+          latitude: 6.9271, // Default- Colombo
           longitude: 79.8612,
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
         }}
       >
+        {/* Render all case markers */}
         {reports.map((report) => {
+          // Skip invalid or incomplete location data
           if (
             !report.location ||
             report.location.lat == null ||
@@ -107,6 +114,8 @@ export default function ReportingMapScreen() {
               pinColor={getMarkerColor(report.status)}
               title={report.animalType}
               description={report.status}
+              
+              // On marker press navigate to Case Details screen ,pass the caseId so the next screen can fetch full details 
               onPress={() =>
                 router.push({
                   pathname: "/reporting/casedetails",
@@ -118,7 +127,7 @@ export default function ReportingMapScreen() {
         })}
       </MapView>
 
-      {/* ADD A CASE BUTTON */}
+      {/* ADD CASE BUTTON */}
       <TouchableOpacity
         style={styles.addButton}
         onPress={() => router.push("/reporting/animal-details")}
@@ -131,6 +140,7 @@ export default function ReportingMapScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
+
   map: { flex: 1 },
 
   center: {

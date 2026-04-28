@@ -1,10 +1,10 @@
+// Root layout for the app, defining the navigation stack and global screen options.
 import { Stack } from "expo-router";
-
 export default function RootLayout() {
   return (
     <Stack
       screenOptions={{
-        headerShown: false,
+        headerShown: false, // Disable default header for all screens
       }}
     />
   );

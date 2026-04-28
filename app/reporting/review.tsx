@@ -10,26 +10,29 @@ import {
 import { submitReport } from "../../api/strayApi";
 import PrimaryButton from "../../components/PrimaryButton";
 
-export default function Review() {
-  const router = useRouter();
-  const params = useLocalSearchParams();
 
-  // Generate caseId if not passed
+export default function Review() {    // shows a full summary of the report before submission
+  const router = useRouter();
+  const params = useLocalSearchParams();      // Data passed from previous screens
+
+   //Case ID generation-If a caseId was passed (editing flow), use it. Otherwise generate a new unique ID for the report.
   const caseId =
     params.caseId ||
     "STRAY-" + Math.floor(10000 + Math.random() * 90000);
 
-  // Photos (dummy or real)
+  
+   // Photos are passed as a JSON string from the upload screen.Parse them into an array.
   const photos = params.photos ? JSON.parse(params.photos as string) : [];
 
+   // Builds the final report object and sends it to the backend. On success - navigate to Success screen. On failure - show error alert.
   const handleSubmit = async () => {
-    try {
+    try {      // Error handling to catch any issues during submission 
       const reportData = {
         caseId,
         animalType: params.animalType,
         breed: params.breed || "Unknown",
-        category: params.category, // FIXED
-        status: "Needs Help", // FIXED default status
+        category: params.category,
+        status: "Needs Help",     // Default initial status
         notes: params.notes,
         anonymous: params.anonymous === "true",
         location: {
@@ -37,12 +40,13 @@ export default function Review() {
           lng: Number(params.locationLng),
           address: params.locationAddress,
         },
-        photos, // dummy for now
+        photos,     
       };
 
       const result = await submitReport(reportData);
       console.log("Report submitted:", result);
 
+      // Navigate to success screen
       router.push({
         pathname: "/reporting/success",
         params: { caseId },
@@ -55,28 +59,29 @@ export default function Review() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* CASE ID */}
+      {/*  CASE ID  */}
       <View style={styles.caseCard}>
         <Text style={styles.caseLabel}>CASE ID</Text>
         <Text style={styles.caseValue}>{caseId}</Text>
       </View>
 
-      {/* MAIN PHOTO */}
+      {/* MAIN PHOTO  */}
       {photos.length > 0 && (
         <Image source={{ uri: photos[0] }} style={styles.mainPhoto} />
       )}
 
-      {/* OTHER PHOTOS */}
+      {/*  OTHER PHOTOS  */}
       <View style={styles.grid}>
         {photos.slice(1).map((uri: string, index: number) => (
           <Image key={index} source={{ uri }} style={styles.smallPhoto} />
         ))}
       </View>
 
-      {/* ANIMAL DETAILS */}
+      {/*  ANIMAL DETAILS  */}
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Animal Details</Text>
 
+        {/* EDIT BUTTON - to navigate back to Animal Details */}
         <TouchableOpacity
           onPress={() =>
             router.push({
@@ -112,6 +117,7 @@ export default function Review() {
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Rescue Location</Text>
 
+        {/* EDIT BUTTON -to navigate back to Location Picker */}
         <TouchableOpacity
           onPress={() =>
             router.push({
@@ -134,6 +140,7 @@ export default function Review() {
   );
 }
 
+// STYLES 
 const styles = StyleSheet.create({
   container: {
     padding: 20,

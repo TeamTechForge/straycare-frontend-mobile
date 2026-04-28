@@ -4,10 +4,12 @@ import React from "react";
 import { ScrollView, StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 
+
 export default function Success() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
+   // Extract Case ID-The caseId is passed from the Review screen after submission.If missing (edge case), show "Unknown". 
   const caseId = params.caseId || "Unknown";
 
   return (
@@ -28,7 +30,7 @@ export default function Success() {
           Rescuers will now review your report.
         </Text>
 
-        {/* CASE ID */}
+        {/* CASE ID CARD */}
         <View style={styles.caseCard}>
           <Text style={styles.caseLabel}>CASE ID</Text>
           <Text style={styles.caseValue}>{caseId}</Text>
@@ -36,7 +38,7 @@ export default function Success() {
 
       </ScrollView>
 
-      {/* BUTTON */}
+      {/* BACK TO MAP BUTTON */}
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
           title="Back to Map"
@@ -47,6 +49,7 @@ export default function Success() {
   );
 }
 
+// STYLES 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fafafa" },
 
