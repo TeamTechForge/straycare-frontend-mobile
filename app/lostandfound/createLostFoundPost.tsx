@@ -108,6 +108,7 @@ const CreatePost = () => {
     if (selected) {
       setDateObj(selected);
       updateForm('date', selected.toDateString());
+
       // Revalidate date immediately after selection
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -220,20 +221,29 @@ const CreatePost = () => {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
-
       await createAnimalPost(form);
-      console.log("Post created, navigating...");
 
-      const route =
-        form.status === 'lost'
-          ? '/lostAndFound/lostAnimalListView'
-          : '/lostAndFound/foundAnimalListView';
+      // ── ADD THIS — reset form fields after successful submit ──
+      setForm({
+        status: 'lost',
+        type: 'dog',
+        customType: '',
+        breed: '',
+        name: '',
+        description: '',
+        location: '',
+        date: '',
+        contactName: '',
+        contactNumber: '',
+        images: [],
+      });
+
+      const route = form.status === 'lost'
+        ? '/lostAndFound/lostAnimalListView'
+        : '/lostAndFound/foundAnimalListView';
       router.push(route);
     } catch (error: any) {
-      console.log("API error:", error);
-
-      const message =
-        error?.response?.data?.message || 'Failed to create post. Please try again.';
+      const message = error?.response?.data?.message || 'Failed to create post. Please try again.';
       showValidationError(message);
     } finally {
       setIsSubmitting(false);
@@ -362,6 +372,7 @@ const CreatePost = () => {
                 size={18}
                 color={C.textSub}
               />
+
             </TouchableOpacity>
             {breedDropdownOpen && (
               <View style={s.dropdownList}>
@@ -660,6 +671,7 @@ const s = StyleSheet.create({
     paddingVertical: 10,
     borderRadius: 10,
     alignItems: 'center',
+    color: 'F5A623',
   },
   toggleBtnActive: {
     backgroundColor: C.surface,

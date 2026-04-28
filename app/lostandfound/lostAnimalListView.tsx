@@ -88,14 +88,6 @@ export default function LostAnimalScreen() {
           {item.description}
         </Text>
 
-        {/* Contact */}
-        <TouchableOpacity
-          style={styles.contactBtn}
-          onPress={(e) => e.stopPropagation()}
-        >
-          <MaterialIcons name="phone" size={14} color="#fff" />
-          <Text style={styles.contactText}>Contact Owner</Text>
-        </TouchableOpacity>
       </View>
     </TouchableOpacity>
   );
@@ -142,7 +134,7 @@ export default function LostAnimalScreen() {
                 />
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Search by area or breed..."
+                  placeholder="Search by name or breed..."
                   placeholderTextColor="#717878"
                   value={search}
                   onChangeText={setSearch}
@@ -198,9 +190,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 52,
     paddingBottom: 12,
-    backgroundColor: "#fff",
+    backgroundColor: "#faf9f8",
     borderBottomWidth: 1,
-    borderBottomColor: "#f1f0f0",
+    borderBottomColor: "#faf9f8",
   },
   iconBtn: {
     width: 40,
@@ -359,20 +351,5 @@ const styles = StyleSheet.create({
     color: "#414848",
     lineHeight: 19,
     marginBottom: 14,
-  },
-  contactBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    alignSelf: "flex-start",
-    backgroundColor: "#F5A623",
-    paddingVertical: 9,
-    paddingHorizontal: 16,
-    borderRadius: 8,
-  },
-  contactText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 13,
   },
 });
