@@ -144,7 +144,6 @@ export default function ContactSupportScreen() {
             label="Name"
             placeholder="Your name"
             value={name}
-            onChangeText={setName}
             editable={false} // Auto-filled from profile
           />
 
@@ -152,8 +151,6 @@ export default function ContactSupportScreen() {
             label="Email Address"
             placeholder="yourname@example.com"
             value={email}
-            onChangeText={setEmail}
-            keyboardType="email-address"
             editable={false} // Auto-filled from profile
           />
 
