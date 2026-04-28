@@ -141,8 +141,7 @@ export default function VolunteerProfile() {
             />
           )}
         </View>
-      </ScrollView>  
-
+      </ScrollView>
       <ProfileMenuDrawer
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
@@ -167,7 +166,7 @@ export default function VolunteerProfile() {
           await SecureStore.deleteItemAsync("authToken");
           router.replace("/auth/login");
         }} 
-      /> 
+      />
     </SafeAreaView>
   );
 }

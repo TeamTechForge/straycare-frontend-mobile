@@ -146,8 +146,7 @@ export default function NGOProfile() {
             />
           )}
         </View>
-      </ScrollView>  
-
+      </ScrollView>
       <ProfileMenuDrawer
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
@@ -171,12 +170,11 @@ export default function NGOProfile() {
           setMenuVisible(false);
           await SecureStore.deleteItemAsync("authToken");
           router.replace("/auth/login");
-        }} 
-      /> 
+        }}
+      />
     </SafeAreaView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

@@ -222,9 +222,8 @@ export default function GeneralUserProfile() {
             )
           )}
         </View>
-      </ScrollView>  
-
-       <ProfileMenuDrawer
+      </ScrollView>
+      <ProfileMenuDrawer
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
         user={{ 
@@ -250,7 +249,7 @@ export default function GeneralUserProfile() {
           await SecureStore.deleteItemAsync("authToken");
           router.replace("/auth/login");
         }} 
-      /> 
+      />
     </SafeAreaView>
   );
 }

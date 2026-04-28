@@ -11,7 +11,7 @@ const BRAND_COLOR = "#F5A623";
 const TAB_BAR_BG = "#FFF7E6";
 
 
-//This file defines the bottom tab navigation for the StrayCare app.
+//file defines the bottom tab navigation for the StrayCare app.
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
@@ -40,14 +40,14 @@ export default function TabLayout() {
         if (response.ok) {
           // To check whether ngo and vet are approved or not
           const isRestrictedRole = user.role === 'ngo' || user.role === 'vet';
-          
+
           if (isRestrictedRole) {
             // Fetch profile to check verification status
             const profileRes = await fetch(`${API_URL}/profiles/me`, {
               headers: { Authorization: `Bearer ${token}` },
             });
             const profileData = await profileRes.json();
-            
+
             const isNotApproved = profileData.status !== 'verified';
             const isInsideTabs = segments[0] === "(tabs)";
 
@@ -72,10 +72,10 @@ export default function TabLayout() {
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: BRAND_COLOR,
-        tabBarInactiveTintColor: '#000000',
+        tabBarInactiveTintColor: '#000000ff',
         tabBarStyle: {
           height: Platform.OS === 'ios' ? 65 + insets.bottom : 70,
-          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 12,
+          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 18,
           paddingTop: 10,
           backgroundColor: TAB_BAR_BG,
           borderTopWidth: 1,

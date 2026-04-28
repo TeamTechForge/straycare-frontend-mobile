@@ -41,23 +41,17 @@ export default function ProfileMenuDrawer({
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.modalOverlay}>
         <TouchableOpacity style={styles.overlayTouch} onPress={onClose} />
-
         <View style={styles.sideMenu}>
           <View style={styles.menuItems}>
-            <View style={{ height: 20 }} /> {/* Spacer */}
-            
-            {/* Common Menu Items */}
+            <View style={{ height: 20 }} />
             <ProfileMenuItem icon="person-outline" label="My Profile" onPress={onProfilePress} />
             <ProfileMenuItem icon="paw-outline" label="Adoption Corner" onPress={onAdoptionPress} />
             <ProfileMenuItem icon="card-outline" label="Donations" onPress={onDonationsPress} />
             <ProfileMenuItem icon="settings-outline" label="Settings" onPress={onSettingsPress} />
-
-            {/* NGO & Vet Specific Section */}
             {isNGOorVet && (
               <>
                 <View style={styles.sectionDivider} />
                 <Text style={styles.sectionHeader}>PROFESSIONAL TOOLS</Text>
-                
                 <ProfileMenuItem 
                   icon="list-outline" 
                   label="Nearby Reports" 
@@ -73,12 +67,10 @@ export default function ProfileMenuDrawer({
               </>
             )}
           </View>
-
           <TouchableOpacity style={styles.logoutRow} onPress={onLogoutPress}>
             <MaterialCommunityIcons name="logout" size={16} color="#FF5A5A" />
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
-
           <Text style={styles.versionText}>STRAYCARE V1.4.0</Text>
         </View>
       </View>
