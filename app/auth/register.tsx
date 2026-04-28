@@ -17,6 +17,8 @@ import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#F5A623";
 
+/* Handles registration by collecting user details, validating input, 
+and registering the user with the backend.*/
 export default function RegisterScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -43,6 +45,7 @@ export default function RegisterScreen() {
     }
   }, [params]);
 
+  // Validates registration input
   const validateForm = () => {
     let newErrors: any = {};
 
@@ -78,6 +81,7 @@ export default function RegisterScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Registers a valid user
   const handleRegister = async () => {
     try {
       if (!validateForm()) return;
@@ -103,11 +107,9 @@ export default function RegisterScreen() {
       console.log("Registration response:", data);
 
       if (response.ok) {
-        // Store JWT securely — never pass userId through route params
+        // Store JWT securely
         await SecureStore.setItemAsync("authToken", data.token);
 
-        // Use router.replace when finishing a major auth/setup step to prevent 
-        // the back button from returning to the completed registration form.
         router.replace("/auth/roleSelection");
       } else {
         alert(data.message || "Registration failed");
@@ -193,7 +195,7 @@ export default function RegisterScreen() {
             I agree to the{" "}
             <Text
               style={{ color: BRAND_COLOR }}
-              onPress={() => 
+              onPress={() =>
                 router.push({
                   pathname: "/auth/termsPrivacyScreen",
                   params: { name, email, phone, password, confirmPassword }

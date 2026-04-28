@@ -5,22 +5,25 @@ import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { API_URL } from "../../constants/Config";
 
+// Show the main landing screen with personalized data for the logged-in user.
 export default function HomeScreen() {
   const router = useRouter();
   const [user, setUser] = useState<any>(null);
 
+  //Loads user profile data 
   useEffect(() => {
     const fetchUser = async () => {
       try {
         const token = await SecureStore.getItemAsync("authToken");
         if (!token) return;
 
+        // Validates the session with the backend and retrieves the latest user profile information.
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const data = await response.json();
         if (response.ok) {
-          // data.organizationName is populated in the backend for NGO users
+          // Updates the UI with user-specific details.
           setUser(data);
         }
       } catch (error) {
@@ -39,7 +42,7 @@ export default function HomeScreen() {
           style={styles.logo}
         />
 
-        <TouchableOpacity 
+        <TouchableOpacity
           style={styles.notificationIcon}
           onPress={() => router.push("/notifications")}
         >
@@ -106,6 +109,7 @@ export default function HomeScreen() {
   );
 }
 
+// Reusable card component to keep quick action buttons .
 function ActionCard({ icon, label, onPress }: any) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
