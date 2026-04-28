@@ -98,7 +98,7 @@ export default function NotificationsScreen() {
       </View>
 
       {loading ? (
-        <ActivityIndicator size="large" color={BRAND_COLOR} style={{ mt: 50 }} />
+        <ActivityIndicator size="large" color={BRAND_COLOR} style={{ marginTop: 50 }} />
       ) : (
         <FlatList
           data={notifications}

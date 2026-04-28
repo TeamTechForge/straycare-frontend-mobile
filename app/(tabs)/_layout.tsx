@@ -8,13 +8,11 @@ import { useEffect, useState } from 'react';
 import { API_URL } from '../../constants/Config';
 
 const BRAND_COLOR = "#F5A623";
-const TAB_BAR_BG = "#FFF7E6"; // Very light brand shade for a premium look
+const TAB_BAR_BG = "#FFF7E6";
 
-/**
- * TabLayout Component
- * This file defines the bottom tab navigation for the StrayCare app.
- * Improved UI to avoid clashing with system navigation bars on Android/iOS.
- */
+
+//This file defines the bottom tab navigation for the StrayCare app.
+
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -33,23 +31,29 @@ export default function TabLayout() {
           return;
         }
 
+        //send token to backend to get current user
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         const user = await response.json();
 
         if (response.ok) {
-          // Gating logic for NGO and Vet users
+          // To check whether ngo and vet are approved or not
           const isRestrictedRole = user.role === 'ngo' || user.role === 'vet';
-          const isNotApproved = user.isApproved === false;
-
-          // Only redirect if we are actually currently within the tabs group
-          const isInsideTabs = segments[0] === "(tabs)";
           
-          if (isInsideTabs && isRestrictedRole && isNotApproved) {
-            // Check if user is currently on an allowed screen (Notifications is outside tabs)
-            // If they are in tabs, they shouldn't be.
-            router.replace("/auth/verificationPending");
+          if (isRestrictedRole) {
+            // Fetch profile to check verification status
+            const profileRes = await fetch(`${API_URL}/profiles/me`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const profileData = await profileRes.json();
+            
+            const isNotApproved = profileData.status !== 'verified';
+            const isInsideTabs = segments[0] === "(tabs)";
+
+            if (isInsideTabs && isNotApproved) {
+              router.replace("/auth/verificationPending");
+            }
           }
         }
       } catch (error) {
@@ -62,24 +66,22 @@ export default function TabLayout() {
     checkApproval();
   }, [segments]); // Re-check on navigation within tabs
 
-  if (loading) return null; // Or a splash/loader
+  if (loading) return null;
 
   return (
     <Tabs
       screenOptions={{
         tabBarActiveTintColor: BRAND_COLOR,
-        tabBarInactiveTintColor: '#000000', // Black icons/text for normal tabs as requested
+        tabBarInactiveTintColor: '#000000',
         tabBarStyle: {
-          // Dynamic height based on safe area insets to avoid system bar clashing
-          height: Platform.OS === 'ios' ? 65 + insets.bottom : 70, 
-          // Padding bottom ensures icons sit above the home indicator or Android nav bar
+          height: Platform.OS === 'ios' ? 65 + insets.bottom : 70,
           paddingBottom: Platform.OS === 'ios' ? insets.bottom : 12,
           paddingTop: 10,
           backgroundColor: TAB_BAR_BG,
           borderTopWidth: 1,
           borderTopColor: '#fde7c7',
-          elevation: 8, // Higher elevation for Android visibility
-          position: 'absolute', // Ensures it stays on top of content
+          elevation: 8,
+          position: 'absolute',
           bottom: 0,
           left: 0,
           right: 0,
@@ -91,7 +93,7 @@ export default function TabLayout() {
         },
       }}
     >
-      {/* 1. Home Tab */}
+      {/* Home Tab */}
       <Tabs.Screen
         name="home"
         options={{
@@ -102,7 +104,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 2. Community Tab */}
+      {/* Community Tab */}
       <Tabs.Screen
         name="communityFeed"
         options={{
@@ -113,11 +115,11 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 3. Report Tab (Center Action Tab) */}
+      {/* Report Tab (Center Action Tab) */}
       <Tabs.Screen
         name="report"
         options={{
-          title: '', // Hide label for center button
+          title: '',
           tabBarIcon: () => (
             <View style={styles.centerTabContainer}>
               <View style={styles.centerTab}>
@@ -128,7 +130,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 4. Chat Tab */}
+      {/*  Chat Tab */}
       <Tabs.Screen
         name="chats"
         options={{
@@ -139,7 +141,7 @@ export default function TabLayout() {
         }}
       />
 
-      {/* 5. Profile Tab */}
+      {/*  Profile Tab */}
       <Tabs.Screen
         name="profile"
         options={{
@@ -155,14 +157,14 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   centerTabContainer: {
-    // Positioned slightly higher to stand out above the new tab bar height
+    // Positioned slightly higher the new tab bar height
     top: -18,
     justifyContent: 'center',
     alignItems: 'center',
   },
   centerTab: {
     backgroundColor: BRAND_COLOR,
-    width: 60, // Slightly larger for better clickability
+    width: 60,
     height: 60,
     borderRadius: 30,
     justifyContent: 'center',
@@ -171,8 +173,8 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
-    elevation: 10, 
+    elevation: 10,
     borderWidth: 4,
-    borderColor: '#fff', // White border makes it stand out against the light background
+    borderColor: '#fff',
   },
 });

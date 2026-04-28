@@ -10,12 +10,16 @@ type Props = {
   user: {
     name: string;
     avatar: string;
+    role?: string;
+    status?: string;
   };
   onProfilePress: () => void;
   onAdoptionPress: () => void;
   onDonationsPress: () => void;
   onSettingsPress: () => void;
   onLogoutPress: () => void;
+  onNearbyReportsPress?: () => void;
+  onMapViewPress?: () => void;
 };
 
 export default function ProfileMenuDrawer({
@@ -27,7 +31,12 @@ export default function ProfileMenuDrawer({
   onDonationsPress,
   onSettingsPress,
   onLogoutPress,
+  onNearbyReportsPress,
+  onMapViewPress,
 }: Props) {
+  const isNGOorVet = user.role === 'ngo' || user.role === 'vet';
+  const isUnapproved = isNGOorVet && user.status !== 'verified';
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.modalOverlay}>
@@ -36,10 +45,33 @@ export default function ProfileMenuDrawer({
         <View style={styles.sideMenu}>
           <View style={styles.menuItems}>
             <View style={{ height: 20 }} /> {/* Spacer */}
+            
+            {/* Common Menu Items */}
             <ProfileMenuItem icon="person-outline" label="My Profile" onPress={onProfilePress} />
             <ProfileMenuItem icon="paw-outline" label="Adoption Corner" onPress={onAdoptionPress} />
             <ProfileMenuItem icon="card-outline" label="Donations" onPress={onDonationsPress} />
             <ProfileMenuItem icon="settings-outline" label="Settings" onPress={onSettingsPress} />
+
+            {/* NGO & Vet Specific Section */}
+            {isNGOorVet && (
+              <>
+                <View style={styles.sectionDivider} />
+                <Text style={styles.sectionHeader}>PROFESSIONAL TOOLS</Text>
+                
+                <ProfileMenuItem 
+                  icon="list-outline" 
+                  label="Nearby Reports" 
+                  onPress={onNearbyReportsPress || (() => {})} 
+                  disabled={isUnapproved}
+                />
+                <ProfileMenuItem 
+                  icon="map-outline" 
+                  label="Map View" 
+                  onPress={onMapViewPress || (() => {})} 
+                  disabled={isUnapproved}
+                />
+              </>
+            )}
           </View>
 
           <TouchableOpacity style={styles.logoutRow} onPress={onLogoutPress}>
@@ -77,6 +109,19 @@ const styles = StyleSheet.create({
   },
   menuItems: {
     marginTop: 10,
+  },
+  sectionDivider: {
+    height: 1,
+    backgroundColor: "#F1F1F1",
+    marginVertical: 16,
+  },
+  sectionHeader: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#AAA",
+    letterSpacing: 1,
+    marginBottom: 8,
+    marginLeft: 4,
   },
   logoutRow: {
     flexDirection: "row",

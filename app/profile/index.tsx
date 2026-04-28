@@ -117,9 +117,16 @@ export default function ProfileScreen() {
           }
 
           // Gating Logic
-          if ((user.role === 'ngo' || user.role === 'vet') && !user.isApproved) {
-            router.replace("/auth/verificationPending");
-            return;
+          if (user.role === 'ngo' || user.role === 'vet') {
+            const profileRes = await fetch(`${API_URL}/profiles/me`, {
+              headers: { Authorization: `Bearer ${token}` },
+            });
+            const profileData = await profileRes.json();
+            
+            if (profileData.status !== 'verified') {
+              router.replace("/auth/verificationPending");
+              return;
+            }
           }
         }
       } catch (error) {

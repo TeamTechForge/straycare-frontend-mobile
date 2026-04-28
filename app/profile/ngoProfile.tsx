@@ -151,7 +151,12 @@ export default function NGOProfile() {
       <ProfileMenuDrawer
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
-        user={{ name: userData.name, avatar: userData.avatar }}
+        user={{ 
+          name: userData.name, 
+          avatar: userData.avatar,
+          role: user?.role,
+          status: profile?.status
+        }}
         onProfilePress={() => setMenuVisible(false)}
         onAdoptionPress={() => setMenuVisible(false)}
         onDonationsPress={() => {

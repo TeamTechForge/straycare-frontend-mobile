@@ -146,7 +146,13 @@ export default function VolunteerProfile() {
       <ProfileMenuDrawer
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
-        user={{ name: userData.name, avatar: userData.avatar }}
+        user={{ 
+          name: userData.name, 
+          avatar: userData.avatar,
+          role: user?.role,
+          status: profile?.status
+        }}
+        onAdoptionPress={() => setMenuVisible(false)}
         onProfilePress={() => setMenuVisible(false)}
         onDonationsPress={() => {
           setMenuVisible(false);
