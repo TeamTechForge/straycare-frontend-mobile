@@ -26,7 +26,7 @@ const LostPostSubmittedView = () => {
         </Text>
         <TouchableOpacity
           style={styles.button}
-          onPress={() => router.push('/lostandfound/lostandfound')}
+          onPress={() => router.push('/lostAndFound/lostAnimalListView')}
         >
           <Text style={styles.buttonText}>Back to Lost & Found</Text>
         </TouchableOpacity>

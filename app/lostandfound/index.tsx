@@ -12,7 +12,7 @@ export default function Index() {
       }}
     >
 
-      <Link href="/lostandfound/lostandfound" asChild>
+      <Link href="/lostAndFound/lostFoundMain" asChild>
         <TouchableOpacity
           style={{
             backgroundColor: "orange",

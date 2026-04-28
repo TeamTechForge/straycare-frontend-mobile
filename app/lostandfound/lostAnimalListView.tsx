@@ -5,14 +5,14 @@ import { FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } 
 import { getLostPosts } from "../../api/api";
 
 type Pet = {
-  _id: string; 
+  _id: string;
   type: string;
   breed: string;
   name: string;
   description: string;
   location: string;
   time: string;
-  image: string; 
+  image: string;
 };
 
 export default function LostAnimalScreen() {
@@ -21,20 +21,20 @@ export default function LostAnimalScreen() {
   const [pets, setPets] = useState<Pet[]>([]);
   const router = useRouter();
 
-  //FETCH FROM BACKEND
   useEffect(() => {
     fetchLostPosts();
   }, []);
 
   const fetchLostPosts = async () => {
-  try {
-    const response = await getLostPosts();
-    console.log("API RESPONSE:", response.data); 
-    setPets(response.data); 
-  } catch (error) {
-    console.log("Error fetching posts:", error);
-  }
-};
+    try {
+      const response = await getLostPosts();
+      console.log("API RESPONSE:", response.data);
+      setPets(response.data);
+    } catch (error) {
+      console.log("Error fetching posts:", error);
+    }
+  };
+
   const filteredPets = pets.filter((pet) => {
     const matchesFilter = filter === "All" || pet.type === filter;
     const matchesSearch =
@@ -46,9 +46,12 @@ export default function LostAnimalScreen() {
   });
 
   const renderPet = ({ item }: { item: Pet }) => (
-    <View style={styles.card}>
-      {/* IMAGE FROM BACKEND */}
-    <Image source={{ uri: item.image?.[0] }} style={styles.image} /> 
+    // ✅ Replaced outer View with TouchableOpacity to enable navigation on card press
+    <TouchableOpacity
+      style={styles.card}
+      onPress={() => router.push(`/lostAndFound/viewLostFoundPost?id=${item._id}`)}
+    >
+      <Image source={{ uri: item.image?.[0] }} style={styles.image} />
       <View style={styles.info}>
         <View style={styles.titleRow}>
           <Text style={styles.title}>
@@ -72,12 +75,18 @@ export default function LostAnimalScreen() {
           <Text style={styles.meta}>{item.time}</Text>
         </View>
 
-        <TouchableOpacity style={styles.contactBtn}>
+        <TouchableOpacity
+          style={styles.contactBtn}
+          onPress={(e) => {
+            // ✅ Prevents the card press from firing when tapping Contact Owner
+            e.stopPropagation();
+          }}
+        >
           <MaterialIcons name="phone" size={16} color="#fff" />
           <Text style={styles.contactText}>Contact Owner</Text>
         </TouchableOpacity>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 
   return (
@@ -90,8 +99,7 @@ export default function LostAnimalScreen() {
 
         <Text style={styles.headerTitle}>Lost Animal</Text>
 
-        {/* ✅ ADDED PLUS BUTTON */}
-        <TouchableOpacity onPress={() => router.push("/lostandfound/createPost")}>
+        <TouchableOpacity onPress={() => router.push("/lostAndFound/createLostFoundPost")}>
           <Ionicons name="add" size={28} color="#000" />
         </TouchableOpacity>
       </View>
@@ -124,7 +132,7 @@ export default function LostAnimalScreen() {
       <FlatList
         data={filteredPets}
         renderItem={renderPet}
-        keyExtractor={(item) => item._id} // ✅ changed
+        keyExtractor={(item) => item._id}
       />
     </View>
   );
