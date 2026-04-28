@@ -220,13 +220,18 @@ const CreatePost = () => {
     if (!validateForm()) return;
     setIsSubmitting(true);
     try {
+
       await createAnimalPost(form);
+      console.log("Post created, navigating...");
+
       const route =
         form.status === 'lost'
           ? '/lostAndFound/lostAnimalListView'
           : '/lostAndFound/foundAnimalListView';
       router.push(route);
     } catch (error: any) {
+      console.log("API error:", error);
+
       const message =
         error?.response?.data?.message || 'Failed to create post. Please try again.';
       showValidationError(message);
