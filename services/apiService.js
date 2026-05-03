@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "http://10.225.98.94:5000",
+  baseURL: "http://10.87.129.94:5000",
 });
 
 export const createCommunityPost = (data) =>

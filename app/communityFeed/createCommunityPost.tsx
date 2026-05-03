@@ -53,7 +53,7 @@ function validateForm(
   return errors;
 }
 
-console.log("createCommunityPost:", createCommunityPost); 
+console.log("createCommunityPost:", createCommunityPost);
 
 export default function CreateCommunityPost() {
   const router = useRouter();
@@ -253,7 +253,7 @@ export default function CreateCommunityPost() {
 
         {/* ── Upload Photo (Optional) ── */}
         <View style={styles.section}>
-          <Text style={styles.label}>Upload Photo (Optional)</Text>
+          <Text style={styles.label}>Upload a Photo (Optional)</Text>
 
           {imageUri ? (
             // ── Filled state: full image preview ──
@@ -299,7 +299,7 @@ export default function CreateCommunityPost() {
               styles.input,
               showError("authorName") && styles.inputError,
             ]}
-            placeholder="Your name"
+            placeholder="Enter your name"
             placeholderTextColor="#94a3b8"
             value={authorName}
             onChangeText={(text) => {
