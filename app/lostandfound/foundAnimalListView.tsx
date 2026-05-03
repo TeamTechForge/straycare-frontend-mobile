@@ -80,7 +80,7 @@ export default function FoundAnimalView() {
           <Text style={styles.title}>
             {item.breed} {item.name !== "Unknown" ? `- ${item.name}` : ""}
           </Text>
-          <View style={[styles.badge, { backgroundColor: item.type === "Dog" ? "#F5A623" : "#ffb700" }]}> 
+          <View style={[styles.badge, { backgroundColor: item.type === "Dog" ? "#F5A623" : "#ffb700" }]}>
             <Text style={styles.badgeText}>{item.type}</Text>
           </View>
         </View>

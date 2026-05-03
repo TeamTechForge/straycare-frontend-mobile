@@ -21,7 +21,8 @@ type Pet = {
   description: string;
   location: string;
   time: string;
-  images: string[];
+  images?: string[];
+  imageUrl?: string;
 };
 
 export default function LostAnimalScreen() {
@@ -45,7 +46,7 @@ export default function LostAnimalScreen() {
   };
 
   const filteredPets = (pets || []).filter((pet) => {
-    const matchesFilter = filter === "All" || pet.type === filter;
+    const matchesFilter = filter === "All" || pet.type?.toLowerCase() === filter.toLowerCase();
     const matchesSearch =
       search === "" ||
       pet.breed?.toLowerCase().includes(search.toLowerCase()) ||
@@ -56,41 +57,46 @@ export default function LostAnimalScreen() {
 
   const FILTERS = ["All", "Dog", "Cat", "Other"];
 
-  const renderPet = ({ item }: { item: Pet }) => (
-    <TouchableOpacity
-      style={styles.card}
-      activeOpacity={0.92}
-      onPress={() => router.push(`/lostAndFound/viewLostFoundPost?id=${item._id}`)}
-    >
-      <Image source={{ uri: item.images?.[0] }} style={styles.cardImage} />
-      <View style={styles.cardBody}>
-        {/* Badge */}
-        <View style={styles.badgeRow}>
-          <View style={styles.lostBadge}>
-            <Text style={styles.lostBadgeText}>LOST</Text>
+  const renderPet = ({ item }: { item: Pet }) => {
+    const imgUri = item.imageUrl || (item.images && item.images.length > 0 ? item.images[0] : null);
+    const resolvedUri = imgUri ? (imgUri.startsWith('http') ? imgUri : `http://10.87.129.94:5000${imgUri}`) : null;
+
+    return (
+      <TouchableOpacity
+        style={styles.card}
+        activeOpacity={0.92}
+        onPress={() => router.push({ pathname: "/lostAndFound/viewLostFoundPost", params: { id: item._id } })}
+      >
+        <Image source={resolvedUri ? { uri: resolvedUri } : require("../../assets/images/dog main.webp")} style={styles.cardImage} />
+        <View style={styles.cardBody}>
+          {/* Badge */}
+          <View style={styles.badgeRow}>
+            <View style={styles.lostBadge}>
+              <Text style={styles.lostBadgeText}>LOST</Text>
+            </View>
           </View>
+
+          {/* Breed / Name */}
+          <Text style={styles.cardTitle}>
+            {item.breed}
+            {item.name !== "Unknown" ? ` - ${item.name}` : ""}
+          </Text>
+
+          {/* Location */}
+          <View style={styles.locationRow}>
+            <MaterialIcons name="location-on" size={15} color="#717878" />
+            <Text style={styles.locationText}>{item.location}</Text>
+          </View>
+
+          {/* Description */}
+          <Text style={styles.cardDescription} numberOfLines={2}>
+            {item.description}
+          </Text>
+
         </View>
-
-        {/* Breed / Name */}
-        <Text style={styles.cardTitle}>
-          {item.breed}
-          {item.name !== "Unknown" ? ` - ${item.name}` : ""}
-        </Text>
-
-        {/* Location */}
-        <View style={styles.locationRow}>
-          <MaterialIcons name="location-on" size={15} color="#717878" />
-          <Text style={styles.locationText}>{item.location}</Text>
-        </View>
-
-        {/* Description */}
-        <Text style={styles.cardDescription} numberOfLines={2}>
-          {item.description}
-        </Text>
-
-      </View>
-    </TouchableOpacity>
-  );
+      </TouchableOpacity>
+    );
+  };
 
   return (
     <View style={styles.container}>

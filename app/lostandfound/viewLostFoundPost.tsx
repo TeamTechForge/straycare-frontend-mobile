@@ -17,14 +17,14 @@ import {
 } from 'react-native';
 import { getAnimalPostById, reportAnimalPost } from '../../api/api';
 
-// ─── Colour tokens ────────────────────────────────────────────────────────────
+// ─── Colour changes were made ────────────────────────────────────────────────────────────
 const C = {
   bg: '#F9F9FF',
   surface: '#FFFFFF',
   surfaceLow: '#F0F3FF',
   surfaceHighest: '#DCE2F3',
   primary: '#994700',
-  primaryContainer: '#FF7A00',
+  primaryContainer: '#F5A623',
   onPrimary: '#FFFFFF',
   outlineVariant: '#E0C0AF',
   textMain: '#151C27',
@@ -38,7 +38,7 @@ const C = {
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const IMAGE_HEIGHT = 280;
-const BASE_URL = 'http://10.225.98.94:5000';
+const BASE_URL = 'http://10.87.129.94:5000';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AnimalPost {
@@ -54,6 +54,7 @@ interface AnimalPost {
   contactName: string;
   contactNumber: string;
   imageUrl?: string; // URL returned by backend after upload
+  images?: string[]; // Legacy images array
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -63,16 +64,17 @@ const getAnimalLabel = (post: AnimalPost) => {
 };
 
 const statusConfig = {
-  lost: { bg: '#FF7A00', text: '#FFFFFF', label: 'Lost' },
+  lost: { bg: '#F5A623', text: '#FFFFFF', label: 'Lost' },
   found: { bg: '#2E7D32', text: '#FFFFFF', label: 'Found' },
 };
 
 // Build the full image URL from whatever the backend returns
-const resolveImageUrl = (imageUrl?: string): string | null => {
-  if (!imageUrl) return null;
-  if (imageUrl.startsWith('http')) return imageUrl;
+const resolveImageUrl = (post: AnimalPost): string | null => {
+  const url = post.imageUrl || (post.images && post.images.length > 0 ? post.images[0] : null);
+  if (!url) return null;
+  if (url.startsWith('http')) return url;
   // Backend returns a relative path like "/uploads/photo.jpg"
-  return `${BASE_URL}${imageUrl}`;
+  return `${BASE_URL}${url}`;
 };
 
 // ─── Loading skeleton ─────────────────────────────────────────────────────────
@@ -105,14 +107,63 @@ const sk = StyleSheet.create({
     borderRadius: 20,
     padding: 20,
   },
-  row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 14 },
-  chip: { width: 60, height: 24, borderRadius: 8, backgroundColor: '#F0EDE8' },
-  pill: { width: 60, height: 24, borderRadius: 999, backgroundColor: '#F0EDE8' },
-  titleLg: { width: '55%', height: 28, borderRadius: 6, backgroundColor: '#F0EDE8', marginBottom: 12 },
-  line: { width: '100%', height: 14, borderRadius: 6, backgroundColor: '#F0EDE8', marginBottom: 8 },
-  divider: { height: 1, backgroundColor: '#F0F0F0', marginVertical: 16 },
-  infoRow: { width: '80%', height: 40, borderRadius: 10, backgroundColor: '#F0EDE8', marginBottom: 12 },
-  contactBox: { width: '100%', height: 72, borderRadius: 14, backgroundColor: '#F0EDE8', marginTop: 6 },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 14
+  },
+
+  chip: {
+    width: 60,
+    height: 24,
+    borderRadius: 8,
+    backgroundColor: '#F0EDE8'
+  },
+
+  pill: {
+    width: 60,
+    height: 24,
+    borderRadius: 999,
+    backgroundColor: '#F0EDE8'
+  },
+
+  titleLg: {
+    width: '55%',
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: '#F0EDE8',
+    marginBottom: 12
+  },
+
+  line: {
+    width: '100%',
+    height: 14,
+    borderRadius: 6,
+    backgroundColor: '#F0EDE8',
+    marginBottom: 8
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginVertical: 16
+  },
+
+  infoRow: {
+    width: '80%',
+    height: 40,
+    borderRadius: 10,
+    backgroundColor: '#F0EDE8',
+    marginBottom: 12
+  },
+
+  contactBox: {
+    width: '100%',
+    height: 72,
+    borderRadius: 14,
+    backgroundColor: '#F0EDE8',
+    marginTop: 6
+  },
 });
 
 // ─── Error view ───────────────────────────────────────────────────────────────
@@ -259,7 +310,7 @@ const ViewAnimalPost = () => {
   }
 
   const sc = statusConfig[post.status] ?? statusConfig.lost;
-  const imageUrl = resolveImageUrl(post.imageUrl);
+  const imageUrl = resolveImageUrl(post);
 
   // ─── Main render ────────────────────────────────────────────────────────────
   return (
@@ -483,14 +534,24 @@ const s = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 999,
-    shadowColor: '#FF7A00',
+    shadowColor: '#F5A623',
     shadowOpacity: 0.25,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
-  statusDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: 'rgba(255,255,255,0.8)' },
-  statusText: { fontSize: 12, fontWeight: '700', letterSpacing: 0.2 },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: 'rgba(255,255,255,0.8)'
+  },
+
+  statusText: {
+    fontSize: 12,
+    fontWeight: '700',
+    letterSpacing: 0.2
+  },
 
   // Name & desc
   petName: {
@@ -500,11 +561,27 @@ const s = StyleSheet.create({
     letterSpacing: -0.4,
     marginBottom: 10,
   },
-  description: { fontSize: 14, lineHeight: 22, color: C.textSub, marginBottom: 20 },
-  divider: { height: 1, backgroundColor: '#F0F0F0', marginBottom: 18 },
+  description: {
+    fontSize: 14,
+    lineHeight: 22,
+    color: C.textSub,
+    marginBottom: 20
+  },
+
+  divider: {
+    height: 1,
+    backgroundColor: '#F0F0F0',
+    marginBottom: 18
+  },
 
   // Info rows
-  infoRow: { flexDirection: 'row', alignItems: 'center', gap: 14, marginBottom: 14 },
+  infoRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    marginBottom: 14
+  },
+
   iconCircle: {
     width: 40,
     height: 40,
@@ -515,8 +592,20 @@ const s = StyleSheet.create({
     flexShrink: 0,
   },
   infoText: { flex: 1 },
-  infoLabel: { fontSize: 11, fontWeight: '500', color: C.textSecondary, marginBottom: 2, letterSpacing: 0.3 },
-  infoValue: { fontSize: 14, fontWeight: '600', color: C.textMain },
+
+  infoLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: C.textSecondary,
+    marginBottom: 2,
+    letterSpacing: 0.3
+  },
+
+  infoValue: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: C.textMain
+  },
 
   // Contact
   contactCard: {
@@ -530,8 +619,21 @@ const s = StyleSheet.create({
     padding: 16,
     marginTop: 6,
   },
-  contactLabel: { fontSize: 11, fontWeight: '500', color: C.textSecondary, marginBottom: 3, letterSpacing: 0.3 },
-  contactName: { fontSize: 18, fontWeight: '700', color: C.textMain, letterSpacing: -0.2 },
+  contactLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+    color: C.textSecondary,
+    marginBottom: 3,
+    letterSpacing: 0.3
+  },
+
+  contactName: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: C.textMain,
+    letterSpacing: -0.2
+  },
+
   callBtn: {
     width: 48,
     height: 48,
@@ -539,7 +641,7 @@ const s = StyleSheet.create({
     backgroundColor: C.primaryContainer,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#FF7A00',
+    shadowColor: '#F5A623',
     shadowOpacity: 0.35,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
@@ -586,12 +688,20 @@ const s = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    shadowColor: '#FF7A00',
+    shadowColor: '#F5A623',
     shadowOpacity: 0.3,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 4 },
     elevation: 6,
   },
-  reportBtnDisabled: { backgroundColor: '#E2DFD4', shadowOpacity: 0 },
-  reportBtnText: { fontSize: 14, fontWeight: '700', color: C.onPrimary },
+  reportBtnDisabled: {
+    backgroundColor: '#E2DFD4',
+    shadowOpacity: 0
+  },
+
+  reportBtnText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: C.onPrimary
+  },
 });
