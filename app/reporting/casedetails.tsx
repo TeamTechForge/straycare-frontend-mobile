@@ -8,12 +8,10 @@ import {
   Text,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
 import { getReportByCaseId, updateCaseStatus } from "../../api/strayApi";
 import PrimaryButton from "../../components/PrimaryButton";
 
- // Report Type Definition-represents the full structure of a single rescue case including all details needed
-type Report = {    
+type Report = {
   caseId: string;
   animalType: string;
   breed?: string;
@@ -27,8 +25,6 @@ type Report = {
     address?: string;
   };
   photos?: string[];
-
-  // Timeline entries returned from backend
   timeline?: {
     status: string;
     timestamp: string;
@@ -36,8 +32,7 @@ type Report = {
   }[];
 };
 
-
-const getStatusColor = (status: string) => {    // Maps each rescue status to a color used in UI badges and timeline indicators.
+const getStatusColor = (status: string) => {
   switch (status) {
     case "Needs Help":
       return "red";
@@ -52,7 +47,7 @@ const getStatusColor = (status: string) => {    // Maps each rescue status to a 
   }
 };
 
-const getNextStatus = (current: string) => {    // Determines the next logical rescue status
+const getNextStatus = (current: string) => {
   switch (current) {
     case "Needs Help":
       return "Under Rescue";
@@ -61,22 +56,24 @@ const getNextStatus = (current: string) => {    // Determines the next logical r
     case "Treated":
       return "Ready for Adoption";
     default:
-      return null;     // No further status
+      return null;
   }
 };
 
 export default function CaseDetailsScreen() {
-  const { caseId } = useLocalSearchParams();      // Reads the dynamic route parameter from the URL and extract the caseId to fetch the correct report)
-  const router = useRouter();                     
+  const { caseId } = useLocalSearchParams();
+  const router = useRouter();
 
-  // STATE 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Load case details from backendFetches  
+  // 🔔 Notification States
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+
   useEffect(() => {
     const loadCase = async () => {
-      try {                                      // Error handling - ensures UI doesn't break if API fails.
+      try {
         const data = await getReportByCaseId(caseId as string);
         setReport(data);
       } catch (err) {
@@ -87,10 +84,9 @@ export default function CaseDetailsScreen() {
     };
 
     loadCase();
-  }, []);
+  }, [caseId]);
 
-
-  const handleStatusUpdate = async () => {        // Sends request to backend to update the case status.
+  const handleStatusUpdate = async () => {
     if (!report) return;
 
     const next = getNextStatus(report.status);
@@ -98,13 +94,17 @@ export default function CaseDetailsScreen() {
 
     try {
       const updated = await updateCaseStatus(report.caseId, next);
-      setReport(updated); // Refresh UI with updated timeline + status
+      setReport(updated);
+
+      // 🔔 Show banner immediately when status changes
+      setNotificationMessage(`Case updated: ${next}`);
+      setShowNotification(true);
+      setTimeout(() => setShowNotification(false), 3000);
     } catch (err) {
       console.log("Failed to update status:", err);
     }
   };
 
-  // LOADING STATE 
   if (loading || !report) {
     return (
       <View style={styles.center}>
@@ -119,15 +119,20 @@ export default function CaseDetailsScreen() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
-      
-      {/* HEADER */}
+
+      {/* 🔔 Notification Banner */}
+      {showNotification && (
+        <View style={styles.notificationBanner}>
+          <Text style={styles.notificationText}>{notificationMessage}</Text>
+        </View>
+      )}
+
       <Text style={styles.caseId}>Case ID: {report.caseId}</Text>
 
       <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
         <Text style={styles.statusText}>{report.status}</Text>
       </View>
 
-      {/* PHOTOS */}
       <Text style={styles.label}>Photos :</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
         {report.photos && report.photos.length > 0 ? (
@@ -139,48 +144,32 @@ export default function CaseDetailsScreen() {
         )}
       </ScrollView>
 
-      {/* BASIC INFO */}
-      <Text style={styles.label}>Animal Type :</Text>
-      <Text style={styles.value}>{report.animalType}</Text>
+      {/* Case Details */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.label}>Animal Type</Text>
+        <Text style={styles.value}>{report.animalType}</Text>
 
-      <Text style={styles.label}>Breed :</Text>
-      <Text style={styles.value}>{report.breed || "Unknown"}</Text>
+        <Text style={styles.label}>Breed</Text>
+        <Text style={styles.value}>{report.breed || "Unknown"}</Text>
 
-      <Text style={styles.label}>Category :</Text>
-      <Text style={styles.value}>{report.category}</Text>
+        <Text style={styles.label}>Category</Text>
+        <Text style={styles.value}>{report.category}</Text>
 
-      <Text style={styles.label}>Reported As :</Text>
-      <Text style={styles.value}>
-        {report.anonymous ? "Anonymous User" : "Identified User"}
-      </Text>
+        <Text style={styles.label}>Reported As</Text>
+        <Text style={styles.value}>
+          {report.anonymous ? "Anonymous User" : "Identified User"}
+        </Text>
 
-      {/* LOCATION */}
-      <Text style={styles.label}>Location :</Text>
-      <Text style={styles.value}>{report.location.address}</Text>
+        <Text style={styles.label}>Location</Text>
+        <Text style={styles.value}>{report.location.address}</Text>
+      </View>
 
-      <MapView
-        provider="google"
-        style={styles.map}
-        initialRegion={{
-          latitude: report.location.lat,
-          longitude: report.location.lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-      >
-        <Marker
-          coordinate={{
-            latitude: report.location.lat,
-            longitude: report.location.lng,
-          }}
-        />
-      </MapView>
+      {/* Notes */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.label}>Notes</Text>
+        <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
+      </View>
 
-      {/* NOTES */}
-      <Text style={styles.label}>Notes :</Text>
-      <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
-
-      {/* STATUS UPDATE BUTTON */}
       {nextStatus && (
         <PrimaryButton
           title={`Mark as "${nextStatus}"`}
@@ -188,54 +177,53 @@ export default function CaseDetailsScreen() {
         />
       )}
 
-      {/* TIMELINE SECTION  */}
       <Text style={styles.label}>Rescue Timeline :</Text>
 
       {report.timeline && report.timeline.length > 0 ? (
-        report.timeline.map(
-          (
-            entry: { status: string; timestamp: string; message?: string },
-            index: number
-          ) => (
-            <View key={index} style={styles.timelineItem}>
-              {/* Timeline dot */}
-              <View
-                style={[
-                  styles.timelineDot,
-                  { backgroundColor: getStatusColor(entry.status) },
-                ]}
-              />
-
-              {/* Timeline content */}
-              <View style={styles.timelineContent}>
-                <Text style={styles.timelineStatus}>{entry.status}</Text>
-                <Text style={styles.timelineTime}>
-                  {new Date(entry.timestamp).toLocaleString()}
-                </Text>
-                {entry.message && (
-                  <Text style={styles.timelineMessage}>{entry.message}</Text>
-                )}
-              </View>
+        report.timeline.map((entry, index) => (
+          <View key={index} style={styles.timelineItem}>
+            <View
+              style={[
+                styles.timelineDot,
+                { backgroundColor: getStatusColor(entry.status) },
+              ]}
+            />
+            <View style={styles.timelineContent}>
+              <Text style={styles.timelineStatus}>{entry.status}</Text>
+              <Text style={styles.timelineTime}>
+                {new Date(entry.timestamp).toLocaleString()}
+              </Text>
+              {entry.message && (
+                <Text style={styles.timelineMessage}>{entry.message}</Text>
+              )}
             </View>
-          )
-        )
+          </View>
+        ))
       ) : (
         <Text style={styles.value}>No timeline updates yet</Text>
       )}
 
-      {/* BACK BUTTON */}
-      <PrimaryButton title="Back to Map" onPress={() => router.push("/reporting")} />
+      {/* ✅ Fix applied here: Pops the screen instead of pushing a new map */}
+      <PrimaryButton title="Back to Map" onPress={() => router.back()} />
     </ScrollView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: "#fafafa" },
-
+  notificationBanner: {
+    backgroundColor: "#FFB700",
+    padding: 12,
+    borderRadius: 8,
+    marginBottom: 10,
+    alignItems: "center",
+  },
+  notificationText: {
+    color: "black",
+    fontWeight: "600",
+  },
   center: { flex: 1, justifyContent: "center", alignItems: "center" },
-
-  caseId: { fontSize: 24, fontWeight: "900", marginBottom: 12, textAlign: 'center' },
-
+  caseId: { fontSize: 24, fontWeight: "900", marginBottom: 12, textAlign: "center" },
   statusBadge: {
     paddingVertical: 10,
     paddingHorizontal: 14,
@@ -244,10 +232,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   statusText: { color: "white", fontWeight: "700" },
-
-  label: { fontSize: 16, fontWeight: "600", marginTop: 22, color: "#514f4f" },
-  value: { fontSize: 17, marginTop: 6},
-
   photo: {
     width: 140,
     height: 140,
@@ -255,21 +239,17 @@ const styles = StyleSheet.create({
     marginRight: 12,
     backgroundColor: "#ddd",
   },
-
   map: {
     width: "100%",
     height: 200,
     borderRadius: 12,
     marginTop: 10,
   },
-
-  // TIMELINE STYLES 
   timelineItem: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginTop: 16,
   },
-
   timelineDot: {
     width: 14,
     height: 14,
@@ -277,7 +257,6 @@ const styles = StyleSheet.create({
     marginRight: 12,
     marginTop: 4,
   },
-
   timelineContent: {
     flex: 1,
     backgroundColor: "#fff",
@@ -290,21 +269,39 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 2,
   },
-
   timelineStatus: {
     fontSize: 16,
     fontWeight: "700",
     marginBottom: 4,
   },
-
   timelineTime: {
     fontSize: 12,
     color: "#666",
     marginBottom: 6,
   },
-
   timelineMessage: {
     fontSize: 14,
     color: "#444",
+  },
+  sectionCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
+    marginVertical: 8,
+    shadowColor: "#000",
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  label: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#555",
+    marginTop: 8,
+  },
+  value: {
+    fontSize: 16,
+    marginTop: 4,
+    color: "#222",
   },
 });

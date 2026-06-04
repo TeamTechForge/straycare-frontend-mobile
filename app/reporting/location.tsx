@@ -1,12 +1,16 @@
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import PrimaryButton from "../../components/PrimaryButton";
 
-
-type MapRegion = {     // Represents the map viewport region including center coordinates and zoom level
+type MapRegion = {
   latitude: number;
   longitude: number;
   latitudeDelta: number;
@@ -14,90 +18,127 @@ type MapRegion = {     // Represents the map viewport region including center co
 };
 
 export default function LocationPicker() {
-  //  STATE 
-  const [region, setRegion] = useState<MapRegion | null>(null);     // Map center + zoom
-  const [address, setAddress] = useState("");                       // readable address
-  const [loading, setLoading] = useState(true);                     // Loading state for location fetch
-
   const router = useRouter();
-  const params = useLocalSearchParams();                            // Data passed from AnimalDetails screen
+  const params = useLocalSearchParams();
 
-  
+  // ---------------------------------------------------------
+  // SAFE PARAM FIX
+  // ---------------------------------------------------------
+  const safe = (v: string | string[] | undefined): string =>
+  Array.isArray(v) ? v[0] : v || "";
+
+
+  // ---------------------------------------------------------
+  // EDIT MODE
+  // ---------------------------------------------------------
+  const isEditing = safe(params.mode) === "edit";
+
+  const [region, setRegion] = useState<MapRegion | null>(null);
+  const [address, setAddress] = useState(safe(params.locationAddress));
+  const [loading, setLoading] = useState(true);
+
+  // ---------------------------------------------------------
+  // LOAD INITIAL LOCATION
+  // ---------------------------------------------------------
   useEffect(() => {
     (async () => {
-      // Request permission
+      // If editing → use existing location
+      if (isEditing && params.locationLat && params.locationLng) {
+        const lat = Number(safe(params.locationLat));
+        const lng = Number(safe(params.locationLng));
+
+        setRegion({
+          latitude: lat,
+          longitude: lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        });
+
+        fetchAddress(lat, lng);
+        setLoading(false);
+        return;
+      }
+
+      // Normal flow → get current location
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
         alert("Location permission denied");
         return;
       }
 
-      // Get current GPS location
       const loc = await Location.getCurrentPositionAsync({});
       const { latitude, longitude } = loc.coords;
 
-      // Set initial map region
-      const initialRegion: MapRegion = {
+      setRegion({
         latitude,
         longitude,
         latitudeDelta: 0.01,
         longitudeDelta: 0.01,
-      };
+      });
 
-      setRegion(initialRegion);
-
-      // Fetch readable address
       fetchAddress(latitude, longitude);
-
       setLoading(false);
     })();
   }, []);
 
- // Converts latitude + longitude into a readable address. Uses Expo's reverse geocoding API.
+  // ---------------------------------------------------------
+  // REVERSE GEOCODE
+  // ---------------------------------------------------------
   const fetchAddress = async (lat: number, lng: number) => {
-    const result = await Location.reverseGeocodeAsync({
-      latitude: lat,
-      longitude: lng,
-    });
+    const result = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
 
     if (result.length > 0) {
       const item = result[0];
-      const formatted =
-        `${item.name || ""}, ${item.street || ""}, ${item.city || ""}, ${item.region || ""}`;
-
+      const formatted = `${item.name || ""}, ${item.street || ""}, ${item.city || ""}, ${item.region || ""}`;
       setAddress(formatted || "Unknown location");
     } else {
       setAddress("Unknown location");
     }
   };
 
-   // Triggered when the user drags the map marker.
+  // ---------------------------------------------------------
+  // MARKER DRAG
+  // ---------------------------------------------------------
   const onMarkerDragEnd = (e: any) => {
     if (!region) return;
 
     const { latitude, longitude } = e.nativeEvent.coordinate;
 
-    // Update map region
     setRegion({
       ...region,
       latitude,
       longitude,
     });
 
-    // Fetch new address
     fetchAddress(latitude, longitude);
   };
 
- 
-   // Navigates to the Upload Photos screen passing animal details from previous screen,selected location (lat, lng, address)
-  
+  // ---------------------------------------------------------
+  // NEXT / SAVE CHANGES
+  // ---------------------------------------------------------
   const handleNext = () => {
     if (!region) return;
 
+    // 🔥 EDIT MODE → return to Review
+    if (isEditing) {
+      router.push({
+        pathname: "/reporting/review",
+        params: {
+          ...params,
+          mode: "edit",
+          locationLat: region.latitude.toString(),
+          locationLng: region.longitude.toString(),
+          locationAddress: address,
+        },
+      });
+      return;
+    }
+
+    // 🔥 NORMAL FLOW → go to Upload Photos
     router.push({
       pathname: "/reporting/upload-photos",
       params: {
-        ...params,     // animalType, breed, category, notes, anonymous
+        ...params,
         locationLat: region.latitude.toString(),
         locationLng: region.longitude.toString(),
         locationAddress: address,
@@ -105,39 +146,41 @@ export default function LocationPicker() {
     });
   };
 
-  //  LOADING UI 
+  // ---------------------------------------------------------
+  // LOADING SCREEN
+  // ---------------------------------------------------------
   if (loading || !region) {
     return (
       <View style={styles.center}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text>Getting your location...</Text>
+        <ActivityIndicator size="large" color="#F5A623" />
+        <Text style={styles.loadingText}>Getting your location...</Text>
       </View>
     );
   }
 
-  //  MAIN UI 
   return (
     <View style={styles.container}>
-      {/* Map with draggable marker */}
       <MapView style={styles.map} region={region}>
         <Marker coordinate={region} draggable onDragEnd={onMarkerDragEnd} />
       </MapView>
 
-      {/* Address display */}
+      {/* ADDRESS BOX */}
       <View style={styles.addressBox}>
-        <Text style={styles.label}>INCIDENT LOCATION</Text>
+        <Text style={styles.label}>Incident Location</Text>
         <Text style={styles.address}>{address}</Text>
       </View>
 
-      {/* Continue button */}
+      {/* BUTTON */}
       <View style={styles.bottomButtonWrapper}>
-        <PrimaryButton title="Continue Report →" onPress={handleNext} />
+        <PrimaryButton
+          title={isEditing ? "Save Changes →" : "Continue Report →"}
+          onPress={handleNext}
+        />
       </View>
     </View>
   );
 }
 
-//  STYLES 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fafafa" },
   map: { flex: 1 },
@@ -148,15 +191,30 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  loadingText: {
+    marginTop: 10,
+    fontSize: 15,
+    color: "#333",
+  },
+
   addressBox: {
-    padding: 20,
+    padding: 16,
     backgroundColor: "white",
     borderTopWidth: 1,
     borderColor: "#ddd",
   },
 
-  label: { fontSize: 14, fontWeight: "600", color: "#444" },
-  address: { fontSize: 16, marginTop: 4 },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    marginBottom: 4,
+  },
+
+  address: {
+    fontSize: 16,
+    color: "#333",
+  },
 
   bottomButtonWrapper: {
     position: "absolute",
@@ -165,3 +223,4 @@ const styles = StyleSheet.create({
     right: 20,
   },
 });
+` `

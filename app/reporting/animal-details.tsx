@@ -1,4 +1,4 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
   Alert,
@@ -12,37 +12,87 @@ import {
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 
-
-export default function AnimalDetails() {     //collects the data for reporting(animal type, breed, category, notes, anonymous) and then passes it to the location screen   
+export default function AnimalDetails() {
   const router = useRouter();
+  const params = useLocalSearchParams();
 
-  // FORM STATE 
-  const [animalType, setAnimalType] = useState("");            // Dropdown selection
-  const [showDropdown, setShowDropdown] = useState(false);     // Controls dropdown visibility
-  const [breed, setBreed] = useState("");                      // Optional text input
-  const [category, setCategory] = useState("");                // Required category selection
-  const [notes, setNotes] = useState("");                      // Optional notes
-  const [anonymous, setAnonymous] = useState(true);            // Toggle for anonymous reporting
+  // ---------------------------------------------------------
+  // 🔥 FIX: Safe param converter (avoids string | string[] error)
+  // ---------------------------------------------------------
+  const safe = (value: string | string[] | undefined) =>
+    Array.isArray(value) ? value[0] : value || "";
 
- 
-  const types = ["Dog", "Cat", "Other"];      // Dropdown options
+  // ---------------------------------------------------------
+  // 🔥 Detect edit mode
+  // ---------------------------------------------------------
+  const isEditing = safe(params.mode) === "edit";
+
+  // ---------------------------------------------------------
+  // 🔥 Pre-fill fields when editing
+  // ---------------------------------------------------------
+  const [animalType, setAnimalType] = useState(safe(params.animalType));
+  const [showDropdown, setShowDropdown] = useState(false);
+  const [breed, setBreed] = useState(safe(params.breed));
+  const [category, setCategory] = useState(safe(params.category));
+  const [notes, setNotes] = useState(safe(params.notes));
+  const [anonymous, setAnonymous] = useState(safe(params.anonymous) === "true");
+
+  // ERROR STATES
+  const [animalTypeError, setAnimalTypeError] = useState(false);
+  const [categoryError, setCategoryError] = useState(false);
+
+  const types = ["Dog", "Cat", "Other"];
   const categories = ["Injured", "Abandoned", "Aggressive"];
 
- 
-  const handleNext = () => {     //Validates required fields (animalType + category).If valid, navigates to the Location screen and passes all collected data as route params
-    if (!animalType || !category) {
-      Alert.alert("Missing fields", "Please select animal type and category.");
+  // ---------------------------------------------------------
+  // 🔥 Handle Next / Save Changes
+  // ---------------------------------------------------------
+  const handleNext = () => {
+    setAnimalTypeError(false);
+    setCategoryError(false);
+
+    if (!animalType) {
+      setAnimalTypeError(true);
+      Alert.alert("Missing Animal Type", "Please select an animal type.");
       return;
     }
 
-    router.push({                          // Navigate to next step with collected data
+    if (!category) {
+      setCategoryError(true);
+      Alert.alert("Missing Category", "Please select a category.");
+      return;
+    }
+
+    // ---------------------------------------------------------
+    // 🔥 EDIT MODE: Return directly to Review screen
+    // ---------------------------------------------------------
+    if (isEditing) {
+      router.push({
+        pathname: "/reporting/review",
+        params: {
+          ...params, // keep all previous values
+          animalType,
+          breed,
+          category,
+          notes,
+          anonymous: anonymous.toString(),
+          mode: "edit", // keep edit mode active
+        },
+      });
+      return;
+    }
+
+    // ---------------------------------------------------------
+    // 🔥 NORMAL FLOW: Go to Location screen
+    // ---------------------------------------------------------
+    router.push({
       pathname: "/reporting/location",
       params: {
         animalType,
         breed,
         category,
         notes,
-        anonymous: anonymous.toString(),   // Switch returns boolean , convert to string for router
+        anonymous: anonymous.toString(),
       },
     });
   };
@@ -50,13 +100,16 @@ export default function AnimalDetails() {     //collects the data for reporting(
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.header}>Animal Details </Text>
+        <Text style={styles.header}>Animal Details</Text>
 
-        {/* Animal type dropdown */}
-        <Text style={styles.label}>Animal Type :</Text>
+        {/* ------------------ ANIMAL TYPE ------------------ */}
+        <Text style={styles.label}>Animal Type</Text>
 
         <TouchableOpacity
-          style={styles.dropdown}
+          style={[
+            styles.dropdown,
+            animalTypeError && styles.errorBorder,
+          ]}
           onPress={() => setShowDropdown(!showDropdown)}
         >
           <Text style={styles.dropdownText}>
@@ -64,7 +117,6 @@ export default function AnimalDetails() {     //collects the data for reporting(
           </Text>
         </TouchableOpacity>
 
-        {/* Dropdown list */}
         {showDropdown && (
           <View style={styles.dropdownList}>
             {types.map((t) => (
@@ -73,55 +125,66 @@ export default function AnimalDetails() {     //collects the data for reporting(
                 style={styles.dropdownItem}
                 onPress={() => {
                   setAnimalType(t);
+                  setAnimalTypeError(false);
                   setShowDropdown(false);
                 }}
               >
-                <Text>{t}</Text>
+                <Text style={styles.dropdownItemText}>{t}</Text>
               </TouchableOpacity>
             ))}
           </View>
         )}
 
-        {/* Breed input */}
-        <Text style={styles.label}>Breed  (Optional) :</Text>
+        {/* ------------------ BREED ------------------ */}
         <InputField
+          label="Breed (Optional)"
           placeholder="Enter breed (e.g., Labrador)"
           value={breed}
           onChangeText={setBreed}
         />
 
-        {/* Category selection */}
-        <Text style={styles.label}>Category :</Text>
+        {/* ------------------ CATEGORY ------------------ */}
+        <Text style={styles.label}>Category</Text>
         <View style={styles.row}>
           {categories.map((c) => (
             <TouchableOpacity
               key={c}
-              style={[styles.chip, category === c && styles.chipSelected]}
-              onPress={() => setCategory(c)}
+              style={[
+                styles.chip,
+                category === c && styles.chipSelected,
+                categoryError && !category && styles.errorBorder,
+              ]}
+              onPress={() => {
+                setCategory(c);
+                setCategoryError(false);
+              }}
             >
               <Text style={styles.chipText}>{c}</Text>
             </TouchableOpacity>
           ))}
         </View>
 
-        {/* Notes */}
-        <Text style={styles.label}>Condition Notes  (Optional) :</Text>
+        {/* ------------------ NOTES ------------------ */}
         <InputField
+          label="Condition Notes (Optional)"
           placeholder="Describe the animal's behavior or injuries..."
           value={notes}
           onChangeText={setNotes}
         />
 
-        {/* Anonymous toggle */}
+        {/* ------------------ ANONYMOUS TOGGLE ------------------ */}
         <View style={styles.toggleRow}>
           <Text style={styles.label}>Report Anonymously</Text>
           <Switch value={anonymous} onValueChange={setAnonymous} />
         </View>
       </ScrollView>
 
-      {/* Next */}
+      {/* ------------------ BUTTON ------------------ */}
       <View style={styles.bottomButtonWrapper}>
-        <PrimaryButton title="Next Step →" onPress={handleNext} />
+        <PrimaryButton
+          title={isEditing ? "Save Changes →" : "Next Step →"}
+          onPress={handleNext}
+        />
       </View>
     </View>
   );
@@ -129,47 +192,68 @@ export default function AnimalDetails() {     //collects the data for reporting(
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fafafa" },
-
   scrollContent: { padding: 20, paddingBottom: 140 },
 
-  header: { fontSize: 26, fontWeight: "700", marginBottom: 20 , textAlign:"center" },
+  header: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 20,
+    textAlign: "center",
+  },
 
-  label: { fontSize: 16, marginTop: 20, marginBottom: 8 },
+  label: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#333",
+    marginTop: 16,
+    marginBottom: 6,
+  },
 
-  // Dropdown styling
   dropdown: {
     borderWidth: 1,
-    borderColor: "#ccc",
+    borderColor: "#ddd",
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 12,
+    backgroundColor: "#f9f9f9",
   },
-  dropdownText: { fontSize: 14, color: "#333" },
+
+  dropdownText: { fontSize: 15, color: "#333" },
+
   dropdownList: {
     borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 10,
-    marginTop: 5,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    marginTop: 6,
     backgroundColor: "white",
   },
+
   dropdownItem: {
     padding: 14,
     borderBottomWidth: 1,
     borderBottomColor: "#eee",
   },
 
-  // Category chips
-  row: { flexDirection: "row", gap: 10 },
+  dropdownItemText: { fontSize: 15, color: "#333" },
+
+  row: { flexDirection: "row", gap: 10, marginTop: 6 },
+
   chip: {
     paddingVertical: 10,
     paddingHorizontal: 14,
     borderWidth: 1,
-    borderRadius: 10,
-    borderColor: "#ccc",
+    borderColor: "#ddd",
+    borderRadius: 12,
+    backgroundColor: "#fff",
   },
-  chipSelected: { backgroundColor: "#F5A62333", borderColor: "#F5A623" },
-  chipText: { fontSize: 14 },
 
-  // Anonymous toggle
+  chipSelected: {
+    backgroundColor: "#F5A62333",
+    borderColor: "#F5A623",
+  },
+
+  chipText: { fontSize: 14, color: "#333" },
+
   toggleRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -177,7 +261,11 @@ const styles = StyleSheet.create({
     marginTop: 22,
   },
 
-  // Bottom button
+  errorBorder: {
+    borderColor: "red",
+    borderWidth: 2,
+  },
+
   bottomButtonWrapper: {
     position: "absolute",
     bottom: 20,

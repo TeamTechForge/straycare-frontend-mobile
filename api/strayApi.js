@@ -1,5 +1,5 @@
 // Base URL for backend API
-const BASE_URL = "http://192.168.8.161:5000/api/strays";
+const BASE_URL = "http://10.191.34.185:5000/api/strays";
 
 
 // 1.Sends a POST request to create a new stray report.then returns the created report from the backend.

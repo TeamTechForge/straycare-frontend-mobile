@@ -1,115 +1,134 @@
-import { MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
-import { ScrollView, StyleSheet, Text, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
-
 
 export default function Success() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-   // Extract Case ID-The caseId is passed from the Review screen after submission.If missing (edge case), show "Unknown". 
-  const caseId = params.caseId || "Unknown";
+  const caseId = Array.isArray(params.caseId)
+    ? params.caseId[0]
+    : params.caseId || "UNKNOWN";
 
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        {/* SUCCESS ICON */}
-        <View style={styles.iconCircle}>
-          <MaterialCommunityIcons name="check-circle" size={80} color="#4CAF50" />
-        </View>
+      
+      {/* SUCCESS ICON */}
+      <View style={styles.iconCircle}>
+        <Text style={styles.iconText}>✓</Text>
+      </View>
 
-        {/* TITLE */}
-        <Text style={styles.header}>Report Submitted!</Text>
+      {/* TITLE */}
+      <Text style={styles.title}>Report Submitted</Text>
 
-        {/* MESSAGE */}
-        <Text style={styles.subtext}>
-          Thank you for helping keep stray animals safe.  
-          Rescuers will now review your report.
-        </Text>
+      {/* SUBTEXT */}
+      <Text style={styles.subtitle}>
+        Thank you for helping keep animals safe.
+      </Text>
 
-        {/* CASE ID CARD */}
-        <View style={styles.caseCard}>
-          <Text style={styles.caseLabel}>CASE ID</Text>
-          <Text style={styles.caseValue}>{caseId}</Text>
-        </View>
+      {/* CASE ID CARD */}
+      <View style={styles.caseCard}>
+        <Text style={styles.caseLabel}>CASE ID</Text>
+        <Text style={styles.caseValue}>{caseId}</Text>
+      </View>
 
-      </ScrollView>
+      {/* BUTTONS */}
+      <View style={styles.buttonGroup}>
 
-      {/* BACK TO MAP BUTTON */}
-      <View style={styles.bottomButtonWrapper}>
+        {/* VIEW CASE DETAILS */}
+        <PrimaryButton
+          title="View Case"
+          onPress={() =>
+            router.push({
+              pathname: "/reporting/casedetails",
+              params: { caseId },
+            })
+          }
+        />
+
+        {/* BACK TO MAP */}
         <PrimaryButton
           title="Back to Map"
           onPress={() => router.push("/reporting")}
         />
+
+        {/* GO HOME */}
+        <PrimaryButton
+          title="Go Home"
+          onPress={() => router.push("/")}
+        />
+
       </View>
     </View>
   );
 }
 
-// STYLES 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fafafa" },
-
-  scrollContent: {
+  container: {
+    flex: 1,
+    backgroundColor: "#fafafa",
     padding: 20,
-    paddingBottom: 160,
+    justifyContent: "center",
     alignItems: "center",
   },
 
   iconCircle: {
-    width: 120,
-    height: 120,
-    borderRadius: 60,
-    backgroundColor: "#E8F5E9",
+    width: 90,
+    height: 90,
+    borderRadius: 45,
+    backgroundColor: "#F5A62333",
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 40,
     marginBottom: 20,
   },
 
-  header: {
+  iconText: {
+    fontSize: 50,
+    color: "#F5A623",
+    fontWeight: "700",
+  },
+
+  title: {
     fontSize: 28,
     fontWeight: "700",
-    marginBottom: 10,
+    color: "#333",
+    marginBottom: 6,
     textAlign: "center",
   },
 
-  subtext: {
+  subtitle: {
     fontSize: 16,
     color: "#666",
+    marginBottom: 20,
     textAlign: "center",
-    marginBottom: 30,
-    lineHeight: 22,
   },
 
   caseCard: {
     backgroundColor: "#FFF4D1",
     padding: 20,
-    borderRadius: 16,
-    marginBottom: 20,
-    width: "100%",
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#ddd",
     alignItems: "center",
+    marginBottom: 30,
+    width: "100%",
   },
 
   caseLabel: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#555",
+    fontWeight: "500",
+    color: "#333",
   },
 
   caseValue: {
-    fontSize: 22,
+    fontSize: 24,
     fontWeight: "700",
+    color: "#333",
     marginTop: 4,
   },
 
-  bottomButtonWrapper: {
-    position: "absolute",
-    bottom: 20,
-    left: 20,
-    right: 20,
+  buttonGroup: {
+    width: "100%",
+    gap: 14,
   },
 });

@@ -1,7 +1,6 @@
 import { MaterialCommunityIcons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
-
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -13,40 +12,42 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
 import PrimaryButton from "../../components/PrimaryButton";
 
 export default function UploadPhotos() {
   const router = useRouter();
-  const params = useLocalSearchParams();                // Data from previous screens
+  const params = useLocalSearchParams();
 
-  // STATE 
-  const [images, setImages] = useState<string[]>([]);  // Selected photo URIs
-  const [uploading, setUploading] = useState(false);   // Loading state for Next button
+  const safe = (v: string | string[] | undefined): string =>
+    Array.isArray(v) ? v[0] : v || "";
 
-  //  HELPERS 
- 
-  const canAddMore = () => images.length < 5;          // Check if user can add more photos (max 5)
+  const isEditing = safe(params.mode) === "edit";
 
-  const removeImage = (index: number) => {             // Remove a selected image by index
+  const initialPhotos: string[] = params.photos
+    ? JSON.parse(safe(params.photos))
+    : [];
+
+  const [images, setImages] = useState<string[]>(initialPhotos);
+  const [uploading, setUploading] = useState(false);
+
+  const canAddMore = () => images.length < 5;
+
+  const removeImage = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  //  IMAGE PICKER (GALLERY) 
   const pickImages = async () => {
     if (!canAddMore()) {
       Alert.alert("Limit reached", "You can upload a maximum of 5 photos.");
       return;
     }
 
-    // Request gallery permission
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission needed", "Gallery access is required.");
       return;
     }
 
-    // Open gallery
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ImagePicker.MediaTypeOptions.Images,
       allowsMultipleSelection: true,
@@ -55,8 +56,6 @@ export default function UploadPhotos() {
 
     if (!result.canceled) {
       const uris = result.assets.map((a) => a.uri);
-
-      // Respect the 5-photo limit
       const remainingSlots = 5 - images.length;
       const toAdd = uris.slice(0, remainingSlots);
 
@@ -71,24 +70,19 @@ export default function UploadPhotos() {
     }
   };
 
-  // CAMERA 
   const openCamera = async () => {
     if (!canAddMore()) {
       Alert.alert("Limit reached", "You can upload a maximum of 5 photos.");
       return;
     }
 
-    // Request camera permission
     const permission = await ImagePicker.requestCameraPermissionsAsync();
     if (!permission.granted) {
       Alert.alert("Permission needed", "Camera access is required.");
       return;
     }
 
-    // Open camera
-    const result = await ImagePicker.launchCameraAsync({
-      quality: 0.7,
-    });
+    const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
@@ -96,9 +90,7 @@ export default function UploadPhotos() {
     }
   };
 
-  //  NEXT STEP  
-
-  const handleNext = async () => {   // Validates that at least one image is selected.Passes all selected image URIs to the Review screen.
+  const handleNext = async () => {
     if (images.length === 0) {
       Alert.alert("No images", "Please select at least one photo.");
       return;
@@ -106,18 +98,30 @@ export default function UploadPhotos() {
 
     setUploading(true);
 
+    if (isEditing) {
+      router.push({
+        pathname: "/reporting/review",
+        params: {
+          ...params,
+          mode: "edit",
+          photos: JSON.stringify(images),
+        },
+      });
+      setUploading(false);
+      return;
+    }
+
     router.push({
       pathname: "/reporting/review",
       params: {
         ...params,
-        photos: JSON.stringify(images),     // Pass URIs as JSON string
+        photos: JSON.stringify(images),
       },
     });
 
     setUploading(false);
   };
 
-  //  UI 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
@@ -126,97 +130,105 @@ export default function UploadPhotos() {
         <Text style={styles.header}>Upload Photos</Text>
         <Text style={styles.subtext}>Add up to 5 photos.</Text>
 
-        {/* MAIN PHOTO PREVIEW  */}
-        <View style={styles.mainPhotoBox}>
+        {/* MAIN PHOTO */}
+        <View style={styles.sectionCard}>
           {images.length > 0 ? (
-            <Image
-              source={{ uri: images[0] }}
-              style={{ width: "100%", height: "100%", borderRadius: 16 }}
-            />
+            <Image source={{ uri: images[0] }} style={styles.mainPhoto} />
           ) : (
             <MaterialCommunityIcons name="image-outline" size={60} color="#bbb" />
           )}
         </View>
 
-        {/* PHOTO GRID */}
-        <View style={styles.grid}>
-          {images.map((uri, index) => (
-            <View key={index} style={styles.imageWrapper}>
-              <Image source={{ uri }} style={styles.smallPhotoBox} />
+        {/* GRID */}
+        <View style={styles.sectionCard}>
+          <View style={styles.grid}>
+            {images.map((uri: string, index: number) => (
+              <View key={index} style={styles.imageWrapper}>
+                <Image source={{ uri }} style={styles.smallPhotoBox} />
+                <TouchableOpacity
+                  style={styles.deleteBadge}
+                  onPress={() => removeImage(index)}
+                >
+                  <MaterialCommunityIcons name="close" size={16} color="white" />
+                </TouchableOpacity>
+              </View>
+            ))}
 
-              {/* Delete button */}
-              <TouchableOpacity
-                style={styles.deleteBadge}
-                onPress={() => removeImage(index)}
-              >
-                <MaterialCommunityIcons name="close" size={16} color="white" />
+            {canAddMore() && (
+              <TouchableOpacity style={styles.addBox} onPress={pickImages}>
+                <MaterialCommunityIcons name="plus" size={35} color="#777" />
               </TouchableOpacity>
-            </View>
-          ))}
-
-          {/* Add more photos */}
-          {canAddMore() && (
-            <TouchableOpacity style={styles.addBox} onPress={pickImages}>
-              <MaterialCommunityIcons name="plus" size={35} color="#777" />
-            </TouchableOpacity>
-          )}
+            )}
+          </View>
         </View>
 
-        {/* CAMERA BUTTON  */}
+        {/* CAMERA BUTTON */}
         <TouchableOpacity style={styles.cameraButton} onPress={openCamera}>
           <MaterialCommunityIcons name="camera" size={25} color="white" />
         </TouchableOpacity>
       </ScrollView>
 
-      {/* NEXT BUTTON  */}
+      {/* NEXT BUTTON */}
       <View style={styles.bottomButtonWrapper}>
         {uploading ? (
-          <ActivityIndicator size="large" color="#FFB700" />
+          <ActivityIndicator size="large" color="#F5A623" />
         ) : (
-          <PrimaryButton title="Next Step →" onPress={handleNext} />
+          <PrimaryButton
+            title={isEditing ? "Save Changes →" : "Next Step →"}
+            onPress={handleNext}
+          />
         )}
       </View>
     </View>
   );
 }
 
-// STYLES 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fafafa" },
   scrollContent: { padding: 20, paddingBottom: 160 },
 
-  header: { fontSize: 26, fontWeight: "700", marginBottom: 20 },
-  subtext: { fontSize: 14, color: "#666", marginBottom: 25 },
+  header: {
+    fontSize: 22,
+    fontWeight: "700",
+    color: "#333",
+    marginBottom: 8,
+    textAlign: "center",
+  },
+  subtext: {
+    fontSize: 14,
+    color: "#666",
+    marginBottom: 16,
+  },
 
-  mainPhotoBox: {
-    width: "100%",
-    height: 220,
-    backgroundColor: "#eee",
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 20,
+  sectionCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 14,
+    marginVertical: 8,
     shadowColor: "#000",
     shadowOpacity: 0.05,
-    shadowRadius: 6,
-    elevation: 3,
+    shadowRadius: 3,
+    elevation: 1,
+    alignItems: "center",
+  },
+
+  mainPhoto: {
+    width: "100%",
+    height: 220,
+    borderRadius: 12,
   },
 
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
-    marginBottom: 60,
   },
-
   imageWrapper: { position: "relative" },
-
   smallPhotoBox: {
     width: 90,
     height: 90,
     borderRadius: 12,
   },
-
   deleteBadge: {
     position: "absolute",
     top: -6,
@@ -228,22 +240,22 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-
   addBox: {
     width: 90,
     height: 90,
     borderRadius: 12,
-    borderWidth: 2,
-    borderColor: "#ccc",
+    borderWidth: 1.5,
+    borderColor: "#ddd",
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: "#f9f9f9",
   },
 
   cameraButton: {
     position: "absolute",
     bottom: 140,
     right: 20,
-    backgroundColor: "#FFB700",
+    backgroundColor: "#F5A623",
     width: 60,
     height: 60,
     borderRadius: 35,

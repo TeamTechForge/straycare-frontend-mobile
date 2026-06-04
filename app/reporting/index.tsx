@@ -5,13 +5,13 @@ import {
   ActivityIndicator,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { getAllReports } from "../../api/strayApi";
+import PrimaryButton from "../../components/PrimaryButton";
 
-type Report = {     // Represents the minimal data needed to display a case on the map
+type Report = {
   caseId: string;
   animalType: string;
   category: string;
@@ -23,17 +23,16 @@ type Report = {     // Represents the minimal data needed to display a case on t
   };
 };
 
-// Maps each rescue status to a specific marker color.Used to visually differentiate case statuses on the map.
 const getMarkerColor = (status: string) => {
   switch (status) {
     case "Needs Help":
       return "red";
     case "Under Rescue":
-      return "yellow";
+      return "#f1eb40";
     case "Treated":
-      return "green";
+      return "#63ac84";
     case "Ready for Adoption":
-      return "blue";
+      return "#2476da";
     default:
       return "gray";
   }
@@ -42,14 +41,11 @@ const getMarkerColor = (status: string) => {
 export default function ReportingMapScreen() {
   const router = useRouter();
 
-  // ------------------ STATE ------------------
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
 
-  
-  // Fetches all reports from backend
   const loadReports = async () => {
-    try {  // Error handling to catch any issues during data fetching and prevent app crashes. 
+    try {
       const data = await getAllReports();
       setReports(data);
     } catch (err) {
@@ -59,19 +55,16 @@ export default function ReportingMapScreen() {
     }
   };
 
-// Runs once when the screen mounts to load initial data
   useEffect(() => {
     loadReports();
   }, []);
 
-  //Runs every time the user returns to this screen.Ensures the map always shows the latest case updates.
   useFocusEffect(
     useCallback(() => {
       loadReports();
     }, [])
   );
 
-  // LOADING STATE 
   if (loading) {
     return (
       <View style={styles.center}>
@@ -82,20 +75,24 @@ export default function ReportingMapScreen() {
 
   return (
     <View style={styles.container}>
-      {/* MAP VIEW  */}
+      {/* Header Card */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.header}>Rescue Cases Map</Text>
+        <Text style={styles.subtext}>Tap a marker to view case details.</Text>
+      </View>
+
+      {/* Map View */}
       <MapView
         provider="google"
         style={styles.map}
         initialRegion={{
-          latitude: 6.9271, // Default- Colombo
+          latitude: 6.9271, // Default - Colombo
           longitude: 79.8612,
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
         }}
       >
-        {/* Render all case markers */}
         {reports.map((report) => {
-          // Skip invalid or incomplete location data
           if (
             !report.location ||
             report.location.lat == null ||
@@ -106,7 +103,8 @@ export default function ReportingMapScreen() {
 
           return (
             <Marker
-              key={report.caseId}
+              // ✅ Fix applied here: Forces the marker to re-render when status changes
+              key={`${report.caseId}-${report.status}`}
               coordinate={{
                 latitude: report.location.lat,
                 longitude: report.location.lng,
@@ -114,8 +112,6 @@ export default function ReportingMapScreen() {
               pinColor={getMarkerColor(report.status)}
               title={report.animalType}
               description={report.status}
-              
-              // On marker press navigate to Case Details screen ,pass the caseId so the next screen can fetch full details 
               onPress={() =>
                 router.push({
                   pathname: "/reporting/casedetails",
@@ -127,45 +123,41 @@ export default function ReportingMapScreen() {
         })}
       </MapView>
 
-      {/* ADD CASE BUTTON */}
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => router.push("/reporting/animal-details")}
-      >
-        <Text style={styles.addButtonText}>Add a Case +</Text>
-      </TouchableOpacity>
+      {/* Add Case Button */}
+      <View style={styles.bottomButtonWrapper}>
+        <PrimaryButton
+          title="Add a Case +"
+          onPress={() => router.push("/reporting/animal-details")}
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-
+  container: { flex: 1, backgroundColor: "#fafafa" },
   map: { flex: 1 },
-
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-
-  addButton: {
-    position: "absolute",
-    bottom: 50,
-    right: 120,
-    backgroundColor: "#FFB700",
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    borderRadius: 40,
+  sectionCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    margin: 12,
     shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
-
-  addButtonText: {
-    color: "black",
-    fontSize: 18,
-    fontWeight: "700",
+  header: { fontSize: 18, fontWeight: "700", color: "#333", textAlign: "center" },
+  subtext: { fontSize: 14, color: "#666", textAlign: "center" },
+  bottomButtonWrapper: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
   },
 });
