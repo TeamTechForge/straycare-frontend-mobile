@@ -260,7 +260,7 @@ export default function VetProfileSetupScreen() {
       {/* Personal Details */}
       <FormSection title="Personal Details">
         <InputField
-          label="Name"
+          label="Name *"
           placeholder="e.g. Alex Thompson"
           value={name}
           onChangeText={setName}
@@ -268,7 +268,7 @@ export default function VetProfileSetupScreen() {
         />
 
         <InputField
-          label="Primary Location"
+          label="Primary Location *"
           placeholder="123 Rescue Way, City, State"
           value={primaryLocation}
           onChangeText={setPrimaryLocation}
@@ -279,7 +279,7 @@ export default function VetProfileSetupScreen() {
         />
 
         <InputField
-          label="Phone Number"
+          label="Phone Number *"
           placeholder="+1 (555) 000-0000"
           value={phone}
           onChangeText={setPhone}
@@ -306,7 +306,7 @@ export default function VetProfileSetupScreen() {
       {/* Clinic & Licensing */}
       <FormSection title="Clinic & Licensing">
         <InputField
-          label="Clinic Name"
+          label="Clinic Name *"
           placeholder="e.g. Happy Paws Veterinary Centre"
           value={clinicName}
           onChangeText={setClinicName}
@@ -314,7 +314,7 @@ export default function VetProfileSetupScreen() {
         />
 
         <InputField
-          label="Clinic Address"
+          label="Clinic Address *"
           placeholder="123 Rescue Way, City, State"
           value={clinicAddress}
           onChangeText={setClinicAddress}
@@ -322,7 +322,7 @@ export default function VetProfileSetupScreen() {
         />
 
         <InputField
-          label="License Number"
+          label="License Number *"
           placeholder="VET-CD45"
           value={licenseNumber}
           onChangeText={setLicenseNumber}
@@ -330,7 +330,7 @@ export default function VetProfileSetupScreen() {
         />
 
         <InputField
-          label="Years of Experience"
+          label="Years of Experience *"
           placeholder="e.g. 5"
           value={yearsOfExperience}
           onChangeText={setYearsOfExperience}
@@ -339,7 +339,7 @@ export default function VetProfileSetupScreen() {
       </FormSection>
 
       {/* Medical License Document */}
-      <FormSection title="Medical License Document">
+      <FormSection title="Medical License Document *">
         <FileUploadField file={licenseDocument} onPick={handlePickLicenseDocument} />
         {errors.licenseDocument ? (
           <Text style={styles.errorText}>{errors.licenseDocument}</Text>

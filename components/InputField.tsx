@@ -37,7 +37,18 @@ export default function InputField({
     <View style={styles.container}>
 
       {/* LABEL */}
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={styles.label}>
+          {label.includes("*") ? (
+            <>
+              {label.replace("*", "")}
+              <Text style={{ color: "red" }}>*</Text>
+            </>
+          ) : (
+            label
+          )}
+        </Text>
+      )}
 
       <View style={styles.inputWrapper}>
         

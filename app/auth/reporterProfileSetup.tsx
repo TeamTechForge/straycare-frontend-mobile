@@ -24,12 +24,14 @@ export default function ReporterProfileSetupScreen() {
   const router = useRouter();
 
   // ✅ states
+  const [name, setName] = useState("");
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
   const [image, setImage] = useState<string | null>(null);
 
   const [errors, setErrors] = useState({
+    name: "",
     phone: "",
     location: "",
   });
@@ -44,6 +46,7 @@ export default function ReporterProfileSetupScreen() {
         });
         const data = await response.json();
         if (response.ok) {
+          if (data.name) setName(data.name);
           if (data.phone) setPhone(data.phone);
         }
       } catch (error) {
@@ -100,7 +103,13 @@ export default function ReporterProfileSetupScreen() {
   // ✅ validation function
   const validate = () => {
     let valid = true;
-    let newErrors = { phone: "", location: "" };
+    let newErrors = { name: "", phone: "", location: "" };
+
+    // 👤 name validation (required)
+    if (!name.trim()) {
+      newErrors.name = "Name is required";
+      valid = false;
+    }
 
     // 📞 phone validation (required)
     if (!phone.trim()) {
@@ -134,6 +143,7 @@ export default function ReporterProfileSetupScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          name,
           location,
           bio,
           profileImage: image, // Frontend should ideally upload to cloudinary first, but we'll send URI for now as per controller expectation
@@ -174,6 +184,16 @@ export default function ReporterProfileSetupScreen() {
       <ProfileImageUpload
         imageUri={image}
         onPress={handlePickImage}
+      />
+
+      {/* Name */}
+      <InputField
+        label="Name *"
+        placeholder="e.g. John Doe"
+        value={name}
+        onChangeText={setName}
+        icon="person-outline"
+        error={errors.name}
       />
 
       {/* Phone */}

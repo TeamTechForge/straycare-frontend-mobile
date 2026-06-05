@@ -172,16 +172,16 @@ export default function ngoProfileSetup() {
 
       {/* ORGANIZATION DETAILS */}
       <FormSection title="Organization Details">
-        <InputField label="Organization Name" placeholder="e.g. Save The Strays Foundation" value={orgName} onChangeText={setOrgName} />
-        <InputField label="Contact Person Name" placeholder="e.g. Jane Doe" value={contactPerson} onChangeText={setContactPerson} />
-        <InputField label="Registration Number" placeholder="e.g. NGO-SL-2024-001" value={regNumber} onChangeText={setRegNumber} />
-        <InputField label="Founded Year" placeholder="e.g. 2015" value={year} onChangeText={setYear} keyboardType="numeric" />
+        <InputField label="Organization Name *" placeholder="e.g. Save The Strays Foundation" value={orgName} onChangeText={setOrgName} />
+        <InputField label="Contact Person Name *" placeholder="e.g. Jane Doe" value={contactPerson} onChangeText={setContactPerson} />
+        <InputField label="Registration Number *" placeholder="e.g. NGO-SL-2024-001" value={regNumber} onChangeText={setRegNumber} />
+        <InputField label="Founded Year *" placeholder="e.g. 2015" value={year} onChangeText={setYear} keyboardType="numeric" />
       </FormSection>
 
       {/* CONTACT */}
       <FormSection title="Contact & Location">
         <InputField
-          label="Phone Number"
+          label="Phone Number *"
           placeholder="e.g. +94 11 234 5678"
           value={phone}
           onChangeText={setPhone}
@@ -190,7 +190,7 @@ export default function ngoProfileSetup() {
         />
 
         <InputField
-          label="Address"
+          label="Address *"
           placeholder="e.g. 123 Rescue Road, Colombo 07"
           value={location}
           onChangeText={setLocation}

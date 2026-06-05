@@ -142,6 +142,7 @@ export default function VolunteerProfileSetupScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          name,
           location,
           bio,
           profileImage: profileImage && typeof profileImage === 'object' ? (profileImage as any).uri : profileImage,
@@ -186,7 +187,7 @@ export default function VolunteerProfileSetupScreen() {
       {/* Basic Information */}
       <FormSection title="Basic Information">
         <InputField
-          label="Name"
+          label="Name *"
           placeholder="e.g. Alex Johnson"
           value={name}
           onChangeText={setName}
@@ -202,7 +203,7 @@ export default function VolunteerProfileSetupScreen() {
         />
 
         <InputField
-          label="Current Location"
+          label="Current Location *"
           placeholder="City, Country"
           value={location}
           onChangeText={setLocation}
