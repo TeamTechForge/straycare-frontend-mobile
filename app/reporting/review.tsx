@@ -1,46 +1,82 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import {
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { submitReport } from "../../api/strayApi";
 import PrimaryButton from "../../components/PrimaryButton";
-
-const reviewImages = [
-  "https://ichef.bbci.co.uk/ace/standard/976/cpsprodpb/387B/production/_126795441_gettyimages-979935038-170667a.jpg",
-  "https://c.files.bbci.co.uk/b068/live/a52cf990-87d4-11f0-b391-6936825093bd.jpg",
-  "https://www.worldanimalprotection.ca/cdn-cgi/image/width=1280,format=auto/siteassets/article/dog_kenya_1700x958_1021132.jpg",
-  "https://c.ndtvimg.com/2025-08/1dkjog7c_stray-dogs_625x300_12_August_25.jpg?im=FeatureCrop,algorithm=dnn,width=1200,height=738",
-  "https://www.livemint.com/lm-img/img/2025/08/22/600x338/Dog-Celebration-8_1755881725546_1755881739279.jpg",
-];
 
 export default function Review() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
+  // Generate caseId if not passed
   const caseId =
     params.caseId ||
     "STRAY-" + Math.floor(10000 + Math.random() * 90000);
 
+  // Photos (dummy or real)
+  const photos = params.photos ? JSON.parse(params.photos as string) : [];
+
+  const handleSubmit = async () => {
+    try {
+      const reportData = {
+        caseId,
+        animalType: params.animalType,
+        breed: params.breed || "Unknown",
+        category: params.category, // FIXED
+        status: "Needs Help", // FIXED default status
+        notes: params.notes,
+        anonymous: params.anonymous === "true",
+        location: {
+          lat: Number(params.locationLat),
+          lng: Number(params.locationLng),
+          address: params.locationAddress,
+        },
+        photos, // dummy for now
+      };
+
+      const result = await submitReport(reportData);
+      console.log("Report submitted:", result);
+
+      router.push({
+        pathname: "/reporting/success",
+        params: { caseId },
+      });
+    } catch (error) {
+      console.error("Error submitting report:", error);
+      alert("Failed to submit report. Try again.");
+    }
+  };
+
   return (
     <ScrollView contentContainerStyle={styles.container}>
-      {/* case id */}
+      {/* CASE ID */}
       <View style={styles.caseCard}>
         <Text style={styles.caseLabel}>CASE ID</Text>
         <Text style={styles.caseValue}>{caseId}</Text>
       </View>
 
-      {/* main first image to show */}
-      <Image source={{ uri: reviewImages[0] }} style={styles.mainPhoto} />
+      {/* MAIN PHOTO */}
+      {photos.length > 0 && (
+        <Image source={{ uri: photos[0] }} style={styles.mainPhoto} />
+      )}
 
-      {/* other images */}
+      {/* OTHER PHOTOS */}
       <View style={styles.grid}>
-        {reviewImages.slice(1).map((url, index) => (
-          <Image key={index} source={{ uri: url }} style={styles.smallPhoto} />
+        {photos.slice(1).map((uri: string, index: number) => (
+          <Image key={index} source={{ uri }} style={styles.smallPhoto} />
         ))}
       </View>
 
-      {/* animal detail section-navigate to report form */}
+      {/* ANIMAL DETAILS */}
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Animal Details</Text>
 
-        {/* button to edit  */}
         <TouchableOpacity
           onPress={() =>
             router.push({
@@ -60,11 +96,11 @@ export default function Review() {
         <Text style={styles.label}>Breed</Text>
         <Text style={styles.value}>{params.breed || "Not specified"}</Text>
 
-        <Text style={styles.label}>Status</Text>
-        <Text style={styles.value}>{params.status}</Text>
+        <Text style={styles.label}>Category</Text>
+        <Text style={styles.value}>{params.category}</Text>
 
         <Text style={styles.label}>Notes</Text>
-        <Text style={styles.value}>{params.notes}</Text>
+        <Text style={styles.value}>{params.notes || "No notes"}</Text>
 
         <Text style={styles.label}>Anonymous</Text>
         <Text style={styles.value}>
@@ -72,11 +108,10 @@ export default function Review() {
         </Text>
       </View>
 
-      {/* location part */}
+      {/* LOCATION */}
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Rescue Location</Text>
 
-        {/* button to edit location-navigate to location page */}
         <TouchableOpacity
           onPress={() =>
             router.push({
@@ -90,18 +125,11 @@ export default function Review() {
       </View>
 
       <View style={styles.infoBox}>
-        <Text style={styles.value}>{params.location}</Text>
+        <Text style={styles.value}>{params.locationAddress}</Text>
       </View>
 
-      <PrimaryButton
-        title="Submit Report"
-        onPress={() =>
-          router.push({
-            pathname: "/reporting/success",
-            params: { caseId },
-          })
-        }
-      />
+      {/* SUBMIT BUTTON */}
+      <PrimaryButton title="Submit Report" onPress={handleSubmit} />
     </ScrollView>
   );
 }
@@ -176,7 +204,7 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 12,
     marginBottom: 20,
-    alignItems: "center", 
+    alignItems: "center",
   },
 
   label: {

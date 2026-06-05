@@ -1,25 +1,46 @@
 import { AntDesign } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
 import {
-    Image,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  StyleSheet,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
+
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = (data: any) => {
+    console.log(data);
+
+    // Later we will call backend API here
+    router.replace("/(tabs)/home");
+  };
 
   return (
     <View style={styles.container}>
       
-      {/* 🔹 CURVED IMAGE HEADER */}
+      {/* CURVED IMAGE HEADER */}
       <View style={styles.imageContainer}>
         <Image
           source={require("../../assets/images/login-dogs.jpg")} 
@@ -28,55 +49,83 @@ export default function LoginScreen() {
         <View style={styles.curveOverlay} />
       </View>
 
-      {/* 🔹 CONTENT AREA */}
+      {/* CONTENT AREA */}
       <View style={styles.content}>
         <Text style={styles.title}>Welcome Back</Text>
         <Text style={styles.subtitle}>
           Helping street animals, one paw at a time.
         </Text>
 
-        {/* 🔹 INPUTS */}
-        <TextInput
-          style={styles.input}
-          placeholder="Email Address"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-        />
+        {/* EMAIL INPUT */}
+<Controller
+  control={control}
+  name="email"
+  render={({ field: { onChange, value } }) => (
+    <TextInput
+      style={styles.input}
+      placeholder="Email Address"
+      value={value}
+      onChangeText={onChange}
+      keyboardType="email-address"
+    />
+  )}
+/>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
-        />
+{errors.email && (
+  <Text style={{ color: "red", marginBottom: 10 }}>
+    {errors.email.message}
+  </Text>
+)}
 
-        {/* 🔹 FORGOT PASSWORD */}
-        <TouchableOpacity style={styles.forgotContainer}>
-          <Text style={styles.forgotText}>Forgot Password?</Text>
+{/* PASSWORD INPUT */}
+<Controller
+  control={control}
+  name="password"
+  render={({ field: { onChange, value } }) => (
+    <TextInput
+      style={styles.input}
+      placeholder="Password"
+      secureTextEntry
+      value={value}
+      onChangeText={onChange}
+    />
+  )}
+/>
+
+{errors.password && (
+  <Text style={{ color: "red", marginBottom: 10 }}>
+    {errors.password.message}
+  </Text>
+)}
+
+        {/*  FORGOT PASSWORD */}
+        <TouchableOpacity
+           style={styles.forgotContainer}
+            onPress={() => router.push("/auth/forgotPasswordScreen")}
+        >
+        <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
-        {/* 🔹 LOGIN BUTTON */}
+        {/* LOGIN BUTTON */}
         <PrimaryButton
           title="Log in"
-          onPress={() => router.push("/Home")}
+           onPress={handleSubmit(onSubmit)}
         />
 
-        {/* 🔹 DIVIDER */}
+        {/* DIVIDER */}
         <View style={styles.dividerRow}>
           <View style={styles.dividerLine} />
           <Text style={styles.dividerText}>OR</Text>
           <View style={styles.dividerLine} />
         </View>
 
-        {/* 🔹 GOOGLE BUTTON (visual only) */}
+        {/* GOOGLE BUTTON (visual only) */}
         <TouchableOpacity style={styles.googleButton} onPress={() => {}}>
           <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
           <Text style={styles.googleButtonText}>Continue with Google</Text>
         </TouchableOpacity>
         
-        {/* 🔹 SIGNUP LINK */}
+        {/*  SIGNUP LINK */}
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account? </Text>
           <TouchableOpacity onPress={() => router.push("/auth/register")}>

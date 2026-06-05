@@ -1,6 +1,10 @@
 
-import { Link } from "expo-router";
-import { Text, TouchableOpacity, View } from "react-native";
+import PrimaryButton from "@/components/PrimaryButton";
+import { useRouter } from "expo-router";
+import { Image, StyleSheet, Text, View } from "react-native";
+
+export default function HomePage() {
+  const router = useRouter();
 
   return (
     <View
@@ -26,6 +30,48 @@ import { Text, TouchableOpacity, View } from "react-native";
           </Text>
         </TouchableOpacity>
       </Link>
+    <View style={styles.container}>
+      
+      {/* TOP LOGO SECTION */}
+      <Image
+        source={require("../assets/images/straycarelogo.png")}
+        style={styles.logo}
+      />
+
+      {/* IMAGE CARD SECTION */}
+      <View style={styles.imageCard}>
+        <Image
+          source={require("../assets/images/welocmepageimg.jpg")} // ← your dog image
+          style={styles.dogImage}
+        />
+      </View>
+
+      {/* MAIN HEADLINE */}
+      <Text style={styles.heading}>
+        Every animal{"\n"}
+        <Text style={styles.highlight}>deserves a home.</Text>
+      </Text>
+
+      {/*  SUBTITLE */}
+      <Text style={styles.subtitle}>
+        Coordinate rescues, report strays, and{"\n"}
+        support animal welfare in your community.
+      </Text>
+
+      {/*  BUTTONS */}
+      <View style={styles.buttonContainer}>
+        <PrimaryButton
+          title="Create Account"
+          onPress={() => router.push("/auth/register")}
+        />
+
+        <PrimaryButton
+          title="Login"
+          variant="outline"
+          onPress={() => router.push("/auth/login")}
+        />
+      </View>
+
     </View>
   );
 }
@@ -35,7 +81,7 @@ const BRAND_COLOR = "#F5A623";
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",   // 🔹 CHANGED background color
+    backgroundColor: "#F5F5F5",   
     alignItems: "center",
     paddingHorizontal: 30,
     paddingTop: 0,
@@ -48,7 +94,7 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  // 🔹 NEW image card container
+  // NEW image card container
   imageCard: {
     width: "100%",
     height: 260,
@@ -68,7 +114,7 @@ const styles = StyleSheet.create({
     
   },
 
-  // 🔹 NEW heading style
+  // NEW heading style
   heading: {
     fontSize: 26,
     fontWeight: "bold",
@@ -77,12 +123,12 @@ const styles = StyleSheet.create({
     marginBottom: 10,
   },
 
-  // 🔹 NEW highlight style
+  //  NEW highlight style
   highlight: {
     color: BRAND_COLOR,
   },
 
-  // 🔹 NEW subtitle style
+  //  NEW subtitle style
   subtitle: {
     textAlign: "center",
     color: "#6B7280",
@@ -91,7 +137,7 @@ const styles = StyleSheet.create({
     lineHeight: 20,
   },
 
-  // 🔹 NEW button container
+  //  NEW button container
   buttonContainer: {
     width: "100%",
   },

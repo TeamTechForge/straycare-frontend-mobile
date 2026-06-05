@@ -36,22 +36,24 @@ export default function DonationSuccess() {
                         <Text style={styles.buttonText}>Back</Text>
                     </TouchableOpacity>
 
+
                     <TouchableOpacity
                         style={styles.button}
                         onPress={() => router.push("/donate/history")}
                     >
                         <Text style={styles.buttonText}>View Donation History</Text>
                     </TouchableOpacity>
+
                 </View>
             </View>
 
             {/* Bottom Navigation fixed at bottom */}
-            <View style={styles.bottomBar}>
-                <Ionicons name="home" size={24} color="#000" />
-                <Ionicons name="people-outline" size={24} color="#000" />
-                <Ionicons name="add-circle-outline" size={24} color="#000" />
-                <Ionicons name="chatbubble-outline" size={24} color="#000" />
-                <Ionicons name="person-outline" size={24} color="#000" />
+            <View style={styles.bottomNav}>
+                <Ionicons name="home-outline" size={24} />
+                <Ionicons name="people-outline" size={24} />
+                <Ionicons name="location-outline" size={24} />
+                <Ionicons name="chatbubble-outline" size={24} />
+                <Ionicons name="person-outline" size={24} />
             </View>
         </View>
     );
@@ -67,11 +69,11 @@ const styles = StyleSheet.create({
     },
     middle: {
         flex: 1,
-        justifyContent: "center",
-        alignItems: "center",
+        justifyContent: "center", // centers box vertically
+        alignItems: "center", // centers box horizontally
     },
     box: {
-        backgroundColor: "#f9f9f9",
+        backgroundColor: "#f9f9f9", // off-white
         borderRadius: 12,
         padding: 20,
         alignItems: "center",
@@ -88,14 +90,12 @@ const styles = StyleSheet.create({
         marginVertical: 5,
         width: 220,
     },
-    buttonText: { textAlign: "center", fontSize: 16, fontWeight: "bold", color: "#000" },
-    bottomBar: {
+    buttonText: { textAlign: "center", fontSize: 16, fontWeight: "bold" },
+    bottomNav: {
         flexDirection: "row",
         justifyContent: "space-around",
         padding: 15,
         borderTopWidth: 1,
         borderColor: "#ddd",
-        backgroundColor: "#FFF9E6",
     },
 });
-
