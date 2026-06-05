@@ -1,12 +1,54 @@
 
 import PrimaryButton from "@/components/PrimaryButton";
-import { useRouter } from "expo-router";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Link, useRouter } from "expo-router";
+import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function HomePage() {
   const router = useRouter();
 
   return (
+    <View
+      style={{
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+      }}
+    >
+
+      <Link href="/lostAndFound/lostFoundMain" asChild>
+        <TouchableOpacity
+          style={{
+            backgroundColor: "orange",
+            paddingVertical: 12,
+            paddingHorizontal: 32,
+            borderRadius: 8,
+            marginTop: 24,
+          }}
+        >
+          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
+            Go to Lost and Found
+          </Text>
+        </TouchableOpacity>
+      </Link>
+
+      <Link href="/communityFeed/communityPostMain" asChild>
+        <TouchableOpacity
+          style={{
+            backgroundColor: "purple",
+            paddingVertical: 12,
+            paddingHorizontal: 32,
+            borderRadius: 8,
+            marginTop: 24,
+          }}
+        >
+          <Text style={{ color: "white", fontWeight: "bold", fontSize: 16 }}>
+            Go to Community Feed
+          </Text>
+        </TouchableOpacity>
+      </Link>
+    </View>
+  );
+}
     <View style={styles.container}>
       
       {/* TOP LOGO SECTION */}
