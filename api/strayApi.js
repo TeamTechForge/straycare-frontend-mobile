@@ -1,8 +1,10 @@
-const BASE_URL = "http://192.168.8.161:5000/api/strays";
+// Base URL for backend API
+const BASE_URL = "http://10.191.34.185:5000/api/strays";
 
-// 1️⃣ Submit a new report
+
+// 1.Sends a POST request to create a new stray report.then returns the created report from the backend.
 export const submitReport = async (reportData) => {
-  try {
+  try {     //error handling to catch any issues during the fetch request 
     const response = await fetch(`${BASE_URL}/report`, {
       method: "POST",
       headers: {
@@ -14,13 +16,14 @@ export const submitReport = async (reportData) => {
     return await response.json();
   } catch (error) {
     console.error("Error submitting report:", error);
-    throw error;
+    throw error; 
   }
 };
 
-// 2️⃣ Get all reports
+
+// 2.Fetches all reports from the backend and returns them as JSON. Used to populate the map with markers.
 export const getAllReports = async () => {
-  try {
+  try {     
     const response = await fetch(`${BASE_URL}/reports`);
     return await response.json();
   } catch (error) {
@@ -29,7 +32,8 @@ export const getAllReports = async () => {
   }
 };
 
-// 3️⃣ Get a report by caseId
+
+// 3.Fetches a single report using its caseId. Used by the Case Details screen. Returns full report including photos, notes, timeline, location.
 export const getReportByCaseId = async (caseId) => {
   try {
     const response = await fetch(`${BASE_URL}/report/${caseId}`);
@@ -40,7 +44,8 @@ export const getReportByCaseId = async (caseId) => {
   }
 };
 
-// 4️⃣ Update case status
+
+// 4.Updates the status of a case by sending a PATCH request to the backend. The backend will automatically append a new entry to the case timeline with the status change. Returns the updated report with the new status and timeline.
 export const updateCaseStatus = async (caseId, status) => {
   try {
     const response = await fetch(`${BASE_URL}/report/${caseId}/status`, {
