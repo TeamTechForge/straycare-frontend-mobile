@@ -40,6 +40,8 @@ export default function ngoProfileSetup() {
   const [image, setImage] = useState<string | null>(null);
   const [document, setDocument] = useState(null);
   const [merchantId, setMerchantId] = useState("");
+  const [merchantSecret, setMerchantSecret] = useState("");
+  const [paymentValidationError, setPaymentValidationError] = useState("");
 
   // Fetch user details on mount
   useEffect(() => {
@@ -107,6 +109,19 @@ export default function ngoProfileSetup() {
 
   const handleSubmit = async () => {
     try {
+      // Validate merchant ID and secret relationship
+      setPaymentValidationError("");
+      
+      if (merchantId && !merchantSecret) {
+        setPaymentValidationError("Merchant Secret is required when Merchant ID is provided.");
+        return;
+      }
+      
+      if (merchantSecret && !merchantId) {
+        setPaymentValidationError("Merchant ID is required when Merchant Secret is provided.");
+        return;
+      }
+
       const token = await SecureStore.getItemAsync("authToken");
       const response = await fetch(`${API_URL}/profiles/ngo`, {
         method: "POST",
@@ -124,6 +139,7 @@ export default function ngoProfileSetup() {
           profileImage: image && typeof image === 'object' ? (image as any).uri : image,
           verificationDocument: document && typeof document === 'object' ? (document as any).uri : document,
           merchantId,
+          merchantSecret,
         }),
       });
 
@@ -238,6 +254,22 @@ export default function ngoProfileSetup() {
           value={merchantId}
           onChangeText={setMerchantId}
         />
+
+        <InputField
+          label="Merchant Secret"
+          placeholder="Enter Merchant Secret"
+          value={merchantSecret}
+          onChangeText={setMerchantSecret}
+          secure={true}
+        />
+
+        {paymentValidationError && (
+          <Text style={styles.errorText}>{paymentValidationError}</Text>
+        )}
+
+        <Text style={styles.helperText}>
+          Optional. Required only if you wish to receive donations through your merchant account.
+        </Text>
       </FormSection>
 
       {/* BUTTON */}
@@ -336,5 +368,10 @@ const styles = StyleSheet.create({
     color: "#666",
     marginBottom: 8,
     lineHeight: 18,
+  },
+  errorText: {
+    color: "red",
+    fontSize: 12,
+    marginTop: 6,
   },
 });

@@ -35,25 +35,33 @@ export default function TabLayout() {
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
+
+        if (!response.ok) {
+          console.warn("Invalid/expired token detected, purging session");
+          await SecureStore.deleteItemAsync("authToken");
+          if (segments[0] === "(tabs)") {
+            router.replace("/auth/login");
+          }
+          return;
+        }
+
         const user = await response.json();
 
-        if (response.ok) {
-          // To check whether ngo and vet are approved or not
-          const isRestrictedRole = user.role === 'ngo' || user.role === 'vet';
+        // To check whether ngo and vet are approved or not
+        const isRestrictedRole = user.role === 'ngo' || user.role === 'vet';
 
-          if (isRestrictedRole) {
-            // Fetch profile to check verification status
-            const profileRes = await fetch(`${API_URL}/profiles/me`, {
-              headers: { Authorization: `Bearer ${token}` },
-            });
-            const profileData = await profileRes.json();
+        if (isRestrictedRole) {
+          // Fetch profile to check verification status
+          const profileRes = await fetch(`${API_URL}/profiles/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const profileData = await profileRes.json();
 
-            const isNotApproved = profileData.status !== 'verified';
-            const isInsideTabs = segments[0] === "(tabs)";
+          const isNotApproved = profileData.status !== 'verified';
+          const isInsideTabs = segments[0] === "(tabs)";
 
-            if (isInsideTabs && isNotApproved) {
-              router.replace("/auth/verificationPending");
-            }
+          if (isInsideTabs && isNotApproved) {
+            router.replace("/auth/verificationPending");
           }
         }
       } catch (error) {

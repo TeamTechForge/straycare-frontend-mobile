@@ -40,6 +40,8 @@ export default function VetProfileSetupScreen() {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [payHereMerchantId, setPayHereMerchantId] = useState("");
+  const [merchantSecret, setMerchantSecret] = useState("");
+  const [paymentValidationError, setPaymentValidationError] = useState("");
 
   const [errors, setErrors] = useState({
     name: "",
@@ -194,6 +196,19 @@ export default function VetProfileSetupScreen() {
   const handleSubmit = async () => {
     if (!validate()) return;
 
+    // Validate merchant ID and secret relationship
+    setPaymentValidationError("");
+    
+    if (payHereMerchantId && !merchantSecret) {
+      setPaymentValidationError("Merchant Secret is required when Merchant ID is provided.");
+      return;
+    }
+    
+    if (merchantSecret && !payHereMerchantId) {
+      setPaymentValidationError("Merchant ID is required when Merchant Secret is provided.");
+      return;
+    }
+
     try {
       const token = await SecureStore.getItemAsync("authToken");
       const response = await fetch(`${API_URL}/profiles/vet`, {
@@ -212,6 +227,7 @@ export default function VetProfileSetupScreen() {
           profileImage: profileImage && typeof profileImage === 'object' ? (profileImage as any).uri : profileImage,
           licenseDocument: licenseDocument && typeof licenseDocument === 'object' ? (licenseDocument as any).uri : licenseDocument,
           merchantId: payHereMerchantId,
+          merchantSecret,
         }),
       });
 
@@ -362,6 +378,22 @@ export default function VetProfileSetupScreen() {
           value={payHereMerchantId}
           onChangeText={setPayHereMerchantId}
         />
+
+        <InputField
+          label="Merchant Secret"
+          placeholder="Enter Merchant Secret"
+          value={merchantSecret}
+          onChangeText={setMerchantSecret}
+          secure={true}
+        />
+
+        {paymentValidationError && (
+          <Text style={styles.errorText}>{paymentValidationError}</Text>
+        )}
+
+        <Text style={styles.helperText}>
+          Optional. Required only if you wish to receive donations through your merchant account.
+        </Text>
       </FormSection>
 
       {/* Footer note */}

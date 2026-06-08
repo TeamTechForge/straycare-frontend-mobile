@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   StyleSheet,
   Text,
@@ -25,8 +26,8 @@ const loginSchema = z.object({
 export default function LoginScreen() {
   const router = useRouter();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
-  
   const {
     control,
     handleSubmit,
@@ -36,7 +37,9 @@ export default function LoginScreen() {
   });
 
   const onSubmit = async (data: any) => {
+    setIsLoading(true);
     try {
+      console.log("Attempting login via:", `${API_URL}/auth/login`);
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -46,7 +49,7 @@ export default function LoginScreen() {
       const json = await response.json();
 
       if (!response.ok) {
-        alert(json.message || "Login failed");
+        Alert.alert("Login Failed", json.message || "Invalid credentials.");
         return;
       }
 
@@ -56,7 +59,12 @@ export default function LoginScreen() {
       router.replace("/(tabs)/home");
     } catch (error) {
       console.error("Login error:", error);
-      alert("Something went wrong. Please check your connection.");
+      Alert.alert(
+        "Connection Error",
+        "Could not connect to the backend server. Please check your network connection and verify the API endpoint."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -90,6 +98,7 @@ export default function LoginScreen() {
       value={value}
       onChangeText={onChange}
       keyboardType="email-address"
+      editable={!isLoading}
     />
   )}
 />
@@ -112,10 +121,12 @@ export default function LoginScreen() {
         secureTextEntry={!isPasswordVisible}
         value={value}
         onChangeText={onChange}
+        editable={!isLoading}
       />
       <TouchableOpacity
         onPress={() => setIsPasswordVisible(!isPasswordVisible)}
         style={styles.eyeIcon}
+        disabled={isLoading}
       >
         <Ionicons
           name={isPasswordVisible ? "eye-off" : "eye"}
@@ -137,14 +148,16 @@ export default function LoginScreen() {
         <TouchableOpacity
            style={styles.forgotContainer}
             onPress={() => router.push("/auth/forgotPasswordScreen")}
+            disabled={isLoading}
         >
         <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
         {/* LOGIN BUTTON */}
         <PrimaryButton
-          title="Log in"
+          title={isLoading ? "Logging in..." : "Log in"}
            onPress={handleSubmit(onSubmit)}
+           disabled={isLoading}
         />
 
         {/* DIVIDER */}
@@ -155,7 +168,7 @@ export default function LoginScreen() {
         </View>
 
         {/* GOOGLE BUTTON (visual only) */}
-        <TouchableOpacity style={styles.googleButton} onPress={() => {}}>
+        <TouchableOpacity style={styles.googleButton} onPress={() => {}} disabled={isLoading}>
           <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
           <Text style={styles.googleButtonText}>Continue with Google</Text>
         </TouchableOpacity>
@@ -163,7 +176,7 @@ export default function LoginScreen() {
         {/*  SIGNUP LINK */}
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/auth/register")}>
+          <TouchableOpacity onPress={() => router.push("/auth/register")} disabled={isLoading}>
             <Text style={styles.signupLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>

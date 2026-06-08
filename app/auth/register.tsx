@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import {
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -32,6 +33,7 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [errors, setErrors] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (params.agreed === "true") {
@@ -85,7 +87,9 @@ export default function RegisterScreen() {
   const handleRegister = async () => {
     try {
       if (!validateForm()) return;
+      setIsLoading(true);
 
+      console.log("Attempting registration via:", `${API_URL}/auth/register`);
       const response = await fetch(
         `${API_URL}/auth/register`,
         {
@@ -112,11 +116,16 @@ export default function RegisterScreen() {
 
         router.replace("/auth/roleSelection");
       } else {
-        alert(data.message || "Registration failed");
+        Alert.alert("Registration Failed", data.message || "Registration failed");
       }
     } catch (error) {
       console.error("Registration error:", error);
-      alert("Something went wrong. Please check backend connection.");
+      Alert.alert(
+        "Connection Error",
+        "Could not connect to the backend server. Please check your network connection and verify the API endpoint."
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -143,6 +152,7 @@ export default function RegisterScreen() {
           placeholder="John Doe"
           value={name}
           onChangeText={setName}
+          editable={!isLoading}
         />
         {errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
@@ -151,6 +161,7 @@ export default function RegisterScreen() {
           placeholder="Johndoe@gmail.com"
           value={email}
           onChangeText={setEmail}
+          editable={!isLoading}
         />
         {errors.email && <Text style={styles.error}>{errors.email}</Text>}
 
@@ -159,6 +170,7 @@ export default function RegisterScreen() {
           placeholder="+94 77 555 5555"
           value={phone}
           onChangeText={setPhone}
+          editable={!isLoading}
         />
         {errors.phone && <Text style={styles.error}>{errors.phone}</Text>}
 
@@ -168,6 +180,7 @@ export default function RegisterScreen() {
           value={password}
           onChangeText={setPassword}
           secure
+          editable={!isLoading}
         />
         {errors.password && <Text style={styles.error}>{errors.password}</Text>}
 
@@ -177,6 +190,7 @@ export default function RegisterScreen() {
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secure
+          editable={!isLoading}
         />
         {errors.confirmPassword && (
           <Text style={styles.error}>{errors.confirmPassword}</Text>
@@ -185,6 +199,7 @@ export default function RegisterScreen() {
         <TouchableOpacity
           style={styles.termsContainer}
           onPress={() => setAgree(!agree)}
+          disabled={isLoading}
         >
           <Ionicons
             name={agree ? "checkbox" : "square-outline"}
@@ -209,7 +224,11 @@ export default function RegisterScreen() {
 
         {errors.terms && <Text style={styles.error}>{errors.terms}</Text>}
 
-        <PrimaryButton title="Create Account" onPress={handleRegister} />
+        <PrimaryButton
+          title={isLoading ? "Creating Account..." : "Create Account"}
+          onPress={handleRegister}
+          disabled={isLoading}
+        />
 
         <View style={styles.dividerContainer}>
           <View style={styles.line} />
@@ -217,7 +236,7 @@ export default function RegisterScreen() {
           <View style={styles.line} />
         </View>
 
-        <TouchableOpacity style={styles.googleButton}>
+        <TouchableOpacity style={styles.googleButton} disabled={isLoading}>
           <MaterialCommunityIcons
             name="google"
             size={18}
@@ -229,7 +248,7 @@ export default function RegisterScreen() {
 
         <View style={styles.loginContainer}>
           <Text style={{ fontSize: 13 }}>Already have an account?</Text>
-          <TouchableOpacity onPress={() => router.push("/auth/login")}>
+          <TouchableOpacity onPress={() => router.push("/auth/login")} disabled={isLoading}>
             <Text style={styles.loginText}> Log in</Text>
           </TouchableOpacity>
         </View>
