@@ -11,7 +11,7 @@ import {
   TouchableOpacity,   // Touchable wrapper with opacity feedback
   View,
 } from "react-native";
-import { getCommunityFeed } from "../../services/apiService"; // API call to fetch posts
+import { getCommunityFeed } from "../../api/api"; // API call to fetch posts
 
 
 const C = {

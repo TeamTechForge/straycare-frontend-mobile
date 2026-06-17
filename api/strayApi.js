@@ -1,5 +1,7 @@
+import { API_URL } from "../constants/Config";
+
 // Base URL for backend API
-const BASE_URL = "http://10.191.34.185:5000/api/strays";
+const BASE_URL = `${API_URL}/strays`;
 
 
 // 1.Sends a POST request to create a new stray report.then returns the created report from the backend.

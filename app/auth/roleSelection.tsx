@@ -1,5 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import {
   Image,
@@ -7,36 +8,76 @@ import {
   Text,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 
 // ✅ reusable button
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#f59e0b";
 
 export default function SelectRoleScreen() {
   const router = useRouter();
 
-  // ✅ state to track selected role
   const [selectedRole, setSelectedRole] = useState<"reporter" | "rescuer" | null>(null);
 
-  // ✅ handle continue
-  const handleContinue = () => {
-
+  // ✅ handle continue — reads JWT from SecureStore, sends as Bearer token
+  const handleContinue = async () => {
     if (!selectedRole) {
       alert("Please select a role");
       return;
     }
 
-    // 🔥 TODO: SEND selectedRole to backend / save in database
-    console.log("Selected Role:", selectedRole);
+    // Retrieve the token stored after registration
+    const token = await SecureStore.getItemAsync("authToken");
+
+    if (!token) {
+      Alert.alert(
+        "Session Expired",
+        "Please register again.",
+        [{ text: "Go Back", onPress: () => router.back() }]
+      );
+      return;
+    }
 
     if (selectedRole === "reporter") {
-      router.push("/auth/reporterProfileSetup");
+      try {
+        console.log("📤 Updating role to general_user");
+
+        const response = await fetch(`${API_URL}/auth/select-role`, {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            // JWT identifies who is making the request — no userId in body
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({ role: "general_user" }),
+        });
+
+        const data = await response.json();
+        console.log("📥 Response:", data);
+
+        if (response.ok) {
+          // Replace stored token with fresh one that has updated role claim
+          if (data.token) {
+            await SecureStore.setItemAsync("authToken", data.token);
+          }
+
+          // Role selection is a critical setup step; replace current route 
+          // to ensure back button doesn't loop back to role choice.
+          router.replace("/auth/reporterProfileSetup");
+        } else {
+          alert(data.message || "Failed to select role");
+        }
+      } catch (error) {
+        console.error("Error:", error);
+        alert("Something went wrong. Please try again.");
+      }
     } else if (selectedRole === "rescuer") {
-      router.push("/auth/rescuerTypeSelection");
+      // Navigate to specialized selection; replace to clear the primary role stack.
+      router.replace("/auth/rescuerTypeSelection");
     }
-    
   };
 
   return (
@@ -120,9 +161,6 @@ export default function SelectRoleScreen() {
       <View style={{ marginTop: 20 }}>
         <PrimaryButton
           title="Continue"
-          
-
-          
           onPress={handleContinue}
           // 🔥 disable until selected
           disabled={!selectedRole}

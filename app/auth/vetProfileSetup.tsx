@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -12,12 +13,14 @@ import {
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
+import * as DocumentPicker from "expo-document-picker";
 
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -37,6 +40,8 @@ export default function VetProfileSetupScreen() {
   const [licenseNumber, setLicenseNumber] = useState("");
   const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [payHereMerchantId, setPayHereMerchantId] = useState("");
+  const [merchantSecret, setMerchantSecret] = useState("");
+  const [paymentValidationError, setPaymentValidationError] = useState("");
 
   const [errors, setErrors] = useState({
     name: "",
@@ -49,6 +54,26 @@ export default function VetProfileSetupScreen() {
     licenseDocument: "",
   });
 
+  // Fetch user details on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          if (data.name) setName(data.name);
+          if (data.phone) setPhone(data.phone);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
   const handlePickProfileImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -58,7 +83,7 @@ export default function VetProfileSetupScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       quality: 0.7,
       allowsEditing: true,
       aspect: [1, 1],
@@ -70,9 +95,20 @@ export default function VetProfileSetupScreen() {
   };
 
   const handlePickLicenseDocument = async () => {
-    // TODO: later connect real document picker here
-    // for now this is placeholder behavior
-    setLicenseDocument("selected-file");
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ["application/pdf", "image/*"],
+        copyToCacheDirectory: true,
+      });
+
+      if (!result.canceled) {
+        // Show the file name in the UI and store the file object
+        setLicenseDocument(result.assets[0] as any);
+      }
+    } catch (error) {
+      console.error("Document picking error:", error);
+      alert("Failed to pick document");
+    }
   };
 
   const handleGetPrimaryLocation = async () => {
@@ -157,26 +193,54 @@ export default function VetProfileSetupScreen() {
     return valid;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
 
-    // TODO: later connect backend here
-    // send profile image, personal details, clinic data, license document, donation settings
-    console.log({
-      profileImage,
-      name,
-      primaryLocation,
-      phone,
-      shortBio,
-      clinicName,
-      clinicAddress,
-      licenseNumber,
-      yearsOfExperience,
-      licenseDocument,
-      payHereMerchantId,
-    });
+    // Validate merchant ID and secret relationship
+    setPaymentValidationError("");
 
-    router.replace("/home");
+    if (payHereMerchantId && !merchantSecret) {
+      setPaymentValidationError("Merchant Secret is required when Merchant ID is provided.");
+      return;
+    }
+
+    if (merchantSecret && !payHereMerchantId) {
+      setPaymentValidationError("Merchant ID is required when Merchant Secret is provided.");
+      return;
+    }
+
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      const response = await fetch(`${API_URL}/profiles/vet`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          primaryLocation,
+          bio: shortBio,
+          clinicName,
+          clinicAddress,
+          licenseNumber,
+          yearsOfExperience,
+          profileImage: profileImage && typeof profileImage === 'object' ? (profileImage as any).uri : profileImage,
+          licenseDocument: licenseDocument && typeof licenseDocument === 'object' ? (licenseDocument as any).uri : licenseDocument,
+          merchantId: payHereMerchantId,
+          merchantSecret,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        router.replace("/auth/verificationPending");
+      } else {
+        alert(data.message || "Failed to save profile");
+      }
+    } catch (error) {
+      console.error("Profile submission error:", error);
+      alert("Something went wrong. Please check connection.");
+    }
   };
 
   return (
@@ -212,7 +276,7 @@ export default function VetProfileSetupScreen() {
       {/* Personal Details */}
       <FormSection title="Personal Details">
         <InputField
-          label="Name"
+          label="Name *"
           placeholder="e.g. Alex Thompson"
           value={name}
           onChangeText={setName}
@@ -220,7 +284,7 @@ export default function VetProfileSetupScreen() {
         />
 
         <InputField
-          label="Primary Location"
+          label="Primary Location *"
           placeholder="123 Rescue Way, City, State"
           value={primaryLocation}
           onChangeText={setPrimaryLocation}
@@ -231,7 +295,7 @@ export default function VetProfileSetupScreen() {
         />
 
         <InputField
-          label="Phone Number"
+          label="Phone Number *"
           placeholder="+1 (555) 000-0000"
           value={phone}
           onChangeText={setPhone}
@@ -258,7 +322,7 @@ export default function VetProfileSetupScreen() {
       {/* Clinic & Licensing */}
       <FormSection title="Clinic & Licensing">
         <InputField
-          label="Clinic Name"
+          label="Clinic Name *"
           placeholder="e.g. Happy Paws Veterinary Centre"
           value={clinicName}
           onChangeText={setClinicName}
@@ -266,7 +330,7 @@ export default function VetProfileSetupScreen() {
         />
 
         <InputField
-          label="Clinic Address"
+          label="Clinic Address *"
           placeholder="123 Rescue Way, City, State"
           value={clinicAddress}
           onChangeText={setClinicAddress}
@@ -274,7 +338,7 @@ export default function VetProfileSetupScreen() {
         />
 
         <InputField
-          label="License Number"
+          label="License Number *"
           placeholder="VET-CD45"
           value={licenseNumber}
           onChangeText={setLicenseNumber}
@@ -282,7 +346,7 @@ export default function VetProfileSetupScreen() {
         />
 
         <InputField
-          label="Years of Experience"
+          label="Years of Experience *"
           placeholder="e.g. 5"
           value={yearsOfExperience}
           onChangeText={setYearsOfExperience}
@@ -291,7 +355,7 @@ export default function VetProfileSetupScreen() {
       </FormSection>
 
       {/* Medical License Document */}
-      <FormSection title="Medical License Document">
+      <FormSection title="Medical License Document *">
         <FileUploadField file={licenseDocument} onPick={handlePickLicenseDocument} />
         {errors.licenseDocument ? (
           <Text style={styles.errorText}>{errors.licenseDocument}</Text>
@@ -314,6 +378,22 @@ export default function VetProfileSetupScreen() {
           value={payHereMerchantId}
           onChangeText={setPayHereMerchantId}
         />
+
+        <InputField
+          label="Merchant Secret"
+          placeholder="Enter Merchant Secret"
+          value={merchantSecret}
+          onChangeText={setMerchantSecret}
+          secure={true}
+        />
+
+        {paymentValidationError && (
+          <Text style={styles.errorText}>{paymentValidationError}</Text>
+        )}
+
+        <Text style={styles.helperText}>
+          Optional. Required only if you wish to receive donations through your merchant account.
+        </Text>
       </FormSection>
 
       {/* Footer note */}
@@ -379,7 +459,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 22,
   },
-  
+
   uploadText: {
     marginTop: 10,
     fontSize: 12,
