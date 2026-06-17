@@ -38,14 +38,19 @@ export default function LoginScreen() {
 
   const onSubmit = async (data: any) => {
     setIsLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
     try {
       console.log("Attempting login via:", `${API_URL}/auth/login`);
       const response = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email: data.email, password: data.password }),
+        signal: controller.signal,
       });
 
+      clearTimeout(timeoutId);
       const json = await response.json();
 
       if (!response.ok) {
@@ -57,12 +62,20 @@ export default function LoginScreen() {
       await SecureStore.setItemAsync("authToken", json.token);
 
       router.replace("/(tabs)/home");
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error("Login error:", error);
-      Alert.alert(
-        "Connection Error",
-        "Could not connect to the backend server. Please check your network connection and verify the API endpoint."
-      );
+      if (error.name === "AbortError") {
+        Alert.alert(
+          "Request Timed Out",
+          "The server took too long to respond. Please check your connection and try again."
+        );
+      } else {
+        Alert.alert(
+          "Connection Error",
+          "Could not connect to the backend server. Please check your network connection and verify the API endpoint."
+        );
+      }
     } finally {
       setIsLoading(false);
     }

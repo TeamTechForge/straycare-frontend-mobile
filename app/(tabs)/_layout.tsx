@@ -46,8 +46,26 @@ export default function TabLayout() {
         }
 
         const user = await response.json();
+        const isInsideTabs = segments[0] === "(tabs)";
 
-        // To check whether ngo and vet are approved or not
+        // 1. If profile is not completed, redirect to the appropriate setup screen
+        if (isInsideTabs && !user.profileCompleted) {
+          console.log(`[Auth Check] Profile incomplete for role ${user.role}. Redirecting to setup.`);
+          if (user.role === "ngo") {
+            router.replace("/auth/ngoProfileSetup");
+          } else if (user.role === "vet") {
+            router.replace("/auth/vetProfileSetup");
+          } else if (user.role === "volunteer") {
+            router.replace("/auth/volunteerProfileSetup");
+          } else if (user.role === "general_user") {
+            router.replace("/auth/reporterProfileSetup");
+          } else {
+            router.replace("/auth/roleSelection");
+          }
+          return;
+        }
+
+        // 2. To check whether ngo and vet are approved or not
         const isRestrictedRole = user.role === 'ngo' || user.role === 'vet';
 
         if (isRestrictedRole) {
@@ -55,13 +73,20 @@ export default function TabLayout() {
           const profileRes = await fetch(`${API_URL}/profiles/me`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          const profileData = await profileRes.json();
 
-          const isNotApproved = profileData.status !== 'verified';
-          const isInsideTabs = segments[0] === "(tabs)";
-
-          if (isInsideTabs && isNotApproved) {
-            router.replace("/auth/verificationPending");
+          if (profileRes.ok) {
+            const profileData = await profileRes.json();
+            const isNotApproved = profileData.status !== 'verified';
+            if (isInsideTabs && isNotApproved) {
+              router.replace("/auth/verificationPending");
+            }
+          } else if (profileRes.status === 404) {
+            // Profile not found fallback
+            if (user.role === "ngo") {
+              router.replace("/auth/ngoProfileSetup");
+            } else if (user.role === "vet") {
+              router.replace("/auth/vetProfileSetup");
+            }
           }
         }
       } catch (error) {
@@ -72,7 +97,7 @@ export default function TabLayout() {
     };
 
     checkApproval();
-  }, [segments]); // Re-check on navigation within tabs
+  }, []); // Run once on mount — avoids race condition with login navigation
 
   if (loading) return null;
 

@@ -198,12 +198,12 @@ export default function VetProfileSetupScreen() {
 
     // Validate merchant ID and secret relationship
     setPaymentValidationError("");
-    
+
     if (payHereMerchantId && !merchantSecret) {
       setPaymentValidationError("Merchant Secret is required when Merchant ID is provided.");
       return;
     }
-    
+
     if (merchantSecret && !payHereMerchantId) {
       setPaymentValidationError("Merchant ID is required when Merchant Secret is provided.");
       return;
@@ -459,7 +459,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 22,
   },
-  
+
   uploadText: {
     marginTop: 10,
     fontSize: 12,

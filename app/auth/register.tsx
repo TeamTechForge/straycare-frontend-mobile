@@ -85,10 +85,12 @@ export default function RegisterScreen() {
 
   // Registers a valid user
   const handleRegister = async () => {
-    try {
-      if (!validateForm()) return;
-      setIsLoading(true);
+    if (!validateForm()) return;
+    setIsLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
+    try {
       console.log("Attempting registration via:", `${API_URL}/auth/register`);
       const response = await fetch(
         `${API_URL}/auth/register`,
@@ -103,10 +105,24 @@ export default function RegisterScreen() {
             phone,
             password,
           }),
+          signal: controller.signal,
         }
       );
 
-      const data = await response.json();
+      clearTimeout(timeoutId);
+
+      let data: any = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          console.error("Failed to parse JSON response:", jsonErr);
+        }
+      } else {
+        const text = await response.text();
+        data = { message: `Server error (${response.status}): ${text || response.statusText}` };
+      }
 
       console.log("Registration response:", data);
 
@@ -116,14 +132,23 @@ export default function RegisterScreen() {
 
         router.replace("/auth/roleSelection");
       } else {
-        Alert.alert("Registration Failed", data.message || "Registration failed");
+        const errMsg = data.message || (data.error ? String(data.error) : "Registration failed");
+        Alert.alert("Registration Failed", errMsg);
       }
-    } catch (error) {
+    } catch (error: any) {
+      clearTimeout(timeoutId);
       console.error("Registration error:", error);
-      Alert.alert(
-        "Connection Error",
-        "Could not connect to the backend server. Please check your network connection and verify the API endpoint."
-      );
+      if (error.name === "AbortError") {
+        Alert.alert(
+          "Request Timed Out",
+          "The server took too long to respond. Please check your connection and try again."
+        );
+      } else {
+        Alert.alert(
+          "Connection Error",
+          "Could not connect to the backend server. Please check your network connection and verify the API endpoint."
+        );
+      }
     } finally {
       setIsLoading(false);
     }
