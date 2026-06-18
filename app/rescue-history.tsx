@@ -1,140 +1,177 @@
-import React from "react";
-import { SafeAreaView, View, Text, StyleSheet, Image, ScrollView, Pressable } from "react-native";
+// ──────────────────────────────────────────────────────────────────────────────
+// rescue-history.tsx — Main Rescue History screen
+//
+// ▸ Fetches rescue data from the backend (pending, completed, all)
+// ▸ Displays stat cards with counts
+// ▸ Tab bar to switch between Pending / Completed / All views
+// ▸ All tabs use the same updated RescueCaseCard with real animal images
+// ▸ Themed with #FEB94B primary color throughout
+// ──────────────────────────────────────────────────────────────────────────────
+
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, Pressable, SafeAreaView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
+
+import AllRescues from "../components/rescue-history/AllRescues";
+import CompletedRescues from "../components/rescue-history/CompletedRescues";
+import PendingRescues from "../components/rescue-history/PendingRescues";
 import AppButton from "../components/ui/AppButton";
 import { colors } from "../constants/colors";
 import { spacing } from "../constants/spacing";
-import { typography } from "../constants/typography";
+import {
+  fetchAllRescues,
+  fetchCompletedRescues,
+  fetchPendingRescues,
+} from "../services/rescueService";
+import { rescueHistoryStyles as styles } from "../styles/rescueHistory.styles";
+import type { RescueHistoryResponse, RescueHistoryTab } from "../types/api";
 
-type RescueItem = {
-  id: string;
-  image: string;
-  status: "Completed" | "Pending";
+// ── Tab configuration ────────────────────────────────────────────────────────
+
+const TABS: { key: RescueHistoryTab; label: string; emoji: string }[] = [
+  { key: "pending", label: "Pending", emoji: "🕐" },
+  { key: "completed", label: "Completed", emoji: "✅" },
+  { key: "all", label: "All", emoji: "📋" },
+];
+
+// ── Initial empty state ──────────────────────────────────────────────────────
+
+const emptyHistory: RescueHistoryResponse = {
+  pending: [],
+  completed: [],
+  all: [],
+  counts: { pending: 0, completed: 0, all: 0 },
 };
 
-const data: RescueItem[] = [
-  { id: "001", image: "https://placedog.net/200/200?id=1", status: "Completed" },
-  { id: "002", image: "https://placedog.net/200/200?id=2", status: "Pending" },
-  { id: "003", image: "https://placedog.net/200/200?id=3", status: "Completed" },
-];
+// ── Screen Component ─────────────────────────────────────────────────────────
 
 export default function RescueHistoryScreen() {
   const router = useRouter();
+  const [activeTab, setActiveTab] = useState<RescueHistoryTab>("pending");
+  const [history, setHistory] = useState<RescueHistoryResponse>(emptyHistory);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  // ── Fetch all rescue data from backend on mount ──
+  useEffect(() => {
+    let active = true;
+
+    const loadHistory = async () => {
+      try {
+        // Fetch all three tabs in parallel for speed
+        const [pending, completed, all] = await Promise.all([
+          fetchPendingRescues(),
+          fetchCompletedRescues(),
+          fetchAllRescues(),
+        ]);
+
+        if (!active) return;
+
+        setHistory({
+          pending,
+          completed,
+          all,
+          counts: {
+            pending: pending.length,
+            completed: completed.length,
+            all: all.length,
+          },
+        });
+        setError(null);
+      } catch (loadError) {
+        if (!active) return;
+        console.error("[RescueHistory] Failed to load history:", loadError);
+        setHistory(emptyHistory);
+        setError("Unable to load rescue history right now.");
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    };
+
+    void loadHistory();
+
+    return () => {
+      active = false;
+    };
+  }, []);
 
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.page}>
+        {/* ── Page Header ── */}
         <Text style={styles.title}>Rescue History</Text>
+        <Text style={styles.subtitle}>
+          Track live rescues, review completed cases, and keep every case in one place.
+        </Text>
 
-        {/* Top stats */}
+        {/* ── Stats Row — Pending / Completed / All counts ── */}
         <View style={styles.statsRow}>
-          <View style={[styles.statPill, styles.bluePill]}>
-            <Text style={styles.statLabelBlue}>Total Rescues</Text>
-            <Text style={styles.statNumberBlue}>123</Text>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Pending</Text>
+            <Text style={styles.statValue}>{history.counts.pending}</Text>
           </View>
-
-          <View style={[styles.statPill, styles.greenPill]}>
-            <Text style={styles.statLabelGreen}>Completed Cases</Text>
-            <Text style={styles.statNumberGreen}>110</Text>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>Completed</Text>
+            <Text style={styles.statValue}>{history.counts.completed}</Text>
+          </View>
+          <View style={styles.statCard}>
+            <Text style={styles.statLabel}>All</Text>
+            <Text style={styles.statValue}>{history.counts.all}</Text>
           </View>
         </View>
 
-        {/* List */}
-        <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
-          {data.map((item) => (
-            <View key={item.id} style={styles.card}>
-              <Image source={{ uri: item.image }} style={styles.avatar} />
-
-              <View style={styles.cardRight}>
-                <Text style={styles.rescueId}>Rescue ID : {item.id}</Text>
-
-                <Pressable
-                                    style={styles.detailsBtn}
-                                    onPress={() =>
-                                                    router.push({
-                                                    pathname: "/rescue-details/[id]",
-                                                    params: { id: item.id },
-                                                    })
-                                                }
-                >
-                                    <Text style={styles.detailsBtnText}>view details</Text>
-</Pressable>
-
-
-                <Text style={[styles.status, item.status === "Completed" ? styles.completed : styles.pending]}>
-                  {item.status}
+        {/* ── Tab Bar — Switch between rescue views ── */}
+        <View style={styles.tabs}>
+          {TABS.map((tab) => {
+            const isActive = activeTab === tab.key;
+            return (
+              <Pressable
+                key={tab.key}
+                style={[styles.tabButton, isActive && styles.tabButtonActive]}
+                onPress={() => setActiveTab(tab.key)}
+              >
+                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                  {tab.emoji} {tab.label}
                 </Text>
-              </View>
-            </View>
-          ))}
-        </ScrollView>
+              </Pressable>
+            );
+          })}
+        </View>
 
-        {/* Bottom close */}
-        <AppButton title="Close" onPress={() => router.back()} style={{ marginTop: spacing.lg }} />
+        {/* ── Tab Content — Shows the appropriate rescue list ── */}
+        <View style={styles.contentWrap}>
+          {loading ? (
+            /* Loading state with spinner */
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", gap: 12 }}>
+              <ActivityIndicator size="large" color={colors.primary} />
+              <Text style={styles.emptyText}>Loading rescue history...</Text>
+            </View>
+          ) : error ? (
+            /* Error state */
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+              <Text style={{ fontSize: 40, marginBottom: 8 }}>⚠️</Text>
+              <Text style={styles.emptyText}>{error}</Text>
+            </View>
+          ) : activeTab === "pending" ? (
+            <PendingRescues data={history.pending} />
+          ) : activeTab === "completed" ? (
+            <CompletedRescues data={history.completed} />
+          ) : (
+            <AllRescues data={history.all} />
+          )}
+        </View>
+
+        {/* ── Footer Button ── */}
+        <View style={styles.footerButtonWrap}>
+          <AppButton
+            title="Close"
+            onPress={() => router.back()}
+            style={{ marginTop: spacing.sm }}
+          />
+        </View>
       </View>
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: colors.background },
-  page: { flex: 1, paddingHorizontal: spacing.xl, paddingTop: spacing.xl },
-
-  title: {
-    fontSize: typography.title,
-    fontFamily: typography.bold,
-    color: colors.text,
-    marginBottom: spacing.lg,
-  },
-
-  statsRow: { flexDirection: "row", gap: spacing.md, marginBottom: spacing.lg },
-
-  statPill: {
-    flex: 1,
-    borderRadius: 14,
-    paddingVertical: 10,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-
-  bluePill: { backgroundColor: "#DCEBFF", borderColor: "#3B82F6" },
-  greenPill: { backgroundColor: "#DBFFE4", borderColor: "#22C55E" },
-
-  statLabelBlue: { color: "#2563EB", fontFamily: typography.semibold, fontSize: 13 },
-  statNumberBlue: { color: "#2563EB", fontFamily: typography.bold, fontSize: 16, marginTop: 2 },
-
-  statLabelGreen: { color: "#16A34A", fontFamily: typography.semibold, fontSize: 13 },
-  statNumberGreen: { color: "#16A34A", fontFamily: typography.bold, fontSize: 16, marginTop: 2 },
-
-  list: { flex: 1, backgroundColor: colors.card, borderRadius: 16, padding: spacing.md },
-
-  card: {
-    backgroundColor: "#FFF7EA",
-    borderRadius: 14,
-    padding: spacing.md,
-    flexDirection: "row",
-    gap: spacing.md,
-    alignItems: "center",
-    marginBottom: spacing.md,
-  },
-
-  avatar: { width: 64, height: 64, borderRadius: 12 },
-
-  cardRight: { flex: 1 },
-
-  rescueId: { fontFamily: typography.bold, fontSize: 16, color: colors.text, marginBottom: 8 },
-
-  detailsBtn: {
-    alignSelf: "flex-start",
-    backgroundColor: colors.primary,
-    paddingVertical: 8,
-    paddingHorizontal: 14,
-    borderRadius: 999,
-  },
-  detailsBtnText: { fontFamily: typography.semibold, color: colors.text, fontSize: 13 },
-
-  status: { marginTop: 8, fontSize: 12, fontFamily: typography.semibold },
-
-  completed: { color: "#16A34A" },
-  pending: { color: "#2563EB" },
-});

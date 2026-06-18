@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, TextInput, Pressable, Text } from "react-native";
 import { threadStyles as styles } from "../../styles/thread.styles";
 
-export default function ThreadComposer({ onSend }: { onSend: (text: string) => void }) {
+export default function ThreadComposer({ onSend }: { onSend: (text: string) => void | Promise<void> }) {
   const [text, setText] = useState("");
 
   return (
@@ -16,8 +16,8 @@ export default function ThreadComposer({ onSend }: { onSend: (text: string) => v
       />
       <Pressable
         style={styles.composerBtn}
-        onPress={() => {
-          onSend(text);
+        onPress={async () => {
+          await onSend(text);
           setText("");
         }}
       >
