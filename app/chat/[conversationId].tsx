@@ -1,0 +1,335 @@
+// app/chat/[conversationId].tsx
+// Chat room screen — messages, typing indicator, infinite scroll, optimistic updates.
+
+import { useLocalSearchParams } from "expo-router";
+import React, { useCallback, useEffect, useRef, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  FlatList,
+  KeyboardAvoidingView,
+  Platform,
+  StyleSheet,
+  View,
+} from "react-native";
+import ChatHeader from "../../components/chat/ChatHeader";
+import ChatInput from "../../components/chat/ChatInput";
+import MessageBubble from "../../components/chat/MessageBubble";
+import TypingIndicator from "../../components/chat/TypingIndicator";
+import { useAuth } from "../../contexts/AuthContext";
+import { useSocket } from "../../contexts/SocketContext";
+import { useChat } from "../../hooks/useChat";
+import { useChatApi } from "../../hooks/useChatApi";
+import { API_URL } from "../../constants/Config";
+
+const BRAND_COLOR = "#F5A623";
+
+export default function ChatRoomScreen() {
+  const { conversationId, recipientName, recipientId } = useLocalSearchParams<{
+    conversationId: string;
+    recipientName?: string;
+    recipientId?: string;
+  }>();
+
+  const { user, token } = useAuth();
+  const { onlineUsers } = useSocket();
+  const { setTyping, emitReadReceipt, onNewMessage, onTyping, onStopTyping, onReadAck } =
+    useChat(conversationId);
+  const { fetchMessages, sendMessage, markAsRead } = useChatApi();
+
+  const [messages, setMessages] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [isOtherTyping, setIsOtherTyping] = useState(false);
+  const [otherTypingName, setOtherTypingName] = useState("");
+  const flatListRef = useRef<FlatList>(null);
+
+  // ── Load initial messages ──────────────────────────────────
+  const loadMessages = useCallback(async () => {
+    try {
+      const data = await fetchMessages(conversationId);
+      setMessages(data);
+      setHasMore(data.length >= 30);
+    } catch (error) {
+      console.error("Failed to load messages:", error);
+    } finally {
+      setLoading(false);
+    }
+  }, [conversationId, fetchMessages]);
+
+  useEffect(() => {
+    loadMessages();
+  }, [loadMessages]);
+
+  // ── Mark messages as read when entering the screen ─────────
+  useEffect(() => {
+    if (!conversationId) return;
+    markAsRead(conversationId).catch(console.error);
+    emitReadReceipt();
+  }, [conversationId]);
+
+  // ── Real-time: new messages ────────────────────────────────
+  useEffect(() => {
+    const cleanup = onNewMessage(({ message, conversationId: msgConvId }) => {
+      if (msgConvId !== conversationId) return;
+
+      // Deduplicate (in case REST response already added it)
+      setMessages((prev) => {
+        const exists = prev.some((m) => m._id === message._id);
+        if (exists) return prev;
+        return [message, ...prev]; // newest first (inverted list)
+      });
+
+      // Auto-mark as read since user is viewing this conversation
+      if (message.sender?._id !== user?._id && message.sender !== user?._id) {
+        markAsRead(conversationId).catch(console.error);
+        emitReadReceipt();
+      }
+    });
+
+    return cleanup;
+  }, [onNewMessage, conversationId, user?._id]);
+
+  // ── Real-time: typing indicators ──────────────────────────
+  useEffect(() => {
+    const cleanupTyping = onTyping(({ conversationId: cid, userId }) => {
+      if (cid !== conversationId || userId === user?._id) return;
+      setIsOtherTyping(true);
+      setOtherTypingName(recipientName || "");
+    });
+
+    const cleanupStopTyping = onStopTyping(({ conversationId: cid, userId }) => {
+      if (cid !== conversationId || userId === user?._id) return;
+      setIsOtherTyping(false);
+    });
+
+    return () => {
+      cleanupTyping();
+      cleanupStopTyping();
+    };
+  }, [onTyping, onStopTyping, conversationId, user?._id, recipientName]);
+
+  // ── Real-time: read receipts ──────────────────────────────
+  useEffect(() => {
+    const cleanup = onReadAck(({ conversationId: cid, readBy }) => {
+      if (cid !== conversationId) return;
+
+      setMessages((prev) =>
+        prev.map((msg) => {
+          if (!msg.readBy?.includes(readBy)) {
+            return { ...msg, readBy: [...(msg.readBy || []), readBy] };
+          }
+          return msg;
+        })
+      );
+    });
+
+    return cleanup;
+  }, [onReadAck, conversationId]);
+
+  // ── Infinite scroll (load older messages) ─────────────────
+  const loadMore = async () => {
+    if (loadingMore || !hasMore || messages.length === 0) return;
+    setLoadingMore(true);
+
+    try {
+      const lastMessageId = messages[messages.length - 1]._id;
+      const older = await fetchMessages(conversationId, lastMessageId);
+      setMessages((prev) => [...prev, ...older]);
+      setHasMore(older.length >= 30);
+    } catch (error) {
+      console.error("Failed to load more messages:", error);
+    } finally {
+      setLoadingMore(false);
+    }
+  };
+
+  // ── Send text message (optimistic) ────────────────────────
+  const handleSendText = async (text: string) => {
+    // Optimistic insert
+    const tempId = `temp-${Date.now()}`;
+    const optimisticMsg = {
+      _id: tempId,
+      conversationId,
+      sender: { _id: user?._id, name: user?.name },
+      text,
+      type: "text",
+      readBy: [user?._id],
+      createdAt: new Date().toISOString(),
+    };
+
+    setMessages((prev) => [optimisticMsg, ...prev]);
+
+    try {
+      const sentMessage = await sendMessage({ conversationId, text, type: "text" });
+
+      // Replace optimistic message with server response
+      setMessages((prev) =>
+        prev.map((m) => (m._id === tempId ? sentMessage : m))
+      );
+    } catch (error) {
+      console.error("Send message failed:", error);
+      // Remove failed optimistic message
+      setMessages((prev) => prev.filter((m) => m._id !== tempId));
+      Alert.alert("Error", "Failed to send message. Please try again.");
+    }
+  };
+
+  // ── Send image message ────────────────────────────────────
+  const handleSendImage = async (uri: string) => {
+    try {
+      // Upload to Cloudinary via the existing upload endpoint
+      const formData = new FormData();
+      formData.append("file", {
+        uri,
+        name: "chat_image.jpg",
+        type: "image/jpeg",
+      } as any);
+
+      const uploadRes = await fetch(`${API_URL}/upload/cloudinary`, {
+        method: "POST",
+        headers: { Authorization: `Bearer ${token}` },
+        body: formData,
+      });
+
+      if (!uploadRes.ok) {
+        throw new Error("Image upload failed");
+      }
+
+      const { url: imageUrl } = await uploadRes.json();
+
+      await sendMessage({
+        conversationId,
+        type: "image",
+        imageUrl,
+        text: "",
+      });
+    } catch (error) {
+      console.error("Image send failed:", error);
+      Alert.alert("Error", "Failed to send image. Please try again.");
+    }
+  };
+
+  // ── Send location message ─────────────────────────────────
+  const handleSendLocation = async (location: {
+    latitude: number;
+    longitude: number;
+    address?: string;
+  }) => {
+    try {
+      await sendMessage({
+        conversationId,
+        type: "location",
+        location,
+        text: "",
+      });
+    } catch (error) {
+      console.error("Location send failed:", error);
+      Alert.alert("Error", "Failed to share location.");
+    }
+  };
+
+  // ── Format time ───────────────────────────────────────────
+  const formatTime = (dateString: string) => {
+    if (!dateString) return "";
+    const date = new Date(dateString);
+    return date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  };
+
+  // Check if a message has been read by the other participant
+  const isReadByOther = (msg: any) => {
+    if (!recipientId) return false;
+    return msg.readBy?.includes(recipientId);
+  };
+
+  const renderMessage = ({ item, index }: any) => {
+    const isMine =
+      (item.sender?._id || item.sender) === user?._id;
+
+    return (
+      <MessageBubble
+        text={item.text}
+        time={formatTime(item.createdAt)}
+        isMine={isMine}
+        isRead={isReadByOther(item)}
+        type={item.type}
+        imageUrl={item.imageUrl}
+        location={item.location}
+        showTail={true}
+      />
+    );
+  };
+
+  const isRecipientOnline = recipientId ? onlineUsers.has(recipientId) : false;
+
+  return (
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      keyboardVerticalOffset={0}
+    >
+      {/* Header */}
+      <ChatHeader
+        name={recipientName || "Chat"}
+        isOnline={isRecipientOnline}
+        onCallPress={() => Alert.alert("Coming Soon", "Voice calling will be available in Phase 2.")}
+      />
+
+      {/* Messages */}
+      {loading ? (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color={BRAND_COLOR} />
+        </View>
+      ) : (
+        <FlatList
+          ref={flatListRef}
+          data={messages}
+          renderItem={renderMessage}
+          keyExtractor={(item) => item._id}
+          inverted
+          contentContainerStyle={styles.messageList}
+          onEndReached={loadMore}
+          onEndReachedThreshold={0.3}
+          ListFooterComponent={
+            loadingMore ? (
+              <ActivityIndicator
+                size="small"
+                color={BRAND_COLOR}
+                style={{ paddingVertical: 10 }}
+              />
+            ) : null
+          }
+          ListHeaderComponent={
+            isOtherTyping ? <TypingIndicator userName={otherTypingName} /> : null
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      )}
+
+      {/* Input */}
+      <ChatInput
+        onSendText={handleSendText}
+        onSendImage={handleSendImage}
+        onSendLocation={handleSendLocation}
+        onTyping={(isTyping) => setTyping(isTyping)}
+        disabled={loading}
+      />
+    </KeyboardAvoidingView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  messageList: {
+    paddingVertical: 8,
+  },
+});

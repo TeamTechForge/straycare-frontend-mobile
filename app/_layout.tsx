@@ -1,29 +1,18 @@
-// Root layout for the app, defining the navigation stack and global screen options.
-/*import { Stack } from "expo-router";
-
-export default function RootLayout() {
-  return <Stack />;
-}*/
-
-/*
+// Root layout for the app, defining the navigation stack and global providers.
 import { Stack } from "expo-router";
-import { StatusBar } from "expo-status-bar";
+import { AuthProvider } from "../contexts/AuthContext";
+import { SocketProvider } from "../contexts/SocketContext";
 
 export default function RootLayout() {
   return (
-    <>
-      <StatusBar hidden />
-      <Stack />
-    </>
-  );
-}*/
-import { Stack } from "expo-router";
-export default function RootLayout() {
-  return (
-    <Stack
-      screenOptions={{
-        headerShown: false, // Disable default header for all screens
-      }}
-    />
+    <AuthProvider>
+      <SocketProvider>
+        <Stack
+          screenOptions={{
+            headerShown: false, // Disable default header for all screens
+          }}
+        />
+      </SocketProvider>
+    </AuthProvider>
   );
 }
