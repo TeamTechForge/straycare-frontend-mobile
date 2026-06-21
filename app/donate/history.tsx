@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
+// Defines the structure of a donation object from MongoDB
 type Donation = {
   _id: string;
   organization: string;
@@ -16,33 +17,47 @@ type Donation = {
 
 export default function DonationHistory() {
   const router = useRouter();
-  const [donations, setDonations] = useState<Donation[]>([]);
-  const [loading, setLoading] = useState(true);
-   const BACKEND_URL="http://192.168.8.102:5000";
 
+  const [donations, setDonations] = useState<Donation[]>([]);
+
+  const [loading, setLoading] = useState(true);
+
+  const BACKEND_URL="http://192.168.8.160:5000";
+
+  // Runs once when screen loads
   useEffect(() => {
     fetchDonations();
   }, []);
 
+  // Fetches all donations from MongoDB
   const fetchDonations = async () => {
     try {
       const res = await axios.get(`${BACKEND_URL}/api/donations/history`);
-      setDonations(res.data);
+      setDonations(res.data); // stores donations in state
     } catch (err) {
       console.error("Error fetching donations:", err);
     } finally {
-      setLoading(false);
+      setLoading(false); 
     }
   };
 
+  //each donation card 
   const renderItem = ({ item }: { item: Donation }) => (
     <View style={styles.card}>
+      
       <Text style={styles.org}>{item.organization || "StrayCare"}</Text>
+
       <Text style={styles.category}>{item.category || "General"}</Text>
+
       <Text style={styles.amount}>Rs. {item.amount.toFixed(2)}</Text>
+
       <Text style={styles.date}>{new Date(item.timestamp).toLocaleDateString()}</Text>
+
+      {/* Unique order ID from PayHere */}
       <Text style={styles.orderId}>Order: {item.orderId}</Text>
+
       <View style={styles.row}>
+        
         <View
           style={[
             styles.statusPill,
@@ -60,9 +75,11 @@ export default function DonationHistory() {
         </View>
 
         {}
+        
         {item.status === "SUCCESS" && (
           <TouchableOpacity
             style={styles.receiptBtn}
+            // Passes donation object as string to receipt screen
             onPress={() => router.push({ pathname: "/donate/receipt", params: { donation: JSON.stringify(item) } })}
           >
             <Text style={styles.receiptText}>Receipt</Text>
@@ -72,6 +89,7 @@ export default function DonationHistory() {
     </View>
   );
 
+  // Show spinner while donations are loading
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -84,16 +102,21 @@ export default function DonationHistory() {
     <View style={styles.container}>
       <Text style={styles.title}>Donate & Support♡</Text>
       <Text style={styles.heading}>Donation History</Text>
+
+    
       {donations.length === 0 ? (
         <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations yet</Text>
       ) : (
+        
         <FlatList
-          data={donations}
-          keyExtractor={(donation) => donation._id}
-          renderItem={renderItem}
+          data={donations}                              // donations array from MongoDB
+          keyExtractor={(donation) => donation._id}     
+          renderItem={renderItem}                       
           contentContainerStyle={{ paddingBottom: 80 }}
         />
       )}
+
+      {/* Bottom navigation bar */}
       <View style={styles.bottomBar}>
         <Ionicons name="home" size={24} color="#000" />
         <Ionicons name="people-outline" size={24} color="#000" />

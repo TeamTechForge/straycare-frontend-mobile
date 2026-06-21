@@ -4,7 +4,7 @@ import React, { useEffect } from "react";
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 export default function DonationSummary() {
-  const { category, organization, frequency, plan, amount, paymentMethod, paymentFailed } =
+  const { category, organization, organizationName, frequency, plan, amount, paymentMethod, paymentFailed } =
     useLocalSearchParams();
 
   const router = useRouter();
@@ -23,7 +23,8 @@ export default function DonationSummary() {
 
       <View style={styles.summaryBox}>
         <Text style={styles.label}>Donation Type: {category}</Text>
-        <Text style={styles.label}>Organization: {organization}</Text>
+        {/* Show display name to user, not the _id */}
+        <Text style={styles.label}>Organization: {organizationName}</Text>
         <Text style={styles.label}>Frequency: {frequency}</Text>
         {frequency === "Recurring" && plan ? (
           <Text style={styles.label}>Donation Plan: {plan}</Text>
@@ -36,7 +37,14 @@ export default function DonationSummary() {
           onPress={() =>
             router.push({
               pathname: "/donate/payhereCheckout",
-              params: { amount: formattedAmount, category, organization, frequency, plan },
+              params: {
+                amount: formattedAmount,
+                category,
+                organization,         // _id for merchant ID lookup
+                organizationName,     // display name for saving in donation record
+                frequency,
+                plan,
+              },
             })
           }
         >

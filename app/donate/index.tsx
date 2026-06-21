@@ -4,12 +4,13 @@ import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 
-const BACKEND_URL = "http://192.168.8.102:5000";
+const BACKEND_URL = "http://192.168.8.160:5000";
 
 export default function DonateScreen() {
   const router = useRouter();
   const [category, setCategory] = useState('');
   const [organization, setOrganization] = useState('');
+  const [organizationName, setOrganizationName] = useState('');
   const [frequency, setFrequency] = useState('');
   const [plan, setPlan] = useState('');
   const [amount, setAmount] = useState('');
@@ -17,45 +18,36 @@ export default function DonateScreen() {
   const [organizations, setOrganizations] = useState<any[]>([]);
 
   useEffect(() => {
-    fetchOrganizations();
-  }, []);
+    let isMounted = true;
 
-  useEffect(() => {
-    if (category) {
-      fetchOrganizationsByCategory();
-    } else {
-      fetchOrganizations();
-    }
-    setOrganization('');
+    const fetchData = async () => {
+      try {
+        const url = category
+          ? `${BACKEND_URL}/api/organizations/category/${encodeURIComponent(category)}`
+          : `${BACKEND_URL}/api/organizations`;
+
+        const res = await fetch(url);
+        console.log("STATUS:", res.status);
+        const data = await res.json();
+        console.log("DATA:", JSON.stringify(data));
+
+        if (isMounted) {
+          setOrganizations(Array.isArray(data) ? data : []);
+          setOrganization('');
+          setOrganizationName('');
+        }
+      } catch (err) {
+        console.error("FETCH ERROR:", err);
+        if (isMounted) setOrganizations([]);
+      }
+    };
+
+    fetchData();
+
+    return () => {
+      isMounted = false;
+    };
   }, [category]);
-
-  const fetchOrganizations = async () => {
-    try {
-      const res = await fetch(`${BACKEND_URL}/api/organizations`);
-      console.log("STATUS:", res.status);
-      const data = await res.json();
-      console.log("DATA:", JSON.stringify(data));
-      setOrganizations(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("FETCH ERROR:", err);
-      setOrganizations([]);
-    }
-  };
-
-  const fetchOrganizationsByCategory = async () => {
-    try {
-      const res = await fetch(
-        `${BACKEND_URL}/api/organizations/category/${encodeURIComponent(category)}`
-      );
-      console.log("CATEGORY STATUS:", res.status);
-      const data = await res.json();
-      console.log("CATEGORY DATA:", JSON.stringify(data));
-      setOrganizations(Array.isArray(data) ? data : []);
-    } catch (err) {
-      console.error("CATEGORY FETCH ERROR:", err);
-      setOrganizations([]);
-    }
-  };
 
   const handleDonate = () => {
     const donationAmount = parseFloat(amount);
@@ -83,11 +75,13 @@ export default function DonateScreen() {
       Alert.alert("Error", "Please select a payment method.");
       return;
     }
+
     router.push({
       pathname: '/donate/donationSummary',
       params: {
         category,
-        organization,
+        organization,       // _id for merchant ID lookup
+        organizationName,   // display name for UI
         frequency,
         plan,
         amount: donationAmount.toFixed(2),
@@ -121,12 +115,21 @@ export default function DonateScreen() {
         <View style={styles.pickerWrapper}>
           <Picker
             selectedValue={organization}
-            onValueChange={(val) => setOrganization(val)}
+            onValueChange={(val) => {
+              setOrganization(val); // store _id
+              const selected = organizations.find(org => org._id === val);
+              setOrganizationName(selected?.clinicName || selected?.orgName || selected?.name || '');
+            }}
             style={[styles.picker, !organization && { color: '#999' }]}
           >
             <Picker.Item label="Select Clinic/Shelter" value="" color="#999" />
             {organizations.map((org) => (
-              <Picker.Item key={org._id} label={org.name} value={org.name} color="#000" />
+              <Picker.Item
+                key={org._id}
+                label={org.clinicName || org.orgName || org.name}
+                value={org._id}
+                color="#000"
+              />
             ))}
           </Picker>
         </View>
@@ -247,7 +250,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     backgroundColor: '#FFF9E6',
   },
-  switchContainer: { flexDirection: 'row', justifyContent: 'center', marginVertical: 10 },
+  switchContainer: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    marginVertical: 10,
+  },
   switchButton: {
     paddingVertical: 10,
     paddingHorizontal: 20,
@@ -257,12 +264,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 5,
     backgroundColor: '#f2f2f2',
   },
-  switchButtonActive: { backgroundColor: '#F5A623', borderColor: 'rgb(245, 166, 35)' },
+  switchButtonActive: {
+    backgroundColor: '#F5A623',
+    borderColor: 'rgb(245, 166, 35)',
+  },
   switchText: { fontSize: 16, color: '#333' },
   switchTextActive: { fontWeight: 'bold', color: '#000' },
 });
-
-
-
-
 
