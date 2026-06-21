@@ -1,7 +1,9 @@
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import {
+  Alert,
   Image,
   StyleSheet,
   Text,
@@ -10,11 +12,74 @@ import {
   View,
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/Config";
+
+import { zodResolver } from "@hookform/resolvers/zod";
+import { Controller, useForm } from "react-hook-form";
+import { z } from "zod";
+
+const loginSchema = z.object({
+  email: z.string().email("Please enter a valid email"),
+  password: z.string().min(6, "Password must be at least 6 characters"),
+});
 
 export default function LoginScreen() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const {
+    control,
+    handleSubmit,
+    formState: { errors },
+  } = useForm({
+    resolver: zodResolver(loginSchema),
+  });
+
+  const onSubmit = async (data: any) => {
+    setIsLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      console.log("Attempting login via:", `${API_URL}/auth/login`);
+      const response = await fetch(`${API_URL}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: data.email, password: data.password }),
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const json = await response.json();
+
+      if (!response.ok) {
+        Alert.alert("Login Failed", json.message || "Invalid credentials.");
+        return;
+      }
+
+      // Store JWT securely — never in AsyncStorage
+      await SecureStore.setItemAsync("authToken", json.token);
+
+      router.replace("/(tabs)/home");
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      console.error("Login error:", error);
+      if (error.name === "AbortError") {
+        Alert.alert(
+          "Request Timed Out",
+          "The server took too long to respond. Please check your connection and try again."
+        );
+      } else {
+        Alert.alert(
+          "Connection Error",
+          "Could not connect to the backend server. Please check your network connection and verify the API endpoint."
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -35,32 +100,77 @@ export default function LoginScreen() {
           Helping street animals, one paw at a time.
         </Text>
 
-        {/* INPUTS */}
-        <TextInput
-          style={styles.input}
-          placeholder="Email Address"
-          value={email}
-          onChangeText={setEmail}
-          keyboardType="email-address"
-        />
+        {/* EMAIL INPUT */}
+<Controller
+  control={control}
+  name="email"
+  render={({ field: { onChange, value } }) => (
+    <TextInput
+      style={styles.input}
+      placeholder="Email Address"
+      value={value}
+      onChangeText={onChange}
+      keyboardType="email-address"
+      editable={!isLoading}
+    />
+  )}
+/>
 
-        <TextInput
-          style={styles.input}
-          placeholder="Password"
-          secureTextEntry
-          value={password}
-          onChangeText={setPassword}
+{errors.email && (
+  <Text style={{ color: "red", marginBottom: 10 }}>
+    {errors.email.message}
+  </Text>
+)}
+
+{/* PASSWORD INPUT */}
+<Controller
+  control={control}
+  name="password"
+  render={({ field: { onChange, value } }) => (
+    <View style={styles.passwordContainer}>
+      <TextInput
+        style={styles.passwordInput}
+        placeholder="Password"
+        secureTextEntry={!isPasswordVisible}
+        value={value}
+        onChangeText={onChange}
+        editable={!isLoading}
+      />
+      <TouchableOpacity
+        onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+        style={styles.eyeIcon}
+        disabled={isLoading}
+      >
+        <Ionicons
+          name={isPasswordVisible ? "eye-off" : "eye"}
+          size={20}
+          color="#6B7280"
         />
+      </TouchableOpacity>
+    </View>
+  )}
+/>
+
+{errors.password && (
+  <Text style={{ color: "red", marginBottom: 10 }}>
+    {errors.password.message}
+  </Text>
+)}
 
         {/*  FORGOT PASSWORD */}
-        <TouchableOpacity style={styles.forgotContainer}>
-          <Text style={styles.forgotText}>Forgot Password?</Text>
+        <TouchableOpacity
+           style={styles.forgotContainer}
+            onPress={() => router.push("/auth/forgotPasswordScreen")}
+            disabled={isLoading}
+        >
+        <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
         {/* LOGIN BUTTON */}
         <PrimaryButton
-          title="Log in"
-          onPress={() => router.push("/Home")}
+          title={isLoading ? "Logging in..." : "Log in"}
+           onPress={handleSubmit(onSubmit)}
+           disabled={isLoading}
         />
 
         {/* DIVIDER */}
@@ -71,7 +181,7 @@ export default function LoginScreen() {
         </View>
 
         {/* GOOGLE BUTTON (visual only) */}
-        <TouchableOpacity style={styles.googleButton} onPress={() => {}}>
+        <TouchableOpacity style={styles.googleButton} onPress={() => {}} disabled={isLoading}>
           <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
           <Text style={styles.googleButtonText}>Continue with Google</Text>
         </TouchableOpacity>
@@ -79,7 +189,7 @@ export default function LoginScreen() {
         {/*  SIGNUP LINK */}
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/auth/register")}>
+          <TouchableOpacity onPress={() => router.push("/auth/register")} disabled={isLoading}>
             <Text style={styles.signupLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>
@@ -139,6 +249,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
     backgroundColor: "#F9FAFB",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: "#F9FAFB",
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
+  },
+  eyeIcon: {
+    paddingHorizontal: 12,
   },
   forgotContainer: {
     alignSelf: "flex-end",

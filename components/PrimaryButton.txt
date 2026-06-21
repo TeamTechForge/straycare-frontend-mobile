@@ -39,9 +39,10 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     alignItems: "center",
     marginVertical: 8,
+    alignSelf: "stretch",
   },
   text: {
-    color: "white",
+    color: "#000000",
     fontSize: 16,
     fontWeight: "600",
   },
@@ -51,6 +52,6 @@ const styles = StyleSheet.create({
     borderColor: "#F5A623",
   },
   outlineText: {
-    color: "#F5A623",
+    color: "#000000",
   },
 });

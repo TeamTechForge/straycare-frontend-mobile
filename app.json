@@ -39,7 +39,8 @@
           "cameraPermission": "Allow StrayCare to use your camera."
         }
       ],
-      "expo-asset"
+      "expo-asset",
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true

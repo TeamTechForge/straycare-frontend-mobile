@@ -1,27 +1,58 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { API_URL } from "../../constants/Config";
 
+// Show the main landing screen with personalized data for the logged-in user.
 export default function HomeScreen() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+
+  //Loads user profile data 
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        if (!token) return;
+
+        // Validates the session with the backend and retrieves the latest user profile information.
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          // Updates the UI with user-specific details.
+          setUser(data);
+        }
+      } catch (error) {
+        console.error("Home fetch user error:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
   return (
     <View style={styles.container}>
-
-      {/*  HEADER */}
+      {/* HEADER */}
       <View style={styles.header}>
         <Image
           source={require("../../assets/images/straycarelogo.png")}
           style={styles.logo}
         />
 
-        <TouchableOpacity style={styles.notificationIcon}>
+        <TouchableOpacity
+          style={styles.notificationIcon}
+          onPress={() => router.push("/notifications")}
+        >
           <Ionicons name="notifications-outline" size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
-      {/*  GREETING */}
+      {/* GREETING */}
       <Text style={styles.greeting}>
-        Hello, User 👋{"\n"}
+        Hello, {user?.organizationName || user?.name || "User"} 👋{"\n"}
         <Text style={styles.greetingSub}>
           Together we can save more stray animals 🐾
         </Text>
@@ -51,13 +82,11 @@ export default function HomeScreen() {
       <Text style={styles.sectionTitle}>Quick Actions</Text>
 
       <View style={styles.grid}>
-
         <ActionCard
           icon={<MaterialCommunityIcons name="hand-heart" size={24} color="#F5A623" />}
           label="Donate"
           onPress={() => router.push("/donate")}
         />
-
 
         <ActionCard
           icon={<MaterialCommunityIcons name="dog" size={24} color="#F5A623" />}
@@ -75,34 +104,20 @@ export default function HomeScreen() {
           label="Lost & Found"
           onPress={() => router.push("/lostandfound")}
         />
-
       </View>
-
-      {/* BOTTOM NAVIGATION */}
-      <View style={styles.bottomBar}>
-        <Ionicons name="home" size={24} color="#F5A623" />
-        <Ionicons name="people-outline" size={24} color="#555" />
-        <Ionicons name="add-circle-outline" size={24} color="#555" />
-        <Ionicons name="chatbubble-outline" size={24} color="#555" />
-        <Ionicons name="person-outline" size={24} color="#555" />
-      </View>
-
     </View>
   );
 }
 
+// Reusable card component to keep quick action buttons .
 function ActionCard({ icon, label, onPress }: any) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
-      <View style={styles.iconCircle}>
-        {icon}
-      </View>
+      <View style={styles.iconCircle}>{icon}</View>
       <Text style={styles.cardText}>{label}</Text>
     </TouchableOpacity>
   );
 }
-
-const BRAND_COLOR = "#F5A623";
 
 const styles = StyleSheet.create({
   container: {
@@ -110,8 +125,8 @@ const styles = StyleSheet.create({
     backgroundColor: "#F4F4F4",
     paddingHorizontal: 20,
     paddingTop: 10,
+    paddingBottom: 60,
   },
-
   header: {
     flexDirection: "row",
     justifyContent: "center",
@@ -119,47 +134,38 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     position: "relative",
   },
-
   notificationIcon: {
     position: "absolute",
     right: 0,
   },
-
   logo: {
-    width: 100,
-    height: 100,
+    width: 150,
+    height: 150,
     resizeMode: "contain",
   },
-
   greeting: {
     fontSize: 16,
     fontWeight: "600",
     marginBottom: 20,
   },
-
   greetingSub: {
     fontWeight: "400",
   },
-
   aboutCard: {
     marginBottom: 20,
   },
-
   aboutTitle: {
     fontWeight: "600",
     marginBottom: 8,
   },
-
   aboutBox: {
     backgroundColor: "#EED7B5",
     padding: 15,
     borderRadius: 10,
   },
-
   aboutText: {
     fontSize: 13,
   },
-
   searchBar: {
     flexDirection: "row",
     alignItems: "center",
@@ -169,23 +175,19 @@ const styles = StyleSheet.create({
     height: 45,
     marginBottom: 20,
   },
-
   searchInput: {
     marginLeft: 8,
     flex: 1,
   },
-
   sectionTitle: {
     fontWeight: "600",
     marginBottom: 15,
   },
-
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
   },
-
   card: {
     width: "48%",
     backgroundColor: "#FFFFFF",
@@ -195,7 +197,6 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     elevation: 2,
   },
-
   iconCircle: {
     width: 45,
     height: 45,
@@ -205,23 +206,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 8,
   },
-
   cardText: {
     fontSize: 13,
     fontWeight: "500",
-  },
-
-  bottomBar: {
-    position: "absolute",
-    bottom: 0,
-    left: 0,
-    right: 0,
-    height: 65,
-    backgroundColor: "#F3E1C7",
-    flexDirection: "row",
-    justifyContent: "space-around",
-    alignItems: "center",
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
   },
 });
