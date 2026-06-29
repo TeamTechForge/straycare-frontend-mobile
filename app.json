@@ -12,6 +12,7 @@
       "supportsTablet": true
     },
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#FFFFFF"
@@ -38,6 +39,7 @@
           "cameraPermission": "Allow StrayCare to use your camera."
         }
       ],
+      "expo-asset",
       "expo-secure-store"
     ],
     "experiments": {
