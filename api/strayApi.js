@@ -1,5 +1,5 @@
 // Base URL for backend API
-const BASE_URL = "http://10.191.34.185:5000/api/strays";
+const BASE_URL = "http://10.10.23.116:5000/api/strays";
 
 
 // 1.Sends a POST request to create a new stray report.then returns the created report from the backend.
@@ -23,9 +23,11 @@ export const submitReport = async (reportData) => {
 
 // 2.Fetches all reports from the backend and returns them as JSON. Used to populate the map with markers.
 export const getAllReports = async () => {
-  try {     
+  try {
     const response = await fetch(`${BASE_URL}/reports`);
-    return await response.json();
+    const data = await response.json();
+    const reports = Array.isArray(data) ? data : data?.value ?? [];
+    return reports;
   } catch (error) {
     console.error("Error fetching reports:", error);
     throw error;

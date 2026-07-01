@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -40,9 +40,11 @@ const getMarkerColor = (status: string) => {
 
 export default function ReportingMapScreen() {
   const router = useRouter();
+  const mapRef = useRef<MapView>(null);
 
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
+  const [mapReady, setMapReady] = useState(false);
 
   const loadReports = async () => {
     try {
@@ -65,6 +67,32 @@ export default function ReportingMapScreen() {
     }, [])
   );
 
+  // The map's initialRegion only applies on first mount and never recenters,
+  // so it was hiding every case outside that fixed Colombo box (including new
+  // ones reported elsewhere). Refit the viewport whenever the report list changes.
+  // fitToCoordinates is a no-op until the native map has actually finished
+  // initializing, so this also waits on onMapReady rather than just the mount.
+  useEffect(() => {
+    if (!mapReady) return;
+
+    const validCoords = reports
+      .filter(
+        (r) =>
+          r.location && r.location.lat != null && r.location.lng != null
+      )
+      .map((r) => ({
+        latitude: r.location.lat,
+        longitude: r.location.lng,
+      }));
+
+    if (validCoords.length > 0) {
+      mapRef.current?.fitToCoordinates(validCoords, {
+        edgePadding: { top: 80, right: 80, bottom: 80, left: 80 },
+        animated: true,
+      });
+    }
+  }, [reports, mapReady]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -83,8 +111,10 @@ export default function ReportingMapScreen() {
 
       {/* Map View */}
       <MapView
+        ref={mapRef}
         provider="google"
         style={styles.map}
+        onMapReady={() => setMapReady(true)}
         initialRegion={{
           latitude: 6.9271, // Default - Colombo
           longitude: 79.8612,
