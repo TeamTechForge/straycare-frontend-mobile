@@ -62,9 +62,9 @@ export default function Review() {
         pathname: "/reporting/success",
         params: { caseId },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting report:", error);
-      alert("Failed to submit report. Try again.");
+      alert(error?.message || "Failed to submit report. Try again.");
     }
   };
 

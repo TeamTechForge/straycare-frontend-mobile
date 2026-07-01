@@ -2,9 +2,20 @@
 const BASE_URL = "http://10.10.23.116:5000/api/strays";
 
 
+// Backend returns { message } on failure (e.g. 401 "No token provided",
+// 404 "Report not found") with a 2xx-shaped body but non-2xx status, so every
+// call must check response.ok itself -- fetch() does not throw on 4xx/5xx.
+const parseOrThrow = async (response) => {
+  const data = await response.json();
+  if (!response.ok) {
+    throw new Error(data?.message || `Request failed with status ${response.status}`);
+  }
+  return data;
+};
+
 // 1.Sends a POST request to create a new stray report.then returns the created report from the backend.
 export const submitReport = async (reportData) => {
-  try {     //error handling to catch any issues during the fetch request 
+  try {     //error handling to catch any issues during the fetch request
     const response = await fetch(`${BASE_URL}/report`, {
       method: "POST",
       headers: {
@@ -13,10 +24,10 @@ export const submitReport = async (reportData) => {
       body: JSON.stringify(reportData),
     });
 
-    return await response.json();
+    return await parseOrThrow(response);
   } catch (error) {
     console.error("Error submitting report:", error);
-    throw error; 
+    throw error;
   }
 };
 
@@ -25,7 +36,7 @@ export const submitReport = async (reportData) => {
 export const getAllReports = async () => {
   try {
     const response = await fetch(`${BASE_URL}/reports`);
-    const data = await response.json();
+    const data = await parseOrThrow(response);
     const reports = Array.isArray(data) ? data : data?.value ?? [];
     return reports;
   } catch (error) {
@@ -39,7 +50,7 @@ export const getAllReports = async () => {
 export const getReportByCaseId = async (caseId) => {
   try {
     const response = await fetch(`${BASE_URL}/report/${caseId}`);
-    return await response.json();
+    return await parseOrThrow(response);
   } catch (error) {
     console.error("Error fetching report:", error);
     throw error;
@@ -58,7 +69,7 @@ export const updateCaseStatus = async (caseId, status) => {
       body: JSON.stringify({ status }),
     });
 
-    return await response.json();
+    return await parseOrThrow(response);
   } catch (error) {
     console.error("Error updating case status:", error);
     throw error;
