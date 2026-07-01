@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
+import MapView, { Marker } from "react-native-maps";
 import { getReportByCaseId, updateCaseStatus } from "../../api/strayApi";
 import PrimaryButton from "../../components/PrimaryButton";
 
@@ -133,7 +134,7 @@ export default function CaseDetailsScreen() {
         <Text style={styles.statusText}>{report.status}</Text>
       </View>
 
-      <Text style={styles.label}>Photos :</Text>
+      <Text style={styles.label}>Photos</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
         {report.photos && report.photos.length > 0 ? (
           report.photos.map((uri: string, index: number) => (
@@ -169,6 +170,43 @@ export default function CaseDetailsScreen() {
         <Text style={styles.label}>Notes</Text>
         <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
       </View>
+      <Text style={styles.label}>Animal Type</Text>
+      <Text style={styles.value}>{report.animalType}</Text>
+
+      <Text style={styles.label}>Breed</Text>
+      <Text style={styles.value}>{report.breed || "Unknown"}</Text>
+
+      <Text style={styles.label}>Category</Text>
+      <Text style={styles.value}>{report.category}</Text>
+
+      <Text style={styles.label}>Reported As</Text>
+      <Text style={styles.value}>
+        {report.anonymous ? "Anonymous User" : "Identified User"}
+      </Text>
+
+      <Text style={styles.label}>Location</Text>
+      <Text style={styles.value}>{report.location.address}</Text>
+
+      <MapView
+        provider="google"
+        style={styles.map}
+        initialRegion={{
+          latitude: report.location.lat,
+          longitude: report.location.lng,
+          latitudeDelta: 0.01,
+          longitudeDelta: 0.01,
+        }}
+      >
+        <Marker
+          coordinate={{
+            latitude: report.location.lat,
+            longitude: report.location.lng,
+          }}
+        />
+      </MapView>
+
+      <Text style={styles.label}>Notes</Text>
+      <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
 
       {nextStatus && (
         <PrimaryButton
