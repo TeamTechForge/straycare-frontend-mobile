@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -64,7 +65,7 @@ export default function Review() {
       });
     } catch (error: any) {
       console.error("Error submitting report:", error);
-      alert(error?.message || "Failed to submit report. Try again.");
+      Alert.alert("Submission Failed", error?.message || "Failed to submit report. Try again.");
     }
   };
 

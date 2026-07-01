@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   StyleSheet,
   Text,
   View,
@@ -62,7 +63,7 @@ export default function LocationPicker() {
       // Normal flow → get current location
       let { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
-        alert("Location permission denied");
+        Alert.alert("Location permission denied");
         return;
       }
 
