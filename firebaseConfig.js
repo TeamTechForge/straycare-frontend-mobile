@@ -1,18 +1,38 @@
-// firebaseConfig.js
-import { initializeApp } from "firebase/app";
-import { getStorage } from "firebase/storage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { initializeApp, getApps } from "firebase/app";
+import {
+  initializeAuth,
+  getAuth,
+  getReactNativePersistence,
+} from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDdt27L_3CLAga8yP6QrYFYTM3dZdxrzro",
-  authDomain: "straycare-43a56.firebaseapp.com",
-  projectId: "straycare-43a56",
-  storageBucket: "straycare-43a56.firebasestorage.app",
-  messagingSenderId: "989190543918",
-  appId: "1:989190543918:web:1faedf11dd7fe207f95dbf",
+  apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
+  authDomain: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,
+  projectId: process.env.EXPO_PUBLIC_FIREBASE_PROJECT_ID,
+  storageBucket: process.env.EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: process.env.EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID,
+  appId: process.env.EXPO_PUBLIC_FIREBASE_APP_ID,
 };
 
-const app = initializeApp(firebaseConfig);
-export const storage = getStorage(app);
+// Prevent re-initialization on hot reload
+let app;
+if (getApps().length === 0) {
+  app = initializeApp(firebaseConfig);
+} else {
+  app = getApps()[0];
+}
 
+// Initialize Auth with AsyncStorage persistence for React Native
+let auth;
+try {
+  auth = initializeAuth(app, {
+    persistence: getReactNativePersistence(AsyncStorage),
+  });
+} catch (error) {
+  // If auth is already initialized (hot reload), retrieve existing instance
+  auth = getAuth(app);
+}
 
-  //measurementId: "G-YEXX24NVQ7"
+export { app, auth };
+export default app;

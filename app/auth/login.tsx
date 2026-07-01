@@ -1,8 +1,9 @@
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   StyleSheet,
@@ -13,6 +14,7 @@ import {
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/Config";
+import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthService";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -27,6 +29,35 @@ export default function LoginScreen() {
   const router = useRouter();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+
+  // Google Sign-In setup
+  const { response: googleResponse, promptAsync, isReady: isGoogleReady } = useGoogleAuth();
+
+  // Handle Google Sign-In response
+  useEffect(() => {
+    if (!googleResponse) return;
+
+    const processGoogleSignIn = async () => {
+      setIsGoogleLoading(true);
+      try {
+        const result = await handleGoogleSignIn(googleResponse);
+        await SecureStore.setItemAsync("authToken", result.token);
+        router.replace("/(tabs)/home");
+      } catch (error) {
+        if (error.message === "CANCELLED") {
+          // User dismissed the popup — do nothing
+          return;
+        }
+        console.error("Google Sign-In error:", error);
+        Alert.alert("Google Sign-In Failed", error.message);
+      } finally {
+        setIsGoogleLoading(false);
+      }
+    };
+
+    processGoogleSignIn();
+  }, [googleResponse]);
 
   const {
     control,
@@ -41,12 +72,18 @@ export default function LoginScreen() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
+    const url = `${API_URL}/auth/login`;
+    const headers = { "Content-Type": "application/json" };
+    const body = JSON.stringify({ email: data.email, password: data.password });
+
     try {
-      console.log("Attempting login via:", `${API_URL}/auth/login`);
-      const response = await fetch(`${API_URL}/auth/login`, {
+      console.log("Attempting login via:", url);
+      console.log("Login request headers:", headers);
+      console.log("Login request body:", body);
+      const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.email, password: data.password }),
+        headers,
+        body,
         signal: controller.signal,
       });
 
@@ -65,6 +102,13 @@ export default function LoginScreen() {
     } catch (error: any) {
       clearTimeout(timeoutId);
       console.error("Login error:", error);
+      console.error("Login error details:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        response: error?.response,
+        request: error?.request,
+      });
       if (error.name === "AbortError") {
         Alert.alert(
           "Request Timed Out",
@@ -180,10 +224,20 @@ export default function LoginScreen() {
           <View style={styles.dividerLine} />
         </View>
 
-        {/* GOOGLE BUTTON (visual only) */}
-        <TouchableOpacity style={styles.googleButton} onPress={() => {}} disabled={isLoading}>
-          <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
+        {/* GOOGLE BUTTON */}
+        <TouchableOpacity
+          style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
+          onPress={() => promptAsync()}
+          disabled={isLoading || isGoogleLoading || !isGoogleReady}
+        >
+          {isGoogleLoading ? (
+            <ActivityIndicator size="small" color="#DB4437" style={styles.googleIcon} />
+          ) : (
+            <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
+          )}
+          <Text style={styles.googleButtonText}>
+            {isGoogleLoading ? "Signing in..." : "Continue with Google"}
+          </Text>
         </TouchableOpacity>
         
         {/*  SIGNUP LINK */}
