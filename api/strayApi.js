@@ -1,5 +1,7 @@
+import { API_URL } from "../constants/Config";
+
 // Base URL for backend API
-const BASE_URL = "http://10.10.23.116:5000/api/strays";
+const BASE_URL = `${API_URL}/strays`;
 
 
 // Backend returns { message } on failure (e.g. 401 "No token provided",

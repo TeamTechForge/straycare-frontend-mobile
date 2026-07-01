@@ -1,19 +1,39 @@
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, Image } from "react-native";
 
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#F5A623";
 
 export default function OnboardingCompleteScreen() {
   const router = useRouter();
+  const [userName, setUserName] = useState("User");
 
-  // TODO: later replace this with real user name from backend / auth context
-  const userName = "Name";
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        if (!token) return;
+
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          setUserName(data.name);
+        }
+      } catch (error) {
+        console.error("Fetch user error:", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   const handleGetStarted = () => {
-    // TODO: later navigate based on role/dashboard
-    router.replace("/home");
+    router.replace("/(tabs)/home");
   };
 
   return (
@@ -66,6 +86,14 @@ const styles = StyleSheet.create({
   logoSection: {
     alignItems: "center",
     marginTop: 6,
+  },
+  logoCircle: {
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: "#f5f5f5",
+    justifyContent: "center",
+    alignItems: "center",
   },
   logoImage: {
     width: 150,

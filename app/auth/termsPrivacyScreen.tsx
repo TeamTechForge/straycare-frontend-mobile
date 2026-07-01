@@ -1,15 +1,19 @@
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import PrimaryButton from "../../components/PrimaryButton";
 export default function TermsPrivacyScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams();
 
   const handleAgree = () => {
-    // go back to signup with param
+    // go back to signup with param and restore typed values
     router.replace({
       pathname: "/auth/register",
-      params: { agreed: "true" },
+      params: { 
+        ...params,
+        agreed: "true" 
+      },
     });
   };
 

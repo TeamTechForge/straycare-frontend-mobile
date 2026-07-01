@@ -13,6 +13,8 @@ type Props = {
   onRightIconPress?: () => void;
   label?: string;
   error?: string;
+  keyboardType?: "default" | "email-address" | "numeric" | "phone-pad" | "url";
+  editable?: boolean;
 };
 
 export default function InputField({
@@ -25,6 +27,8 @@ export default function InputField({
   onRightIconPress,
   label,
   error,
+  keyboardType = "default",
+  editable = true,
 }: Props) {
 
   const [showPassword, setShowPassword] = useState(false);
@@ -33,7 +37,18 @@ export default function InputField({
     <View style={styles.container}>
 
       {/* LABEL */}
-      {label && <Text style={styles.label}>{label}</Text>}
+      {label && (
+        <Text style={styles.label}>
+          {label.includes("*") ? (
+            <>
+              {label.replace("*", "")}
+              <Text style={{ color: "red" }}>*</Text>
+            </>
+          ) : (
+            label
+          )}
+        </Text>
+      )}
 
       <View style={styles.inputWrapper}>
         
@@ -48,12 +63,15 @@ export default function InputField({
           style={[
             styles.input,
             icon && { paddingLeft: 40 }, // space for icon
+            !editable && { backgroundColor: "#f0f0f0", color: "#888" } // styling for disabled state
           ]}
           placeholder={placeholder}
           value={value}
           onChangeText={onChangeText}
           secureTextEntry={secure && !showPassword}
           placeholderTextColor="#999"
+          keyboardType={keyboardType}
+          editable={editable}
         />
 
         {/* RIGHT ICON */}

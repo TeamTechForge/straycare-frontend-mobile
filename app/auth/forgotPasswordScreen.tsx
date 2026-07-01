@@ -10,6 +10,7 @@ import {
 
 import PrimaryButton from "../../components/PrimaryButton";
 import InputField from "../../components/InputField";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#f59e0b";
 
@@ -17,10 +18,69 @@ export default function ForgotPasswordScreen() {
   const router = useRouter();
 
   const [email, setEmail] = useState("");
+  const [step, setStep] = useState(1); // 1: Request, 2: Reset
+  const [token, setToken] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleReset = () => {
-    // later connect backend
-    console.log("Reset link sent to:", email);
+  const handleRequestReset = async () => {
+    if (!email) {
+      alert("Please enter your email");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/forgot-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert(data.message + (data.resetToken ? "\nToken (DEV ONLY): " + data.resetToken : ""));
+        setStep(2);
+        if (data.resetToken) setToken(data.resetToken);
+      } else {
+        alert(data.message || "Request failed");
+      }
+    } catch (error) {
+      console.error("Forgot password error:", error);
+      alert("Connection error");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePasswordReset = async () => {
+    if (!token || !newPassword) {
+      alert("Please enter both token and new password");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const response = await fetch(`${API_URL}/auth/reset-password`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ token, newPassword }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        alert("Password reset successful! Please log in.");
+        // Success! Replace the stack to ensure the user goes straight to login.
+        router.replace("/auth/login");
+      } else {
+        alert(data.message || "Reset failed");
+      }
+    } catch (error) {
+      console.error("Reset password error:", error);
+      alert("Connection error");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -36,35 +96,74 @@ export default function ForgotPasswordScreen() {
 
       {/* 🔒 Icon */}
       <View style={styles.iconContainer}>
-        <Ionicons name="lock-closed" size={40} color={BRAND_COLOR} />
+        <Ionicons name={step === 1 ? "lock-closed" : "key"} size={40} color={BRAND_COLOR} />
       </View>
 
       {/* 📝 Title */}
-      <Text style={styles.title}>Forgot Password?</Text>
+      <Text style={styles.title}>{step === 1 ? "Forgot Password?" : "Reset Password"}</Text>
 
       {/* 📄 Description */}
       <Text style={styles.description}>
-        No worries! Enter the email address associated with your StrayCare
-        account and we'll send you a link to reset your password.
+        {step === 1 
+          ? "No worries! Enter the email address associated with your StrayCare account and we'll send you a link to reset your password."
+          : "Enter the reset token sent to your email and your new password below."}
       </Text>
 
-      {/* 📧 Email Input */}
-      <Text style={styles.label}>Email Address</Text>
+      {step === 1 ? (
+        <>
+          {/* 📧 Email Input */}
+          <Text style={styles.label}>Email Address</Text>
+          <InputField
+            placeholder="example@mail.com"
+            value={email}
+            onChangeText={setEmail}
+            icon="mail-outline"
+          />
 
-      <InputField
-        placeholder="example@mail.com"
-        value={email}
-        onChangeText={setEmail}
-        icon="mail-outline"
-      />
+          {/* 🔘 Button */}
+          <View style={{ marginTop: 20 }}>
+            <PrimaryButton
+              title={loading ? "Sending..." : "Send Reset Link"}
+              onPress={handleRequestReset}
+              disabled={loading}
+            />
+          </View>
+        </>
+      ) : (
+        <>
+          {/* 🔑 Token Input */}
+          <Text style={styles.label}>Reset Token</Text>
+          <InputField
+            placeholder="Enter token"
+            value={token}
+            onChangeText={setToken}
+            icon="key-outline"
+          />
 
-      {/* 🔘 Button */}
-      <View style={{ marginTop: 20 }}>
-        <PrimaryButton
-          title="Send Reset Link"
-          onPress={handleReset}
-        />
-      </View>
+          {/* 🔒 New Password Input */}
+          <Text style={styles.label}>New Password</Text>
+          <InputField
+            placeholder="********"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secure
+            icon="lock-closed-outline"
+          />
+
+          {/* 🔘 Button */}
+          <View style={{ marginTop: 20 }}>
+            <PrimaryButton
+              title={loading ? "Resetting..." : "Reset Password"}
+              onPress={handlePasswordReset}
+              disabled={loading}
+            />
+          </View>
+          
+          <TouchableOpacity onPress={() => setStep(1)} style={{ marginTop: 15, alignItems: 'center' }}>
+            <Text style={{ color: BRAND_COLOR }}>Back to Request</Text>
+          </TouchableOpacity>
+        </>
+      )}
 
       {/* 🔗 Login Redirect */}
       <View style={styles.bottomTextContainer}>

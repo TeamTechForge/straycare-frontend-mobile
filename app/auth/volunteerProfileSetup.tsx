@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import {
   ScrollView,
   StyleSheet,
@@ -17,6 +18,7 @@ import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
+import { API_URL } from "../../constants/Config";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -36,6 +38,26 @@ export default function VolunteerProfileSetupScreen() {
     location: "",
   });
 
+  // Fetch user details on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          if (data.name) setName(data.name);
+          if (data.phone) setPhone(data.phone);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
   const handlePickProfileImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
@@ -45,7 +67,7 @@ export default function VolunteerProfileSetupScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       quality: 0.7,
       allowsEditing: true,
       aspect: [1, 1],
@@ -108,20 +130,35 @@ export default function VolunteerProfileSetupScreen() {
     return valid;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
 
-    // TODO: later connect backend here
-    console.log({
-      profileImage,
-      name,
-      phone,
-      location,
-      bio,
-      role: "volunteer",
-    });
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      const response = await fetch(`${API_URL}/profiles/volunteer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name,
+          location,
+          bio,
+          profileImage: profileImage && typeof profileImage === 'object' ? (profileImage as any).uri : profileImage,
+        }),
+      });
 
-    router.replace("/home");
+      const data = await response.json();
+      if (response.ok) {
+        router.replace("/auth/completedProfileSetup");
+      } else {
+        alert(data.message || "Failed to save profile");
+      }
+    } catch (error) {
+      console.error("Profile submission error:", error);
+      alert("Something went wrong. Please check connection.");
+    }
   };
 
   return (
@@ -150,7 +187,7 @@ export default function VolunteerProfileSetupScreen() {
       {/* Basic Information */}
       <FormSection title="Basic Information">
         <InputField
-          label="Name"
+          label="Name *"
           placeholder="e.g. Alex Johnson"
           value={name}
           onChangeText={setName}
@@ -166,7 +203,7 @@ export default function VolunteerProfileSetupScreen() {
         />
 
         <InputField
-          label="Current Location"
+          label="Current Location *"
           placeholder="City, Country"
           value={location}
           onChangeText={setLocation}

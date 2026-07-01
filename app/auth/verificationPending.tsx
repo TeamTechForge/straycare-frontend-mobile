@@ -10,22 +10,21 @@ export default function VerificationPendingScreen() {
   const router = useRouter();
 
   const handleReturnHome = () => {
-    // TODO: later connect real navigation logic
-    // For now, send user to home or landing page
-    router.replace("/home");
+    // router.replace("/(tabs)/home"); 
+    // Disabling for unapproved users as requested
+    alert("Your account is still under review.");
   };
 
   const handleContactSupport = () => {
-    // TODO: later connect support chat / email / help center
-    console.log("Contact support pressed");
+    router.push("/profile/contactSupport");
   };
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#000" />
+        <TouchableOpacity onPress={() => router.push("/notifications")}>
+          <Ionicons name="notifications-outline" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Verification Status</Text>
         <View style={styles.headerSpacer} />
@@ -60,9 +59,15 @@ export default function VerificationPendingScreen() {
         <Text style={styles.noteText}>This usually takes 24-48 hours.</Text>
       </View>
 
-      {/* Action Button */}
+      {/* Action Button - Only show if redirected manually, but following requirement to disable home access */}
       <View style={styles.buttonWrapper}>
-        <PrimaryButton title="Return to Home" onPress={handleReturnHome} />
+        <Text style={{ textAlign: 'center', color: '#888', fontSize: 13, marginBottom: 10 }}>
+          Verification usually takes 24-48 hours.
+        </Text>
+        <PrimaryButton 
+          title="Check for Notifications" 
+          onPress={() => router.push("/notifications")} 
+        />
       </View>
 
       {/* Support */}

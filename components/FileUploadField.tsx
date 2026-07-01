@@ -6,7 +6,9 @@ export default function FileUploadField({ file, onPick }) {
     <TouchableOpacity style={styles.container} onPress={onPick}>
       <Ionicons name="cloud-upload-outline" size={24} color="#999" />
       <Text style={styles.text}>
-        {file ? "File Selected" : "Tap to upload PDF or JPG"}
+        {file && typeof file === "object" && "name" in file
+          ? file.name
+          : file || "Tap to upload PDF or JPG"}
       </Text>
     </TouchableOpacity>
   );

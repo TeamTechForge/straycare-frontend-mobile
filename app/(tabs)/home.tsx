@@ -1,9 +1,37 @@
 import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { API_URL } from "../../constants/Config";
 
+// Show the main landing screen with personalized data for the logged-in user.
 export default function HomeScreen() {
   const router = useRouter();
+  const [user, setUser] = useState<any>(null);
+
+  //Loads user profile data 
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        if (!token) return;
+
+        // Validates the session with the backend and retrieves the latest user profile information.
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          // Updates the UI with user-specific details.
+          setUser(data);
+        }
+      } catch (error) {
+        console.error("Home fetch user error:", error);
+      }
+    };
+    fetchUser();
+  }, []);
 
   return (
     <View style={styles.container}>
@@ -14,14 +42,17 @@ export default function HomeScreen() {
           style={styles.logo}
         />
 
-        <TouchableOpacity style={styles.notificationIcon}>
+        <TouchableOpacity
+          style={styles.notificationIcon}
+          onPress={() => router.push("/notifications")}
+        >
           <Ionicons name="notifications-outline" size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
       {/* GREETING */}
       <Text style={styles.greeting}>
-        Hello, User 👋{"\n"}
+        Hello, {user?.organizationName || user?.name || "User"} 👋{"\n"}
         <Text style={styles.greetingSub}>
           Together we can save more stray animals 🐾
         </Text>
@@ -78,6 +109,7 @@ export default function HomeScreen() {
   );
 }
 
+// Reusable card component to keep quick action buttons .
 function ActionCard({ icon, label, onPress }: any) {
   return (
     <TouchableOpacity style={styles.card} onPress={onPress}>
