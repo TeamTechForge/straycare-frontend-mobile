@@ -1,13 +1,21 @@
-import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { API_URL } from "../constants/Config";
 import { useState } from "react";
+import Constants, { ExecutionEnvironment } from "expo-constants";
+import { Alert } from "react-native";
 
-// Configure native Google Sign-In with the web client ID (required for Firebase)
-GoogleSignin.configure({
-  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-});
+// Detect if running inside the standard Expo Go client app
+const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+let GoogleSignin = null;
+if (!isExpoGo) {
+  // Only load the native library if running in a standalone/dev build
+  GoogleSignin = require("@react-native-google-signin/google-signin").GoogleSignin;
+  GoogleSignin.configure({
+    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  });
+}
 
 /**
  * Custom hook that mimics expo-auth-session useAuthRequest.
@@ -19,6 +27,14 @@ export function useGoogleAuth() {
   const [response, setResponse] = useState(null);
 
   const promptAsync = async () => {
+    if (isExpoGo) {
+      Alert.alert(
+        "Google Sign-In Unavailable",
+        "Google Sign-In requires a Development Build. Please log in with your Email & Password instead."
+      );
+      return;
+    }
+
     try {
       setResponse(null); // Clear previous responses
       await GoogleSignin.hasPlayServices();
@@ -59,6 +75,7 @@ export function useGoogleAuth() {
     response,
     promptAsync,
     isReady: true,
+    isExpoGo, // Export this flag so UI screens can dynamically adapt
   };
 }
 

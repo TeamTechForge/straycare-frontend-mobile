@@ -39,7 +39,7 @@ export default function RegisterScreen() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Google Sign-In setup
-  const { response: googleResponse, promptAsync, isReady: isGoogleReady } = useGoogleAuth();
+  const { response: googleResponse, promptAsync, isReady: isGoogleReady, isExpoGo } = useGoogleAuth();
 
   // Handle Google Sign-In response
   useEffect(() => {
@@ -298,25 +298,27 @@ export default function RegisterScreen() {
           <View style={styles.line} />
         </View>
 
-        <TouchableOpacity
-          style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
-          onPress={() => promptAsync()}
-          disabled={isLoading || isGoogleLoading || !isGoogleReady}
-        >
-          {isGoogleLoading ? (
-            <ActivityIndicator size="small" color="#DB4437" style={{ marginRight: 8 }} />
-          ) : (
-            <MaterialCommunityIcons
-              name="google"
-              size={18}
-              color="#DB4437"
-              style={{ marginRight: 8 }}
-            />
-          )}
-          <Text style={styles.googleText}>
-            {isGoogleLoading ? "Signing in..." : "Continue with Google"}
-          </Text>
-        </TouchableOpacity>
+        {!isExpoGo && (
+          <TouchableOpacity
+            style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
+            onPress={() => promptAsync()}
+            disabled={isLoading || isGoogleLoading || !isGoogleReady}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator size="small" color="#DB4437" style={{ marginRight: 8 }} />
+            ) : (
+              <MaterialCommunityIcons
+                name="google"
+                size={18}
+                color="#DB4437"
+                style={{ marginRight: 8 }}
+              />
+            )}
+            <Text style={styles.googleText}>
+              {isGoogleLoading ? "Signing in..." : "Continue with Google"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.loginContainer}>
           <Text style={{ fontSize: 13 }}>Already have an account?</Text>

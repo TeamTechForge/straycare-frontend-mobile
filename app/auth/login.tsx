@@ -32,7 +32,7 @@ export default function LoginScreen() {
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
 
   // Google Sign-In setup
-  const { response: googleResponse, promptAsync, isReady: isGoogleReady } = useGoogleAuth();
+  const { response: googleResponse, promptAsync, isReady: isGoogleReady, isExpoGo } = useGoogleAuth();
 
   // Handle Google Sign-In response
   useEffect(() => {
@@ -224,21 +224,23 @@ export default function LoginScreen() {
           <View style={styles.dividerLine} />
         </View>
 
-        {/* GOOGLE BUTTON */}
-        <TouchableOpacity
-          style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
-          onPress={() => promptAsync()}
-          disabled={isLoading || isGoogleLoading || !isGoogleReady}
-        >
-          {isGoogleLoading ? (
-            <ActivityIndicator size="small" color="#DB4437" style={styles.googleIcon} />
-          ) : (
-            <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
-          )}
-          <Text style={styles.googleButtonText}>
-            {isGoogleLoading ? "Signing in..." : "Continue with Google"}
-          </Text>
-        </TouchableOpacity>
+        {/* GOOGLE BUTTON (Only visible in Development Builds) */}
+        {!isExpoGo && (
+          <TouchableOpacity
+            style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
+            onPress={() => promptAsync()}
+            disabled={isLoading || isGoogleLoading || !isGoogleReady}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator size="small" color="#DB4437" style={styles.googleIcon} />
+            ) : (
+              <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
+            )}
+            <Text style={styles.googleButtonText}>
+              {isGoogleLoading ? "Signing in..." : "Continue with Google"}
+            </Text>
+          </TouchableOpacity>
+        )}
         
         {/*  SIGNUP LINK */}
         <View style={styles.signupContainer}>
