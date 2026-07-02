@@ -6,19 +6,21 @@ import { useAuth } from "../contexts/AuthContext";
 import { chatApi } from "../services/chatApi";
 
 export function useChatApi() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const fetchConversations = useCallback(async () => {
+    console.log(`[useChatApi] 🔍 fetchConversations. User: ${user?._id || "none"}, Token Exists: ${!!token}`);
     if (!token) throw new Error("Not authenticated");
     return chatApi.getConversations(token);
-  }, [token]);
+  }, [token, user?._id]);
 
   const fetchMessages = useCallback(
     async (conversationId: string, before?: string) => {
+      console.log(`[useChatApi] 🔍 fetchMessages. User: ${user?._id || "none"}, ConversationId: ${conversationId}, Before: ${before || "none"}`);
       if (!token) throw new Error("Not authenticated");
       return chatApi.getMessages(token, conversationId, before);
     },
-    [token]
+    [token, user?._id]
   );
 
   const createConversation = useCallback(
@@ -27,10 +29,11 @@ export function useChatApi() {
       conversationType?: string,
       relatedEntity?: { kind: string; item: string }
     ) => {
+      console.log(`[useChatApi] 🔍 createConversation. User: ${user?._id || "none"}, ParticipantId: ${participantId}`);
       if (!token) throw new Error("Not authenticated");
       return chatApi.getOrCreateConversation(token, participantId, conversationType, relatedEntity);
     },
-    [token]
+    [token, user?._id]
   );
 
   const sendMessage = useCallback(
@@ -42,18 +45,29 @@ export function useChatApi() {
       imagePublicId?: string;
       location?: { latitude: number; longitude: number; address?: string };
     }) => {
+      console.log(`[useChatApi] ✉️ sendMessage. User: ${user?._id || "none"}, ConversationId: ${data.conversationId}`);
       if (!token) throw new Error("Not authenticated");
       return chatApi.sendMessage(token, data);
     },
-    [token]
+    [token, user?._id]
   );
 
   const markAsRead = useCallback(
     async (conversationId: string) => {
+      console.log(`[useChatApi] 📖 markAsRead. User: ${user?._id || "none"}, ConversationId: ${conversationId}`);
       if (!token) throw new Error("Not authenticated");
       return chatApi.markAsRead(token, conversationId);
     },
-    [token]
+    [token, user?._id]
+  );
+
+  const searchUsers = useCallback(
+    async (query: string) => {
+      console.log(`[useChatApi] 🔍 searchUsers. User: ${user?._id || "none"}, Query: "${query}"`);
+      if (!token) throw new Error("Not authenticated");
+      return chatApi.searchUsers(token, query);
+    },
+    [token, user?._id]
   );
 
   return {
@@ -62,5 +76,6 @@ export function useChatApi() {
     createConversation,
     sendMessage,
     markAsRead,
+    searchUsers,
   };
 }

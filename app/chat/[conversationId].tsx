@@ -47,16 +47,18 @@ export default function ChatRoomScreen() {
 
   // ── Load initial messages ──────────────────────────────────
   const loadMessages = useCallback(async () => {
+    console.log(`[ChatRoomScreen] 🕒 Opening conversation: ${conversationId}, User: ${user?._id}`);
     try {
       const data = await fetchMessages(conversationId);
+      console.log(`[ChatRoomScreen] 🕒 Messages loaded: ${data.length} messages fetched`);
       setMessages(data);
       setHasMore(data.length >= 30);
     } catch (error) {
-      console.error("Failed to load messages:", error);
+      console.error("[ChatRoomScreen] ❌ Failed to load messages:", error);
     } finally {
       setLoading(false);
     }
-  }, [conversationId, fetchMessages]);
+  }, [conversationId, fetchMessages, user?._id]);
 
   useEffect(() => {
     loadMessages();
@@ -158,18 +160,20 @@ export default function ChatRoomScreen() {
       readBy: [user?._id],
       createdAt: new Date().toISOString(),
     };
+    console.log(`[ChatRoomScreen] ✉️ Sending optimistic message: ${tempId}, Room: ${conversationId}, Sender: ${user?._id}`);
 
     setMessages((prev) => [optimisticMsg, ...prev]);
 
     try {
       const sentMessage = await sendMessage({ conversationId, text, type: "text" });
+      console.log(`[ChatRoomScreen] ✅ Message sent successfully. Real ID: ${sentMessage._id}`);
 
       // Replace optimistic message with server response
       setMessages((prev) =>
         prev.map((m) => (m._id === tempId ? sentMessage : m))
       );
     } catch (error) {
-      console.error("Send message failed:", error);
+      console.error("[ChatRoomScreen] ❌ Send message failed:", error);
       // Remove failed optimistic message
       setMessages((prev) => prev.filter((m) => m._id !== tempId));
       Alert.alert("Error", "Failed to send message. Please try again.");

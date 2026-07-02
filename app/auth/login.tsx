@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -25,6 +26,7 @@ const loginSchema = z.object({
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -60,6 +62,9 @@ export default function LoginScreen() {
 
       // Store JWT securely — never in AsyncStorage
       await SecureStore.setItemAsync("authToken", json.token);
+
+      // Refresh AuthContext so token + user are available app-wide
+      await refreshUser();
 
       router.replace("/(tabs)/home");
     } catch (error: any) {

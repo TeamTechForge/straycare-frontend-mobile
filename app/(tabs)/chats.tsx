@@ -139,6 +139,9 @@ export default function ChatsScreen() {
         <Text style={styles.title}>Chats</Text>
 
         <View style={styles.headerIcons}>
+          <TouchableOpacity onPress={() => router.push("/chat/new")} style={{ marginRight: 4 }}>
+            <Feather name="edit" size={22} color="#111" />
+          </TouchableOpacity>
           <TouchableOpacity>
             <Ionicons name="call-outline" size={24} color="#111" />
           </TouchableOpacity>
