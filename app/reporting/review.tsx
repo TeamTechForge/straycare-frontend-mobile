@@ -1,5 +1,6 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import {
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -62,9 +63,9 @@ export default function Review() {
         pathname: "/reporting/success",
         params: { caseId },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error submitting report:", error);
-      alert("Failed to submit report. Try again.");
+      Alert.alert("Submission Failed", error?.message || "Failed to submit report. Try again.");
     }
   };
 

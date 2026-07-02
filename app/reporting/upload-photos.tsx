@@ -14,6 +14,42 @@ import {
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 
+// ☁️ CLOUDINARY UPLOAD HELPER
+const uploadToCloudinary = async (imageUri: string) => {
+  const data = new FormData();
+  
+  // Appending the file in the format React Native requires
+  data.append('file', {
+    uri: imageUri,
+    type: 'image/jpeg', 
+    name: 'stray_report.jpg',
+  } as any); // "as any" bypasses strict TypeScript checking for this specific RN quirk
+  
+  
+  data.append('upload_preset', 'straycare_report_images'); 
+
+  // REPLACE YOUR_CLOUD_NAME with your actual Cloudinary cloud name
+  const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dljp2yzpb/image/upload";
+
+  try {
+    const response = await fetch(CLOUDINARY_URL, {
+      method: 'POST',
+      body: data,
+      headers: {
+        'Accept': 'application/json',
+        'Content-Type': 'multipart/form-data',
+      },
+    });
+
+    const result = await response.json();
+    return result.secure_url; // Returns the permanent public URL
+    
+  } catch (error) {
+    console.error("Cloudinary Upload Error:", error);
+    return null;
+  }
+};
+
 export default function UploadPhotos() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -90,6 +126,7 @@ export default function UploadPhotos() {
     }
   };
 
+  // 🚀 UPDATED HANDLE NEXT: Uploads to cloud first, then navigates
   const handleNext = async () => {
     if (images.length === 0) {
       Alert.alert("No images", "Please select at least one photo.");
@@ -98,28 +135,40 @@ export default function UploadPhotos() {
 
     setUploading(true);
 
-    if (isEditing) {
+    try {
+      // 1. Upload all local images to Cloudinary at the same time
+      const uploadPromises = images.map(uri => {
+        // If it's already a cloud URL (e.g., while editing), don't re-upload
+        if (uri.startsWith('http')) return uri;
+        return uploadToCloudinary(uri);
+      });
+      
+      const uploadedUrls = await Promise.all(uploadPromises);
+
+      // 2. Filter out any uploads that failed
+      const validUrls = uploadedUrls.filter(url => url !== null);
+
+      if (validUrls.length === 0) {
+        Alert.alert("Upload Failed", "Could not upload images to the server.");
+        setUploading(false);
+        return;
+      }
+
+      // 3. Pass the valid Cloudinary URLs to the next screen
       router.push({
         pathname: "/reporting/review",
         params: {
           ...params,
-          mode: "edit",
-          photos: JSON.stringify(images),
+          mode: isEditing ? "edit" : undefined,
+          photos: JSON.stringify(validUrls),
         },
       });
+
+    } catch (error) {
+      Alert.alert("Upload Failed", "Something went wrong uploading your photos.");
+    } finally {
       setUploading(false);
-      return;
     }
-
-    router.push({
-      pathname: "/reporting/review",
-      params: {
-        ...params,
-        photos: JSON.stringify(images),
-      },
-    });
-
-    setUploading(false);
   };
 
   return (

@@ -67,6 +67,7 @@ export default function CaseDetailsScreen() {
 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
 
   // 🔔 Notification States
   const [showNotification, setShowNotification] = useState(false);
@@ -77,8 +78,9 @@ export default function CaseDetailsScreen() {
       try {
         const data = await getReportByCaseId(caseId as string);
         setReport(data);
-      } catch (err) {
+      } catch (err: any) {
         console.log("Error loading case:", err);
+        setLoadError(err?.message || "Failed to load case details.");
       } finally {
         setLoading(false);
       }
@@ -106,11 +108,20 @@ export default function CaseDetailsScreen() {
     }
   };
 
-  if (loading || !report) {
+  if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#007AFF" />
         <Text>Loading case details...</Text>
+      </View>
+    );
+  }
+
+  if (loadError || !report) {
+    return (
+      <View style={styles.center}>
+        <Text style={styles.value}>{loadError || "Case not found."}</Text>
+        <PrimaryButton title="Back to Map" onPress={() => router.back()} />
       </View>
     );
   }
@@ -162,51 +173,34 @@ export default function CaseDetailsScreen() {
         </Text>
 
         <Text style={styles.label}>Location</Text>
-        <Text style={styles.value}>{report.location.address}</Text>
+        <Text style={styles.value}>{report.location?.address || "Unknown"}</Text>
       </View>
+
+      {report.location?.lat != null && report.location?.lng != null && (
+        <MapView
+          provider="google"
+          style={styles.map}
+          initialRegion={{
+            latitude: report.location.lat,
+            longitude: report.location.lng,
+            latitudeDelta: 0.01,
+            longitudeDelta: 0.01,
+          }}
+        >
+          <Marker
+            coordinate={{
+              latitude: report.location.lat,
+              longitude: report.location.lng,
+            }}
+          />
+        </MapView>
+      )}
 
       {/* Notes */}
       <View style={styles.sectionCard}>
         <Text style={styles.label}>Notes</Text>
         <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
       </View>
-      <Text style={styles.label}>Animal Type</Text>
-      <Text style={styles.value}>{report.animalType}</Text>
-
-      <Text style={styles.label}>Breed</Text>
-      <Text style={styles.value}>{report.breed || "Unknown"}</Text>
-
-      <Text style={styles.label}>Category</Text>
-      <Text style={styles.value}>{report.category}</Text>
-
-      <Text style={styles.label}>Reported As</Text>
-      <Text style={styles.value}>
-        {report.anonymous ? "Anonymous User" : "Identified User"}
-      </Text>
-
-      <Text style={styles.label}>Location</Text>
-      <Text style={styles.value}>{report.location.address}</Text>
-
-      <MapView
-        provider="google"
-        style={styles.map}
-        initialRegion={{
-          latitude: report.location.lat,
-          longitude: report.location.lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        }}
-      >
-        <Marker
-          coordinate={{
-            latitude: report.location.lat,
-            longitude: report.location.lng,
-          }}
-        />
-      </MapView>
-
-      <Text style={styles.label}>Notes</Text>
-      <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
 
       {nextStatus && (
         <PrimaryButton
