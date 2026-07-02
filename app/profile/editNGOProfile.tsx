@@ -39,6 +39,51 @@ export default function EditNGOProfileScreen() {
   const [verificationDocument, setVerificationDocument] = useState<any>(null);
   const [merchantId, setMerchantId] = useState("");
   const [loading, setLoading] = useState(true);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
+    if (!uriOrAsset) return null;
+
+    let uri = "";
+    let name = "upload_file";
+    let mimeType = "image/jpeg";
+
+    if (typeof uriOrAsset === "object" && uriOrAsset.uri) {
+      uri = uriOrAsset.uri;
+      name = uriOrAsset.name || "upload_file";
+      mimeType = uriOrAsset.mimeType || "application/octet-stream";
+    } else if (typeof uriOrAsset === "string" && uriOrAsset.startsWith("file://")) {
+      uri = uriOrAsset;
+      const filename = uri.split("/").pop();
+      if (filename) name = filename;
+    } else if (typeof uriOrAsset === "string") {
+      return uriOrAsset;
+    } else {
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri,
+      name,
+      type: mimeType,
+    } as any);
+
+    const res = await fetch(`${API_URL}/upload/cloudinary`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to upload file to Cloudinary");
+    }
+
+    const data = await res.json();
+    return data.url;
+  };
 
   useEffect(() => {
     const fetchData = async () => {
@@ -124,7 +169,14 @@ export default function EditNGOProfileScreen() {
 
   const handleSaveChanges = async () => {
     try {
+      setIsSubmitting(true);
       const token = await SecureStore.getItemAsync("authToken");
+      if (!token) throw new Error("No authorization token found");
+
+      // Upload local files to Cloudinary first
+      const uploadedImageUrl = await uploadToCloudinaryIfLocal(profileImage, token);
+      const uploadedDocUrl = await uploadToCloudinaryIfLocal(verificationDocument, token);
+
       const response = await fetch(`${API_URL}/profiles/ngo`, {
         method: "PUT",
         headers: {
@@ -138,8 +190,8 @@ export default function EditNGOProfileScreen() {
           foundedYear,
           location,
           bio,
-          profileImage, // Expecting URL or handle upload
-          verificationDocument: verificationDocument?.uri || verificationDocument, 
+          profileImage: uploadedImageUrl,
+          verificationDocument: uploadedDocUrl,
           merchantId,
         }),
       });
@@ -151,9 +203,11 @@ export default function EditNGOProfileScreen() {
         const data = await response.json();
         alert(data.message || "Failed to update profile");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Update NGO profile error:", error);
-      alert("Something went wrong");
+      alert(error.message || "Something went wrong");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -242,7 +296,11 @@ export default function EditNGOProfileScreen() {
         <InputField value={merchantId} onChangeText={setMerchantId} placeholder="Enter Merchant ID" />
 
         <View style={styles.buttonSection}>
-          <PrimaryButton title="Save Changes" onPress={handleSaveChanges} />
+          <PrimaryButton
+            title={isSubmitting ? "Saving changes..." : "Save Changes"}
+            onPress={handleSaveChanges}
+            disabled={isSubmitting}
+          />
           <TouchableOpacity style={styles.cancelButton} onPress={() => router.back()}>
             <Text style={styles.cancelButtonText}>Cancel</Text>
           </TouchableOpacity>

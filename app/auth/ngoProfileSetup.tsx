@@ -42,6 +42,51 @@ export default function ngoProfileSetup() {
   const [merchantId, setMerchantId] = useState("");
   const [merchantSecret, setMerchantSecret] = useState("");
   const [paymentValidationError, setPaymentValidationError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
+    if (!uriOrAsset) return null;
+
+    let uri = "";
+    let name = "upload_file";
+    let mimeType = "image/jpeg";
+
+    if (typeof uriOrAsset === "object" && uriOrAsset.uri) {
+      uri = uriOrAsset.uri;
+      name = uriOrAsset.name || "upload_file";
+      mimeType = uriOrAsset.mimeType || "application/octet-stream";
+    } else if (typeof uriOrAsset === "string" && uriOrAsset.startsWith("file://")) {
+      uri = uriOrAsset;
+      const filename = uri.split("/").pop();
+      if (filename) name = filename;
+    } else if (typeof uriOrAsset === "string") {
+      return uriOrAsset;
+    } else {
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri,
+      name,
+      type: mimeType,
+    } as any);
+
+    const res = await fetch(`${API_URL}/upload/cloudinary`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to upload file to Cloudinary");
+    }
+
+    const data = await res.json();
+    return data.url;
+  };
 
   // Fetch user details on mount
   useEffect(() => {
@@ -122,7 +167,14 @@ export default function ngoProfileSetup() {
         return;
       }
 
+      setIsSubmitting(true);
       const token = await SecureStore.getItemAsync("authToken");
+      if (!token) throw new Error("No authorization token found");
+
+      // Upload local files to Cloudinary first
+      const uploadedImageUrl = await uploadToCloudinaryIfLocal(image, token);
+      const uploadedDocUrl = await uploadToCloudinaryIfLocal(document, token);
+
       const response = await fetch(`${API_URL}/profiles/ngo`, {
         method: "POST",
         headers: {
@@ -136,8 +188,8 @@ export default function ngoProfileSetup() {
           foundedYear: year,
           location,
           bio,
-          profileImage: image && typeof image === 'object' ? (image as any).uri : image,
-          verificationDocument: document && typeof document === 'object' ? (document as any).uri : document,
+          profileImage: uploadedImageUrl,
+          verificationDocument: uploadedDocUrl,
           merchantId,
           merchantSecret,
         }),
@@ -149,9 +201,11 @@ export default function ngoProfileSetup() {
       } else {
         alert(data.message || "Failed to save profile");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Profile submission error:", error);
-      alert("Something went wrong. Please check connection.");
+      alert(error.message || "Something went wrong. Please check connection.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -274,8 +328,9 @@ export default function ngoProfileSetup() {
 
       {/* BUTTON */}
       <PrimaryButton
-        title="Submit for Verification"
+        title={isSubmitting ? "Uploading files..." : "Submit for Verification"}
         onPress={handleSubmit}
+        disabled={isSubmitting}
       />
 
       <View style={{ height: 40 }} />

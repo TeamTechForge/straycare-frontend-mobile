@@ -42,6 +42,51 @@ export default function VetProfileSetupScreen() {
   const [payHereMerchantId, setPayHereMerchantId] = useState("");
   const [merchantSecret, setMerchantSecret] = useState("");
   const [paymentValidationError, setPaymentValidationError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
+    if (!uriOrAsset) return null;
+
+    let uri = "";
+    let name = "upload_file";
+    let mimeType = "image/jpeg";
+
+    if (typeof uriOrAsset === "object" && uriOrAsset.uri) {
+      uri = uriOrAsset.uri;
+      name = uriOrAsset.name || "upload_file";
+      mimeType = uriOrAsset.mimeType || "application/octet-stream";
+    } else if (typeof uriOrAsset === "string" && uriOrAsset.startsWith("file://")) {
+      uri = uriOrAsset;
+      const filename = uri.split("/").pop();
+      if (filename) name = filename;
+    } else if (typeof uriOrAsset === "string") {
+      return uriOrAsset;
+    } else {
+      return null;
+    }
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri,
+      name,
+      type: mimeType,
+    } as any);
+
+    const res = await fetch(`${API_URL}/upload/cloudinary`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      throw new Error("Failed to upload file to Cloudinary");
+    }
+
+    const data = await res.json();
+    return data.url;
+  };
 
   const [errors, setErrors] = useState({
     name: "",
@@ -210,7 +255,14 @@ export default function VetProfileSetupScreen() {
     }
 
     try {
+      setIsSubmitting(true);
       const token = await SecureStore.getItemAsync("authToken");
+      if (!token) throw new Error("No authorization token found");
+
+      // Upload local files to Cloudinary first
+      const uploadedImageUrl = await uploadToCloudinaryIfLocal(profileImage, token);
+      const uploadedDocUrl = await uploadToCloudinaryIfLocal(licenseDocument, token);
+
       const response = await fetch(`${API_URL}/profiles/vet`, {
         method: "POST",
         headers: {
@@ -224,8 +276,8 @@ export default function VetProfileSetupScreen() {
           clinicAddress,
           licenseNumber,
           yearsOfExperience,
-          profileImage: profileImage && typeof profileImage === 'object' ? (profileImage as any).uri : profileImage,
-          licenseDocument: licenseDocument && typeof licenseDocument === 'object' ? (licenseDocument as any).uri : licenseDocument,
+          profileImage: uploadedImageUrl,
+          licenseDocument: uploadedDocUrl,
           merchantId: payHereMerchantId,
           merchantSecret,
         }),
@@ -237,9 +289,11 @@ export default function VetProfileSetupScreen() {
       } else {
         alert(data.message || "Failed to save profile");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Profile submission error:", error);
-      alert("Something went wrong. Please check connection.");
+      alert(error.message || "Something went wrong. Please check connection.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -402,7 +456,11 @@ export default function VetProfileSetupScreen() {
       </Text>
 
       {/* Submit */}
-      <PrimaryButton title="Submit for Verification" onPress={handleSubmit} />
+      <PrimaryButton
+        title={isSubmitting ? "Uploading files..." : "Submit for Verification"}
+        onPress={handleSubmit}
+        disabled={isSubmitting}
+      />
     </ScrollView>
   );
 }
