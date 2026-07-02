@@ -1,57 +1,87 @@
-import * as Google from "expo-auth-session/providers/google";
-import * as AuthSession from "expo-auth-session";
-import * as WebBrowser from "expo-web-browser";
+import { GoogleSignin } from "@react-native-google-signin/google-signin";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import { auth } from "../firebaseConfig";
 import { API_URL } from "../constants/Config";
+import { useState } from "react";
 
-// Required for Expo Go auth session redirect
-WebBrowser.maybeCompleteAuthSession();
+// Configure native Google Sign-In with the web client ID (required for Firebase)
+GoogleSignin.configure({
+  webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+});
 
 /**
- * Custom hook that configures the Google OAuth request via expo-auth-session.
- * Returns { request, response, promptAsync } — call promptAsync() to launch
- * the Google account picker, then pass the response to handleGoogleSignIn().
+ * Custom hook that mimics expo-auth-session useAuthRequest.
+ * It uses the native Google SDK under the hood but returns the same
+ * { request, response, promptAsync, isReady } signature so our UI screens
+ * don't need to change.
  */
 export function useGoogleAuth() {
-  const [request, response, promptAsync] = Google.useAuthRequest({
-    webClientId: process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    androidClientId: process.env.EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
-    iosClientId: process.env.EXPO_PUBLIC_GOOGLE_IOS_CLIENT_ID || process.env.EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID,
+  const [response, setResponse] = useState(null);
 
-  });
+  const promptAsync = async () => {
+    try {
+      setResponse(null); // Clear previous responses
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const idToken = userInfo.idToken || userInfo.data?.idToken;
+      
+      if (!idToken) {
+        throw new Error("Google Sign-In succeeded but no ID Token was received.");
+      }
+
+      setResponse({
+        type: "success",
+        params: {
+          id_token: idToken,
+        },
+      });
+    } catch (error) {
+      console.error("Native Google Sign-In error details:", error);
+      
+      // Match cancel code
+      if (
+        error.code === "SIGN_IN_CANCELLED" || 
+        error.code === "12501" ||
+        error.message?.includes("SIGN_IN_CANCELLED")
+      ) {
+        setResponse({ type: "cancel" });
+      } else {
+        setResponse({
+          type: "error",
+          error: error.message || "Native Google Sign-In failed",
+        });
+      }
+    }
+  };
 
   return {
-    request,
+    request: {}, // Mock request object to satisfy dependencies
     response,
     promptAsync,
-    isReady: !!request,
+    isReady: true,
   };
 }
 
 /**
- * Complete the Google Sign-In flow after expo-auth-session returns.
+ * Complete the Google Sign-In flow after native Google SDK returns.
+ * 
+ * Takes the mocked response from useGoogleAuth and runs the standard
+ * Firebase login and Backend exchange.
  *
- * Flow:
- * 1. Extract id_token from the auth session response
- * 2. Create a Firebase GoogleAuthProvider credential
- * 3. Sign in to Firebase with that credential
- * 4. Get the Firebase ID token
- * 5. Send it to the backend POST /api/auth/google
- * 6. Return the backend response { success, token, user, isNewUser }
- *
- * @param {object} response - The response object from useAuthRequest
+ * @param {object} response - The response object from useGoogleAuth
  * @returns {Promise<{ success: boolean, token: string, user: object, isNewUser: boolean }>}
- * @throws {Error} with a descriptive message for each failure point
  */
 export async function handleGoogleSignIn(response) {
-  // Step 1: Validate the auth session response
   if (!response) {
     throw new Error("No response received from Google Sign-In.");
   }
 
   if (response.type === "dismiss" || response.type === "cancel") {
     throw new Error("CANCELLED");
+  }
+
+  if (response.type === "error") {
+    throw new Error(response.error || "Google Sign-In failed.");
   }
 
   if (response.type !== "success") {
@@ -68,7 +98,7 @@ export async function handleGoogleSignIn(response) {
     );
   }
 
-  // Step 2–3: Authenticate with Firebase using the Google credential
+  // Authenticate with Firebase using the Google credential
   let firebaseUser;
   try {
     const credential = GoogleAuthProvider.credential(id_token);
@@ -84,7 +114,7 @@ export async function handleGoogleSignIn(response) {
     throw new Error(message);
   }
 
-  // Step 4: Get the Firebase ID token to send to the backend
+  // Get the Firebase ID token to send to the backend
   let firebaseIdToken;
   try {
     firebaseIdToken = await firebaseUser.getIdToken();
@@ -92,7 +122,7 @@ export async function handleGoogleSignIn(response) {
     throw new Error("Failed to obtain Firebase ID token. Please try again.");
   }
 
-  // Step 5: Send the Firebase ID token to the backend
+  // Send the Firebase ID token to the backend
   let backendResponse;
   try {
     const controller = new AbortController();
@@ -119,7 +149,6 @@ export async function handleGoogleSignIn(response) {
         "The server took too long to respond. Please check your connection and try again."
       );
     }
-    // Re-throw if it's already our custom error
     if (error.message && !error.message.includes("fetch")) {
       throw error;
     }
@@ -128,7 +157,6 @@ export async function handleGoogleSignIn(response) {
     );
   }
 
-  // Step 6: Return the backend response
   return {
     success: backendResponse.success,
     token: backendResponse.token,
