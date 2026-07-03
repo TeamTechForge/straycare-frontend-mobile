@@ -4,17 +4,19 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, Image } from "react-native";
 
 const BRAND_COLOR = "#F5A623";
 
 type Props = {
   name: string;
   isOnline: boolean;
+  profileImage?: string;
   onCallPress?: () => void;
+  onTitlePress?: () => void;
 };
 
-export default function ChatHeader({ name, isOnline, onCallPress }: Props) {
+export default function ChatHeader({ name, isOnline, profileImage, onCallPress, onTitlePress }: Props) {
   const router = useRouter();
 
   return (
@@ -25,18 +27,22 @@ export default function ChatHeader({ name, isOnline, onCallPress }: Props) {
       </TouchableOpacity>
 
       {/* Avatar + user info */}
-      <View style={styles.userInfo}>
+      <TouchableOpacity style={styles.userInfo} onPress={onTitlePress} activeOpacity={0.7}>
         <View style={styles.avatarSmall}>
-          <Ionicons name="person" size={16} color="#999" />
+          {profileImage ? (
+            <Image source={{ uri: profileImage }} style={styles.avatarImageSmall} />
+          ) : (
+            <Ionicons name="person" size={16} color="#999" />
+          )}
           {isOnline && <View style={styles.onlineDot} />}
         </View>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.name} numberOfLines={1}>
             {name}
           </Text>
           <Text style={styles.status}>{isOnline ? "Online" : "Offline"}</Text>
         </View>
-      </View>
+      </TouchableOpacity>
 
       {/* Call button (Phase 2 — visually present, functionality TBD) */}
       <TouchableOpacity onPress={onCallPress} style={styles.callButton}>
@@ -102,5 +108,10 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF4E5",
     justifyContent: "center",
     alignItems: "center",
+  },
+  avatarImageSmall: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
   },
 });

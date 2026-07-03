@@ -109,7 +109,7 @@ export default function ChatsScreen() {
     const other = getOtherParticipant(item);
     if (!other) return null;
 
-    const unreadCount = item.unreadCounts?.[user?._id] || 0;
+    const unreadCount = (user?._id && item.unreadCounts?.[user._id]) || 0;
 
     return (
       <ConversationItem
@@ -118,6 +118,7 @@ export default function ChatsScreen() {
         time={formatTime(item.lastMessage?.createdAt)}
         unreadCount={unreadCount}
         isOnline={onlineUsers.has(other._id)}
+        profileImage={other.profileImage}
         onPress={() =>
           router.push({
             pathname: "/chat/[conversationId]",
@@ -125,6 +126,7 @@ export default function ChatsScreen() {
               conversationId: item._id,
               recipientName: other.name,
               recipientId: other._id,
+              recipientImage: other.profileImage || "",
             },
           })
         }

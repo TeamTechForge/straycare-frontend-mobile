@@ -1,7 +1,7 @@
 // app/chat/[conversationId].tsx
 // Chat room screen — messages, typing indicator, infinite scroll, optimistic updates.
 
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -25,10 +25,12 @@ import { API_URL } from "../../constants/Config";
 const BRAND_COLOR = "#F5A623";
 
 export default function ChatRoomScreen() {
-  const { conversationId, recipientName, recipientId } = useLocalSearchParams<{
+  const router = useRouter();
+  const { conversationId, recipientName, recipientId, recipientImage } = useLocalSearchParams<{
     conversationId: string;
     recipientName?: string;
     recipientId?: string;
+    recipientImage?: string;
   }>();
 
   const { user, token } = useAuth();
@@ -286,6 +288,12 @@ export default function ChatRoomScreen() {
       <ChatHeader
         name={recipientName || "Chat"}
         isOnline={isRecipientOnline}
+        profileImage={recipientImage}
+        onTitlePress={() => {
+          if (recipientId) {
+            router.push(`/profile/${recipientId}`);
+          }
+        }}
         onCallPress={() => Alert.alert("Coming Soon", "Voice calling will be available in Phase 2.")}
       />
 

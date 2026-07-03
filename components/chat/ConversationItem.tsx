@@ -4,7 +4,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, TouchableOpacity, View, Image } from "react-native";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -14,6 +14,7 @@ type Props = {
   time: string;
   unreadCount: number;
   isOnline: boolean;
+  profileImage?: string;
   onPress: () => void;
 };
 
@@ -23,15 +24,20 @@ export default function ConversationItem({
   time,
   unreadCount,
   isOnline,
+  profileImage,
   onPress,
 }: Props) {
   return (
     <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
       {/* Avatar with online indicator */}
       <View style={styles.avatarContainer}>
-        <View style={styles.avatar}>
-          <Ionicons name="person" size={22} color="#999" />
-        </View>
+        {profileImage ? (
+          <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+        ) : (
+          <View style={styles.avatar}>
+            <Ionicons name="person" size={22} color="#999" />
+          </View>
+        )}
         {isOnline && <View style={styles.onlineDot} />}
       </View>
 
@@ -143,5 +149,10 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 11,
     fontWeight: "700",
+  },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
   },
 });

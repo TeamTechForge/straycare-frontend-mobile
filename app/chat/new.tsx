@@ -13,6 +13,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Image,
 } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import { useChatApi } from "../../hooks/useChatApi";
@@ -72,6 +73,7 @@ export default function NewChatScreen() {
           conversationId: conversation._id,
           recipientName: otherParticipant?.name || selectedUser.name,
           recipientId: selectedUser._id,
+          recipientImage: otherParticipant?.profileImage || selectedUser.profileImage || "",
         },
       });
     } catch (error: any) {
@@ -120,9 +122,13 @@ export default function NewChatScreen() {
         disabled={creating}
       >
         {/* Avatar Circle */}
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>{initials}</Text>
-        </View>
+        {item.profileImage ? (
+          <Image source={{ uri: item.profileImage }} style={styles.avatarImage} />
+        ) : (
+          <View style={styles.avatar}>
+            <Text style={styles.avatarText}>{initials}</Text>
+          </View>
+        )}
 
         {/* User Info */}
         <View style={styles.userInfo}>
@@ -285,6 +291,12 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFF4E5",
     justifyContent: "center",
     alignItems: "center",
+    marginRight: 14,
+  },
+  avatarImage: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     marginRight: 14,
   },
   avatarText: {
