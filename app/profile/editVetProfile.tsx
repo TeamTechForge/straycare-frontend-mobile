@@ -79,7 +79,16 @@ export default function EditVetProfileScreen() {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to upload file to Cloudinary");
+      let errorMsg = "Failed to upload file to Cloudinary";
+      try {
+        const errorData = await res.json();
+        if (errorData && errorData.message) {
+          errorMsg = errorData.message;
+        }
+      } catch (e) {
+        // use default error message
+      }
+      throw new Error(errorMsg);
     }
 
     const data = await res.json();
@@ -203,7 +212,7 @@ export default function EditVetProfileScreen() {
         router.back();
       } else {
         const data = await response.json();
-        alert(data.message || "Failed to update profile");
+        alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to update profile");
       }
     } catch (error: any) {
       console.error("Update Vet profile error:", error);

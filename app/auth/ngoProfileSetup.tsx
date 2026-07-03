@@ -81,7 +81,16 @@ export default function ngoProfileSetup() {
     });
 
     if (!res.ok) {
-      throw new Error("Failed to upload file to Cloudinary");
+      let errorMsg = "Failed to upload file to Cloudinary";
+      try {
+        const errorData = await res.json();
+        if (errorData && errorData.message) {
+          errorMsg = errorData.message;
+        }
+      } catch (e) {
+        // use default error message
+      }
+      throw new Error(errorMsg);
     }
 
     const data = await res.json();
@@ -199,7 +208,7 @@ export default function ngoProfileSetup() {
       if (response.ok) {
         router.replace("/auth/verificationPending");
       } else {
-        alert(data.message || "Failed to save profile");
+        alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
       }
     } catch (error: any) {
       console.error("Profile submission error:", error);

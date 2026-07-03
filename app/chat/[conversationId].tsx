@@ -198,7 +198,16 @@ export default function ChatRoomScreen() {
       });
 
       if (!uploadRes.ok) {
-        throw new Error("Image upload failed");
+        let errorMsg = "Image upload failed";
+        try {
+          const errorData = await uploadRes.json();
+          if (errorData && errorData.message) {
+            errorMsg = errorData.message;
+          }
+        } catch (e) {
+          // use default error message
+        }
+        throw new Error(errorMsg);
       }
 
       const { url: imageUrl } = await uploadRes.json();

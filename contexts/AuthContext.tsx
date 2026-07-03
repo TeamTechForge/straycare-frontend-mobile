@@ -12,7 +12,9 @@ type UserData = {
   role: string;
   phone?: string;
   profileCompleted?: boolean;
+  roleSelected?: boolean;
   isApproved?: boolean;
+  profileStatus?: "Pending" | "Verified" | "Rejected";
   messagingPrivacy?: string;
   callingPrivacy?: string;
 };
@@ -55,7 +57,23 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       if (response.ok) {
         const data = await response.json();
-        setUser(data);
+        let profileStatus: "Pending" | "Verified" | "Rejected" = "Pending";
+
+        if (data.role === "ngo" || data.role === "vet") {
+          try {
+            const profileRes = await fetch(`${API_URL}/profiles/me`, {
+              headers: { Authorization: `Bearer ${storedToken}` },
+            });
+            if (profileRes.ok) {
+              const profileData = await profileRes.json();
+              profileStatus = profileData.status || "Pending";
+            }
+          } catch (profileErr) {
+            console.error("[AuthContext] Error fetching profile status:", profileErr);
+          }
+        }
+
+        setUser({ ...data, profileStatus });
       } else {
         // Token invalid/expired
         setUser(null);
@@ -80,7 +98,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    fetchUser();
+    // Purge saved credentials on app startup to disable automatic session restoration during development
+    SecureStore.deleteItemAsync("authToken")
+      .catch((err) => console.error("Error clearing token on startup:", err))
+      .finally(() => {
+        setUser(null);
+        setToken(null);
+        setIsLoading(false);
+      });
   }, []);
 
   return (
