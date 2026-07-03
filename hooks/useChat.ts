@@ -126,6 +126,23 @@ export function useChat(conversationId?: string) {
     [socket]
   );
 
+  const onDeleteMessage = useCallback(
+    (callback: (data: { messageId: string; conversationId: string }) => void) => {
+      if (!socket) return () => {};
+
+      const handler = (data: { messageId: string; conversationId: string }) => {
+        console.log(`[useChat] 📥 Socket event [message:delete] received. MessageId: ${data.messageId}, Room: ${data.conversationId}`);
+        callback(data);
+      };
+
+      socket.on("message:delete", handler);
+      return () => {
+        socket.off("message:delete", handler);
+      };
+    },
+    [socket]
+  );
+
   return {
     setTyping,
     emitReadReceipt,
@@ -133,5 +150,6 @@ export function useChat(conversationId?: string) {
     onTyping,
     onStopTyping,
     onReadAck,
+    onDeleteMessage,
   };
 }

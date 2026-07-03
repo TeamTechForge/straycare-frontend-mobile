@@ -35,9 +35,9 @@ export default function ChatRoomScreen() {
 
   const { user, token } = useAuth();
   const { onlineUsers } = useSocket();
-  const { setTyping, emitReadReceipt, onNewMessage, onTyping, onStopTyping, onReadAck } =
+  const { setTyping, emitReadReceipt, onNewMessage, onTyping, onStopTyping, onReadAck, onDeleteMessage } =
     useChat(conversationId);
-  const { fetchMessages, sendMessage, markAsRead } = useChatApi();
+  const { fetchMessages, sendMessage, markAsRead, deleteMessage } = useChatApi();
 
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,6 +131,30 @@ export default function ChatRoomScreen() {
 
     return cleanup;
   }, [onReadAck, conversationId]);
+
+  // ── Real-time: message deletion ───────────────────────────
+  useEffect(() => {
+    const cleanup = onDeleteMessage(({ messageId, conversationId: cid }) => {
+      if (cid !== conversationId) return;
+
+      setMessages((prev) =>
+        prev.map((msg) =>
+          msg._id === messageId
+            ? {
+                ...msg,
+                isDeletedForEveryone: true,
+                text: "This message was deleted.",
+                type: "text",
+                imageUrl: undefined,
+                location: undefined,
+              }
+            : msg
+        )
+      );
+    });
+
+    return cleanup;
+  }, [onDeleteMessage, conversationId]);
 
   // ── Infinite scroll (load older messages) ─────────────────
   const loadMore = async () => {
@@ -245,6 +269,75 @@ export default function ChatRoomScreen() {
     }
   };
 
+  const handleDeleteMessage = async (messageId: string, type: "me" | "everyone") => {
+    try {
+      await deleteMessage(messageId, type);
+      if (type === "me") {
+        setMessages((prev) => prev.filter((m) => m._id !== messageId));
+      } else {
+        setMessages((prev) =>
+          prev.map((msg) =>
+            msg._id === messageId
+              ? {
+                  ...msg,
+                  isDeletedForEveryone: true,
+                  text: "This message was deleted.",
+                  type: "text",
+                  imageUrl: undefined,
+                  location: undefined,
+                }
+              : msg
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to delete message:", err);
+      Alert.alert("Error", "Could not delete message. Please try again.");
+    }
+  };
+
+  const handleLongPressMessage = (message: any) => {
+    const isMine = (message.sender?._id || message.sender) === user?._id;
+
+    if (isMine) {
+      Alert.alert(
+        "Delete Message",
+        "Choose an option to delete this message.",
+        [
+          {
+            text: "Delete for Me",
+            onPress: () => handleDeleteMessage(message._id, "me"),
+          },
+          {
+            text: "Delete for Everyone",
+            style: "destructive",
+            onPress: () => handleDeleteMessage(message._id, "everyone"),
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        "Delete Message",
+        "Do you want to delete this message for yourself?",
+        [
+          {
+            text: "Delete for Me",
+            style: "destructive",
+            onPress: () => handleDeleteMessage(message._id, "me"),
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+        ]
+      );
+    }
+  };
+
   // ── Format time ───────────────────────────────────────────
   const formatTime = (dateString: string) => {
     if (!dateString) return "";
@@ -272,6 +365,8 @@ export default function ChatRoomScreen() {
         imageUrl={item.imageUrl}
         location={item.location}
         showTail={true}
+        onLongPress={() => handleLongPressMessage(item)}
+        isDeletedForEveryone={item.isDeletedForEveryone}
       />
     );
   };

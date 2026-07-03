@@ -110,4 +110,29 @@ export const chatApi = {
     if (!res.ok) throw new Error("Failed to search users");
     return res.json();
   },
+
+  deleteConversation: async (token: string, conversationId: string) => {
+    const url = `${API_URL}/chat/conversations/${conversationId}`;
+    logRequest(url, token, "DELETE");
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: headers(token),
+    });
+    logResponse(url, res.status);
+    if (!res.ok) throw new Error("Failed to delete conversation");
+    return res.json();
+  },
+
+  deleteMessage: async (token: string, messageId: string, type: "me" | "everyone") => {
+    const url = `${API_URL}/chat/messages/${messageId}`;
+    logRequest(url, token, "DELETE");
+    const res = await fetch(url, {
+      method: "DELETE",
+      headers: headers(token),
+      body: JSON.stringify({ type }),
+    });
+    logResponse(url, res.status);
+    if (!res.ok) throw new Error("Failed to delete message");
+    return res.json();
+  },
 };

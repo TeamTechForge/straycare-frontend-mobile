@@ -70,6 +70,24 @@ export function useChatApi() {
     [token, user?._id]
   );
 
+  const deleteConversation = useCallback(
+    async (conversationId: string) => {
+      console.log(`[useChatApi] 🗑️ deleteConversation. User: ${user?._id || "none"}, ConversationId: ${conversationId}`);
+      if (!token) throw new Error("Not authenticated");
+      return chatApi.deleteConversation(token, conversationId);
+    },
+    [token, user?._id]
+  );
+
+  const deleteMessage = useCallback(
+    async (messageId: string, type: "me" | "everyone") => {
+      console.log(`[useChatApi] 🗑️ deleteMessage. User: ${user?._id || "none"}, MessageId: ${messageId}, Type: ${type}`);
+      if (!token) throw new Error("Not authenticated");
+      return chatApi.deleteMessage(token, messageId, type);
+    },
+    [token, user?._id]
+  );
+
   return {
     fetchConversations,
     fetchMessages,
@@ -77,5 +95,7 @@ export function useChatApi() {
     sendMessage,
     markAsRead,
     searchUsers,
+    deleteConversation,
+    deleteMessage,
   };
 }

@@ -13,6 +13,7 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  Alert,
 } from "react-native";
 import ConversationItem from "../../components/chat/ConversationItem";
 import { useAuth } from "../../contexts/AuthContext";
@@ -25,12 +26,38 @@ export default function ChatsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const { socket, onlineUsers } = useSocket();
-  const { fetchConversations } = useChatApi();
+  const { fetchConversations, deleteConversation } = useChatApi();
 
   const [conversations, setConversations] = useState<any[]>([]);
   const [search, setSearch] = useState("");
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+
+  const handleLongPressConversation = (conversationId: string) => {
+    Alert.alert(
+      "Delete Chat",
+      "Are you sure you want to delete this chat? This will remove it from your chat list.",
+      [
+        {
+          text: "Delete Chat",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteConversation(conversationId);
+              setConversations((prev) => prev.filter((c) => c._id !== conversationId));
+            } catch (err) {
+              console.error("Failed to delete conversation:", err);
+              Alert.alert("Error", "Could not delete conversation. Please try again.");
+            }
+          },
+        },
+        {
+          text: "Cancel",
+          style: "cancel",
+        },
+      ]
+    );
+  };
 
   const loadConversations = useCallback(async () => {
     try {
@@ -119,6 +146,7 @@ export default function ChatsScreen() {
         unreadCount={unreadCount}
         isOnline={onlineUsers.has(other._id)}
         profileImage={other.profileImage}
+        role={other.role}
         onPress={() =>
           router.push({
             pathname: "/chat/[conversationId]",
@@ -130,6 +158,7 @@ export default function ChatsScreen() {
             },
           })
         }
+        onLongPress={() => handleLongPressConversation(item._id)}
       />
     );
   };

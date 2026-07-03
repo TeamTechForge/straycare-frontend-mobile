@@ -3,7 +3,7 @@
 
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View, Linking, TouchableOpacity } from "react-native";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -16,6 +16,8 @@ type Props = {
   imageUrl?: string;
   location?: { latitude: number; longitude: number; address?: string };
   showTail?: boolean;
+  onLongPress?: () => void;
+  isDeletedForEveryone?: boolean;
 };
 
 export default function MessageBubble({
@@ -27,10 +29,15 @@ export default function MessageBubble({
   imageUrl,
   location,
   showTail = true,
+  onLongPress,
+  isDeletedForEveryone = false,
 }: Props) {
   return (
     <View style={[styles.row, isMine ? styles.rowRight : styles.rowLeft]}>
-      <View
+      <TouchableOpacity
+        onLongPress={isDeletedForEveryone ? undefined : onLongPress}
+        activeOpacity={0.9}
+        delayLongPress={350}
         style={[
           styles.bubble,
           isMine ? styles.bubbleMine : styles.bubbleTheirs,
@@ -44,17 +51,32 @@ export default function MessageBubble({
 
         {/* Location message */}
         {type === "location" && location && (
-          <View style={styles.locationContainer}>
+          <TouchableOpacity
+            onPress={() => {
+              const url = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
+              Linking.openURL(url).catch((err) => console.error("Failed to open maps", err));
+            }}
+            style={styles.locationContainer}
+            activeOpacity={0.7}
+          >
             <Ionicons name="location" size={20} color={isMine ? "#fff" : BRAND_COLOR} />
             <Text style={[styles.locationText, isMine && styles.textMine]}>
               {location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
             </Text>
-          </View>
+          </TouchableOpacity>
         )}
 
         {/* Text content */}
         {(type === "text" || (type === "image" && text)) && (
-          <Text style={[styles.text, isMine && styles.textMine]}>{text}</Text>
+          <Text
+            style={[
+              styles.text,
+              isMine && styles.textMine,
+              isDeletedForEveryone && styles.deletedText,
+            ]}
+          >
+            {text}
+          </Text>
         )}
 
         {/* Footer: time + read receipt */}
@@ -69,7 +91,7 @@ export default function MessageBubble({
             />
           )}
         </View>
-      </View>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -145,5 +167,9 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#555",
     flex: 1,
+  },
+  deletedText: {
+    fontStyle: "italic",
+    opacity: 0.7,
   },
 });

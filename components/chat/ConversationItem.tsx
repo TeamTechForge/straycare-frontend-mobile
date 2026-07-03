@@ -15,7 +15,9 @@ type Props = {
   unreadCount: number;
   isOnline: boolean;
   profileImage?: string;
+  role?: string;
   onPress: () => void;
+  onLongPress?: () => void;
 };
 
 export default function ConversationItem({
@@ -25,10 +27,36 @@ export default function ConversationItem({
   unreadCount,
   isOnline,
   profileImage,
+  role,
   onPress,
+  onLongPress,
 }: Props) {
+  const getRoleBadge = (userRole?: string) => {
+    if (!userRole) return null;
+    switch (userRole) {
+      case "ngo":
+        return { text: "NGO", color: "#3B82F6", bg: "#EFF6FF" };
+      case "vet":
+        return { text: "VET", color: "#10B981", bg: "#ECFDF5" };
+      case "volunteer":
+        return { text: "VOLUNTEER", color: "#F59E0B", bg: "#FEF3C7" };
+      case "admin":
+        return { text: "ADMIN", color: "#EF4444", bg: "#FEF2F2" };
+      default:
+        return { text: "USER", color: "#6B7280", bg: "#F3F4F6" };
+    }
+  };
+
+  const badge = getRoleBadge(role);
+
   return (
-    <TouchableOpacity style={styles.container} onPress={onPress} activeOpacity={0.7}>
+    <TouchableOpacity
+      style={styles.container}
+      onPress={onPress}
+      onLongPress={onLongPress}
+      activeOpacity={0.7}
+      delayLongPress={350}
+    >
       {/* Avatar with online indicator */}
       <View style={styles.avatarContainer}>
         {profileImage ? (
@@ -44,9 +72,18 @@ export default function ConversationItem({
       {/* Message content */}
       <View style={styles.content}>
         <View style={styles.topRow}>
-          <Text style={styles.name} numberOfLines={1}>
-            {name}
-          </Text>
+          <View style={styles.nameContainer}>
+            <Text style={styles.name} numberOfLines={1}>
+              {name}
+            </Text>
+            {badge && (
+              <View style={[styles.roleBadge, { backgroundColor: badge.bg }]}>
+                <Text style={[styles.roleBadgeText, { color: badge.color }]}>
+                  {badge.text}
+                </Text>
+              </View>
+            )}
+          </View>
           <Text style={[styles.time, unreadCount > 0 && styles.timeUnread]}>{time}</Text>
         </View>
 
@@ -106,12 +143,18 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 4,
   },
+  nameContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flex: 1,
+    marginRight: 8,
+  },
   name: {
     fontSize: 15,
     fontWeight: "600",
     color: "#111",
-    flex: 1,
-    marginRight: 8,
+    flexShrink: 1,
   },
   time: {
     fontSize: 12,
@@ -154,5 +197,14 @@ const styles = StyleSheet.create({
     width: 50,
     height: 50,
     borderRadius: 25,
+  },
+  roleBadge: {
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 4,
+  },
+  roleBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
   },
 });
