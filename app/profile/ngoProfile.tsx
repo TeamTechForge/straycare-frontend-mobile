@@ -14,11 +14,13 @@ import ProfileStatsRow from "../../components/profile/ProfileStatsRow";
 import ProfileTabBar from "../../components/profile/ProfileTabBar";
 import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
 import SavedPreviewCard from "../../components/profile/SavedPreviewCard";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#F5A623";
 
 export default function NGOProfile() {
   const router = useRouter();
+  const { logout } = useAuth();
 
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -168,8 +170,8 @@ export default function NGOProfile() {
         }}
         onLogoutPress={async () => {
           setMenuVisible(false);
-          await SecureStore.deleteItemAsync("authToken");
-          router.replace("/auth/login");
+          await logout();
+          router.replace("/");
         }}
       />
     </SafeAreaView>

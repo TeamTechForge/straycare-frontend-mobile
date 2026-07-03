@@ -18,9 +18,9 @@ function InitialLayout() {
     const onAllowedAuthScreen = segments[1] === "login" || segments[1] === "register" || segments[1] === "forgotPasswordScreen" || segments[1] === "termsPrivacyScreen" || segments[1] === "welcome";
 
     if (!token || !user) {
-      // Force user to login if they are not on welcome index or allowed auth screens
+      // Force user to welcome index if they are not on welcome index or allowed auth screens
       if (!onWelcomeScreen && !onAllowedAuthScreen) {
-        router.replace("/auth/login");
+        router.replace("/");
       }
     } else {
       // User is authenticated

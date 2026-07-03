@@ -12,11 +12,13 @@ import {
 
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#f59e0b";
 
 export default function RescuerTypeScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const [selectedType, setSelectedType] = useState<
     "volunteer" | "ngo" | "vet" | null
@@ -62,6 +64,9 @@ export default function RescuerTypeScreen() {
       if (data.token) {
         await SecureStore.setItemAsync("authToken", data.token);
       }
+
+      // Refresh the user context so the root layout sees the updated roleSelected: true and new role
+      await refreshUser();
 
       // Navigate to profile setup without passing userId as a param
       if (selectedType === "volunteer") {

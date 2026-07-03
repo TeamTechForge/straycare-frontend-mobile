@@ -14,11 +14,13 @@ import {
 // ✅ reusable button
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#f59e0b";
 
 export default function SelectRoleScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const [selectedRole, setSelectedRole] = useState<"reporter" | "rescuer" | null>(null);
 
@@ -63,6 +65,9 @@ export default function SelectRoleScreen() {
           if (data.token) {
             await SecureStore.setItemAsync("authToken", data.token);
           }
+
+          // Refresh the user context so the root layout sees the updated roleSelected: true
+          await refreshUser();
 
           // Role selection is a critical setup step; replace current route 
           // to ensure back button doesn't loop back to role choice.
