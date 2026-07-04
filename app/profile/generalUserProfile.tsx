@@ -13,6 +13,7 @@ import ProfileMenuDrawer from "../../components/profile/ProfileMenuDrawer";
 import ProfileStatsRow from "../../components/profile/ProfileStatsRow";
 import ProfileTabBar from "../../components/profile/ProfileTabBar";
 import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
+import { useAuth } from "../../contexts/AuthContext";
 import SavedPreviewCard from "../../components/profile/SavedPreviewCard";
 
 const BRAND_COLOR = "#F5A623";
@@ -43,6 +44,7 @@ interface SavedItem {
 
 export default function GeneralUserProfile() {
   const router = useRouter();
+  const { logout } = useAuth();
 
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -246,8 +248,8 @@ export default function GeneralUserProfile() {
         }}
         onLogoutPress={async () => {
           setMenuVisible(false);
-          await SecureStore.deleteItemAsync("authToken");
-          router.replace("/auth/login");
+          await logout();
+          router.replace("/");
         }} 
       />
     </SafeAreaView>

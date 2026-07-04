@@ -11,11 +11,13 @@ import ProfileHeaderCard from "../../components/profile/ProfileHeaderCard";
 import ProfileMenuDrawer from "../../components/profile/ProfileMenuDrawer";
 import ProfileStatsRow from "../../components/profile/ProfileStatsRow";
 import ProfileTabBar from "../../components/profile/ProfileTabBar";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#F5A623";
 
 export default function VetProfile() {
   const router = useRouter();
+  const { logout } = useAuth();
 
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
@@ -163,8 +165,8 @@ export default function VetProfile() {
         }}
         onLogoutPress={async () => {
           setMenuVisible(false);
-          await SecureStore.deleteItemAsync("authToken");
-          router.replace("/auth/login");
+          await logout();
+          router.replace("/");
         }} 
       />
     </SafeAreaView>

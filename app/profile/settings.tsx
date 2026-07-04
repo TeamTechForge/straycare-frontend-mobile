@@ -6,11 +6,13 @@ import * as SecureStore from "expo-secure-store";
 import { API_URL } from "../../constants/Config";
 
 import SettingsRow from "../../components/settings/SettingsRow";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#F5A623";
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { logout } = useAuth();
 
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
@@ -43,8 +45,8 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = async () => {
-    await SecureStore.deleteItemAsync("authToken");
-    router.replace("/auth/login");
+    await logout();
+    router.replace("/");
   };
 
   return (

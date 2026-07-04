@@ -18,6 +18,8 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
+import { useChatApi } from "../../hooks/useChatApi";
 import PrimaryButton from "../../components/PrimaryButton";
 import EmptyStateCard from "../../components/profile/EmptyStateCard";
 import PostPreviewCard from "../../components/profile/PostPreviewCard";
@@ -60,6 +62,8 @@ interface Rescue {
 export default function PublicProfileScreen() {
   const router = useRouter();
   const { userId } = useLocalSearchParams();
+  const { user } = useAuth();
+  const { createConversation } = useChatApi();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -157,9 +161,42 @@ export default function PublicProfileScreen() {
     fetchProfileAndStats();
   };
 
-  const handleMessage = () => {
-    // Navigate to chat. In a real app, this would open a specific conversation room.
-    router.push("/(tabs)/chats");
+  const handleMessage = async () => {
+    if (!user) {
+      Alert.alert("Authentication required", "Please log in to message this user.");
+      return;
+    }
+
+    if (user._id === userId) {
+      Alert.alert("Error", "You cannot message yourself.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const conversation = await createConversation(userId as string, "direct");
+      const otherParticipant = conversation.participants?.find(
+        (p: any) => p._id !== user._id
+      );
+
+      router.push({
+        pathname: "/chat/[conversationId]",
+        params: {
+          conversationId: conversation._id,
+          recipientName: otherParticipant?.name || userData?.name || "Chat",
+          recipientId: userId as string,
+          recipientImage: otherParticipant?.profileImage || profileData?.profileImage || "",
+        },
+      });
+    } catch (error: any) {
+      console.error("Failed to start/open conversation:", error);
+      Alert.alert(
+        "Could Not Start Chat",
+        error.message || "Something went wrong while starting the conversation."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleShare = async () => {

@@ -17,6 +17,7 @@ import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthServ
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -25,6 +26,7 @@ and registering the user with the backend.*/
 export default function RegisterScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { refreshUser } = useAuth();
 
   const [agree, setAgree] = useState(false);
 
@@ -166,6 +168,9 @@ export default function RegisterScreen() {
       if (response.ok) {
         // Store JWT securely
         await SecureStore.setItemAsync("authToken", data.token);
+
+        // Refresh AuthContext so token + user are available app-wide
+        await refreshUser();
 
         router.replace("/auth/roleSelection");
       } else {
