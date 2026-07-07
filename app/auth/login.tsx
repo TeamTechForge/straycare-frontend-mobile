@@ -45,6 +45,7 @@ export default function LoginScreen() {
       try {
         const result = await handleGoogleSignIn(googleResponse);
         await SecureStore.setItemAsync("authToken", result.token);
+        await refreshUser();
         router.replace("/(tabs)/home");
       } catch (error) {
         if (error.message === "CANCELLED") {

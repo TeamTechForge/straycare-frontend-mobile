@@ -52,6 +52,7 @@ export default function RegisterScreen() {
       try {
         const result = await handleGoogleSignIn(googleResponse);
         await SecureStore.setItemAsync("authToken", result.token);
+        await refreshUser();
 
         if (result.isNewUser) {
           // New Google account — needs role selection

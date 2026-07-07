@@ -38,6 +38,14 @@ export function useGoogleAuth() {
     try {
       setResponse(null); // Clear previous responses
       await GoogleSignin.hasPlayServices();
+      
+      // Clear previous Google session to force the account chooser popup
+      try {
+        await GoogleSignin.signOut();
+      } catch (signOutError) {
+        // Ignore if there was no active session
+      }
+
       const userInfo = await GoogleSignin.signIn();
       const idToken = userInfo.idToken || userInfo.data?.idToken;
       
@@ -180,4 +188,16 @@ export async function handleGoogleSignIn(response) {
     user: backendResponse.user,
     isNewUser: backendResponse.isNewUser,
   };
+}
+
+/**
+ * Clear the Google Sign-In session on the device.
+ */
+export async function clearGoogleSession() {
+  if (isExpoGo || !GoogleSignin) return;
+  try {
+    await GoogleSignin.signOut();
+  } catch (error) {
+    // Ignore error if there was no active session
+  }
 }
