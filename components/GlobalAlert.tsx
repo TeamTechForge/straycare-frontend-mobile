@@ -137,7 +137,7 @@ export function AlertProvider({ children }: AlertProviderProps) {
   const theme = getTheme();
 
   return (
-    <View style={{ flex: 1 }}>
+    <>
       {children}
       
       <Modal
@@ -200,7 +200,7 @@ export function AlertProvider({ children }: AlertProviderProps) {
           </View>
         </View>
       </Modal>
-    </View>
+    </>
   );
 }
 
