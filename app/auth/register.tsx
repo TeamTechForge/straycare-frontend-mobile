@@ -18,6 +18,7 @@ import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/Config";
 import { useAuth } from "../../contexts/AuthContext";
+import CustomAlertModal from "../../components/CustomAlertModal";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -39,6 +40,7 @@ export default function RegisterScreen() {
   const [errors, setErrors] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAccountExistsVisible, setIsAccountExistsVisible] = useState(false);
 
   // Google Sign-In setup
   const { response: googleResponse, promptAsync, isReady: isGoogleReady, isExpoGo } = useGoogleAuth();
@@ -52,6 +54,7 @@ export default function RegisterScreen() {
       try {
         const result = await handleGoogleSignIn(googleResponse);
         await SecureStore.setItemAsync("authToken", result.token);
+        await refreshUser();
 
         if (result.isNewUser) {
           // New Google account — needs role selection
@@ -175,7 +178,14 @@ export default function RegisterScreen() {
         router.replace("/auth/roleSelection");
       } else {
         const errMsg = data.message || (data.error ? String(data.error) : "Registration failed");
-        Alert.alert("Registration Failed", errMsg);
+        console.log("[Register] Response status:", response.status);
+        console.log("[Register] Error message:", errMsg);
+        if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("already exist")) {
+          console.log("[Register] Showing account exists popup");
+          setIsAccountExistsVisible(true);
+        } else {
+          Alert.alert("Registration Failed", errMsg);
+        }
       }
     } catch (error: any) {
       clearTimeout(timeoutId);
@@ -197,11 +207,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
       <Image
         source={require("../../assets/images/signupimg.jpg")}
         style={styles.topImage}
@@ -333,6 +344,21 @@ export default function RegisterScreen() {
         </View>
       </View>
     </ScrollView>
+
+      <CustomAlertModal
+        visible={isAccountExistsVisible}
+        title="Account Already Exists"
+        message="This email is already registered. Please log in instead."
+        confirmLabel="Go to Login"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setIsAccountExistsVisible(false);
+          router.push("/auth/login");
+        }}
+        onCancel={() => setIsAccountExistsVisible(false)}
+        onClose={() => setIsAccountExistsVisible(false)}
+      />
+    </View>
   );
 }
 

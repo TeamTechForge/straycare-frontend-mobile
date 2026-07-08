@@ -88,7 +88,7 @@ export default function RescuerTypeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.replace("/auth/roleSelection")}>
           <Ionicons name="arrow-back" size={22} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>StrayCare</Text>

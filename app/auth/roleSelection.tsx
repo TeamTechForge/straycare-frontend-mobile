@@ -20,7 +20,12 @@ const BRAND_COLOR = "#f59e0b";
 
 export default function SelectRoleScreen() {
   const router = useRouter();
-  const { refreshUser } = useAuth();
+  const { refreshUser, logout } = useAuth();
+
+  const handleBack = async () => {
+    await logout();
+    router.replace("/auth/register");
+  };
 
   const [selectedRole, setSelectedRole] = useState<"reporter" | "rescuer" | null>(null);
 
@@ -90,7 +95,7 @@ export default function SelectRoleScreen() {
       
       {/* 🔙 Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={handleBack}>
           <Ionicons name="arrow-back" size={22} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>StrayCare</Text>

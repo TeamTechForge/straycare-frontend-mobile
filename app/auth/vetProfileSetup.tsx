@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   ScrollView,
   StyleSheet,
@@ -301,7 +302,7 @@ export default function VetProfileSetupScreen() {
       const data = await response.json();
       if (response.ok) {
         await refreshUser();
-        router.replace("/auth/verificationPending");
+        router.replace("/auth/completedProfileSetup");
       } else {
         alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
       }

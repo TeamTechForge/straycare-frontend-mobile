@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   ScrollView,
   StyleSheet,
@@ -186,7 +187,7 @@ export default function VolunteerProfileSetupScreen() {
       </Text>
 
       {/* Profile Image */}
-     <ProfileImageUpload
+      <ProfileImageUpload
         imageUri={profileImage}
         onPress={handlePickProfileImage}
       />
@@ -203,7 +204,7 @@ export default function VolunteerProfileSetupScreen() {
 
         <InputField
           label="Phone Number *"
-          placeholder="+1 (555) 000-0000"
+          placeholder="e.g. +94 77 123 4567"
           value={phone}
           onChangeText={setPhone}
           error={errors.phone}

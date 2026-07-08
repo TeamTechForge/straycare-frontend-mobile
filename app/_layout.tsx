@@ -5,6 +5,7 @@ import { ActivityIndicator, View, Platform } from "react-native";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
 import { useFonts } from "expo-font";
+import { AlertProvider } from "../components/GlobalAlert";
 
 function InitialLayout() {
   const { user, token, isLoading } = useAuth();
@@ -51,6 +52,7 @@ function InitialLayout() {
           const onProfileSetup = segments[1] === "ngoProfileSetup" || segments[1] === "vetProfileSetup";
           const isAllowedScreen = segments[1] === "verificationPending" || 
                                   segments[1] === "verificationRejected" ||
+                                  segments[1] === "completedProfileSetup" ||
                                   (user.profileStatus === "Rejected" && onProfileSetup);
           const isNotificationsScreen = segments[0] === "notifications";
 
@@ -65,7 +67,10 @@ function InitialLayout() {
           // User is fully approved / unrestricted
           // Redirect to home if they are sitting on guest/pending/setup routes or index
           if (inAuthGroup || onWelcomeScreen) {
-            router.replace("/(tabs)/home");
+            const onCompletedProfileSetup = segments[1] === "completedProfileSetup";
+            if (!onCompletedProfileSetup) {
+              router.replace("/(tabs)/home");
+            }
           }
         }
       }
@@ -174,7 +179,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <InitialLayout />
+        <AlertProvider>
+          <InitialLayout />
+        </AlertProvider>
       </SocketProvider>
     </AuthProvider>
   );
