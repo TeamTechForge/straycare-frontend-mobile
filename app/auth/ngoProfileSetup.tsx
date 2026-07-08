@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   ScrollView,
   StyleSheet,
@@ -26,6 +27,7 @@ const BRAND_COLOR = "#f59e0b";
 
 export default function ngoProfileSetup() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   // ✅ states
   const [orgName, setOrgName] = useState("");
@@ -206,7 +208,8 @@ export default function ngoProfileSetup() {
 
       const data = await response.json();
       if (response.ok) {
-        router.replace("/auth/verificationPending");
+        await refreshUser();
+        router.replace("/auth/completedProfileSetup");
       } else {
         alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
       }

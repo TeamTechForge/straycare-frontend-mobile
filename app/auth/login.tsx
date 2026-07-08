@@ -16,6 +16,7 @@ import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/Config";
 import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthService";
 import { useAuth } from "../../contexts/AuthContext";
+import CustomAlertModal from "../../components/CustomAlertModal";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -32,6 +33,7 @@ export default function LoginScreen() {
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAccountNotFoundVisible, setIsAccountNotFoundVisible] = useState(false);
 
   // Google Sign-In setup
   const { response: googleResponse, promptAsync, isReady: isGoogleReady, isExpoGo } = useGoogleAuth();
@@ -46,7 +48,11 @@ export default function LoginScreen() {
         const result = await handleGoogleSignIn(googleResponse);
         await SecureStore.setItemAsync("authToken", result.token);
         await refreshUser();
-        router.replace("/(tabs)/home");
+        if (result.isNewUser) {
+          router.replace("/auth/roleSelection");
+        } else {
+          router.replace("/(tabs)/home");
+        }
       } catch (error) {
         if (error.message === "CANCELLED") {
           // User dismissed the popup — do nothing
@@ -94,7 +100,11 @@ export default function LoginScreen() {
       const json = await response.json();
 
       if (!response.ok) {
-        Alert.alert("Login Failed", json.message || "Invalid credentials.");
+        if (response.status === 404 || json.message === "Account not found") {
+          setIsAccountNotFoundVisible(true);
+        } else {
+          Alert.alert("Login Failed", json.message || "Invalid credentials.");
+        }
         return;
       }
 
@@ -255,6 +265,20 @@ export default function LoginScreen() {
             <Text style={styles.signupLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>
+
+        <CustomAlertModal
+          visible={isAccountNotFoundVisible}
+          title="Account Not Found"
+          message="We couldn't find an account associated with this email. Would you like to create one?"
+          confirmLabel="Create Account"
+          cancelLabel="Cancel"
+          onConfirm={() => {
+            setIsAccountNotFoundVisible(false);
+            router.push("/auth/register");
+          }}
+          onCancel={() => setIsAccountNotFoundVisible(false)}
+          onClose={() => setIsAccountNotFoundVisible(false)}
+        />
       </View>
     </View>
   );

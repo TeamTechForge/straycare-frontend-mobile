@@ -18,6 +18,7 @@ import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/Config";
 import { useAuth } from "../../contexts/AuthContext";
+import CustomAlertModal from "../../components/CustomAlertModal";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -39,6 +40,7 @@ export default function RegisterScreen() {
   const [errors, setErrors] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAccountExistsVisible, setIsAccountExistsVisible] = useState(false);
 
   // Google Sign-In setup
   const { response: googleResponse, promptAsync, isReady: isGoogleReady, isExpoGo } = useGoogleAuth();
@@ -176,7 +178,11 @@ export default function RegisterScreen() {
         router.replace("/auth/roleSelection");
       } else {
         const errMsg = data.message || (data.error ? String(data.error) : "Registration failed");
-        Alert.alert("Registration Failed", errMsg);
+        if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("already exist")) {
+          setIsAccountExistsVisible(true);
+        } else {
+          Alert.alert("Registration Failed", errMsg);
+        }
       }
     } catch (error: any) {
       clearTimeout(timeoutId);
@@ -332,6 +338,20 @@ export default function RegisterScreen() {
             <Text style={styles.loginText}> Log in</Text>
           </TouchableOpacity>
         </View>
+
+        <CustomAlertModal
+          visible={isAccountExistsVisible}
+          title="Account Already Exists"
+          message="This email is already registered. Please log in instead."
+          confirmLabel="Go to Login"
+          cancelLabel="Cancel"
+          onConfirm={() => {
+            setIsAccountExistsVisible(false);
+            router.push("/auth/login");
+          }}
+          onCancel={() => setIsAccountExistsVisible(false)}
+          onClose={() => setIsAccountExistsVisible(false)}
+        />
       </View>
     </ScrollView>
   );

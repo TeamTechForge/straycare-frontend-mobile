@@ -4,6 +4,7 @@ import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   ScrollView,
   StyleSheet,
@@ -22,6 +23,7 @@ const BRAND_COLOR = "#f59e0b";
 
 export default function ReporterProfileSetupScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   // ✅ states
   const [name, setName] = useState("");
@@ -152,6 +154,7 @@ export default function ReporterProfileSetupScreen() {
 
       const data = await response.json();
       if (response.ok) {
+        await refreshUser();
         router.replace("/auth/completedProfileSetup");
       } else {
         alert(data.message || "Failed to save profile");
