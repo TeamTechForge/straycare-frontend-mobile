@@ -17,7 +17,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import * as DocumentPicker from "expo-document-picker";
 
-import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system";
+import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";

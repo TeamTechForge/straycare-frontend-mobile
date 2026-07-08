@@ -11,12 +11,11 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import * as DocumentPicker from "expo-document-picker";
 
-import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system";
+import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
 
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
