@@ -49,6 +49,7 @@ interface Report {
   location?: { address?: string };
   photos?: string[];
   createdAt: string;
+  summary?: string;
 }
 
 interface Rescue {
@@ -57,6 +58,7 @@ interface Rescue {
   animalDetails?: { type?: string; breed?: string; notes?: string };
   location?: { address?: string };
   createdAt: string;
+  summary?: string;
 }
 
 export default function PublicProfileScreen() {
@@ -97,7 +99,7 @@ export default function PublicProfileScreen() {
         throw new Error("Failed to fetch profile");
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as any;
       setUserData(data.user);
       setProfileData(data.profile);
       setStatsData(data.stats);
@@ -114,7 +116,7 @@ export default function PublicProfileScreen() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (postsRes.ok) {
-        const postsData = await postsRes.json();
+        const postsData = (await postsRes.json()) as any;
         setPosts(postsData);
       }
 
@@ -124,18 +126,18 @@ export default function PublicProfileScreen() {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (reportsRes.ok) {
-          const reportsData = await reportsRes.json();
+          const reportsData = (await reportsRes.json()) as any;
           setReports(reportsData);
         }
       }
 
       // 4. Fetch rescues/history (if volunteer/vet/ngo)
       if (data.user.role !== "general_user") {
-        const rescuesRes = await fetch(`${API_URL}/rescues?rescuerId=${userId}`, {
+        const rescuesRes = await fetch(`${API_URL}/rescues/my-rescues?userId=${userId}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (rescuesRes.ok) {
-          const rescuesData = await rescuesRes.json();
+          const rescuesData = (await rescuesRes.json()) as any;
           setRescues(rescuesData.filter((r: any) => r.status !== "completed"));
           setHistory(rescuesData.filter((r: any) => r.status === "completed"));
         }
@@ -174,7 +176,7 @@ export default function PublicProfileScreen() {
 
     setLoading(true);
     try {
-      const conversation = await createConversation(userId as string, "direct");
+      const conversation = (await createConversation(userId as string, "direct")) as any;
       const otherParticipant = conversation.participants?.find(
         (p: any) => p._id !== user._id
       );
@@ -238,7 +240,7 @@ export default function PublicProfileScreen() {
         }),
       });
 
-      const resData = await response.json();
+      const resData = (await response.json()) as any;
       if (response.ok) {
         Alert.alert("Success", "User has been reported. Our admin team will review this shortly.");
         return true;
@@ -472,6 +474,7 @@ export default function PublicProfileScreen() {
                   date={new Date(report.createdAt).toLocaleDateString()}
                   status={report.status}
                   image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                  summary={report.summary}
                 />
               ))
             ) : (
@@ -485,13 +488,14 @@ export default function PublicProfileScreen() {
 
           {activeTab === "active_rescues" && (
             rescues.length > 0 ? (
-              rescues.map((rescue) => (
+              rescues.map((rescue: any) => (
                 <ReportPreviewCard
-                  key={rescue._id}
-                  title={rescue.animalDetails?.type || "Stray Animal"}
+                  key={rescue.id || rescue.caseId}
+                  title={`${rescue.animalType} (${rescue.caseId})`}
                   date={new Date(rescue.createdAt).toLocaleDateString()}
                   status={rescue.status.toUpperCase()}
-                  image="https://via.placeholder.com/150"
+                  image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                  summary={rescue.summary}
                 />
               ))
             ) : (
@@ -505,13 +509,14 @@ export default function PublicProfileScreen() {
 
           {activeTab === "history" && (
             history.length > 0 ? (
-              history.map((h) => (
+              history.map((h: any) => (
                 <ReportPreviewCard
-                  key={h._id}
-                  title={h.animalDetails?.type || "Stray Animal"}
+                  key={h.id || h.caseId}
+                  title={`${h.animalType} (${h.caseId})`}
                   date={new Date(h.createdAt).toLocaleDateString()}
                   status="COMPLETED"
-                  image="https://via.placeholder.com/150"
+                  image={h.photos && h.photos.length > 0 ? h.photos[0] : "https://via.placeholder.com/150"}
+                  summary={h.summary}
                 />
               ))
             ) : (
