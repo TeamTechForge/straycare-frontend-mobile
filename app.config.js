@@ -9,15 +9,6 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 module.exports = {
   expo: {
     ...(appJson.expo || {}),
-    android: {
-      ...(appJson.expo?.android || {}),
-      config: {
-        ...(appJson.expo?.android?.config || {}),
-        googleMaps: {
-          apiKey: process.env.EXPO_PUBLIC_FIREBASE_API_KEY || "AIzaSyDhE7Wd-ATsQ4k-p2cptSBxWMJ9GaobgCE",
-        },
-      },
-    },
     extra: {
       ...(appJson.expo?.extra || {}),
       EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
