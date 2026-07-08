@@ -4,6 +4,7 @@
 import * as SecureStore from "expo-secure-store";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { API_URL } from "../constants/Config";
+import { clearGoogleSession } from "../services/googleAuthService";
 
 type UserData = {
   _id: string;
@@ -93,6 +94,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const logout = async () => {
     await SecureStore.deleteItemAsync("authToken");
+    await clearGoogleSession();
     setUser(null);
     setToken(null);
   };

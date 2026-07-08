@@ -107,12 +107,6 @@ const styles = StyleSheet.create({
     marginVertical: 8,
   },
 
-  label: {
-    fontSize: 13,
-    marginBottom: 6,
-    fontWeight: "500",
-  },
-
   inputWrapper: {
     position: "relative",
     justifyContent: "center",
@@ -146,10 +140,10 @@ const styles = StyleSheet.create({
   },
   
   label: {
-  fontSize: 13,
-  marginBottom: 6,
-  fontWeight: "500",
-  color: "#333",
-},
+    fontSize: 13,
+    marginBottom: 6,
+    fontWeight: "500",
+    color: "#333",
+  },
   
 });

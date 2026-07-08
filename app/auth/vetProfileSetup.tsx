@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   ScrollView,
   StyleSheet,
@@ -26,6 +27,7 @@ const BRAND_COLOR = "#F5A623";
 
 export default function VetProfileSetupScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [licenseDocument, setLicenseDocument] = useState<string | null>(null);
@@ -294,7 +296,8 @@ export default function VetProfileSetupScreen() {
 
       const data = await response.json();
       if (response.ok) {
-        router.replace("/auth/verificationPending");
+        await refreshUser();
+        router.replace("/auth/completedProfileSetup");
       } else {
         alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
       }
