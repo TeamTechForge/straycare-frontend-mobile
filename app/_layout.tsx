@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from "react-native";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
 import { useFonts } from "expo-font";
+import { AlertProvider } from "../components/GlobalAlert";
 
 function InitialLayout() {
   const { user, token, isLoading } = useAuth();
@@ -107,7 +108,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <InitialLayout />
+        <AlertProvider>
+          <InitialLayout />
+        </AlertProvider>
       </SocketProvider>
     </AuthProvider>
   );

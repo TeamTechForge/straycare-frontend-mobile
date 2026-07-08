@@ -100,7 +100,10 @@ export default function LoginScreen() {
       const json = await response.json();
 
       if (!response.ok) {
+        console.log("[Login] Response status:", response.status);
+        console.log("[Login] Response message:", json.message);
         if (response.status === 404 || json.message === "Account not found") {
+          console.log("[Login] Showing account not found popup");
           setIsAccountNotFoundVisible(true);
         } else {
           Alert.alert("Login Failed", json.message || "Invalid credentials.");
@@ -168,6 +171,7 @@ export default function LoginScreen() {
     <TextInput
       style={styles.input}
       placeholder="Email Address"
+      placeholderTextColor="#999"
       value={value}
       onChangeText={onChange}
       keyboardType="email-address"
@@ -191,6 +195,7 @@ export default function LoginScreen() {
       <TextInput
         style={styles.passwordInput}
         placeholder="Password"
+        placeholderTextColor="#999"
         secureTextEntry={!isPasswordVisible}
         value={value}
         onChangeText={onChange}
@@ -265,21 +270,21 @@ export default function LoginScreen() {
             <Text style={styles.signupLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>
-
-        <CustomAlertModal
-          visible={isAccountNotFoundVisible}
-          title="Account Not Found"
-          message="We couldn't find an account associated with this email. Would you like to create one?"
-          confirmLabel="Create Account"
-          cancelLabel="Cancel"
-          onConfirm={() => {
-            setIsAccountNotFoundVisible(false);
-            router.push("/auth/register");
-          }}
-          onCancel={() => setIsAccountNotFoundVisible(false)}
-          onClose={() => setIsAccountNotFoundVisible(false)}
-        />
       </View>
+
+      <CustomAlertModal
+        visible={isAccountNotFoundVisible}
+        title="Account Not Found"
+        message="We couldn't find an account associated with this email. Would you like to create one?"
+        confirmLabel="Create Account"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setIsAccountNotFoundVisible(false);
+          router.push("/auth/register");
+        }}
+        onCancel={() => setIsAccountNotFoundVisible(false)}
+        onClose={() => setIsAccountNotFoundVisible(false)}
+      />
     </View>
   );
 }

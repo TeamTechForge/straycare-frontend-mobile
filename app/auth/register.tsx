@@ -178,7 +178,10 @@ export default function RegisterScreen() {
         router.replace("/auth/roleSelection");
       } else {
         const errMsg = data.message || (data.error ? String(data.error) : "Registration failed");
+        console.log("[Register] Response status:", response.status);
+        console.log("[Register] Error message:", errMsg);
         if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("already exist")) {
+          console.log("[Register] Showing account exists popup");
           setIsAccountExistsVisible(true);
         } else {
           Alert.alert("Registration Failed", errMsg);
@@ -204,11 +207,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
       <Image
         source={require("../../assets/images/signupimg.jpg")}
         style={styles.topImage}
@@ -338,22 +342,23 @@ export default function RegisterScreen() {
             <Text style={styles.loginText}> Log in</Text>
           </TouchableOpacity>
         </View>
-
-        <CustomAlertModal
-          visible={isAccountExistsVisible}
-          title="Account Already Exists"
-          message="This email is already registered. Please log in instead."
-          confirmLabel="Go to Login"
-          cancelLabel="Cancel"
-          onConfirm={() => {
-            setIsAccountExistsVisible(false);
-            router.push("/auth/login");
-          }}
-          onCancel={() => setIsAccountExistsVisible(false)}
-          onClose={() => setIsAccountExistsVisible(false)}
-        />
       </View>
     </ScrollView>
+
+      <CustomAlertModal
+        visible={isAccountExistsVisible}
+        title="Account Already Exists"
+        message="This email is already registered. Please log in instead."
+        confirmLabel="Go to Login"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setIsAccountExistsVisible(false);
+          router.push("/auth/login");
+        }}
+        onCancel={() => setIsAccountExistsVisible(false)}
+        onClose={() => setIsAccountExistsVisible(false)}
+      />
+    </View>
   );
 }
 
