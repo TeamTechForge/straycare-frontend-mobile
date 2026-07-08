@@ -38,6 +38,7 @@ export default function ngoProfileSetup() {
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const [image, setImage] = useState<string | null>(null);
   const [document, setDocument] = useState(null);
@@ -138,6 +139,7 @@ export default function ngoProfileSetup() {
     if (status !== "granted") return;
 
     const loc = await Location.getCurrentPositionAsync({});
+    setCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
     const address = await Location.reverseGeocodeAsync(loc.coords);
 
     if (address.length > 0) {
@@ -203,6 +205,8 @@ export default function ngoProfileSetup() {
           verificationDocument: uploadedDocUrl,
           merchantId,
           merchantSecret,
+          latitude: coords?.latitude,
+          longitude: coords?.longitude,
         }),
       });
 

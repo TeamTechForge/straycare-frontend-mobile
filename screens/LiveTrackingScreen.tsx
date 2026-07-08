@@ -384,7 +384,7 @@ export default function LiveTrackingScreen() {
             <View style={styles.sectionCard}>
               <Text style={styles.sectionTitle}>Tracking Notes</Text>
               <Text style={styles.metaText}>
-                The rescue case updates automatically every few seconds using backend polling.
+                {tracking.case.summary || "No tracking updates posted yet."}
               </Text>
             </View>
 

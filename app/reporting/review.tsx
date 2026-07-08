@@ -60,8 +60,15 @@ export default function Review() {
       console.log("Report submitted:", result);
 
       router.push({
-        pathname: "/reporting/success",
-        params: { caseId },
+        pathname: "/searching-help",
+        params: {
+          caseId,
+          lat: String(reportData.location.lat),
+          lng: String(reportData.location.lng),
+          animalType: reportData.animalType,
+          animalPhoto: photos[0] || "",
+          description: reportData.notes || "",
+        },
       });
     } catch (error: any) {
       console.error("Error submitting report:", error);

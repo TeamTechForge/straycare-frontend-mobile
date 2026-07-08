@@ -34,6 +34,10 @@ import type { FindNearestResponse } from "../../types/api";
 type SearchParams = {
   lat?: string | string[];
   lng?: string | string[];
+  caseId?: string | string[];
+  animalType?: string | string[];
+  animalPhoto?: string | string[];
+  description?: string | string[];
 };
 
 // ─── API base URL ──────────────────────────────────────────────────────────────
@@ -62,7 +66,8 @@ const isAbortError = (err: unknown): boolean => {
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function SearchingHelpScreen() {
-  const { lat, lng } = useLocalSearchParams<SearchParams>();
+  const params = useLocalSearchParams<SearchParams>();
+  const { lat, lng, caseId, animalType, animalPhoto, description, excludeIds } = params;
 
   const latitude  = Number(getFirstParam(lat));
   const longitude = Number(getFirstParam(lng));
@@ -170,9 +175,22 @@ export default function SearchingHelpScreen() {
         // axios v1 accepts `signal` from AbortController natively —
         // the request is terminated the instant controller.abort() is called,
         // even on a slow network or long backend delay.
+        let excludeArray = [];
+        try {
+          const rawExclude = getFirstParam(excludeIds);
+          if (rawExclude) excludeArray = JSON.parse(rawExclude);
+        } catch (e) {
+          console.error("[SearchingHelp] Failed to parse excludeIds:", e);
+        }
+
         const response = await axios.post<FindNearestResponse>(
           `${API_BASE_URL}/api/rescue/find-nearest`,
-          { latitude, longitude },
+          {
+            latitude,
+            longitude,
+            excludeIds: excludeArray,
+            caseId: getFirstParam(caseId),
+          },
           {
             signal: controller.signal, // ← AbortController signal
             timeout: 30000,            // 30 seconds — generous for slow networks
@@ -196,6 +214,13 @@ export default function SearchingHelpScreen() {
             rescuerId: rescuer._id,
             avatar:    rescuer.avatar ?? "",
             phone:     rescuer.phone  ?? "",
+            caseId:    getFirstParam(caseId) ?? "",
+            animalType: getFirstParam(animalType) ?? "",
+            animalPhoto: getFirstParam(animalPhoto) ?? "",
+            description: getFirstParam(description) ?? "",
+            lat:       String(latitude),
+            lng:       String(longitude),
+            excludeIds: getFirstParam(excludeIds) ?? "",
           },
         } as never);
       } catch (requestError: unknown) {

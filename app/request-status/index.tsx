@@ -25,6 +25,7 @@
 import { useEffect, useRef, useState, useCallback } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
   Platform,
@@ -65,6 +66,13 @@ const API_BASE_URL = getApiBaseUrl();
 // ─── Navigation params ─────────────────────────────────────────────────────────
 type RequestStatusParams = {
   rescuerId?: string | string[];
+  caseId?: string | string[];
+  animalType?: string | string[];
+  animalPhoto?: string | string[];
+  description?: string | string[];
+  excludeIds?: string | string[];
+  lat?: string | string[];
+  lng?: string | string[];
 };
 
 // Helper: always unwrap Expo Router's possible array param to a single string
@@ -101,7 +109,8 @@ const TIMELINE_STEPS = [
 
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function RequestStatusScreen() {
-  const { rescuerId } = useLocalSearchParams<RequestStatusParams>();
+  const params = useLocalSearchParams<RequestStatusParams>();
+  const { rescuerId, caseId, animalType, animalPhoto, description, excludeIds, lat, lng } = params;
   const rescuerIdValue = getFirstParam(rescuerId) ?? "";
 
   // ── UI state ──────────────────────────────────────────────────────────────
@@ -257,7 +266,13 @@ export default function RequestStatusScreen() {
         // even on a slow network or long backend delay.
         const response = await axios.post<SendRequestResponse>(
           `${API_BASE_URL}/api/rescue/send-request`,
-          { rescuerId: rescuerIdValue },
+          {
+            rescuerId: rescuerIdValue,
+            caseId: getFirstParam(caseId) ?? "",
+            animalType: getFirstParam(animalType) ?? "Dog",
+            description: getFirstParam(description) ?? "",
+            photos: getFirstParam(animalPhoto) ? [getFirstParam(animalPhoto)] : [],
+          },
           { signal: controller.signal } as any // ← AbortController signal
         );
 
@@ -348,6 +363,44 @@ export default function RequestStatusScreen() {
           console.log("[RequestStatus] Poll result:", newStatus);
 
           if (newStatus !== "pending") {
+            if (newStatus === "rejected") {
+              if (pollRef.current) {
+                clearInterval(pollRef.current);
+                pollRef.current = null;
+              }
+
+              // Automatically find the next nearest rescuer
+              let currentExclude = [];
+              try {
+                const rawExclude = getFirstParam(excludeIds);
+                if (rawExclude) currentExclude = JSON.parse(rawExclude);
+              } catch (e) {
+                console.error("[RequestStatus] Failed to parse excludeIds:", e);
+              }
+
+              const updatedExclude = [...currentExclude, rescuerIdValue];
+
+              Alert.alert(
+                "Rescuer Unavailable",
+                "The matched rescuer was unable to accept. Searching for the next nearest rescuer...",
+                [{ text: "OK" }]
+              );
+
+              router.replace({
+                pathname: "/searching-help",
+                params: {
+                  lat: getFirstParam(lat) ?? "",
+                  lng: getFirstParam(lng) ?? "",
+                  caseId: getFirstParam(caseId) ?? "",
+                  animalType: getFirstParam(animalType) ?? "",
+                  animalPhoto: getFirstParam(animalPhoto) ?? "",
+                  description: getFirstParam(description) ?? "",
+                  excludeIds: JSON.stringify(updatedExclude),
+                },
+              } as any);
+              return;
+            }
+
             setStatus(newStatus);
             setRescuer(responseData.rescuer);
             // Status resolved — stop polling
