@@ -98,14 +98,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   useEffect(() => {
-    // Purge saved credentials on app startup to disable automatic session restoration during development
-    SecureStore.deleteItemAsync("authToken")
-      .catch((err) => console.error("Error clearing token on startup:", err))
-      .finally(() => {
-        setUser(null);
-        setToken(null);
-        setIsLoading(false);
-      });
+    // Load and restore user session from SecureStore on startup
+    fetchUser();
   }, []);
 
   return (

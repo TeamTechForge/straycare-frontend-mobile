@@ -21,11 +21,13 @@ import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#f59e0b";
 
 export default function ngoProfileSetup() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   // ✅ states
   const [orgName, setOrgName] = useState("");
@@ -36,6 +38,7 @@ export default function ngoProfileSetup() {
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const [image, setImage] = useState<string | null>(null);
   const [document, setDocument] = useState(null);
@@ -136,6 +139,7 @@ export default function ngoProfileSetup() {
     if (status !== "granted") return;
 
     const loc = await Location.getCurrentPositionAsync({});
+    setCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
     const address = await Location.reverseGeocodeAsync(loc.coords);
 
     if (address.length > 0) {
@@ -201,11 +205,14 @@ export default function ngoProfileSetup() {
           verificationDocument: uploadedDocUrl,
           merchantId,
           merchantSecret,
+          latitude: coords?.latitude,
+          longitude: coords?.longitude,
         }),
       });
 
       const data = await response.json();
       if (response.ok) {
+        await refreshUser();
         router.replace("/auth/verificationPending");
       } else {
         alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");

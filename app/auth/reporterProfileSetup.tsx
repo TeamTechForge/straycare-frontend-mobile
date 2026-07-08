@@ -17,11 +17,13 @@ import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#f59e0b";
 
 export default function ReporterProfileSetupScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   // ✅ states
   const [name, setName] = useState("");
@@ -152,6 +154,7 @@ export default function ReporterProfileSetupScreen() {
 
       const data = await response.json();
       if (response.ok) {
+        await refreshUser();
         router.replace("/auth/completedProfileSetup");
       } else {
         alert(data.message || "Failed to save profile");

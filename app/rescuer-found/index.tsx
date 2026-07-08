@@ -36,6 +36,9 @@ type RescuerFoundParams = {
   animalType?: string | string[];
   animalPhoto?: string | string[];
   description?: string | string[];
+  excludeIds?: string | string[];
+  lat?: string | string[];
+  lng?: string | string[];
 };
 
 const getFirstParam = (value: string | string[] | undefined) =>
@@ -104,7 +107,16 @@ export default function RescuerFoundScreen() {
   const handleRequestHelp = () => {
     router.push({
       pathname: "/request-status",
-      params: { rescuerId: rescuerIdValue },
+      params: {
+        rescuerId: rescuerIdValue,
+        caseId: getFirstParam(params.caseId) ?? "",
+        animalType: getFirstParam(params.animalType) ?? "",
+        animalPhoto: getFirstParam(params.animalPhoto) ?? "",
+        description: getFirstParam(params.description) ?? "",
+        excludeIds: getFirstParam(params.excludeIds) ?? "",
+        lat: getFirstParam(params.lat) ?? "",
+        lng: getFirstParam(params.lng) ?? "",
+      },
     } as never);
   };
 
