@@ -20,16 +20,18 @@ type Pet = {
   name: string;
   description: string;
   location: string;
-  time: string;
-  images?: string[];
+  date?: string;
+  createdAt?: string;
   imageUrl?: string;
+  images?: string[];
 };
 
 export default function LostAnimalScreen() {
-  const [filter, setFilter] = useState<string>("All");
-  const [search, setSearch] = useState<string>("");
-  const [pets, setPets] = useState<Pet[]>([]);
   const router = useRouter();
+
+  const [filter, setFilter] = useState("All");
+  const [search, setSearch] = useState("");
+  const [pets, setPets] = useState<Pet[]>([]);
 
   useEffect(() => {
     fetchLostPosts();
@@ -38,61 +40,139 @@ export default function LostAnimalScreen() {
   const fetchLostPosts = async () => {
     try {
       const response = await getLostPosts();
-      setPets(response.data || response || []);
+      const payload = response?.data ?? response;
+      setPets(Array.isArray(payload) ? payload : []);
     } catch (error) {
       console.log("Error fetching posts:", error);
       setPets([]);
     }
   };
 
-  const filteredPets = (pets || []).filter((pet) => {
-    const matchesFilter = filter === "All" || pet.type?.toLowerCase() === filter.toLowerCase();
+  const formatType = (value: string) => {
+    const normalized = (value || "").toLowerCase();
+
+    if (normalized === "dog") return "Dog";
+    if (normalized === "cat") return "Cat";
+
+    return "Other";
+  };
+
+  const getDisplayDate = (pet: Pet) => {
+    return pet.date || pet.createdAt || "Recently Posted";
+  };
+
+  const filteredPets = pets.filter((pet) => {
+    const matchesFilter =
+      filter === "All" ||
+      formatType(pet.type).toLowerCase() === filter.toLowerCase();
+
+    const text = `${pet.breed || ""} ${pet.name || ""} ${
+      pet.description || ""
+    }`.toLowerCase();
+
     const matchesSearch =
-      search === "" ||
-      pet.breed?.toLowerCase().includes(search.toLowerCase()) ||
-      pet.name?.toLowerCase().includes(search.toLowerCase()) ||
-      pet.description?.toLowerCase().includes(search.toLowerCase());
+      search === "" || text.includes(search.toLowerCase());
+
     return matchesFilter && matchesSearch;
   });
 
   const FILTERS = ["All", "Dog", "Cat", "Other"];
 
   const renderPet = ({ item }: { item: Pet }) => {
-    const imgUri = item.imageUrl || (item.images && item.images.length > 0 ? item.images[0] : null);
-    const resolvedUri = imgUri ? (imgUri.startsWith('http') ? imgUri : `http://10.87.129.94:5000${imgUri}`) : null;
+    const imageUri =
+      item.imageUrl ||
+      (item.images && item.images.length > 0
+        ? item.images[0]
+        : "https://placehold.co/600x400/png");
 
     return (
       <TouchableOpacity
-        style={styles.card}
         activeOpacity={0.92}
-        onPress={() => router.push({ pathname: "/lostAndFound/viewLostFoundPost", params: { id: item._id } })}
+        style={styles.card}
+        onPress={() =>
+          router.push({
+            pathname: "/lostAndFound/viewLostFoundPost",
+            params: { id: item._id },
+          })
+        }
       >
-        <Image source={resolvedUri ? { uri: resolvedUri } : require("../../assets/images/dog main.webp")} style={styles.cardImage} />
+        <Image
+          source={{ uri: imageUri }}
+          style={styles.cardImage}
+        />
+
         <View style={styles.cardBody}>
-          {/* Badge */}
           <View style={styles.badgeRow}>
             <View style={styles.lostBadge}>
               <Text style={styles.lostBadgeText}>LOST</Text>
             </View>
           </View>
 
-          {/* Breed / Name */}
           <Text style={styles.cardTitle}>
-            {item.breed}
-            {item.name !== "Unknown" ? ` - ${item.name}` : ""}
+            {item.breed || "Unknown"}
+
+            {item.name &&
+            item.name !== "Unknown"
+              ? ` - ${item.name}`
+              : ""}
           </Text>
 
-          {/* Location */}
           <View style={styles.locationRow}>
-            <MaterialIcons name="location-on" size={15} color="#717878" />
-            <Text style={styles.locationText}>{item.location}</Text>
+            <MaterialIcons
+              name="location-on"
+              size={15}
+              color="#717878"
+            />
+            <Text style={styles.locationText}>
+              {item.location}
+            </Text>
           </View>
 
-          {/* Description */}
-          <Text style={styles.cardDescription} numberOfLines={2}>
+          <Text
+            style={styles.cardDescription}
+            numberOfLines={2}
+          >
             {item.description}
           </Text>
 
+          <View
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              alignItems: "center",
+            }}
+          >
+            <Text
+              style={{
+                fontSize: 12,
+                color: "#717878",
+              }}
+            >
+              {getDisplayDate(item)}
+            </Text>
+
+            <View
+              style={{
+                backgroundColor:
+                  formatType(item.type) === "Dog"
+                    ? "#F5A623"
+                    : "#ffb700",
+                paddingHorizontal: 12,
+                paddingVertical: 5,
+                borderRadius: 20,
+              }}
+            >
+              <Text
+                style={{
+                  color: "#fff",
+                  fontWeight: "700",
+                  fontSize: 11,
+                }}
+              >
+                {formatType(item.type)}
+              </Text>
+            </View>
+          </View>
         </View>
       </TouchableOpacity>
     );
@@ -101,15 +181,32 @@ export default function LostAnimalScreen() {
   return (
     <View style={styles.container}>
       {/* Header */}
+
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#062425" />
-        </TouchableOpacity>
         <TouchableOpacity
           style={styles.iconBtn}
-          onPress={() => router.push("/lostAndFound/createLostFoundPost")}
+          onPress={() => router.back()}
         >
-          <Ionicons name="add" size={24} color="#062425" />
+          <Ionicons
+            name="arrow-back"
+            size={22}
+            color="#062425"
+          />
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() =>
+            router.push(
+              "/lostAndFound/createLostFoundPost"
+            )
+          }
+        >
+          <Ionicons
+            name="add"
+            size={24}
+            color="#062425"
+          />
         </TouchableOpacity>
       </View>
 
@@ -117,19 +214,20 @@ export default function LostAnimalScreen() {
         data={filteredPets}
         renderItem={renderPet}
         keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContent}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.listContent}
         ListHeaderComponent={
           <>
-            {/* Hero */}
             <View style={styles.hero}>
-              <Text style={styles.heroTitle}>Help Bring{"\n"}Them Home</Text>
+              <Text style={styles.heroTitle}>
+                Help Bring{"\n"}Them Home
+              </Text>
+
               <Text style={styles.heroSub}>
                 Help us find our missing furry friends.
               </Text>
             </View>
 
-            {/* Search + Filter icon row */}
             <View style={styles.searchRow}>
               <View style={styles.searchInputWrap}>
                 <MaterialIcons
@@ -138,20 +236,25 @@ export default function LostAnimalScreen() {
                   color="#717878"
                   style={styles.searchIcon}
                 />
+
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Search by name or breed..."
+                  placeholder="Search by breed or name..."
                   placeholderTextColor="#717878"
                   value={search}
                   onChangeText={setSearch}
                 />
               </View>
+
               <TouchableOpacity style={styles.tuneBtn}>
-                <MaterialIcons name="tune" size={22} color="#062425" />
+                <MaterialIcons
+                  name="tune"
+                  size={22}
+                  color="#062425"
+                />
               </TouchableOpacity>
             </View>
 
-            {/* Category chips */}
             <ScrollView
               horizontal
               showsHorizontalScrollIndicator={false}
@@ -161,16 +264,22 @@ export default function LostAnimalScreen() {
               {FILTERS.map((f) => (
                 <TouchableOpacity
                   key={f}
-                  style={[styles.chip, filter === f && styles.chipActive]}
+                  style={[
+                    styles.chip,
+                    filter === f && styles.chipActive,
+                  ]}
                   onPress={() => setFilter(f)}
                 >
                   <Text
                     style={[
                       styles.chipText,
-                      filter === f && styles.chipTextActive,
+                      filter === f &&
+                        styles.chipTextActive,
                     ]}
                   >
-                    {f === "All" ? "All Pets" : `${f}s`}
+                    {f === "All"
+                      ? "All Pets"
+                      : `${f}s`}
                   </Text>
                 </TouchableOpacity>
               ))}
@@ -188,7 +297,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#faf9f8",
   },
 
-  /* ── Header ── */
+  /* ───────── Header ───────── */
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -200,26 +309,28 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: "#faf9f8",
   },
+
   iconBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: "#f4f3f3",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f4f3f3",
   },
 
-  /* ── List padding ── */
+  /* ───────── FlatList ───────── */
   listContent: {
     paddingHorizontal: 20,
     paddingBottom: 32,
   },
 
-  /* ── Hero ── */
+  /* ───────── Hero ───────── */
   hero: {
     marginTop: 28,
     marginBottom: 24,
   },
+
   heroTitle: {
     fontSize: 36,
     fontWeight: "800",
@@ -228,134 +339,149 @@ const styles = StyleSheet.create({
     letterSpacing: -0.5,
     marginBottom: 6,
   },
+
   heroSub: {
     fontSize: 16,
     color: "#414848",
-    fontWeight: "400",
   },
 
-  /* ── Search row ── */
+  /* ───────── Search ───────── */
   searchRow: {
     flexDirection: "row",
+    alignItems: "center",
     gap: 10,
-    marginBottom: 14,
+    marginBottom: 16,
   },
+
   searchInputWrap: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#f4f3f3",
     borderRadius: 14,
-    borderWidth: 2,
-    borderColor: "transparent",
     paddingHorizontal: 14,
   },
+
   searchIcon: {
     marginRight: 8,
   },
+
   searchInput: {
     flex: 1,
     fontSize: 14,
     color: "#1a1c1c",
     paddingVertical: 14,
   },
+
   tuneBtn: {
     width: 52,
     height: 52,
     borderRadius: 14,
     backgroundColor: "#f4f3f3",
-    borderWidth: 2,
-    borderColor: "transparent",
     alignItems: "center",
     justifyContent: "center",
   },
 
-  /* ── Chips ── */
+  /* ───────── Filter Chips ───────── */
   chipsScroll: {
     marginBottom: 20,
   },
+
   chipsContent: {
     gap: 8,
     paddingRight: 4,
   },
+
   chip: {
-    paddingVertical: 8,
     paddingHorizontal: 20,
+    paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: "#e9e8e7",
   },
+
   chipActive: {
     backgroundColor: "#062425",
   },
+
   chipText: {
-    fontSize: 13,
-    fontWeight: "600",
     color: "#414848",
+    fontWeight: "600",
+    fontSize: 13,
   },
+
   chipTextActive: {
     color: "#fff",
   },
 
-  /* ── Card ── */
+  /* ───────── Card ───────── */
   card: {
     backgroundColor: "#fff",
     borderRadius: 24,
     overflow: "hidden",
-    marginBottom: 16,
-    borderWidth: 2,
-    borderColor: "transparent",
+    marginBottom: 18,
     shadowColor: "#1e3a3a",
     shadowOpacity: 0.06,
     shadowRadius: 16,
-    shadowOffset: { width: 0, height: 6 },
+    shadowOffset: {
+      width: 0,
+      height: 6,
+    },
     elevation: 3,
   },
+
   cardImage: {
     width: "100%",
     aspectRatio: 16 / 10,
-    backgroundColor: "#e9e8e7",
+    backgroundColor: "#ececec",
   },
+
   cardBody: {
     padding: 16,
   },
+
   badgeRow: {
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 8,
   },
+
   lostBadge: {
     backgroundColor: "#fff3eb",
-    paddingVertical: 3,
-    paddingHorizontal: 10,
     borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
+
   lostBadgeText: {
+    color: "#9b4500",
     fontSize: 11,
     fontWeight: "700",
-    color: "#9b4500",
     letterSpacing: 0.8,
   },
+
   cardTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#062425",
-    marginBottom: 6,
+    marginBottom: 8,
   },
+
   locationRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 2,
     marginBottom: 8,
   },
+
   locationText: {
-    fontSize: 13,
+    marginLeft: 4,
     color: "#414848",
-    marginLeft: 2,
+    fontSize: 13,
   },
+
   cardDescription: {
-    fontSize: 13,
     color: "#414848",
-    lineHeight: 19,
+    fontSize: 13,
+    lineHeight: 20,
     marginBottom: 14,
   },
 });
