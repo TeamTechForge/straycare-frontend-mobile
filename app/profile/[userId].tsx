@@ -79,7 +79,6 @@ export default function PublicProfileScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [rescues, setRescues] = useState<Rescue[]>([]);
-  const [history, setHistory] = useState<Rescue[]>([]);
 
   // UI States
   const [activeTab, setActiveTab] = useState<string>("posts");
@@ -131,15 +130,14 @@ export default function PublicProfileScreen() {
         }
       }
 
-      // 4. Fetch rescues/history (if volunteer/vet/ngo)
+      // 4. Fetch rescues (if volunteer/vet/ngo)
       if (data.user.role !== "general_user") {
         const rescuesRes = await fetch(`${API_URL}/rescues/my-rescues?userId=${userId}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (rescuesRes.ok) {
           const rescuesData = (await rescuesRes.json()) as any;
-          setRescues(rescuesData.filter((r: any) => r.status !== "completed"));
-          setHistory(rescuesData.filter((r: any) => r.status === "completed"));
+          setRescues(rescuesData);
         }
       }
 
@@ -294,16 +292,8 @@ export default function PublicProfileScreen() {
       statsList.push({ value: statsData.reportsCount || 0, label: "REPORTS" });
       statsList.push({ value: statsData.postsCount || 0, label: "POSTS" });
     } else {
-      statsList.push({ value: statsData.rescuesCompleted || 0, label: "COMPLETED" });
-      if (userData.role === "volunteer") {
-        statsList.push({ value: statsData.activeRescues || 0, label: "ACTIVE" });
-      } else if (userData.role === "vet") {
-        statsList.push({ value: statsData.animalsTreated || 0, label: "TREATED" });
-      } else if (userData.role === "ngo") {
-        statsList.push({ value: statsData.totalAdoptions || 0, label: "ADOPTIONS" });
-        statsList.push({ value: statsData.donationCampaignCount || 0, label: "CAMPAIGNS" });
-      }
       statsList.push({ value: statsData.postsCount || 0, label: "POSTS" });
+      statsList.push({ value: statsData.rescuesCompleted || 0, label: "RESCUES" });
     }
 
     return (
@@ -324,8 +314,7 @@ export default function PublicProfileScreen() {
     if (userData.role === "general_user") {
       tabs.push({ id: "reports", label: "Reports" });
     } else {
-      tabs.push({ id: "active_rescues", label: "Active Rescues" });
-      tabs.push({ id: "history", label: "History" });
+      tabs.push({ id: "rescues", label: "Rescues" });
     }
     return tabs;
   };
@@ -486,11 +475,11 @@ export default function PublicProfileScreen() {
             )
           )}
 
-          {activeTab === "active_rescues" && (
+          {activeTab === "rescues" && (
             rescues.length > 0 ? (
               rescues.map((rescue: any) => (
                 <ReportPreviewCard
-                  key={rescue.id || rescue.caseId}
+                  key={rescue._id || rescue.caseId}
                   title={`${rescue.animalType} (${rescue.caseId})`}
                   date={new Date(rescue.createdAt).toLocaleDateString()}
                   status={rescue.status.toUpperCase()}
@@ -501,29 +490,8 @@ export default function PublicProfileScreen() {
             ) : (
               <EmptyStateCard
                 icon="checkmark-done-circle-outline"
-                title="No active rescues"
-                subtitle="No ongoing rescue operations at the moment."
-              />
-            )
-          )}
-
-          {activeTab === "history" && (
-            history.length > 0 ? (
-              history.map((h: any) => (
-                <ReportPreviewCard
-                  key={h.id || h.caseId}
-                  title={`${h.animalType} (${h.caseId})`}
-                  date={new Date(h.createdAt).toLocaleDateString()}
-                  status="COMPLETED"
-                  image={h.photos && h.photos.length > 0 ? h.photos[0] : "https://via.placeholder.com/150"}
-                  summary={h.summary}
-                />
-              ))
-            ) : (
-              <EmptyStateCard
-                icon="time-outline"
-                title="No history found"
-                subtitle="No completed rescue records available."
+                title="No rescues yet"
+                subtitle="This user hasn't participated in any rescue operations."
               />
             )
           )}
