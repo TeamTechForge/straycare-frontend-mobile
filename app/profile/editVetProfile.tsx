@@ -17,6 +17,8 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import * as DocumentPicker from "expo-document-picker";
 
+import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
+
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import FileUploadField from "../../components/FileUploadField";
@@ -53,7 +55,7 @@ export default function EditVetProfileScreen() {
       uri = uriOrAsset.uri;
       name = uriOrAsset.name || "upload_file";
       mimeType = uriOrAsset.mimeType || "application/octet-stream";
-    } else if (typeof uriOrAsset === "string" && uriOrAsset.startsWith("file://")) {
+    } else if (typeof uriOrAsset === "string" && (uriOrAsset.startsWith("file://") || uriOrAsset.startsWith("content://"))) {
       uri = uriOrAsset;
       const filename = uri.split("/").pop();
       if (filename) name = filename;
@@ -61,6 +63,19 @@ export default function EditVetProfileScreen() {
       return uriOrAsset;
     } else {
       return null;
+    }
+
+    // Resolve content:// URIs to local file:// URIs using expo-file-system
+    if (uri.startsWith("content://")) {
+      try {
+        const cacheDir = `${cacheDirectory}UploadCache/`;
+        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => {});
+        const localUri = `${cacheDir}${name}`;
+        await copyAsync({ from: uri, to: localUri });
+        uri = localUri;
+      } catch (err) {
+        console.error("Failed to copy content URI to local cache:", err);
+      }
     }
 
     const formData = new FormData();
