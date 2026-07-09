@@ -24,6 +24,7 @@ export default function VolunteerProfile() {
   const [profile, setProfile] = useState<any>(null);
   const [rescues, setRescues] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -66,6 +67,14 @@ export default function VolunteerProfile() {
         if (reportsRes.ok) {
           const reportsData = (await reportsRes.json()) as any;
           setReports(reportsData);
+        }
+
+        const postsRes = await fetch(`${API_URL}/users/${userId}/posts`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (postsRes.ok) {
+          const postsData = (await postsRes.json()) as any;
+          setPosts(postsData);
         }
       }
     } catch (error) {
@@ -118,8 +127,8 @@ export default function VolunteerProfile() {
   };
 
   const stats = [
+    { value: posts.length, label: "POSTS" },
     { value: rescues.length, label: "RESCUES" },
-    { value: rescues.filter((r: any) => r.status === "accepted" || r.status === "under_rescue").length, label: "ACTIVE" },
     { value: reports.length, label: "REPORTS" },
   ];
 
