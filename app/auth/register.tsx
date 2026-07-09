@@ -1,23 +1,78 @@
-import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect, useState } from "react";
 import {
-    Image,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Image,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
+
 import PrimaryButton from "../../components/PrimaryButton";
+import InputField from "../../components/InputField"; // ✅ USING REUSABLE
 
 const BRAND_COLOR = "#F5A623";
 
 export default function RegisterScreen() {
+  const [isChecked, setIsChecked] = useState(false);
+  const params = useLocalSearchParams();
+    
+    useEffect(() => {
+      if (params.agreed === "true") {
+      setIsChecked(true);
+      }
+    }, [params.agreed]);
+
   const router = useRouter();
 
   const [agree, setAgree] = useState(false);
+
+  // form states
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+
+  const [errors, setErrors] = useState<any>({});
+
+  
+  const validateForm = () => {
+    let newErrors: any = {};
+
+    if (!name.trim()) newErrors.name = "Name is required";
+
+    if (!email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/\S+@\S+\.\S+/.test(email)) {
+      newErrors.email = "Invalid email";
+    }
+
+    if (!phone.trim()) {
+      newErrors.phone = "Phone is required";
+    } else if (phone.length < 10) {
+      newErrors.phone = "Invalid phone number";
+    }
+
+    if (!password) {
+      newErrors.password = "Password is required";
+    } else if (password.length < 6) {
+      newErrors.password = "Minimum 6 characters";
+    }
+
+    if (confirmPassword !== password) {
+      newErrors.confirmPassword = "Passwords do not match";
+    }
+
+    if (!agree) {
+      newErrors.terms = "You must accept terms";
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   return (
     <ScrollView
@@ -25,15 +80,14 @@ export default function RegisterScreen() {
       contentContainerStyle={{ paddingBottom: 40 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* 🔶 TOP IMAGE */}
+      {/* TOP IMAGE */}
       <Image
         source={require("../../assets/images/signupimg.jpg")}
         style={styles.topImage}
       />
 
-      {/* 🔶 CARD */}
+      {/* CARD */}
       <View style={styles.card}>
-
         <Text style={styles.title}>
           Create your StrayCare account
         </Text>
@@ -42,75 +96,95 @@ export default function RegisterScreen() {
           Join our community and help save lives
         </Text>
 
-        {/* 🔶 NAME */}
+        {/* NAME */}
+        <Text style={styles.label}>Name</Text>
         <InputField
-          icon={<Feather name="user" size={18} color="#777" />}
           placeholder="John Doe"
-          label="Name"
+          value={name}
+          onChangeText={setName}
         />
+        {errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
-        {/* 🔶 EMAIL */}
+        {/* EMAIL */}
+        <Text style={styles.label}>Email Address</Text>
         <InputField
-          icon={<Feather name="mail" size={18} color="#777" />}
           placeholder="Johndoe@gmail.com"
-          label="Email Address"
+          value={email}
+          onChangeText={setEmail}
         />
+        {errors.email && <Text style={styles.error}>{errors.email}</Text>}
 
-        {/* 🔶 PHONE */}
+        {/* PHONE */}
+        <Text style={styles.label}>Phone Number</Text>
         <InputField
-          icon={<Feather name="phone" size={18} color="#777" />}
           placeholder="+94 77 555 5555"
-          label="Phone Number"
+          value={phone}
+          onChangeText={setPhone}
         />
+        {errors.phone && <Text style={styles.error}>{errors.phone}</Text>}
 
-        {/* 🔶 PASSWORD */}
+        {/* PASSWORD */}
+        <Text style={styles.label}>Password</Text>
         <InputField
-          icon={<Feather name="lock" size={18} color="#777" />}
           placeholder="********"
-          label="Password"
+          value={password}
+          onChangeText={setPassword}
           secure
         />
+        {errors.password && <Text style={styles.error}>{errors.password}</Text>}
 
-        {/* 🔶 CONFIRM PASSWORD */}
+        {/* CONFIRM PASSWORD */}
+        <Text style={styles.label}>Confirm Password</Text>
         <InputField
-          icon={<Feather name="lock" size={18} color="#777" />}
           placeholder="********"
-          label="Confirm Password"
+          value={confirmPassword}
+          onChangeText={setConfirmPassword}
           secure
         />
+        {errors.confirmPassword && (
+          <Text style={styles.error}>{errors.confirmPassword}</Text>
+        )}
 
-        {/* 🔶 TERMS */}
-        <TouchableOpacity
-          style={styles.termsContainer}
-          onPress={() => setAgree(!agree)}
-        >
-          <Ionicons
-            name={agree ? "checkbox" : "square-outline"}
-            size={20}
-            color={agree ? BRAND_COLOR : "#999"}
-          />
-          <Text style={styles.termsText}>
-            I agree to the{" "}
-            <Text style={{ color: BRAND_COLOR }}>
-              Terms & Privacy Policy
-            </Text>
-          </Text>
-        </TouchableOpacity>
+{/* TERMS */}
+<TouchableOpacity
+  style={styles.termsContainer}
+  onPress={() => setAgree(!agree)}
+>
+  <Ionicons
+    name={agree ? "checkbox" : "square-outline"}
+    size={20}
+    color={agree ? BRAND_COLOR : "#999"}
+  />
+  <Text style={styles.termsText}>
+    I agree to the{" "}
+    <Text
+      style={{ color: BRAND_COLOR }}
+      onPress={() => router.push("/auth/termsPrivacyScreen")}
+    >
+      Terms & Privacy Policy
+    </Text>
+  </Text>
+</TouchableOpacity>
 
-        {/* 🔶 CREATE BUTTON */}
+{errors.terms && <Text style={styles.error}>{errors.terms}</Text>}
+        {/* BUTTON */}
         <PrimaryButton
           title="Create Account"
-          onPress={() => router.push("/Home")}
+          onPress={() => {
+            if (validateForm()) {
+              router.push("/auth/roleSelection");
+            }
+          }}
         />
 
-        {/* 🔶 OR DIVIDER */}
+        {/* OR */}
         <View style={styles.dividerContainer}>
           <View style={styles.line} />
           <Text style={styles.orText}>OR</Text>
           <View style={styles.line} />
         </View>
 
-        {/* 🔶 GOOGLE BUTTON */}
+        {/* GOOGLE */}
         <TouchableOpacity style={styles.googleButton}>
           <MaterialCommunityIcons
             name="google"
@@ -123,7 +197,7 @@ export default function RegisterScreen() {
           </Text>
         </TouchableOpacity>
 
-        {/* 🔶 LOGIN LINK */}
+        {/* LOGIN */}
         <View style={styles.loginContainer}>
           <Text style={{ fontSize: 13 }}>
             Already have an account?
@@ -134,27 +208,8 @@ export default function RegisterScreen() {
             <Text style={styles.loginText}> Log in</Text>
           </TouchableOpacity>
         </View>
-
       </View>
     </ScrollView>
-  );
-}
-
-/* 🔶 Reusable Input Component */
-function InputField({ icon, placeholder, label, secure }: any) {
-  return (
-    <View style={{ marginBottom: 15 }}>
-      <Text style={styles.label}>{label}</Text>
-
-      <View style={styles.inputContainer}>
-        {icon}
-        <TextInput
-          placeholder={placeholder}
-          secureTextEntry={secure}
-          style={styles.input}
-        />
-      </View>
-    </View>
   );
 }
 
@@ -193,24 +248,15 @@ const styles = StyleSheet.create({
 
   label: {
     fontSize: 13,
-    marginBottom: 6,
+    marginTop: 10,
+    marginBottom: 4,
     fontWeight: "500",
   },
 
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#D1D5DB",
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 48,
-    backgroundColor: "#FAFAFA",
-  },
-
-  input: {
-    marginLeft: 10,
-    flex: 1,
+  error: {
+    color: "red",
+    fontSize: 12,
+    marginBottom: 6,
   },
 
   termsContainer: {
