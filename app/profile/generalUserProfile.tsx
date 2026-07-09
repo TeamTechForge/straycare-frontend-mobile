@@ -116,7 +116,6 @@ export default function GeneralUserProfile() {
 
   const stats = [
     { value: reports.length, label: "REPORTS" },
-    { value: reports.filter((r: any) => r.status === "Needs Help" || r.status === "Under Rescue").length, label: "ACTIVE" },
     { value: posts.length, label: "POSTS" },
   ];
 

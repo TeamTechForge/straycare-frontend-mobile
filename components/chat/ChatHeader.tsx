@@ -5,6 +5,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View, Image } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -18,9 +19,10 @@ type Props = {
 
 export default function ChatHeader({ name, isOnline, profileImage, onCallPress, onTitlePress }: Props) {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingTop: Math.max(insets.top, 20) }]}>
       {/* Back button */}
       <TouchableOpacity onPress={() => router.back()} style={styles.backButton}>
         <Ionicons name="arrow-back" size={24} color="#111" />
@@ -57,7 +59,6 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingTop: 50,
     paddingBottom: 14,
     backgroundColor: "#fff",
     borderBottomWidth: 1,

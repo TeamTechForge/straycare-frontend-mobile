@@ -24,6 +24,8 @@ export default function VetProfile() {
   const [profile, setProfile] = useState<any>(null);
   const [rescues, setRescues] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
+  const [posts, setPosts] = useState<any[]>([]);
+  const [totalDonations, setTotalDonations] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [refreshing, setRefreshing] = useState(false);
@@ -48,7 +50,18 @@ export default function VetProfile() {
         headers: { Authorization: `Bearer ${token}` },
       });
       const profileData = (await profileRes.json()) as any;
-      if (profileRes.ok) setProfile(profileData);
+      if (profileRes.ok) {
+        setProfile(profileData);
+        if (profileData && profileData._id) {
+          const donationRes = await fetch(`${API_URL}/donations/total/${profileData._id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (donationRes.ok) {
+            const donationData = await donationRes.json();
+            setTotalDonations(donationData.total || 0);
+          }
+        }
+      }
 
       const userId = userData._id || userData.id;
       if (userId) {
@@ -66,6 +79,14 @@ export default function VetProfile() {
         if (reportsRes.ok) {
           const reportsData = (await reportsRes.json()) as any;
           setReports(reportsData);
+        }
+
+        const postsRes = await fetch(`${API_URL}/users/${userId}/posts`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (postsRes.ok) {
+          const postsData = (await postsRes.json()) as any;
+          setPosts(postsData);
         }
       }
     } catch (error) {
@@ -118,9 +139,10 @@ export default function VetProfile() {
   };
 
   const stats = [
-    { value: profile?.animalsTreated || 0, label: "TREATS" },
+    { value: posts.length, label: "POSTS" },
     { value: rescues.length, label: "RESCUES" },
     { value: reports.length, label: "REPORTS" },
+    { value: "$" + totalDonations, label: "DONATIONS" },
   ];
 
   const [activeTab, setActiveTab] = useState<TabKey>("posts");

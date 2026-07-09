@@ -20,7 +20,6 @@ import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
 import { API_URL } from "../../constants/Config";
-import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#f59e0b";
 

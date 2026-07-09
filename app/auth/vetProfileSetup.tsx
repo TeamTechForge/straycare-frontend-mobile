@@ -16,14 +16,12 @@ import * as Location from "expo-location";
 import * as DocumentPicker from "expo-document-picker";
 
 import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
-
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
 import { API_URL } from "../../constants/Config";
-import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#F5A623";
 

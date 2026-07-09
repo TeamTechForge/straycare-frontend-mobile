@@ -5,14 +5,17 @@ import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import React, { useState } from "react";
-import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, TextInput, TouchableOpacity, View, Modal, Text } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BRAND_COLOR = "#F5A623";
 
 type Props = {
   onSendText: (text: string) => void;
-  onSendImage: (uri: string) => void;
+  onSendImage?: (uri: string) => void;
+  onSendImages: (uris: string[]) => void;
   onSendLocation: (location: { latitude: number; longitude: number; address?: string }) => void;
+  onChooseLocation: () => void;
   onTyping: (isTyping: boolean) => void;
   disabled?: boolean;
 };
@@ -20,11 +23,15 @@ type Props = {
 export default function ChatInput({
   onSendText,
   onSendImage,
+  onSendImages,
   onSendLocation,
+  onChooseLocation,
   onTyping,
   disabled = false,
 }: Props) {
   const [text, setText] = useState("");
+  const [isLocationSheetVisible, setIsLocationSheetVisible] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -43,19 +50,24 @@ export default function ChatInput({
     try {
       const result = await ImagePicker.launchImageLibraryAsync({
         mediaTypes: ["images"],
-        allowsEditing: true,
+        allowsMultipleSelection: true,
         quality: 0.7,
       });
 
-      if (!result.canceled && result.assets[0]) {
-        onSendImage(result.assets[0].uri);
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        onSendImages(result.assets.map((a) => a.uri));
       }
     } catch (error) {
       console.error("Image picker error:", error);
     }
   };
 
-  const handleShareLocation = async () => {
+  const handleShareLocation = () => {
+    setIsLocationSheetVisible(true);
+  };
+
+  const handleSendCurrentLocation = async () => {
+    setIsLocationSheetVisible(false);
     try {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status !== "granted") {
@@ -90,7 +102,7 @@ export default function ChatInput({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       {/* Attachment buttons */}
       <TouchableOpacity onPress={handlePickImage} style={styles.iconButton} disabled={disabled}>
         <Ionicons name="image-outline" size={22} color="#777" />
@@ -120,6 +132,53 @@ export default function ChatInput({
       >
         <Ionicons name="send" size={20} color={text.trim() ? "#fff" : "#ccc"} />
       </TouchableOpacity>
+
+      <Modal
+        visible={isLocationSheetVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsLocationSheetVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setIsLocationSheetVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <Ionicons name="location" size={32} color={BRAND_COLOR} />
+            </View>
+            <Text style={styles.modalTitle}>Share Location</Text>
+            <Text style={styles.modalDesc}>How would you like to share your location?</Text>
+            
+            <View style={styles.modalButtonGroup}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalPrimaryButton]} 
+                onPress={handleSendCurrentLocation}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Send Current Location</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalSecondaryButton]} 
+                onPress={() => {
+                  setIsLocationSheetVisible(false);
+                  onChooseLocation();
+                }}
+              >
+                <Text style={styles.modalButtonTextSecondary}>Choose Location on Map</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalCancelButton]} 
+                onPress={() => setIsLocationSheetVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </View>
   );
 }
@@ -130,7 +189,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingHorizontal: 10,
     paddingVertical: 8,
-    paddingBottom: 28,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",
@@ -163,5 +221,80 @@ const styles = StyleSheet.create({
   },
   sendDisabled: {
     backgroundColor: "#E5E7EB",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    width: "85%",
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FEF3C7", // lighter brand color
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111",
+    marginBottom: 8,
+  },
+  modalDesc: {
+    fontSize: 15,
+    color: "#666",
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  modalButtonGroup: {
+    width: "100%",
+    gap: 12,
+  },
+  modalButton: {
+    width: "100%",
+    paddingVertical: 14,
+    alignItems: "center",
+    borderRadius: 12,
+  },
+  modalPrimaryButton: {
+    backgroundColor: BRAND_COLOR,
+  },
+  modalSecondaryButton: {
+    backgroundColor: "#FFFBEB",
+    borderWidth: 1,
+    borderColor: BRAND_COLOR,
+  },
+  modalCancelButton: {
+    backgroundColor: "#F3F4F6",
+  },
+  modalButtonTextPrimary: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFF",
+  },
+  modalButtonTextSecondary: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: BRAND_COLOR,
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4B5563",
   },
 });
