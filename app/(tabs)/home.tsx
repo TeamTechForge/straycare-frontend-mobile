@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, FlatList } from "react-native";
 import { API_URL } from "../../constants/Config";
 
+const BRAND_COLOR = "#F5A623";
+
 // Show the main landing screen with personalized data for the logged-in user.
 export default function HomeScreen() {
   const router = useRouter();
