@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { useAuth } from "../../contexts/AuthContext";
+
 import {
   ScrollView,
   StyleSheet,
@@ -22,6 +22,7 @@ import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -35,6 +36,7 @@ export default function VolunteerProfileSetupScreen() {
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const [errors, setErrors] = useState({
     name: "",
@@ -157,6 +159,7 @@ export default function VolunteerProfileSetupScreen() {
     }
 
     const loc = await Location.getCurrentPositionAsync({});
+    setCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
 
     const address = await Location.reverseGeocodeAsync({
       latitude: loc.coords.latitude,
@@ -220,6 +223,8 @@ export default function VolunteerProfileSetupScreen() {
           location,
           bio,
           profileImage: uploadedImageUrl,
+          latitude: coords?.latitude,
+          longitude: coords?.longitude,
         }),
       });
 

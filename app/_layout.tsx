@@ -1,7 +1,7 @@
 // Root layout for the app, defining the navigation stack and global providers.
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect } from "react";
-import { ActivityIndicator, View } from "react-native";
+import { ActivityIndicator, View, Platform } from "react-native";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
 import { useFonts } from "expo-font";
@@ -76,6 +76,77 @@ function InitialLayout() {
       }
     }
   }, [user, isLoading, segments, token]);
+
+  // ─── Global Rescue Request Listener ───
+  useEffect(() => {
+    if (!token || !user) return;
+    const isRescuer = user.role === "volunteer" || user.role === "ngo" || user.role === "vet";
+    if (!isRescuer) return;
+
+    let activeAlertId: string | null = null;
+    let isAlertActive = false;
+
+    const checkActiveRequest = async () => {
+      if (isAlertActive) return;
+
+      try {
+        const { API_URL } = require("../constants/Config");
+        const response = await fetch(`${API_URL}/rescue/active-request`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!response.ok) return;
+
+        const data: any = await response.json();
+        if (data.request && data.request._id !== activeAlertId) {
+          isAlertActive = true;
+          activeAlertId = data.request._id;
+
+          const respondToRequest = async (action: "accept" | "reject") => {
+            try {
+              const respondRes = await fetch(`${API_URL}/rescue/request/${data.request._id}/respond`, {
+                method: "PATCH",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ action }),
+              });
+              if (respondRes.ok && action === "accept") {
+                router.push(`/rescue-details/${data.request._id}`);
+              }
+            } catch (err) {
+              console.error("Error responding to request:", err);
+            } finally {
+              isAlertActive = false;
+            }
+          };
+
+          const { Alert } = require("react-native");
+          Alert.alert(
+            "New Rescue Request",
+            `A new case of ${data.request.animalType || "stray animal"} has been assigned to you. Do you accept?`,
+            [
+              {
+                text: "Reject",
+                onPress: () => respondToRequest("reject"),
+                style: "cancel",
+              },
+              {
+                text: "Accept",
+                onPress: () => respondToRequest("accept"),
+              },
+            ],
+            { cancelable: false }
+          );
+        }
+      } catch (err) {
+        console.error("Global active request check failed:", err);
+      }
+    };
+
+    const interval = setInterval(checkActiveRequest, 4000);
+    return () => clearInterval(interval);
+  }, [token, user]);
 
   if (isLoading) {
     return (

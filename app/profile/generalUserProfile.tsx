@@ -11,7 +11,7 @@ import PostPreviewCard from "../../components/profile/PostPreviewCard";
 import ProfileHeaderCard from "../../components/profile/ProfileHeaderCard";
 import ProfileMenuDrawer from "../../components/profile/ProfileMenuDrawer";
 import ProfileStatsRow from "../../components/profile/ProfileStatsRow";
-import ProfileTabBar from "../../components/profile/ProfileTabBar";
+import ProfileTabBar, { TabKey } from "../../components/profile/ProfileTabBar";
 import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
 import { useAuth } from "../../contexts/AuthContext";
 import SavedPreviewCard from "../../components/profile/SavedPreviewCard";
@@ -61,15 +61,36 @@ export default function GeneralUserProfile() {
       const userRes = await fetch(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const userData = await userRes.json();
+      const userData = (await userRes.json()) as any;
       if (userRes.ok) setUser(userData);
 
       // Fetch Profile details
       const profileRes = await fetch(`${API_URL}/profiles/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
-      const profileData = await profileRes.json();
+      const profileData = (await profileRes.json()) as any;
       if (profileRes.ok) setProfile(profileData);
+
+      const userId = userData._id || userData.id;
+      if (userId) {
+        // Fetch Reports
+        const reportsRes = await fetch(`${API_URL}/users/${userId}/reports`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (reportsRes.ok) {
+          const reportsData = (await reportsRes.json()) as any;
+          setReports(reportsData);
+        }
+
+        // Fetch Posts
+        const postsRes = await fetch(`${API_URL}/users/${userId}/posts`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (postsRes.ok) {
+          const postsData = (await postsRes.json()) as any;
+          setPosts(postsData);
+        }
+      }
 
     } catch (error) {
       console.error("Fetch profile data error:", error);
@@ -88,20 +109,18 @@ export default function GeneralUserProfile() {
     fetchData();
   };
 
-  // TODO: Replace with backend stats later
-  // TODO: Replace with real stats later
-  const stats = [
-    { value: 0, label: "REPORTS" },
-    { value: 0, label: "ACTIVE" },
-    { value: 0, label: "POSTS" },
-  ];
-
   // TODO: Replace with backend/API data later
   const [posts, setPosts] = useState<Post[]>([]);
-  const [reports, setReports] = useState<Report[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
 
-  const [activeTab, setActiveTab] = useState<"posts" | "reports" | "saved">("posts");
+  const stats = [
+    { value: reports.length, label: "REPORTS" },
+    { value: reports.filter((r: any) => r.status === "Needs Help" || r.status === "Under Rescue").length, label: "ACTIVE" },
+    { value: posts.length, label: "POSTS" },
+  ];
+
+  const [activeTab, setActiveTab] = useState<TabKey>("posts");
   const [menuVisible, setMenuVisible] = useState(false);
 
   if (loading) {
@@ -184,15 +203,25 @@ export default function GeneralUserProfile() {
 
           {activeTab === "reports" && (
             reports.length > 0 ? (
-              reports.map((report) => (
-                <ReportPreviewCard
-                  key={report.id}
-                  title={report.title}
-                  date={report.date}
-                  status={report.status}
-                  image={report.image}
-                />
-              ))
+              reports.map((report: any) => {
+                return (
+                  <ReportPreviewCard
+                    key={report._id || report.caseId}
+                    title={`${report.animalType} (${report.caseId})`}
+                    date={new Date(report.createdAt).toLocaleDateString()}
+                    status={report.status}
+                    image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                    caseId={report.caseId}
+                    summary={report.summary}
+                    onTrackPress={() => {
+                      router.push({
+                        pathname: "/live-tracking/[requestId]",
+                        params: { requestId: report.caseId },
+                      });
+                    }}
+                  />
+                );
+              })
             ) : (
               <EmptyStateCard
                 icon="document-text-outline"

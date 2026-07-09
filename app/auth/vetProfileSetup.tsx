@@ -23,6 +23,7 @@ import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -37,6 +38,7 @@ export default function VetProfileSetupScreen() {
   const [primaryLocation, setPrimaryLocation] = useState("");
   const [phone, setPhone] = useState("");
   const [shortBio, setShortBio] = useState("");
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const [clinicName, setClinicName] = useState("");
   const [clinicAddress, setClinicAddress] = useState("");
@@ -190,6 +192,7 @@ export default function VetProfileSetupScreen() {
     }
 
     const loc = await Location.getCurrentPositionAsync({});
+    setCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
 
     const address = await Location.reverseGeocodeAsync({
       latitude: loc.coords.latitude,
@@ -305,6 +308,8 @@ export default function VetProfileSetupScreen() {
           licenseDocument: uploadedDocUrl,
           merchantId: payHereMerchantId,
           merchantSecret,
+          latitude: coords?.latitude,
+          longitude: coords?.longitude,
         }),
       });
 
