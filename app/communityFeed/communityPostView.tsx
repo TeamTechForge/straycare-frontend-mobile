@@ -41,10 +41,11 @@ export default function CommunityPostView() {
       setLoading(true);
       setError(false);
       const response = await getCommunityPost(id);
-      if (response.data.success) {
-        setPost(response.data.data); // Store post data on success
+      const payload = response?.data ?? response;
+      if (payload?.success !== false) {
+        setPost(payload?.data ?? payload);
       } else {
-        setError(true); // API returned failure response
+        setError(true);
       }
     } catch (err) {
       setError(true); // Network or unexpected error
