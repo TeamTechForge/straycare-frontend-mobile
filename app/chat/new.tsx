@@ -176,11 +176,11 @@ export default function NewChatScreen() {
           autoFocus
           editable={!creating}
         />
-        {search.length > 0 && (
+        {search.length > 0 ? (
           <TouchableOpacity onPress={() => setSearch("")} disabled={creating}>
             <Ionicons name="close-circle" size={18} color="#9CA3AF" />
           </TouchableOpacity>
-        )}
+        ) : null}
       </View>
 
       {/* CREATING CONVERSATION OVERLAY */}

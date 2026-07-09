@@ -18,6 +18,8 @@ type Props = {
   showTail?: boolean;
   onLongPress?: () => void;
   isDeletedForEveryone?: boolean;
+  isSelected?: boolean;
+  onPress?: () => void;
 };
 
 export default function MessageBubble({
@@ -31,10 +33,13 @@ export default function MessageBubble({
   showTail = true,
   onLongPress,
   isDeletedForEveryone = false,
+  isSelected = false,
+  onPress,
 }: Props) {
   return (
-    <View style={[styles.row, isMine ? styles.rowRight : styles.rowLeft]}>
+    <View style={[styles.row, isMine ? styles.rowRight : styles.rowLeft, isSelected && styles.selectedRow]}>
       <TouchableOpacity
+        onPress={onPress}
         onLongPress={isDeletedForEveryone ? undefined : onLongPress}
         activeOpacity={0.9}
         delayLongPress={350}
@@ -100,6 +105,9 @@ const styles = StyleSheet.create({
   row: {
     marginVertical: 2,
     paddingHorizontal: 12,
+  },
+  selectedRow: {
+    backgroundColor: "rgba(59, 130, 246, 0.15)",
   },
   rowRight: {
     alignItems: "flex-end",

@@ -6,6 +6,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import React, { useState } from "react";
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -25,6 +26,7 @@ export default function ChatInput({
   disabled = false,
 }: Props) {
   const [text, setText] = useState("");
+  const insets = useSafeAreaInsets();
 
   const handleSend = () => {
     const trimmed = text.trim();
@@ -90,7 +92,7 @@ export default function ChatInput({
   };
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { paddingBottom: Math.max(insets.bottom, 12) }]}>
       {/* Attachment buttons */}
       <TouchableOpacity onPress={handlePickImage} style={styles.iconButton} disabled={disabled}>
         <Ionicons name="image-outline" size={22} color="#777" />
@@ -130,7 +132,6 @@ const styles = StyleSheet.create({
     alignItems: "flex-end",
     paddingHorizontal: 10,
     paddingVertical: 8,
-    paddingBottom: 28,
     backgroundColor: "#fff",
     borderTopWidth: 1,
     borderTopColor: "#f0f0f0",

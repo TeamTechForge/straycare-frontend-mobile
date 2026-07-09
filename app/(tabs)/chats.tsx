@@ -60,6 +60,7 @@ export default function ChatsScreen() {
   };
 
   const loadConversations = useCallback(async () => {
+    if (!user) return; // Do not fetch if user is logged out
     try {
       const data = await fetchConversations();
       setConversations(data);

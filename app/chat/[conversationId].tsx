@@ -1,7 +1,7 @@
 // app/chat/[conversationId].tsx
 // Chat room screen — messages, typing indicator, infinite scroll, optimistic updates.
 
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
@@ -11,7 +11,12 @@ import {
   Platform,
   StyleSheet,
   View,
+  Text,
+  TouchableOpacity,
+  Modal,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatHeader from "../../components/chat/ChatHeader";
 import ChatInput from "../../components/chat/ChatInput";
 import MessageBubble from "../../components/chat/MessageBubble";
@@ -46,6 +51,11 @@ export default function ChatRoomScreen() {
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [otherTypingName, setOtherTypingName] = useState("");
   const flatListRef = useRef<FlatList>(null);
+  
+  const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
+  const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const isSelectionMode = selectedMessages.size > 0;
+  const insets = useSafeAreaInsets();
 
   // ── Load initial messages ──────────────────────────────────
   const loadMessages = useCallback(async () => {
@@ -176,7 +186,7 @@ export default function ChatRoomScreen() {
   // ── Send text message (optimistic) ────────────────────────
   const handleSendText = async (text: string) => {
     // Optimistic insert
-    const tempId = `temp-${Date.now()}`;
+    const tempId = `temp-${Date.now()}-${Math.floor(Math.random() * 1000)}`;
     const optimisticMsg = {
       _id: tempId,
       conversationId,
@@ -194,10 +204,17 @@ export default function ChatRoomScreen() {
       const sentMessage = await sendMessage({ conversationId, text, type: "text" });
       console.log(`[ChatRoomScreen] ✅ Message sent successfully. Real ID: ${sentMessage._id}`);
 
-      // Replace optimistic message with server response
-      setMessages((prev) =>
-        prev.map((m) => (m._id === tempId ? sentMessage : m))
-      );
+      // Replace optimistic message with server response, deduplicating if socket beat us to it
+      setMessages((prev) => {
+        const alreadyExists = prev.some((m) => m._id === sentMessage._id);
+        if (alreadyExists) {
+          // Socket event arrived first, remove the temporary message
+          return prev.filter((m) => m._id !== tempId);
+        } else {
+          // REST response arrived first, replace temp with real
+          return prev.map((m) => (m._id === tempId ? sentMessage : m));
+        }
+      });
     } catch (error) {
       console.error("[ChatRoomScreen] ❌ Send message failed:", error);
       // Remove failed optimistic message
@@ -250,6 +267,59 @@ export default function ChatRoomScreen() {
     }
   };
 
+  const handleLongPressMessage = (message: any) => {
+    if (message.isDeletedForEveryone) return;
+    const newSet = new Set(selectedMessages);
+    newSet.add(message._id);
+    setSelectedMessages(newSet);
+  };
+
+  const handlePressMessage = (message: any) => {
+    if (!isSelectionMode) return;
+    const newSet = new Set(selectedMessages);
+    if (newSet.has(message._id)) {
+      newSet.delete(message._id);
+    } else {
+      if (!message.isDeletedForEveryone) {
+        newSet.add(message._id);
+      }
+    }
+    setSelectedMessages(newSet);
+  };
+
+  const handleDeleteSelected = async (type: "me" | "everyone") => {
+    setIsDeleteModalVisible(false);
+    const ids = Array.from(selectedMessages);
+    setSelectedMessages(new Set());
+
+    // Optimistically update
+    if (type === "me") {
+      setMessages((prev) => prev.filter((m) => !ids.includes(m._id)));
+    } else if (type === "everyone") {
+      setMessages((prev) =>
+        prev.map((m) =>
+          ids.includes(m._id)
+            ? { ...m, isDeletedForEveryone: true, text: "This message was deleted.", imageUrl: null, location: null }
+            : m
+        )
+      );
+    }
+
+    // Call API for each
+    for (const id of ids) {
+      try {
+        await deleteMessage(id, type);
+      } catch (err) {
+        console.error("Failed to delete message:", err);
+      }
+    }
+  };
+
+  const canDeleteForEveryone = Array.from(selectedMessages).every((id) => {
+    const msg = messages.find((m) => m._id === id);
+    return msg && (msg.sender?._id || msg.sender) === user?._id;
+  });
+
   // ── Send location message ─────────────────────────────────
   const handleSendLocation = async (location: {
     latitude: number;
@@ -296,47 +366,7 @@ export default function ChatRoomScreen() {
     }
   };
 
-  const handleLongPressMessage = (message: any) => {
-    const isMine = (message.sender?._id || message.sender) === user?._id;
 
-    if (isMine) {
-      Alert.alert(
-        "Delete Message",
-        "Choose an option to delete this message.",
-        [
-          {
-            text: "Delete for Me",
-            onPress: () => handleDeleteMessage(message._id, "me"),
-          },
-          {
-            text: "Delete for Everyone",
-            style: "destructive",
-            onPress: () => handleDeleteMessage(message._id, "everyone"),
-          },
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-        ]
-      );
-    } else {
-      Alert.alert(
-        "Delete Message",
-        "Do you want to delete this message for yourself?",
-        [
-          {
-            text: "Delete for Me",
-            style: "destructive",
-            onPress: () => handleDeleteMessage(message._id, "me"),
-          },
-          {
-            text: "Cancel",
-            style: "cancel",
-          },
-        ]
-      );
-    }
-  };
 
   // ── Format time ───────────────────────────────────────────
   const formatTime = (dateString: string) => {
@@ -366,6 +396,8 @@ export default function ChatRoomScreen() {
         location={item.location}
         showTail={true}
         onLongPress={() => handleLongPressMessage(item)}
+        onPress={() => handlePressMessage(item)}
+        isSelected={selectedMessages.has(item._id)}
         isDeletedForEveryone={item.isDeletedForEveryone}
       />
     );
@@ -374,23 +406,38 @@ export default function ChatRoomScreen() {
   const isRecipientOnline = recipientId ? onlineUsers.has(recipientId) : false;
 
   return (
-    <KeyboardAvoidingView
-      style={styles.container}
-      behavior={Platform.OS === "ios" ? "padding" : undefined}
-      keyboardVerticalOffset={0}
-    >
+    <View style={styles.container}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <KeyboardAvoidingView
+        style={styles.container}
+        behavior="padding"
+      >
       {/* Header */}
-      <ChatHeader
-        name={recipientName || "Chat"}
-        isOnline={isRecipientOnline}
-        profileImage={recipientImage}
-        onTitlePress={() => {
-          if (recipientId) {
-            router.push(`/profile/${recipientId}`);
-          }
-        }}
-        onCallPress={() => Alert.alert("Coming Soon", "Voice calling will be available in Phase 2.")}
-      />
+      {isSelectionMode ? (
+        <View style={[styles.selectionHeader, { paddingTop: Math.max(insets.top, 20) }]}>
+          <View style={styles.selectionHeaderLeft}>
+            <TouchableOpacity onPress={() => setSelectedMessages(new Set())} style={styles.iconButton}>
+              <Ionicons name="close" size={24} color="#111" />
+            </TouchableOpacity>
+            <Text style={styles.selectionTitle}>{selectedMessages.size} Selected</Text>
+          </View>
+          <TouchableOpacity onPress={() => setIsDeleteModalVisible(true)} style={styles.iconButton}>
+            <Ionicons name="trash-outline" size={24} color="#EF4444" />
+          </TouchableOpacity>
+        </View>
+      ) : (
+        <ChatHeader
+          name={recipientName || "Chat"}
+          isOnline={isRecipientOnline}
+          profileImage={recipientImage}
+          onTitlePress={() => {
+            if (recipientId) {
+              router.push(`/profile/${recipientId}`);
+            }
+          }}
+          onCallPress={() => Alert.alert("Coming Soon", "Voice calling will be available in Phase 2.")}
+        />
+      )}
 
       {/* Messages */}
       {loading ? (
@@ -431,7 +478,53 @@ export default function ChatRoomScreen() {
         onTyping={(isTyping) => setTyping(isTyping)}
         disabled={loading}
       />
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+      <Modal
+        visible={isDeleteModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsDeleteModalVisible(false)}
+      >
+        <TouchableOpacity 
+          style={styles.modalOverlay} 
+          activeOpacity={1} 
+          onPress={() => setIsDeleteModalVisible(false)}
+        >
+          <View style={styles.modalContent}>
+            <View style={styles.modalIconContainer}>
+              <Ionicons name="trash-bin" size={32} color="#EF4444" />
+            </View>
+            <Text style={styles.modalTitle}>Delete Messages</Text>
+            <Text style={styles.modalDesc}>This action cannot be undone.</Text>
+            
+            <View style={styles.modalButtonGroup}>
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalButtonDestructive]} 
+                onPress={() => handleDeleteSelected("me")}
+              >
+                <Text style={styles.modalButtonTextDestructive}>Delete for Me</Text>
+              </TouchableOpacity>
+
+              {canDeleteForEveryone && (
+                <TouchableOpacity 
+                  style={[styles.modalButton, styles.modalButtonDestructive]} 
+                  onPress={() => handleDeleteSelected("everyone")}
+                >
+                  <Text style={styles.modalButtonTextDestructive}>Delete for Everyone</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity 
+                style={[styles.modalButton, styles.modalCancelButton]} 
+                onPress={() => setIsDeleteModalVisible(false)}
+              >
+                <Text style={styles.modalButtonText}>Cancel</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+    </View>
   );
 }
 
@@ -439,6 +532,94 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  selectionHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 16,
+    paddingBottom: 14,
+    backgroundColor: "#EFF6FF",
+    borderBottomWidth: 1,
+    borderBottomColor: "#BFDBFE",
+  },
+  selectionHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+  },
+  selectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#1E3A8A",
+  },
+  iconButton: {
+    padding: 4,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  modalContent: {
+    backgroundColor: "#fff",
+    width: "85%",
+    borderRadius: 20,
+    padding: 24,
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  modalIconContainer: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: "#FEF2F2",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111",
+    marginBottom: 8,
+  },
+  modalDesc: {
+    fontSize: 15,
+    color: "#666",
+    marginBottom: 24,
+    textAlign: "center",
+  },
+  modalButtonGroup: {
+    width: "100%",
+    gap: 12,
+  },
+  modalButton: {
+    width: "100%",
+    paddingVertical: 14,
+    alignItems: "center",
+    borderRadius: 12,
+  },
+  modalButtonDestructive: {
+    backgroundColor: "#FEF2F2",
+  },
+  modalCancelButton: {
+    backgroundColor: "#F3F4F6",
+  },
+  modalButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#4B5563",
+  },
+  modalButtonTextDestructive: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#EF4444",
   },
   loadingContainer: {
     flex: 1,
