@@ -14,6 +14,7 @@ import {
   Text,
   TouchableOpacity,
   Modal,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -21,6 +22,7 @@ import ChatHeader from "../../components/chat/ChatHeader";
 import ChatInput from "../../components/chat/ChatInput";
 import MessageBubble from "../../components/chat/MessageBubble";
 import TypingIndicator from "../../components/chat/TypingIndicator";
+import LocationPickerModal from "../../components/chat/LocationPickerModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import { useChat } from "../../hooks/useChat";
@@ -54,6 +56,8 @@ export default function ChatRoomScreen() {
   
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
+  const [isLocationPickerVisible, setIsLocationPickerVisible] = useState(false);
+  const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
   const isSelectionMode = selectedMessages.size > 0;
   const insets = useSafeAreaInsets();
 
@@ -223,47 +227,39 @@ export default function ChatRoomScreen() {
     }
   };
 
-  // ── Send image message ────────────────────────────────────
-  const handleSendImage = async (uri: string) => {
-    try {
-      // Upload to Cloudinary via the existing upload endpoint
-      const formData = new FormData();
-      formData.append("file", {
-        uri,
-        name: "chat_image.jpg",
-        type: "image/jpeg",
-      } as any);
+  // ── Send image messages ────────────────────────────────────
+  const handleSendImages = async (uris: string[]) => {
+    for (const uri of uris) {
+      try {
+        const formData = new FormData();
+        formData.append("file", {
+          uri,
+          name: "chat_image.jpg",
+          type: "image/jpeg",
+        } as any);
 
-      const uploadRes = await fetch(`${API_URL}/upload/cloudinary`, {
-        method: "POST",
-        headers: { Authorization: `Bearer ${token}` },
-        body: formData,
-      });
+        const uploadRes = await fetch(`${API_URL}/upload/cloudinary`, {
+          method: "POST",
+          headers: { Authorization: `Bearer ${token}` },
+          body: formData,
+        });
 
-      if (!uploadRes.ok) {
-        let errorMsg = "Image upload failed";
-        try {
-          const errorData = await uploadRes.json();
-          if (errorData && errorData.message) {
-            errorMsg = errorData.message;
-          }
-        } catch (e) {
-          // use default error message
+        if (!uploadRes.ok) {
+          throw new Error("Image upload failed");
         }
-        throw new Error(errorMsg);
+
+        const { url: imageUrl } = await uploadRes.json();
+
+        await sendMessage({
+          conversationId,
+          type: "image",
+          imageUrl,
+          text: "",
+        });
+      } catch (error) {
+        console.error("Image send failed:", error);
+        Alert.alert("Error", "Failed to send one or more images. Please try again.");
       }
-
-      const { url: imageUrl } = await uploadRes.json();
-
-      await sendMessage({
-        conversationId,
-        type: "image",
-        imageUrl,
-        text: "",
-      });
-    } catch (error) {
-      console.error("Image send failed:", error);
-      Alert.alert("Error", "Failed to send image. Please try again.");
     }
   };
 
@@ -275,16 +271,21 @@ export default function ChatRoomScreen() {
   };
 
   const handlePressMessage = (message: any) => {
-    if (!isSelectionMode) return;
-    const newSet = new Set(selectedMessages);
-    if (newSet.has(message._id)) {
-      newSet.delete(message._id);
+    if (isSelectionMode) {
+      const newSet = new Set(selectedMessages);
+      if (newSet.has(message._id)) {
+        newSet.delete(message._id);
+      } else {
+        if (!message.isDeletedForEveryone) {
+          newSet.add(message._id);
+        }
+      }
+      setSelectedMessages(newSet);
     } else {
-      if (!message.isDeletedForEveryone) {
-        newSet.add(message._id);
+      if (message.type === "image" && message.imageUrl) {
+        setActiveImageUrl(message.imageUrl);
       }
     }
-    setSelectedMessages(newSet);
   };
 
   const handleDeleteSelected = async (type: "me" | "everyone") => {
@@ -473,8 +474,9 @@ export default function ChatRoomScreen() {
       {/* Input */}
       <ChatInput
         onSendText={handleSendText}
-        onSendImage={handleSendImage}
+        onSendImages={handleSendImages}
         onSendLocation={handleSendLocation}
+        onChooseLocation={() => setIsLocationPickerVisible(true)}
         onTyping={(isTyping) => setTyping(isTyping)}
         disabled={loading}
       />
@@ -523,6 +525,32 @@ export default function ChatRoomScreen() {
             </View>
           </View>
         </TouchableOpacity>
+      </Modal>
+
+      <LocationPickerModal
+        visible={isLocationPickerVisible}
+        onClose={() => setIsLocationPickerVisible(false)}
+        onSelectLocation={handleSendLocation}
+      />
+
+      <Modal
+        visible={!!activeImageUrl}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setActiveImageUrl(null)}
+      >
+        <View style={styles.imageViewerContainer}>
+          <TouchableOpacity style={styles.imageViewerClose} onPress={() => setActiveImageUrl(null)}>
+            <Ionicons name="close" size={30} color="#fff" />
+          </TouchableOpacity>
+          {activeImageUrl && (
+            <Image
+              source={{ uri: activeImageUrl }}
+              style={styles.imageViewerImage}
+              resizeMode="contain"
+            />
+          )}
+        </View>
       </Modal>
     </View>
   );
@@ -620,6 +648,23 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#EF4444",
+  },
+  imageViewerContainer: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.9)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  imageViewerClose: {
+    position: "absolute",
+    top: Platform.OS === "ios" ? 60 : 40,
+    right: 20,
+    zIndex: 10,
+    padding: 8,
+  },
+  imageViewerImage: {
+    width: "100%",
+    height: "80%",
   },
   loadingContainer: {
     flex: 1,

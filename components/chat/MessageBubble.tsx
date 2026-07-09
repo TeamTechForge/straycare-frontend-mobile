@@ -61,13 +61,23 @@ export default function MessageBubble({
               const url = `https://www.google.com/maps/search/?api=1&query=${location.latitude},${location.longitude}`;
               Linking.openURL(url).catch((err) => console.error("Failed to open maps", err));
             }}
-            style={styles.locationContainer}
-            activeOpacity={0.7}
+            style={[styles.locationCard, isMine ? styles.locationCardMine : styles.locationCardTheirs]}
+            activeOpacity={0.8}
           >
-            <Ionicons name="location" size={20} color={isMine ? "#fff" : BRAND_COLOR} />
-            <Text style={[styles.locationText, isMine && styles.textMine]}>
-              {location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
-            </Text>
+            <View style={[styles.locationMapPlaceholder, isMine ? styles.mapPlaceholderMine : styles.mapPlaceholderTheirs]}>
+              <Ionicons name="map" size={40} color={isMine ? "rgba(255,255,255,0.4)" : "#ccc"} />
+            </View>
+            <View style={styles.locationInfo}>
+              <Text style={[styles.locationTitle, isMine && styles.textMine]} numberOfLines={1}>
+                Shared Location
+              </Text>
+              <Text style={[styles.locationAddress, isMine && styles.timeMine]} numberOfLines={2}>
+                {location.address || `${location.latitude.toFixed(4)}, ${location.longitude.toFixed(4)}`}
+              </Text>
+              <Text style={[styles.locationLink, isMine && styles.textMine]}>
+                Open in Maps
+              </Text>
+            </View>
           </TouchableOpacity>
         )}
 
@@ -165,16 +175,50 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 4,
   },
-  locationContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 4,
+  locationCard: {
+    width: 220,
+    borderRadius: 12,
+    overflow: "hidden",
+    marginBottom: 4,
+    borderWidth: 1,
   },
-  locationText: {
+  locationCardMine: {
+    borderColor: "rgba(255,255,255,0.2)",
+  },
+  locationCardTheirs: {
+    borderColor: "#E5E7EB",
+  },
+  locationMapPlaceholder: {
+    height: 100,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  mapPlaceholderMine: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+  },
+  mapPlaceholderTheirs: {
+    backgroundColor: "#E5E7EB",
+  },
+  locationInfo: {
+    padding: 10,
+    backgroundColor: "rgba(0,0,0,0.02)",
+  },
+  locationTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111",
+    marginBottom: 2,
+  },
+  locationAddress: {
+    fontSize: 12,
+    color: "#666",
+    marginBottom: 8,
+    lineHeight: 16,
+  },
+  locationLink: {
     fontSize: 13,
-    color: "#555",
-    flex: 1,
+    fontWeight: "600",
+    color: BRAND_COLOR,
   },
   deletedText: {
     fontStyle: "italic",
