@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
+
 import {
   ScrollView,
   StyleSheet,
@@ -13,15 +15,20 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
+import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
+
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
+import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#F5A623";
 
 export default function VolunteerProfileSetupScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
 
@@ -29,12 +36,99 @@ export default function VolunteerProfileSetupScreen() {
   const [phone, setPhone] = useState("");
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const [errors, setErrors] = useState({
     name: "",
     phone: "",
     location: "",
   });
+
+  // Fetch user details on mount
+  useEffect(() => {
+    const fetchUser = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const data = await response.json();
+        if (response.ok) {
+          if (data.name) setName(data.name);
+          if (data.phone) setPhone(data.phone);
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+      }
+    };
+    fetchUser();
+  }, []);
+
+  const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
+    if (!uriOrAsset) return null;
+
+    let uri = "";
+    let name = "upload_file";
+    let mimeType = "image/jpeg";
+
+    if (typeof uriOrAsset === "object" && uriOrAsset.uri) {
+      uri = uriOrAsset.uri;
+      name = uriOrAsset.name || "upload_file";
+      mimeType = uriOrAsset.mimeType || "application/octet-stream";
+    } else if (typeof uriOrAsset === "string" && (uriOrAsset.startsWith("file://") || uriOrAsset.startsWith("content://"))) {
+      uri = uriOrAsset;
+      const filename = uri.split("/").pop();
+      if (filename) name = filename;
+    } else if (typeof uriOrAsset === "string") {
+      return uriOrAsset;
+    } else {
+      return null;
+    }
+
+    // Resolve content:// URIs to local file:// URIs using expo-file-system
+    if (uri.startsWith("content://")) {
+      try {
+        const cacheDir = `${cacheDirectory}UploadCache/`;
+        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => {});
+        const localUri = `${cacheDir}${name}`;
+        await copyAsync({ from: uri, to: localUri });
+        uri = localUri;
+      } catch (err) {
+        console.error("Failed to copy content URI to local cache:", err);
+      }
+    }
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri,
+      name,
+      type: mimeType,
+    } as any);
+
+    const res = await fetch(`${API_URL}/upload/cloudinary`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      let errorMsg = "Failed to upload file to Cloudinary";
+      try {
+        const errorData = await res.json();
+        if (errorData && errorData.message) {
+          errorMsg = errorData.message;
+        }
+      } catch (e) {
+        // use default error message
+      }
+      throw new Error(errorMsg);
+    }
+
+    const data = await res.json();
+    return data.url;
+  };
 
   const handlePickProfileImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -45,7 +139,7 @@ export default function VolunteerProfileSetupScreen() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: "images",
       quality: 0.7,
       allowsEditing: true,
       aspect: [1, 1],
@@ -65,6 +159,7 @@ export default function VolunteerProfileSetupScreen() {
     }
 
     const loc = await Location.getCurrentPositionAsync({});
+    setCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
 
     const address = await Location.reverseGeocodeAsync({
       latitude: loc.coords.latitude,
@@ -108,20 +203,42 @@ export default function VolunteerProfileSetupScreen() {
     return valid;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (!validate()) return;
 
-    // TODO: later connect backend here
-    console.log({
-      profileImage,
-      name,
-      phone,
-      location,
-      bio,
-      role: "volunteer",
-    });
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) throw new Error("No authorization token found");
 
-    router.replace("/home");
+      const uploadedImageUrl = await uploadToCloudinaryIfLocal(profileImage, token);
+
+      const response = await fetch(`${API_URL}/profiles/volunteer`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          name,
+          location,
+          bio,
+          profileImage: uploadedImageUrl,
+          latitude: coords?.latitude,
+          longitude: coords?.longitude,
+        }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        await refreshUser();
+        router.replace("/auth/completedProfileSetup");
+      } else {
+        alert(data.message || "Failed to save profile");
+      }
+    } catch (error) {
+      console.error("Profile submission error:", error);
+      alert("Something went wrong. Please check connection.");
+    }
   };
 
   return (
@@ -142,7 +259,7 @@ export default function VolunteerProfileSetupScreen() {
       </Text>
 
       {/* Profile Image */}
-     <ProfileImageUpload
+      <ProfileImageUpload
         imageUri={profileImage}
         onPress={handlePickProfileImage}
       />
@@ -150,7 +267,7 @@ export default function VolunteerProfileSetupScreen() {
       {/* Basic Information */}
       <FormSection title="Basic Information">
         <InputField
-          label="Name"
+          label="Name *"
           placeholder="e.g. Alex Johnson"
           value={name}
           onChangeText={setName}
@@ -159,14 +276,14 @@ export default function VolunteerProfileSetupScreen() {
 
         <InputField
           label="Phone Number *"
-          placeholder="+1 (555) 000-0000"
+          placeholder="e.g. +94 77 123 4567"
           value={phone}
           onChangeText={setPhone}
           error={errors.phone}
         />
 
         <InputField
-          label="Current Location"
+          label="Current Location *"
           placeholder="City, Country"
           value={location}
           onChangeText={setLocation}

@@ -1,6 +1,6 @@
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -10,6 +10,7 @@ import {
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { getAllReports } from "../../api/strayApi";
+import PrimaryButton from "../../components/PrimaryButton";
 
 type Report = {
   caseId: string;
@@ -28,20 +29,23 @@ const getMarkerColor = (status: string) => {
     case "Needs Help":
       return "red";
     case "Under Rescue":
-      return "yellow";
+      return "#f1eb40";
     case "Treated":
-      return "green";
+      return "#63ac84";
     case "Ready for Adoption":
-      return "blue";
+      return "#2476da";
     default:
       return "gray";
   }
 };
 
 export default function ReportingMapScreen() {
+  const router = useRouter();
+  const mapRef = useRef<MapView>(null);
+
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
-  const router = useRouter();
+  const [mapReady, setMapReady] = useState(false);
 
   const loadReports = async () => {
     try {
@@ -64,6 +68,32 @@ export default function ReportingMapScreen() {
     }, [])
   );
 
+  // The map's initialRegion only applies on first mount and never recenters,
+  // so it was hiding every case outside that fixed Colombo box (including new
+  // ones reported elsewhere). Refit the viewport whenever the report list changes.
+  // fitToCoordinates is a no-op until the native map has actually finished
+  // initializing, so this also waits on onMapReady rather than just the mount.
+  useEffect(() => {
+    if (!mapReady) return;
+
+    const validCoords = reports
+      .filter(
+        (r) =>
+          r.location && r.location.lat != null && r.location.lng != null
+      )
+      .map((r) => ({
+        latitude: r.location.lat,
+        longitude: r.location.lng,
+      }));
+
+    if (validCoords.length > 0) {
+      mapRef.current?.fitToCoordinates(validCoords, {
+        edgePadding: { top: 80, right: 80, bottom: 80, left: 80 },
+        animated: true,
+      });
+    }
+  }, [reports, mapReady]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -74,11 +104,20 @@ export default function ReportingMapScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header Card */}
+      <View style={styles.sectionCard}>
+        <Text style={styles.header}>Rescue Cases Map</Text>
+        <Text style={styles.subtext}>Tap a marker to view case details.</Text>
+      </View>
+
+      {/* Map View */}
       <MapView
+        ref={mapRef}
         provider="google"
         style={styles.map}
+        onMapReady={() => setMapReady(true)}
         initialRegion={{
-          latitude: 6.9271,
+          latitude: 6.9271, // Default - Colombo
           longitude: 79.8612,
           latitudeDelta: 0.05,
           longitudeDelta: 0.05,
@@ -95,7 +134,8 @@ export default function ReportingMapScreen() {
 
           return (
             <Marker
-              key={report.caseId}
+              // ✅ Fix applied here: Forces the marker to re-render when status changes
+              key={`${report.caseId}-${report.status}`}
               coordinate={{
                 latitude: report.location.lat,
                 longitude: report.location.lng,
@@ -114,43 +154,41 @@ export default function ReportingMapScreen() {
         })}
       </MapView>
 
-      <TouchableOpacity
-        style={styles.addButton}
-        onPress={() => router.push("/reporting/animal-details")}
-      >
-        <Text style={styles.addButtonText}>Add a Case +</Text>
-      </TouchableOpacity>
+      {/* Add Case Button */}
+      <View style={styles.bottomButtonWrapper}>
+        <PrimaryButton
+          title="Add a Case +"
+          onPress={() => router.push("/reporting/animal-details")}
+        />
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
+  container: { flex: 1, backgroundColor: "#fafafa" },
   map: { flex: 1 },
-
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
   },
-
-  addButton: {
-    position: "absolute",
-    bottom: 50,
-    right: 120,
-    backgroundColor: "#FFB700",
-    paddingVertical: 20,
-    paddingHorizontal: 24,
-    borderRadius: 40,
+  sectionCard: {
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 20,
+    margin: 12,
     shadowColor: "#000",
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 6,
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
   },
-
-  addButtonText: {
-    color: "black",
-    fontSize: 18,
-    fontWeight: "700",
+  header: { fontSize: 18, fontWeight: "700", color: "#333", textAlign: "center" },
+  subtext: { fontSize: 14, color: "#666", textAlign: "center" },
+  bottomButtonWrapper: {
+    position: "absolute",
+    bottom: 20,
+    left: 20,
+    right: 20,
   },
 });

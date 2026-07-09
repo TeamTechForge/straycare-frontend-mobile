@@ -1,5 +1,9 @@
-import { Redirect } from "expo-router";
+import ProfileScreen from "../profile/index";
 
-export default function ProfileTabRedirect() {
-  return <Redirect href="/profile" />;
+/**
+ * Profile Tab
+ * Renders the user profile screen within the bottom tab navigation.
+ */
+export default function ProfileTab() {
+  return <ProfileScreen />;
 }

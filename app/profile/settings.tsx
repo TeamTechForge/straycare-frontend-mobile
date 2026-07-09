@@ -1,28 +1,52 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import { API_URL } from "../../constants/Config";
 
 import SettingsRow from "../../components/settings/SettingsRow";
+import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#F5A623";
 
 export default function SettingsScreen() {
   const router = useRouter();
+  const { logout } = useAuth();
 
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
-  const handleDeleteAccount = () => {
-    // TODO: later call backend delete account API
-    setDeleteModalVisible(false);
-    router.replace("/profile/accountDeleted");
+  const handleDeleteAccount = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) return;
+
+      const response = await fetch(`${API_URL}/auth/me`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (response.ok) {
+        await SecureStore.deleteItemAsync("authToken");
+        setDeleteModalVisible(false);
+        router.replace("/profile/accountDeleted");
+      } else {
+        const errorData = await response.json();
+        Alert.alert("Error", errorData.message || "Failed to delete account");
+      }
+    } catch (error) {
+      console.error("Delete account error:", error);
+      Alert.alert("Error", "An unexpected error occurred");
+    }
   };
 
-  const handleLogout = () => {
-    // TODO: later clear token / Firebase sign out
-    router.replace("/auth/welcome");
+  const handleLogout = async () => {
+    await logout();
+    router.replace("/");
   };
 
   return (
@@ -76,9 +100,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon="help-circle-outline"
           title="Help & Support"
-          onPress={() => {
-            // TODO: navigate to support page later
-          }}
+          onPress={() => router.push("/profile/helpSupport")}
         />
         <SettingsRow
           icon="document-text-outline"
@@ -88,9 +110,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon="information-circle-outline"
           title="About StrayCare"
-          onPress={() => {
-            // TODO: navigate to about page later
-          }}
+          onPress={() => router.push("/profile/about")}
         />
       </View>
 

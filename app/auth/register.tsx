@@ -1,7 +1,10 @@
 import { Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -9,27 +12,25 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthService";
 
+import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
-import InputField from "../../components/InputField"; // ✅ USING REUSABLE
+import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
+import CustomAlertModal from "../../components/CustomAlertModal";
 
 const BRAND_COLOR = "#F5A623";
 
+/* Handles registration by collecting user details, validating input, 
+and registering the user with the backend.*/
 export default function RegisterScreen() {
-  const [isChecked, setIsChecked] = useState(false);
-  const params = useLocalSearchParams();
-    
-    useEffect(() => {
-      if (params.agreed === "true") {
-      setIsChecked(true);
-      }
-    }, [params.agreed]);
-
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const { refreshUser } = useAuth();
 
   const [agree, setAgree] = useState(false);
 
-  // form states
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
@@ -37,8 +38,58 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState("");
 
   const [errors, setErrors] = useState<any>({});
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAccountExistsVisible, setIsAccountExistsVisible] = useState(false);
 
-  
+  // Google Sign-In setup
+  const { response: googleResponse, promptAsync, isReady: isGoogleReady, isExpoGo } = useGoogleAuth();
+
+  // Handle Google Sign-In response
+  useEffect(() => {
+    if (!googleResponse) return;
+
+    const processGoogleSignIn = async () => {
+      setIsGoogleLoading(true);
+      try {
+        const result = await handleGoogleSignIn(googleResponse);
+        await SecureStore.setItemAsync("authToken", result.token);
+        await refreshUser();
+
+        if (result.isNewUser) {
+          // New Google account — needs role selection
+          router.replace("/auth/roleSelection");
+        } else {
+          // Existing account — go straight to home
+          router.replace("/(tabs)/home");
+        }
+      } catch (error) {
+        if (error.message === "CANCELLED") {
+          return;
+        }
+        console.error("Google Sign-In error:", error);
+        Alert.alert("Google Sign-In Failed", error.message);
+      } finally {
+        setIsGoogleLoading(false);
+      }
+    };
+
+    processGoogleSignIn();
+  }, [googleResponse]);
+
+  useEffect(() => {
+    if (params.agreed === "true") {
+      setAgree(true);
+      // Restore typed values from params
+      if (params.name) setName(params.name as string);
+      if (params.email) setEmail(params.email as string);
+      if (params.phone) setPhone(params.phone as string);
+      if (params.password) setPassword(params.password as string);
+      if (params.confirmPassword) setConfirmPassword(params.confirmPassword as string);
+    }
+  }, [params]);
+
+  // Validates registration input
   const validateForm = () => {
     let newErrors: any = {};
 
@@ -74,142 +125,240 @@ export default function RegisterScreen() {
     return Object.keys(newErrors).length === 0;
   };
 
+  // Registers a valid user
+  const handleRegister = async () => {
+    if (!validateForm()) return;
+    setIsLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
+
+    try {
+      console.log("Attempting registration via:", `${API_URL}/auth/register`);
+      const response = await fetch(
+        `${API_URL}/auth/register`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            name,
+            email,
+            phone,
+            password,
+          }),
+          signal: controller.signal,
+        }
+      );
+
+      clearTimeout(timeoutId);
+
+      let data: any = {};
+      const contentType = response.headers.get("content-type");
+      if (contentType && contentType.includes("application/json")) {
+        try {
+          data = await response.json();
+        } catch (jsonErr) {
+          console.error("Failed to parse JSON response:", jsonErr);
+        }
+      } else {
+        const text = await response.text();
+        data = { message: `Server error (${response.status}): ${text || response.statusText}` };
+      }
+
+      console.log("Registration response:", data);
+
+      if (response.ok) {
+        // Store JWT securely
+        await SecureStore.setItemAsync("authToken", data.token);
+
+        // Refresh AuthContext so token + user are available app-wide
+        await refreshUser();
+
+        router.replace("/auth/roleSelection");
+      } else {
+        const errMsg = data.message || (data.error ? String(data.error) : "Registration failed");
+        console.log("[Register] Response status:", response.status);
+        console.log("[Register] Error message:", errMsg);
+        if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("already exist")) {
+          console.log("[Register] Showing account exists popup");
+          setIsAccountExistsVisible(true);
+        } else {
+          Alert.alert("Registration Failed", errMsg);
+        }
+      }
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      console.error("Registration error:", error);
+      if (error.name === "AbortError") {
+        Alert.alert(
+          "Request Timed Out",
+          "The server took too long to respond. Please check your connection and try again."
+        );
+      } else {
+        Alert.alert(
+          "Connection Error",
+          "Could not connect to the backend server. Please check your network connection and verify the API endpoint."
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* TOP IMAGE */}
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
       <Image
         source={require("../../assets/images/signupimg.jpg")}
         style={styles.topImage}
       />
 
-      {/* CARD */}
       <View style={styles.card}>
-        <Text style={styles.title}>
-          Create your StrayCare account
-        </Text>
+        <Text style={styles.title}>Create your StrayCare account</Text>
 
         <Text style={styles.subtitle}>
           Join our community and help save lives
         </Text>
 
-        {/* NAME */}
         <Text style={styles.label}>Name</Text>
         <InputField
           placeholder="John Doe"
           value={name}
           onChangeText={setName}
+          editable={!isLoading}
         />
         {errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
-        {/* EMAIL */}
         <Text style={styles.label}>Email Address</Text>
         <InputField
           placeholder="Johndoe@gmail.com"
           value={email}
           onChangeText={setEmail}
+          editable={!isLoading}
         />
         {errors.email && <Text style={styles.error}>{errors.email}</Text>}
 
-        {/* PHONE */}
         <Text style={styles.label}>Phone Number</Text>
         <InputField
           placeholder="+94 77 555 5555"
           value={phone}
           onChangeText={setPhone}
+          editable={!isLoading}
         />
         {errors.phone && <Text style={styles.error}>{errors.phone}</Text>}
 
-        {/* PASSWORD */}
         <Text style={styles.label}>Password</Text>
         <InputField
           placeholder="********"
           value={password}
           onChangeText={setPassword}
           secure
+          editable={!isLoading}
         />
         {errors.password && <Text style={styles.error}>{errors.password}</Text>}
 
-        {/* CONFIRM PASSWORD */}
         <Text style={styles.label}>Confirm Password</Text>
         <InputField
           placeholder="********"
           value={confirmPassword}
           onChangeText={setConfirmPassword}
           secure
+          editable={!isLoading}
         />
         {errors.confirmPassword && (
           <Text style={styles.error}>{errors.confirmPassword}</Text>
         )}
 
-{/* TERMS */}
-<TouchableOpacity
-  style={styles.termsContainer}
-  onPress={() => setAgree(!agree)}
->
-  <Ionicons
-    name={agree ? "checkbox" : "square-outline"}
-    size={20}
-    color={agree ? BRAND_COLOR : "#999"}
-  />
-  <Text style={styles.termsText}>
-    I agree to the{" "}
-    <Text
-      style={{ color: BRAND_COLOR }}
-      onPress={() => router.push("/auth/termsPrivacyScreen")}
-    >
-      Terms & Privacy Policy
-    </Text>
-  </Text>
-</TouchableOpacity>
+        <TouchableOpacity
+          style={styles.termsContainer}
+          onPress={() => setAgree(!agree)}
+          disabled={isLoading}
+        >
+          <Ionicons
+            name={agree ? "checkbox" : "square-outline"}
+            size={20}
+            color={agree ? BRAND_COLOR : "#999"}
+          />
+          <Text style={styles.termsText}>
+            I agree to the{" "}
+            <Text
+              style={{ color: BRAND_COLOR }}
+              onPress={() =>
+                router.push({
+                  pathname: "/auth/termsPrivacyScreen",
+                  params: { name, email, phone, password, confirmPassword }
+                })
+              }
+            >
+              Terms & Privacy Policy
+            </Text>
+          </Text>
+        </TouchableOpacity>
 
-{errors.terms && <Text style={styles.error}>{errors.terms}</Text>}
-        {/* BUTTON */}
+        {errors.terms && <Text style={styles.error}>{errors.terms}</Text>}
+
         <PrimaryButton
-          title="Create Account"
-          onPress={() => {
-            if (validateForm()) {
-              router.push("/auth/roleSelection");
-            }
-          }}
+          title={isLoading ? "Creating Account..." : "Create Account"}
+          onPress={handleRegister}
+          disabled={isLoading}
         />
 
-        {/* OR */}
         <View style={styles.dividerContainer}>
           <View style={styles.line} />
           <Text style={styles.orText}>OR</Text>
           <View style={styles.line} />
         </View>
 
-        {/* GOOGLE */}
-        <TouchableOpacity style={styles.googleButton}>
-          <MaterialCommunityIcons
-            name="google"
-            size={18}
-            color="#DB4437"
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.googleText}>
-            Continue with Google
-          </Text>
-        </TouchableOpacity>
-
-        {/* LOGIN */}
-        <View style={styles.loginContainer}>
-          <Text style={{ fontSize: 13 }}>
-            Already have an account?
-          </Text>
+        {!isExpoGo && (
           <TouchableOpacity
-            onPress={() => router.push("/auth/login")}
+            style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
+            onPress={() => promptAsync()}
+            disabled={isLoading || isGoogleLoading || !isGoogleReady}
           >
+            {isGoogleLoading ? (
+              <ActivityIndicator size="small" color="#DB4437" style={{ marginRight: 8 }} />
+            ) : (
+              <MaterialCommunityIcons
+                name="google"
+                size={18}
+                color="#DB4437"
+                style={{ marginRight: 8 }}
+              />
+            )}
+            <Text style={styles.googleText}>
+              {isGoogleLoading ? "Signing in..." : "Continue with Google"}
+            </Text>
+          </TouchableOpacity>
+        )}
+
+        <View style={styles.loginContainer}>
+          <Text style={{ fontSize: 13 }}>Already have an account?</Text>
+          <TouchableOpacity onPress={() => router.push("/auth/login")} disabled={isLoading}>
             <Text style={styles.loginText}> Log in</Text>
           </TouchableOpacity>
         </View>
       </View>
     </ScrollView>
+
+      <CustomAlertModal
+        visible={isAccountExistsVisible}
+        title="Account Already Exists"
+        message="This email is already registered. Please log in instead."
+        confirmLabel="Go to Login"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setIsAccountExistsVisible(false);
+          router.push("/auth/login");
+        }}
+        onCancel={() => setIsAccountExistsVisible(false)}
+        onClose={() => setIsAccountExistsVisible(false)}
+      />
+    </View>
   );
 }
 

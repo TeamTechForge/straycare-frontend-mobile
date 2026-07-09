@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "394016070568",
+    "project_id": "straycareweb",
+    "storage_bucket": "straycareweb.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:394016070568:android:eef1443a140f2ac220db9d",
+        "android_client_info": {
+          "package_name": "com.techforge.straycare"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "394016070568-il1dg2te3prtfbteolmb5jjskmroqtdb.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAThZt96wTJbNH-AHPSdbuRi095FLEOLvM"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "394016070568-il1dg2te3prtfbteolmb5jjskmroqtdb.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

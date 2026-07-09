@@ -1,87 +1,145 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { API_URL } from "../../constants/Config";
 
 import EmptyStateCard from "../../components/profile/EmptyStateCard";
 import PostPreviewCard from "../../components/profile/PostPreviewCard";
 import ProfileHeaderCard from "../../components/profile/ProfileHeaderCard";
 import ProfileMenuDrawer from "../../components/profile/ProfileMenuDrawer";
 import ProfileStatsRow from "../../components/profile/ProfileStatsRow";
-import ProfileTabBar from "../../components/profile/ProfileTabBar";
+import ProfileTabBar, { TabKey } from "../../components/profile/ProfileTabBar";
 import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
+import { useAuth } from "../../contexts/AuthContext";
 import SavedPreviewCard from "../../components/profile/SavedPreviewCard";
 
 const BRAND_COLOR = "#F5A623";
 
+interface Post {
+  id: string;
+  image: string;
+  likes: number;
+  comments: number;
+  time: string;
+}
+
+interface Report {
+  id: string;
+  title: string;
+  date: string;
+  status: string;
+  image: string;
+}
+
+interface SavedItem {
+  id: string;
+  title: string;
+  subtitle: string;
+  location: string;
+  image: string;
+}
+
 export default function GeneralUserProfile() {
   const router = useRouter();
+  const { logout } = useAuth();
 
-  // TODO: Replace with backend user data later
-  const user = {
-    name: "Elena Rodriguez",
-    location: "Austin, TX",
-    bio: "Animal lover and frequent volunteer. Dedicated to making the streets safer for our furry friends.",
-    memberSince: "JAN 2024",
-    avatar:
-      "https://images.unsplash.com/photo-1494790108377-be9c29b29330?q=80&w=400&auto=format&fit=crop",
+  const [user, setUser] = useState<any>(null);
+  const [profile, setProfile] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  const [refreshing, setRefreshing] = useState(false);
+
+  const fetchData = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) return;
+
+      // Fetch User details
+      const userRes = await fetch(`${API_URL}/auth/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const userData = (await userRes.json()) as any;
+      if (userRes.ok) setUser(userData);
+
+      // Fetch Profile details
+      const profileRes = await fetch(`${API_URL}/profiles/me`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      const profileData = (await profileRes.json()) as any;
+      if (profileRes.ok) setProfile(profileData);
+
+      const userId = userData._id || userData.id;
+      if (userId) {
+        // Fetch Reports
+        const reportsRes = await fetch(`${API_URL}/users/${userId}/reports`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (reportsRes.ok) {
+          const reportsData = (await reportsRes.json()) as any;
+          setReports(reportsData);
+        }
+
+        // Fetch Posts
+        const postsRes = await fetch(`${API_URL}/users/${userId}/posts`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (postsRes.ok) {
+          const postsData = (await postsRes.json()) as any;
+          setPosts(postsData);
+        }
+      }
+
+    } catch (error) {
+      console.error("Fetch profile data error:", error);
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
+    }
   };
 
-  // TODO: Replace with backend stats later
-  const stats = [
-    { value: 12, label: "REPORTS" },
-    { value: 2, label: "ACTIVE" },
-    { value: 15, label: "POSTS" },
-    { value: "$50", label: "GIFTS" },
-  ];
+  useEffect(() => {
+    fetchData();
+  }, []);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    fetchData();
+  };
 
   // TODO: Replace with backend/API data later
-  const posts = [
-    {
-      id: 1,
-      image:
-        "https://images.unsplash.com/photo-1517849845537-4d257902454a?q=80&w=600&auto=format&fit=crop",
-      likes: 128,
-      comments: 12,
-      time: "2 DAYS AGO",
-    },
+  const [posts, setPosts] = useState<Post[]>([]);
+  const [reports, setReports] = useState<any[]>([]);
+  const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
+
+  const stats = [
+    { value: reports.length, label: "REPORTS" },
+    { value: posts.length, label: "POSTS" },
   ];
 
-  const reports = [
-    {
-      id: 1,
-      title: "Injured Dog near Central Park North",
-      date: "12th June 2026",
-      status: "UNDER RESCUE",
-      image:
-        "https://images.unsplash.com/photo-1518717758536-85ae29035b6d?q=80&w=400&auto=format&fit=crop",
-    },
-  ];
-
-  const savedItems = [
-    {
-      id: 1,
-      title: "Milo - Senior Cat",
-      subtitle: "Adoption",
-      location: "Manhattan, NY",
-      image:
-        "https://images.unsplash.com/photo-1519052537078-e6302a4968d4?q=80&w=400&auto=format&fit=crop",
-    },
-    {
-      id: 2,
-      title: "Central Park Meetup",
-      subtitle: "Community",
-      location: "450 lives",
-      image:
-        "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?q=80&w=400&auto=format&fit=crop",
-    },
-  ];
-
-  const [activeTab, setActiveTab] = useState<"posts" | "reports" | "saved">("posts");
+  const [activeTab, setActiveTab] = useState<TabKey>("posts");
   const [menuVisible, setMenuVisible] = useState(false);
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={BRAND_COLOR} />
+      </View>
+    );
+  }
+
+  const userData = {
+    name: user?.name || "User",
+    location: profile?.location || "Not set",
+    bio: profile?.bio || "No bio yet.",
+    memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : "2026",
+    avatar: profile?.profileImage || "https://via.placeholder.com/150",
+  };
+
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => setMenuVisible(true)}>
           <Feather name="menu" size={20} color="#222" />
@@ -89,7 +147,7 @@ export default function GeneralUserProfile() {
 
         <Text style={styles.headerTitle}>MY PROFILE</Text>
 
-        <TouchableOpacity>
+        <TouchableOpacity onPress={() => router.push("/notifications")}>
           <Ionicons name="notifications-outline" size={20} color="#222" />
         </TouchableOpacity>
       </View>
@@ -98,14 +156,21 @@ export default function GeneralUserProfile() {
 
 
 
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>
+      <ScrollView 
+        showsVerticalScrollIndicator={false} 
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_COLOR} />
+        }
+      >
   <ProfileHeaderCard
-    name={user.name}
-    location={user.location}
-    bio={user.bio}
-    memberSince={user.memberSince}
-    avatar={user.avatar}
-    onEditPress={() => {}}
+    name={userData.name}
+    location={userData.location}
+    bio={userData.bio}
+    memberSince={userData.memberSince}
+    avatar={userData.avatar}
+    role={user?.role}
+    onEditPress={() => router.push("/profile/editGeneralUserProfile")}
   />
 
   <ProfileStatsRow stats={stats} />
@@ -137,15 +202,25 @@ export default function GeneralUserProfile() {
 
           {activeTab === "reports" && (
             reports.length > 0 ? (
-              reports.map((report) => (
-                <ReportPreviewCard
-                  key={report.id}
-                  title={report.title}
-                  date={report.date}
-                  status={report.status}
-                  image={report.image}
-                />
-              ))
+              reports.map((report: any) => {
+                return (
+                  <ReportPreviewCard
+                    key={report._id || report.caseId}
+                    title={`${report.animalType} (${report.caseId})`}
+                    date={new Date(report.createdAt).toLocaleDateString()}
+                    status={report.status}
+                    image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                    caseId={report.caseId}
+                    summary={report.summary}
+                    onTrackPress={() => {
+                      router.push({
+                        pathname: "/live-tracking/[requestId]",
+                        params: { requestId: report.caseId },
+                      });
+                    }}
+                  />
+                );
+              })
             ) : (
               <EmptyStateCard
                 icon="document-text-outline"
@@ -177,12 +252,16 @@ export default function GeneralUserProfile() {
             )
           )}
         </View>
-      </ScrollView>  
-
-       <ProfileMenuDrawer
+      </ScrollView>
+      <ProfileMenuDrawer
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
-        user={{ name: user.name, avatar: user.avatar }}
+        user={{ 
+          name: userData.name, 
+          avatar: userData.avatar,
+          role: user?.role,
+          status: profile?.status
+        }}
         onProfilePress={() => setMenuVisible(false)}
         onAdoptionPress={() => {
           setMenuVisible(false);
@@ -195,12 +274,13 @@ export default function GeneralUserProfile() {
           setMenuVisible(false);
           router.push("/profile/settings");
         }}
-        onLogoutPress={() => {
+        onLogoutPress={async () => {
           setMenuVisible(false);
-          // TODO: add logout logic later
+          await logout();
+          router.replace("/");
         }} 
-      /> 
-    </View>
+      />
+    </SafeAreaView>
   );
 }
 
@@ -214,9 +294,9 @@ const styles = StyleSheet.create({
     paddingBottom: 24,
   },
   header: {
-    paddingTop: 18,
+    paddingTop: 16,
     paddingHorizontal: 16,
-    paddingBottom: 12,
+    paddingBottom: 20,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",

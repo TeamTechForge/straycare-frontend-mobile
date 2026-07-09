@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import {
   Image,
   ScrollView,
@@ -9,13 +10,18 @@ import {
   TextInput,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
+import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
+
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/Config";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -23,16 +29,113 @@ export default function EditProfileScreen() {
   const router = useRouter();
 
   // TODO: Replace these hardcoded values with backend/user context data later
-  const [fullName, setFullName] = useState("Elena Rodriguez");
-  const [email, setEmail] = useState("elena.r@example.com");
-  const [phone, setPhone] = useState("+1 (555) 000-0000");
-  const [location, setLocation] = useState("Austin, TX");
-  const [bio, setBio] = useState(
-    "Animal lover and frequent volunteer. Dedicated to making the streets safer for our furry friends."
-  );
-
-  // TODO: Replace with real profile image URL from backend later
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [location, setLocation] = useState("");
+  const [bio, setBio] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        if (!token) return;
+
+        const userRes = await fetch(`${API_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const userData = await userRes.json();
+        if (userRes.ok) {
+          setFullName(userData.name);
+          setEmail(userData.email);
+          setPhone(userData.phone || "");
+        }
+
+        const profileRes = await fetch(`${API_URL}/profiles/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        const profileData = await profileRes.json();
+        if (profileRes.ok) {
+          setLocation(profileData.location || "");
+          setBio(profileData.bio || "");
+          setProfileImage(profileData.profileImage || null);
+        }
+      } catch (error) {
+        console.error("Fetch profile edit data error:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchData();
+  }, []);
+
+  const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
+    if (!uriOrAsset) return null;
+
+    let uri = "";
+    let name = "upload_file";
+    let mimeType = "image/jpeg";
+
+    if (typeof uriOrAsset === "object" && uriOrAsset.uri) {
+      uri = uriOrAsset.uri;
+      name = uriOrAsset.name || "upload_file";
+      mimeType = uriOrAsset.mimeType || "application/octet-stream";
+    } else if (typeof uriOrAsset === "string" && (uriOrAsset.startsWith("file://") || uriOrAsset.startsWith("content://"))) {
+      uri = uriOrAsset;
+      const filename = uri.split("/").pop();
+      if (filename) name = filename;
+    } else if (typeof uriOrAsset === "string") {
+      return uriOrAsset;
+    } else {
+      return null;
+    }
+
+    // Resolve content:// URIs to local file:// URIs using expo-file-system
+    if (uri.startsWith("content://")) {
+      try {
+        const cacheDir = `${cacheDirectory}UploadCache/`;
+        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => {});
+        const localUri = `${cacheDir}${name}`;
+        await copyAsync({ from: uri, to: localUri });
+        uri = localUri;
+      } catch (err) {
+        console.error("Failed to copy content URI to local cache:", err);
+      }
+    }
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri,
+      name,
+      type: mimeType,
+    } as any);
+
+    const res = await fetch(`${API_URL}/upload/cloudinary`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      let errorMsg = "Failed to upload file to Cloudinary";
+      try {
+        const errorData = await res.json();
+        if (errorData && errorData.message) {
+          errorMsg = errorData.message;
+        }
+      } catch (e) {
+        // use default error message
+      }
+      throw new Error(errorMsg);
+    }
+
+    const data = await res.json();
+    return data.url;
+  };
 
   const [errors, setErrors] = useState({
     fullName: "",
@@ -123,32 +226,60 @@ export default function EditProfileScreen() {
     return valid;
   };
 
-  const handleSaveChanges = () => {
+  const handleSaveChanges = async () => {
     if (!validateForm()) return;
 
-    // TODO: Send updated profile data to backend here
-    console.log("Updated profile data:", {
-      fullName,
-      email,
-      phone,
-      location,
-      bio,
-      profileImage,
-    });
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) throw new Error("No authorization token found");
 
-    router.back();
+      const uploadedImageUrl = await uploadToCloudinaryIfLocal(profileImage, token);
+
+      const response = await fetch(`${API_URL}/profiles/general`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          location,
+          bio,
+          profileImage: uploadedImageUrl,
+        }),
+      });
+
+      if (response.ok) {
+        alert("Profile updated successfully");
+        router.back();
+      } else {
+        const data = await response.json();
+        alert(data.message || "Failed to update profile");
+      }
+    } catch (error) {
+      console.error("Update profile error:", error);
+      alert("Something went wrong");
+    }
   };
 
   const handleCancel = () => {
     router.back();
   };
 
+  if (loading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" color={BRAND_COLOR} />
+      </View>
+    );
+  }
+
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
-    >
+    <SafeAreaView style={styles.container}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
       {/* HEADER */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -246,7 +377,8 @@ export default function EditProfileScreen() {
       <Text style={styles.footerText}>
         Thank you for being part of the StrayCare community!
       </Text>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -263,7 +395,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 26,
+    marginBottom: 20,
+    marginTop: 10,
   },
   headerTitle: {
     fontSize: 20,

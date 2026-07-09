@@ -1,108 +1,173 @@
-import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
-import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import axios from "axios";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, View } from "react-native";
+import { WebView } from "react-native-webview";
 
-export default function PayHereMock() {
-    const router = useRouter();
+const INJECTED_JS = `
+  (function() {
+    function checkCard() {
+      const inputs = document.querySelectorAll('input');
+      inputs.forEach(function(input) {
+        input.addEventListener('blur', function() {
+          const val = input.value.replace(/\\s/g, '');
+          if (val.length >= 16) {
+            window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'card', value: val }));
+          }
+        });
+      });
+    }
+    setTimeout(checkCard, 2000);
+  })();
+  true;
+`;
 
-    const [name, setName] = useState("");
-    const [cardNumber, setCardNumber] = useState("");
-    const [expiry, setExpiry] = useState("");
-    const [cvn, setCvn] = useState("");
+const PayHereCheckout = () => {
+  const router = useRouter();
+  const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [orderData, setOrderData] = useState<any>(null);
+  const [paymentHandled, setPaymentHandled] = useState(false); // prevent double save
 
+  const BACKEND_URL = "http://192.168.8.160:5000";
+
+  // organization = _id, organizationName = display name
+  const { amount, category, organization, organizationName, frequency, plan } = useLocalSearchParams();
+
+  useEffect(() => {
+    initiatePayment();
+  }, []);
+
+  const initiatePayment = async () => {
+    try {
+      setLoading(true);
+
+      console.log("SENDING organizationId:", organization);
+
+      const res = await axios.post(
+        `${BACKEND_URL}/api/donations/initiate`,
+        {
+          amount: parseFloat(amount as string) || 1000,
+          organizationId: organization,   // _id for merchant ID lookup
+          organization: organizationName, // display name for donation record
+          category,
+          frequency,
+          plan,
+          items: "Donation",
+        },
+        { timeout: 15000, headers: { "Content-Type": "application/json" } }
+      );
+
+      const data = res.data;
+      setOrderData(data);
+
+      const url =
+        `${BACKEND_URL}/api/donations/pay?` +
+        `merchant_id=${data.merchant_id}&` +
+        `order_id=${data.order_id}&` +
+        `items=${encodeURIComponent(data.items)}&` +
+        `amount=${data.amount}&` +
+        `currency=${data.currency}&` +
+        `hash=${data.hash}&` +
+        `first_name=${encodeURIComponent(data.first_name)}&` +
+        `last_name=${encodeURIComponent(data.last_name)}&` +
+        `email=${encodeURIComponent(data.email)}&` +
+        `phone=${encodeURIComponent(data.phone)}&` +
+        `address=${encodeURIComponent(data.address)}&` +
+        `city=${encodeURIComponent(data.city)}&` +
+        `country=${encodeURIComponent(data.country)}&` +
+        `return_url=${encodeURIComponent(data.return_url)}&` +
+        `cancel_url=${encodeURIComponent(data.cancel_url)}&` +
+        `notify_url=${encodeURIComponent(data.notify_url)}`;
+
+      setPaymentUrl(url);
+    } catch (error: any) {
+      console.log("AXIOS ERROR:", error?.message || error);
+      router.replace("/donate/donationSummary");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveDonation = async (status: string) => {
+    try {
+      await axios.post(`${BACKEND_URL}/api/donations/save`, {
+        orderId: orderData?.order_id,
+        amount: orderData?.amount,
+        category: orderData?.category,
+        organization: orderData?.organization,
+        frequency: orderData?.frequency,
+        plan: orderData?.plan,
+        status,
+      });
+    } catch (err) {
+      console.log("Failed to save donation:", err);
+    }
+  };
+
+  const handleNavigationChange = async (navState: any) => {
+    const url = navState.url;
+    console.log("NAV URL:", url);
+
+    if (url.includes("/payhere/return")) {
+      if (paymentHandled) return; // prevent double save
+      setPaymentHandled(true);
+
+      const urlParams = new URLSearchParams(url.split("?")[1]);
+      const orderId = urlParams.get("order_id") || orderData?.order_id;
+      await saveDonation("SUCCESS");
+      router.replace({
+        pathname: "/donate/donationSuccess",
+        params: {
+          transactionId: orderId,
+          amount: orderData?.amount,
+          organization: orderData?.organization,
+        },
+      });
+    }
+
+    if (url.includes("/payhere/cancel")) {
+      if (paymentHandled) return; // prevent double save
+      setPaymentHandled(true);
+
+      await saveDonation("FAILED");
+      router.replace("/donate/donationSummary");
+    }
+  };
+
+  if (loading || !paymentUrl) {
     return (
-        <View style={styles.container}>
-            {/* Header */}
-            <Text style={styles.header}>PayHere</Text>
-            <Text style={styles.subHeader}>Card Details</Text>
-
-            {/* Input fields */}
-            <TextInput
-                style={styles.input}
-                placeholder="Name on Card"
-                value={name}
-                onChangeText={setName}
-            />
-            <TextInput
-                style={styles.input}
-                placeholder="Card Number"
-                keyboardType="numeric"
-                value={cardNumber}
-                onChangeText={setCardNumber}
-            />
-            <View style={styles.row}>
-                <TextInput
-                    style={[styles.input, styles.halfInput]}
-                    placeholder="MM/YY"
-                    value={expiry}
-                    onChangeText={setExpiry}
-                />
-                <TextInput
-                    style={[styles.input, styles.halfInput]}
-                    placeholder="CVN"
-                    keyboardType="numeric"
-                    secureTextEntry
-                    value={cvn}
-                    onChangeText={setCvn}
-                />
-            </View>
-
-            {/* Pay button */}
-            <TouchableOpacity
-                style={styles.payButton}
-                onPress={() => router.push("/donate/donationSuccess")}
-            >
-                <Text style={styles.payButtonText}>Pay 1000.00</Text>
-            </TouchableOpacity>
-
-            {/* Bottom Navigation */}
-            <View style={styles.bottomBar}>
-                <Ionicons name="home" size={24} color="#000" />
-                <Ionicons name="people-outline" size={24} color="#000" />
-                <Ionicons name="add-circle-outline" size={24} color="#000" />
-                <Ionicons name="chatbubble-outline" size={24} color="#000" />
-                <Ionicons name="person-outline" size={24} color="#000" />
-            </View>
-        </View>
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+        <ActivityIndicator size="large" />
+      </View>
     );
-}
+  }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-    header: { fontSize: 24, fontWeight: "bold", textAlign: "center", marginBottom: 5 },
-    subHeader: { fontSize: 18, textAlign: "center", marginBottom: 20, color: "#555" },
-    input: {
-        borderWidth: 1,
-        borderColor: "#ccc",
-        borderRadius: 8,
-        padding: 12,
-        fontSize: 16,
-        marginBottom: 15,
-    },
-    row: { flexDirection: "row", justifyContent: "space-between" },
-    halfInput: { flex: 1, marginRight: 10 },
-    payButton: {
-        backgroundColor: "#F5A623",
-        padding: 15,
-        borderRadius: 8,
-        marginTop: 10,
-    },
-    payButtonText: { textAlign: "center", fontSize: 18, fontWeight: "bold", color: "#000" },
-    bottomBar: {
-        flexDirection: "row",
-        justifyContent: "space-around",
-        padding: 15,
-        borderTopWidth: 1,
-        borderColor: "#ddd",
-        marginTop: "auto",
-        backgroundColor: "#FFF9E6",
-    },
-});
+  return (
+    <View style={{ flex: 1 }}>
+      <WebView
+        source={{ uri: paymentUrl }}
+        onNavigationStateChange={handleNavigationChange}
+        injectedJavaScript={INJECTED_JS}
+        javaScriptEnabled
+        domStorageEnabled
+        startInLoadingState
+        style={{ flex: 1 }}
+        onShouldStartLoadWithRequest={(request) => {
+          const url = request.url;
+          if (url.includes("/payhere/return")) {
+            handleNavigationChange({ url });
+            return false;
+          }
+          if (url.includes("/payhere/cancel")) {
+            handleNavigationChange({ url });
+            return false;
+          }
+          return true;
+        }}
+      />
+    </View>
+  );
+};
 
-
-
-
-
-
-
+export default PayHereCheckout;

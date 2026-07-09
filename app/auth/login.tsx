@@ -1,6 +1,10 @@
-import { AntDesign } from "@expo/vector-icons";
+import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
+  Alert,
   Image,
   StyleSheet,
   Text,
@@ -9,6 +13,10 @@ import {
   View,
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/Config";
+import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthService";
+import { useAuth } from "../../contexts/AuthContext";
+import CustomAlertModal from "../../components/CustomAlertModal";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -21,7 +29,45 @@ const loginSchema = z.object({
 
 export default function LoginScreen() {
   const router = useRouter();
-  
+  const { refreshUser } = useAuth();
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAccountNotFoundVisible, setIsAccountNotFoundVisible] = useState(false);
+
+  // Google Sign-In setup
+  const { response: googleResponse, promptAsync, isReady: isGoogleReady, isExpoGo } = useGoogleAuth();
+
+  // Handle Google Sign-In response
+  useEffect(() => {
+    if (!googleResponse) return;
+
+    const processGoogleSignIn = async () => {
+      setIsGoogleLoading(true);
+      try {
+        const result = await handleGoogleSignIn(googleResponse);
+        await SecureStore.setItemAsync("authToken", result.token);
+        await refreshUser();
+        if (result.isNewUser) {
+          router.replace("/auth/roleSelection");
+        } else {
+          router.replace("/(tabs)/home");
+        }
+      } catch (error) {
+        if (error.message === "CANCELLED") {
+          // User dismissed the popup — do nothing
+          return;
+        }
+        console.error("Google Sign-In error:", error);
+        Alert.alert("Google Sign-In Failed", error.message);
+      } finally {
+        setIsGoogleLoading(false);
+      }
+    };
+
+    processGoogleSignIn();
+  }, [googleResponse]);
+
   const {
     control,
     handleSubmit,
@@ -30,11 +76,72 @@ export default function LoginScreen() {
     resolver: zodResolver(loginSchema),
   });
 
-  const onSubmit = (data: any) => {
-    console.log(data);
+  const onSubmit = async (data: any) => {
+    setIsLoading(true);
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000);
 
-    // Later we will call backend API here
-    router.replace("/(tabs)/home");
+    const url = `${API_URL}/auth/login`;
+    const headers = { "Content-Type": "application/json" };
+    const body = JSON.stringify({ email: data.email, password: data.password });
+
+    try {
+      console.log("Attempting login via:", url);
+      console.log("Login request headers:", headers);
+      console.log("Login request body:", body);
+      const response = await fetch(url, {
+        method: "POST",
+        headers,
+        body,
+        signal: controller.signal,
+      });
+
+      clearTimeout(timeoutId);
+      const json = await response.json();
+
+      if (!response.ok) {
+        console.log("[Login] Response status:", response.status);
+        console.log("[Login] Response message:", json.message);
+        if (response.status === 404 || json.message === "Account not found") {
+          console.log("[Login] Showing account not found popup");
+          setIsAccountNotFoundVisible(true);
+        } else {
+          Alert.alert("Login Failed", json.message || "Invalid credentials.");
+        }
+        return;
+      }
+
+      // Store JWT securely — never in AsyncStorage
+      await SecureStore.setItemAsync("authToken", json.token);
+
+      // Refresh AuthContext so token + user are available app-wide
+      await refreshUser();
+
+      router.replace("/(tabs)/home");
+    } catch (error: any) {
+      clearTimeout(timeoutId);
+      console.error("Login error:", error);
+      console.error("Login error details:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        response: error?.response,
+        request: error?.request,
+      });
+      if (error.name === "AbortError") {
+        Alert.alert(
+          "Request Timed Out",
+          "The server took too long to respond. Please check your connection and try again."
+        );
+      } else {
+        Alert.alert(
+          "Connection Error",
+          "Could not connect to the backend server. Please check your network connection and verify the API endpoint."
+        );
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -64,9 +171,11 @@ export default function LoginScreen() {
     <TextInput
       style={styles.input}
       placeholder="Email Address"
+      placeholderTextColor="#999"
       value={value}
       onChangeText={onChange}
       keyboardType="email-address"
+      editable={!isLoading}
     />
   )}
 />
@@ -82,13 +191,28 @@ export default function LoginScreen() {
   control={control}
   name="password"
   render={({ field: { onChange, value } }) => (
-    <TextInput
-      style={styles.input}
-      placeholder="Password"
-      secureTextEntry
-      value={value}
-      onChangeText={onChange}
-    />
+    <View style={styles.passwordContainer}>
+      <TextInput
+        style={styles.passwordInput}
+        placeholder="Password"
+        placeholderTextColor="#999"
+        secureTextEntry={!isPasswordVisible}
+        value={value}
+        onChangeText={onChange}
+        editable={!isLoading}
+      />
+      <TouchableOpacity
+        onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+        style={styles.eyeIcon}
+        disabled={isLoading}
+      >
+        <Ionicons
+          name={isPasswordVisible ? "eye-off" : "eye"}
+          size={20}
+          color="#6B7280"
+        />
+      </TouchableOpacity>
+    </View>
   )}
 />
 
@@ -102,14 +226,16 @@ export default function LoginScreen() {
         <TouchableOpacity
            style={styles.forgotContainer}
             onPress={() => router.push("/auth/forgotPasswordScreen")}
+            disabled={isLoading}
         >
         <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
         {/* LOGIN BUTTON */}
         <PrimaryButton
-          title="Log in"
+          title={isLoading ? "Logging in..." : "Log in"}
            onPress={handleSubmit(onSubmit)}
+           disabled={isLoading}
         />
 
         {/* DIVIDER */}
@@ -119,20 +245,46 @@ export default function LoginScreen() {
           <View style={styles.dividerLine} />
         </View>
 
-        {/* GOOGLE BUTTON (visual only) */}
-        <TouchableOpacity style={styles.googleButton} onPress={() => {}}>
-          <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
-        </TouchableOpacity>
+        {/* GOOGLE BUTTON (Only visible in Development Builds) */}
+        {!isExpoGo && (
+          <TouchableOpacity
+            style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
+            onPress={() => promptAsync()}
+            disabled={isLoading || isGoogleLoading || !isGoogleReady}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator size="small" color="#DB4437" style={styles.googleIcon} />
+            ) : (
+              <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
+            )}
+            <Text style={styles.googleButtonText}>
+              {isGoogleLoading ? "Signing in..." : "Continue with Google"}
+            </Text>
+          </TouchableOpacity>
+        )}
         
         {/*  SIGNUP LINK */}
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account? </Text>
-          <TouchableOpacity onPress={() => router.push("/auth/register")}>
+          <TouchableOpacity onPress={() => router.push("/auth/register")} disabled={isLoading}>
             <Text style={styles.signupLink}>Sign Up</Text>
           </TouchableOpacity>
         </View>
       </View>
+
+      <CustomAlertModal
+        visible={isAccountNotFoundVisible}
+        title="Account Not Found"
+        message="We couldn't find an account associated with this email. Would you like to create one?"
+        confirmLabel="Create Account"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setIsAccountNotFoundVisible(false);
+          router.push("/auth/register");
+        }}
+        onCancel={() => setIsAccountNotFoundVisible(false)}
+        onClose={() => setIsAccountNotFoundVisible(false)}
+      />
     </View>
   );
 }
@@ -188,6 +340,24 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     fontSize: 16,
     backgroundColor: "#F9FAFB",
+  },
+  passwordContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    marginBottom: 16,
+    backgroundColor: "#F9FAFB",
+  },
+  passwordInput: {
+    flex: 1,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    fontSize: 16,
+  },
+  eyeIcon: {
+    paddingHorizontal: 12,
   },
   forgotContainer: {
     alignSelf: "flex-end",

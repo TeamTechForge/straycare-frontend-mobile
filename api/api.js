@@ -1,26 +1,8 @@
 import axios from "axios";
-import Constants from "expo-constants";
-import { Platform } from "react-native";
-
-export const getBaseUrl = () => {
-  if (process.env.EXPO_PUBLIC_API_URL) {
-    return process.env.EXPO_PUBLIC_API_URL;
-  }
-
-  const debuggerHost = Constants.expoConfig?.hostUri?.split(":")[0];
-  if (debuggerHost) {
-    return `http://${debuggerHost}:5000`;
-  }
-
-  if (Platform.OS === "android") {
-    return "http://10.0.2.2:5000";
-  }
-
-  return "http://localhost:5000";
-};
+import { BASE_URL } from "../constants/Config";
 
 const API = axios.create({
-  baseURL: getBaseUrl(),
+  baseURL: BASE_URL,
   timeout: 10000,
   headers: {
     "Content-Type": "application/json",
@@ -28,6 +10,20 @@ const API = axios.create({
 });
 
 const buildFormData = (data) => {
+export const createCommunityPost = (data) =>
+  API.post("/api/community/create", data, {
+    headers: {
+      "Content-Type": "multipart/form-data",
+    },
+  });
+
+export const getCommunityFeed = () => API.get("/api/community");
+export const getCommunityPost = (id) => API.get(`/api/community/${id}`);
+export const reportCommunityPost = (id, data) => API.post(`/api/community/${id}/report`, data);
+
+
+// ─── Create animal post (multipart/form-data for image upload) ───────────────
+export const createAnimalPost = (data) => {
   const formData = new FormData();
 
   Object.entries(data).forEach(([key, value]) => {
