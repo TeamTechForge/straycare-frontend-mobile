@@ -19,10 +19,10 @@ const samplePets: Pet[] = [
     id: 1,
     type: "Dog",
     breed: "Golden Retriever",
-    name: "Max",
-    description: "Brown dog missing near Main Street. Wearing a blue collar.",
+    name: "Buddy",
+    description: "Found near the river. Has a blue collar and responds to his name.",
     location: "Brooklyn, NY",
-    time: "2h ago",
+    time: "1h ago",
     image: require("../../assets/images/Dog_(128484081).jpeg"),
   },
   {
@@ -30,59 +30,37 @@ const samplePets: Pet[] = [
     type: "Cat",
     breed: "Tabby Cat",
     name: "Luna",
-    description: "Found wandering in Central Park near the fountain. Very friendly.",
-    location: "Manhattan, NY",
-    time: "5h ago",
+    description: "Found around the cafe. Very friendly and appears well cared for.",
+    location: "Queens, NY",
+    time: "3h ago",
     image: require("../../assets/images/cat main.jpeg"),
   },
-  
   {
-    id: 4,
-    type: "Cat",
-    breed: "Persian",
-    name: "Whiskers",
-    description: "White Persian cat found in the neighborhood. Looking for owner.",
-    location: "Bronx, NY",
-    time: "3h ago",
-    image: require("../../assets/images/images (1).jpg"),
-  },
-  {
-    id: 5,
+    id: 3,
     type: "Dog",
     breed: "Husky",
-    name: "Buddy",
-    description: "Gray and white Husky missing from West Side. Has a distinctive scar on nose.",
+    name: "Snow",
+    description: "Found wandering on 5th Avenue. Energetic and playful.",
     location: "Manhattan, NY",
     time: "4h ago",
     image: require("../../assets/images/happy-pet-dogs-playing-park_1359-280.avif"),
   },
   {
-    id: 6,
+    id: 4,
     type: "Cat",
     breed: "Siamese",
     name: "Milo",
-    description: "Cream-colored Siamese cat found in Queens. Very vocal and playful.",
-    location: "Queens, NY",
+    description: "Found near a park with a white patch on the chest.",
+    location: "Bronx, NY",
     time: "6h ago",
     image: require("../../assets/images/download (4).jpg"),
   },
-  {
-    id: 7,
-    type: "Dog",
-    breed: "Beagle",
-    name: "Scout",
-    description: "Small brown Beagle missing near the park. Answers to Scout.",
-    location: "Brooklyn, NY",
-    time: "8h ago",
-    image: require("../../assets/images/download.jpg"),
-  },
-  
 ];
 
-export default function LostAnimalScreen() {
+export default function FoundAnimalView() {
+  const router = useRouter();
   const [filter, setFilter] = useState<string>("All");
   const [search, setSearch] = useState<string>("");
-  const router = useRouter();
 
   const filteredPets = samplePets.filter((pet) => {
     const matchesFilter = filter === "All" || pet.type === filter;
@@ -117,7 +95,7 @@ export default function LostAnimalScreen() {
         </View>
         <TouchableOpacity style={styles.contactBtn}>
           <MaterialIcons name="phone" size={16} color="#fff" />
-          <Text style={styles.contactText}>Contact Owner</Text>
+          <Text style={styles.contactText}>Contact Finder</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -125,17 +103,14 @@ export default function LostAnimalScreen() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={28} color="#000" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Lost Animal</Text>
-        <TouchableOpacity onPress={() => router.push("/lostandfound/createPost")}>
-        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Found Animals</Text>
+        <View style={{ width: 28 }} />
       </View>
 
-      {/* Search Bar */}
       <TextInput
         style={styles.searchBar}
         placeholder="Search by breed, name..."
@@ -144,9 +119,8 @@ export default function LostAnimalScreen() {
         onChangeText={setSearch}
       />
 
-      {/* Filters */}
       <View style={styles.filters}>
-        {["All", "Dog", "Cat", "Other"].map((f) => (
+        {['All', 'Dog', 'Cat', 'Other'].map((f) => (
           <TouchableOpacity
             key={f}
             style={[styles.filterBtn, filter === f && styles.filterActive]}
@@ -159,7 +133,6 @@ export default function LostAnimalScreen() {
         ))}
       </View>
 
-      {/* Pet List */}
       <FlatList
         data={filteredPets}
         renderItem={renderPet}
@@ -260,44 +233,40 @@ const styles = StyleSheet.create({
   },
   badge: {
     paddingVertical: 4,
-    paddingHorizontal: 10,
+    paddingHorizontal: 8,
     borderRadius: 12,
   },
   badgeText: {
     color: "#fff",
-    fontWeight: "bold",
-    fontSize: 11,
+    fontSize: 12,
+    fontWeight: "700",
   },
   description: {
-    fontSize: 13,
-    color: "#666",
-    marginBottom: 8,
-    lineHeight: 18,
+    color: "#555",
+    marginBottom: 10,
   },
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 6,
     gap: 6,
+    marginBottom: 6,
   },
   meta: {
+    color: "#555",
     fontSize: 12,
-    color: "#888",
   },
   contactBtn: {
-    marginTop: 10,
-    backgroundColor: "#F5A623",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 6,
-    alignSelf: "flex-start",
+    marginTop: 8,
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    justifyContent: "center",
+    backgroundColor: "#F5A623",
+    paddingVertical: 10,
+    borderRadius: 12,
   },
   contactText: {
     color: "#fff",
-    fontWeight: "bold",
-    fontSize: 12,
+    fontWeight: "700",
+    marginLeft: 8,
   },
 });
