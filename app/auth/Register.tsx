@@ -63,7 +63,7 @@ export default function RegisterScreen() {
           // Existing account — go straight to home
           router.replace("/(tabs)/Home");
         }
-      } catch (error) {
+      } catch (error: any) {
         if (error.message === "CANCELLED") {
           return;
         }
@@ -147,7 +147,7 @@ export default function RegisterScreen() {
             phone,
             password,
           }),
-          signal: controller.signal,
+          signal: controller.signal as any,
         }
       );
 

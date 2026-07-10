@@ -65,7 +65,7 @@ export default function ChatRoomScreen() {
   const loadMessages = useCallback(async () => {
     console.log(`[ChatRoomScreen] 🕒 Opening conversation: ${conversationId}, User: ${user?._id}`);
     try {
-      const data = await fetchMessages(conversationId);
+      const data = (await fetchMessages(conversationId)) as any[];
       console.log(`[ChatRoomScreen] 🕒 Messages loaded: ${data.length} messages fetched`);
       setMessages(data);
       setHasMore(data.length >= 30);
@@ -177,7 +177,7 @@ export default function ChatRoomScreen() {
 
     try {
       const lastMessageId = messages[messages.length - 1]._id;
-      const older = await fetchMessages(conversationId, lastMessageId);
+      const older = (await fetchMessages(conversationId, lastMessageId)) as any[];
       setMessages((prev) => [...prev, ...older]);
       setHasMore(older.length >= 30);
     } catch (error) {
@@ -205,7 +205,7 @@ export default function ChatRoomScreen() {
     setMessages((prev) => [optimisticMsg, ...prev]);
 
     try {
-      const sentMessage = await sendMessage({ conversationId, text, type: "text" });
+      const sentMessage = (await sendMessage({ conversationId, text, type: "text" })) as any;
       console.log(`[ChatRoomScreen] ✅ Message sent successfully. Real ID: ${sentMessage._id}`);
 
       // Replace optimistic message with server response, deduplicating if socket beat us to it
@@ -241,14 +241,14 @@ export default function ChatRoomScreen() {
         const uploadRes = await fetch(`${API_URL}/upload/cloudinary`, {
           method: "POST",
           headers: { Authorization: `Bearer ${token}` },
-          body: formData,
+          body: formData as any,
         });
 
         if (!uploadRes.ok) {
           throw new Error("Image upload failed");
         }
 
-        const { url: imageUrl } = await uploadRes.json();
+        const { url: imageUrl } = (await uploadRes.json()) as any;
 
         await sendMessage({
           conversationId,

@@ -53,7 +53,7 @@ export default function LoginScreen() {
         } else {
           router.replace("/(tabs)/Home");
         }
-      } catch (error) {
+      } catch (error: any) {
         if (error.message === "CANCELLED") {
           // User dismissed the popup — do nothing
           return;
@@ -93,11 +93,11 @@ export default function LoginScreen() {
         method: "POST",
         headers,
         body,
-        signal: controller.signal,
+        signal: controller.signal as any,
       });
 
       clearTimeout(timeoutId);
-      const json = await response.json();
+      const json: any = await response.json();
 
       if (!response.ok) {
         console.log("[Login] Response status:", response.status);

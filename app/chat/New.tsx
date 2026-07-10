@@ -40,7 +40,7 @@ export default function NewChatScreen() {
     const timer = setTimeout(async () => {
       setLoading(true);
       try {
-        const users = await searchUsers(search);
+        const users = (await searchUsers(search)) as any[];
         setResults(users);
       } catch (err) {
         console.error("User search failed:", err);
@@ -59,7 +59,7 @@ export default function NewChatScreen() {
 
     try {
       // Find or create conversation
-      const conversation = await createConversation(selectedUser._id, "direct");
+      const conversation = (await createConversation(selectedUser._id, "direct")) as any;
       
       // Locate recipient details
       const otherParticipant = conversation.participants?.find(
