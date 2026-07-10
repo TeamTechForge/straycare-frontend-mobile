@@ -71,7 +71,7 @@ export default function HomeScreen() {
         <ActionCard
           icon={<Feather name="search" size={24} color="#F5A623" />}
           label="Lost & Found"
-          onPress={() => router.push("/lostandfound")}
+          onPress={() => router.push("/lostAndFound")}
         />
       </View>
     </View>

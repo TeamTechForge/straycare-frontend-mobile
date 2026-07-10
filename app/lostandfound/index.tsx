@@ -28,7 +28,7 @@ export default function LostAndFound() {
       {/* Lost Card */}
       <TouchableOpacity 
         style={[styles.card, { backgroundColor: "#fff3e0" }]}
-        onPress={() => router.push("/lostandfound/lostanimalview")}
+        onPress={() => router.push("/lostAndFound/lostAnimalListView")}
       > 
         <Image
           source={catImage}
@@ -42,7 +42,10 @@ export default function LostAndFound() {
       </TouchableOpacity>
 
       {/* Found Card */}
-      <TouchableOpacity style={[styles.card, { backgroundColor: "#e8f5e9" }]}> 
+      <TouchableOpacity 
+        style={[styles.card, { backgroundColor: "#e8f5e9" }]}
+        onPress={() => router.push("/lostAndFound/foundAnimalListView")}
+      >
         <Image
           source={dogImage}
           style={styles.image}
