@@ -16,7 +16,7 @@ export default function AccountDeletedScreen() {
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace("/auth/welcome")}>
+        <TouchableOpacity onPress={() => router.replace("/auth/Welcome")}>
           <Ionicons name="arrow-back" size={22} color="#222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>

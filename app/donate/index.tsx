@@ -200,7 +200,7 @@ export default function DonateScreen() {
       </View>
 
       <View style={styles.bottomBar}>
-        <Ionicons name="home" size={24} color="#000" />
+        <Ionicons name="Home" size={24} color="#000" />
         <Ionicons name="people-outline" size={24} color="#000" />
         <Ionicons name="add-circle-outline" size={24} color="#000" />
         <Ionicons name="chatbubble-outline" size={24} color="#000" />

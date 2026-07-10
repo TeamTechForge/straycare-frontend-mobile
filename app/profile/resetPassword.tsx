@@ -4,7 +4,7 @@ import { useState } from "react";
 import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import * as SecureStore from "expo-secure-store";
-import { API_URL } from "../../constants/Config";
+import { API_URL } from "../../constants/config.constants";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import { Alert } from "react-native";

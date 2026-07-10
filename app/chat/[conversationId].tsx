@@ -27,7 +27,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import { useChat } from "../../hooks/useChat";
 import { useChatApi } from "../../hooks/useChatApi";
-import { API_URL } from "../../constants/Config";
+import { API_URL } from "../../constants/config.constants";
 
 const BRAND_COLOR = "#F5A623";
 

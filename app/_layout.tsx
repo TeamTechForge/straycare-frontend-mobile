@@ -17,7 +17,7 @@ function InitialLayout() {
 
     const inAuthGroup = segments[0] === "auth";
     const onWelcomeScreen = segments.length === 0 || segments[0] === "index";
-    const onAllowedAuthScreen = segments[1] === "login" || segments[1] === "register" || segments[1] === "forgotPasswordScreen" || segments[1] === "termsPrivacyScreen" || segments[1] === "welcome";
+    const onAllowedAuthScreen = segments[1] === "Login" || segments[1] === "Register" || segments[1] === "ForgotPasswordScreen" || segments[1] === "TermsPrivacyScreen" || segments[1] === "Welcome";
 
     if (!token || !user) {
       // Force user to welcome index if they are not on welcome index or allowed auth screens
@@ -27,20 +27,20 @@ function InitialLayout() {
     } else {
       // User is authenticated
       if (!user.profileCompleted) {
-        const onRoleSelection = segments[1] === "roleSelection" || segments[1] === "rescuerTypeSelection";
+        const onRoleSelection = segments[1] === "RoleSelection" || segments[1] === "RescuerTypeSelection";
         if (!user.roleSelected) {
           if (!onRoleSelection) {
-            router.replace("/auth/roleSelection");
+            router.replace("/auth/RoleSelection");
           }
         } else {
-          if (user.role === "ngo" && segments[1] !== "ngoProfileSetup") {
-            router.replace("/auth/ngoProfileSetup");
-          } else if (user.role === "vet" && segments[1] !== "vetProfileSetup") {
-            router.replace("/auth/vetProfileSetup");
-          } else if (user.role === "volunteer" && segments[1] !== "volunteerProfileSetup") {
-            router.replace("/auth/volunteerProfileSetup");
-          } else if (user.role === "general_user" && segments[1] !== "reporterProfileSetup") {
-            router.replace("/auth/reporterProfileSetup");
+          if (user.role === "ngo" && segments[1] !== "NgoProfileSetup") {
+            router.replace("/auth/NgoProfileSetup");
+          } else if (user.role === "vet" && segments[1] !== "VetProfileSetup") {
+            router.replace("/auth/VetProfileSetup");
+          } else if (user.role === "volunteer" && segments[1] !== "VolunteerProfileSetup") {
+            router.replace("/auth/VolunteerProfileSetup");
+          } else if (user.role === "general_user" && segments[1] !== "ReporterProfileSetup") {
+            router.replace("/auth/ReporterProfileSetup");
           }
         }
       } else {
@@ -49,27 +49,27 @@ function InitialLayout() {
         const isApproved = user.profileStatus === "Verified";
 
         if (needsApproval && !isApproved) {
-          const onProfileSetup = segments[1] === "ngoProfileSetup" || segments[1] === "vetProfileSetup";
-          const isAllowedScreen = segments[1] === "verificationPending" || 
-                                  segments[1] === "verificationRejected" ||
-                                  segments[1] === "completedProfileSetup" ||
+          const onProfileSetup = segments[1] === "NgoProfileSetup" || segments[1] === "VetProfileSetup";
+          const isAllowedScreen = segments[1] === "VerificationPending" || 
+                                  segments[1] === "VerificationRejected" ||
+                                  segments[1] === "CompletedProfileSetup" ||
                                   (user.profileStatus === "Rejected" && onProfileSetup);
-          const isNotificationsScreen = segments[0] === "notifications";
+          const isNotificationsScreen = segments[0] === "Notifications";
 
           if (!isAllowedScreen && !isNotificationsScreen) {
             if (user.profileStatus === "Rejected") {
-              router.replace("/auth/verificationRejected");
+              router.replace("/auth/VerificationRejected");
             } else {
-              router.replace("/auth/verificationPending");
+              router.replace("/auth/VerificationPending");
             }
           }
         } else {
           // User is fully approved / unrestricted
           // Redirect to home if they are sitting on guest/pending/setup routes or index
           if (inAuthGroup || onWelcomeScreen) {
-            const onCompletedProfileSetup = segments[1] === "completedProfileSetup";
+            const onCompletedProfileSetup = segments[1] === "CompletedProfileSetup";
             if (!onCompletedProfileSetup) {
-              router.replace("/(tabs)/home");
+              router.replace("/(tabs)/Home");
             }
           }
         }
@@ -90,7 +90,7 @@ function InitialLayout() {
       if (isAlertActive) return;
 
       try {
-        const { API_URL } = require("../constants/Config");
+        const { API_URL } = require("../constants/config.constants");
         const response = await fetch(`${API_URL}/rescue/active-request`, {
           headers: { Authorization: `Bearer ${token}` },
         });

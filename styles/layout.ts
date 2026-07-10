@@ -1,6 +1,6 @@
 import { StyleSheet } from "react-native";
-import { colors } from "../constants/colors";
-import { spacing } from "../constants/spacing";
+import { colors } from "../constants/colors.constants";
+import { spacing } from "../constants/spacing.constants";
 
 export const layout = StyleSheet.create({
   screen: {

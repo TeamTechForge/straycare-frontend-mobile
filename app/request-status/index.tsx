@@ -45,12 +45,12 @@ import type {
   RescueStatus,
   SendRequestResponse,
   RescueStatusResponse,
-} from "../../types/api";
+} from "../../types/Api";
 
 // ─── Design tokens ─────────────────────────────────────────────────────────────
-import { colors } from "../../constants/colors";
-import { spacing } from "../../constants/spacing";
-import { typography } from "../../constants/typography";
+import { colors } from "../../constants/colors.constants";
+import { spacing } from "../../constants/spacing.constants";
+import { typography } from "../../constants/typography.constants";
 
 // ─── API base URL ──────────────────────────────────────────────────────────────
 const getApiBaseUrl = (): string => {

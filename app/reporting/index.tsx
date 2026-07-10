@@ -9,7 +9,7 @@ import {
   View,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { getAllReports } from "../../api/strayApi";
+import { getAllReports } from "../../api/stray-api.service";
 import PrimaryButton from "../../components/PrimaryButton";
 
 type Report = {

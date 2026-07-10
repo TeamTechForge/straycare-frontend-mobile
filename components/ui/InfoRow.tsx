@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, StyleSheet, ViewStyle } from "react-native";
-import { colors } from "../../constants/colors";
-import { typography } from "../../constants/typography";
+import { colors } from "../../constants/colors.constants";
+import { typography } from "../../constants/typography.constants";
 
 type Props = {
   label: string;

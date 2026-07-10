@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, Pressable } from "react-native";
 import { useRouter } from "expo-router";
 import { forumStyles as styles } from "../../styles/forum.styles";
-import type { ForumPost } from "../../types/forum";
+import type { ForumPost } from "../../types/Forum";
 
 type Props = {
   post: ForumPost;

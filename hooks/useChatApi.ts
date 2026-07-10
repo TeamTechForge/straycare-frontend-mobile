@@ -3,7 +3,7 @@
 
 import { useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { chatApi } from "../services/chatApi";
+import { chatService } from "../services/chat.service";
 
 export function useChatApi() {
   const { token, user } = useAuth();
@@ -11,14 +11,14 @@ export function useChatApi() {
   const fetchConversations = useCallback(async () => {
     console.log(`[useChatApi] 🔍 fetchConversations. User: ${user?._id || "none"}, Token Exists: ${!!token}`);
     if (!token) throw new Error("Not authenticated");
-    return chatApi.getConversations(token);
+    return chatService.getConversations(token);
   }, [token, user?._id]);
 
   const fetchMessages = useCallback(
     async (conversationId: string, before?: string) => {
       console.log(`[useChatApi] 🔍 fetchMessages. User: ${user?._id || "none"}, ConversationId: ${conversationId}, Before: ${before || "none"}`);
       if (!token) throw new Error("Not authenticated");
-      return chatApi.getMessages(token, conversationId, before);
+      return chatService.getMessages(token, conversationId, before);
     },
     [token, user?._id]
   );
@@ -31,7 +31,7 @@ export function useChatApi() {
     ) => {
       console.log(`[useChatApi] 🔍 createConversation. User: ${user?._id || "none"}, ParticipantId: ${participantId}`);
       if (!token) throw new Error("Not authenticated");
-      return chatApi.getOrCreateConversation(token, participantId, conversationType, relatedEntity);
+      return chatService.getOrCreateConversation(token, participantId, conversationType, relatedEntity);
     },
     [token, user?._id]
   );
@@ -47,7 +47,7 @@ export function useChatApi() {
     }) => {
       console.log(`[useChatApi] ✉️ sendMessage. User: ${user?._id || "none"}, ConversationId: ${data.conversationId}`);
       if (!token) throw new Error("Not authenticated");
-      return chatApi.sendMessage(token, data);
+      return chatService.sendMessage(token, data);
     },
     [token, user?._id]
   );
@@ -56,7 +56,7 @@ export function useChatApi() {
     async (conversationId: string) => {
       console.log(`[useChatApi] 📖 markAsRead. User: ${user?._id || "none"}, ConversationId: ${conversationId}`);
       if (!token) throw new Error("Not authenticated");
-      return chatApi.markAsRead(token, conversationId);
+      return chatService.markAsRead(token, conversationId);
     },
     [token, user?._id]
   );
@@ -65,7 +65,7 @@ export function useChatApi() {
     async (query: string) => {
       console.log(`[useChatApi] 🔍 searchUsers. User: ${user?._id || "none"}, Query: "${query}"`);
       if (!token) throw new Error("Not authenticated");
-      return chatApi.searchUsers(token, query);
+      return chatService.searchUsers(token, query);
     },
     [token, user?._id]
   );
@@ -74,7 +74,7 @@ export function useChatApi() {
     async (conversationId: string) => {
       console.log(`[useChatApi] 🗑️ deleteConversation. User: ${user?._id || "none"}, ConversationId: ${conversationId}`);
       if (!token) throw new Error("Not authenticated");
-      return chatApi.deleteConversation(token, conversationId);
+      return chatService.deleteConversation(token, conversationId);
     },
     [token, user?._id]
   );
@@ -83,7 +83,7 @@ export function useChatApi() {
     async (messageId: string, type: "me" | "everyone") => {
       console.log(`[useChatApi] 🗑️ deleteMessage. User: ${user?._id || "none"}, MessageId: ${messageId}, Type: ${type}`);
       if (!token) throw new Error("Not authenticated");
-      return chatApi.deleteMessage(token, messageId, type);
+      return chatService.deleteMessage(token, messageId, type);
     },
     [token, user?._id]
   );

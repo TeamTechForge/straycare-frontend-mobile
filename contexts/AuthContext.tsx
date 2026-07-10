@@ -3,8 +3,8 @@
 
 import * as SecureStore from "expo-secure-store";
 import React, { createContext, useContext, useEffect, useState } from "react";
-import { API_URL } from "../constants/Config";
-import { clearGoogleSession } from "../services/googleAuthService";
+import { API_URL } from "../constants/config.constants";
+import { clearGoogleSession } from "../services/google-auth.service";
 
 type UserData = {
   _id: string;

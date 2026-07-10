@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Text, Pressable } from "react-native";
 import { threadStyles as styles } from "../../styles/thread.styles";
-import { ThreadMessage } from "../../types/thread";
+import { ThreadMessage } from "../../types/Thread";
 
 export default function ThreadMessageCard({
   message,

@@ -3,9 +3,9 @@ import { ActivityIndicator, RefreshControl, SafeAreaView, ScrollView, Text, View
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { getAllPosts, addComment, getThread } from "../../services/forumService";
-import type { ForumPost, ForumThreadComment } from "../../types/forum";
-import type { ThreadData, ThreadMessage } from "../../types/thread";
+import { getAllPosts, addComment, getThread } from "../../services/forum.service";
+import type { ForumPost, ForumThreadComment } from "../../types/Forum";
+import type { ThreadData, ThreadMessage } from "../../types/Thread";
 import { threadStyles as styles } from "../../styles/thread.styles";
 
 import ThreadHeaderCard from "../../components/thread/ThreadHeaderCard";

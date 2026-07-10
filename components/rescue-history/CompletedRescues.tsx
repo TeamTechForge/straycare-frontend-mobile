@@ -9,8 +9,8 @@ import React from "react";
 import { FlatList, Text, View } from "react-native";
 
 import RescueCaseCard from "./RescueCaseCard";
-import { rescueHistoryStyles as styles } from "../../styles/rescueHistory.styles";
-import type { RescueCaseRecord } from "../../types/api";
+import { rescueHistoryStyles as styles } from "../../styles/rescue-history.styles";
+import type { RescueCaseRecord } from "../../types/Api";
 
 type Props = {
   data: RescueCaseRecord[];

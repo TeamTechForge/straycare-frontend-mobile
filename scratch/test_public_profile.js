@@ -9,7 +9,7 @@ const testPublicProfile = async () => {
 
   try {
     console.log('1. Registering new user...');
-    const regRes = await fetch(`${baseUrl}/auth/register`, {
+    const regRes = await fetch(`${baseUrl}/auth/Register`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, phone, password }),

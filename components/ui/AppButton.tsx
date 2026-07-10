@@ -6,9 +6,9 @@ import {
   ViewStyle,
   TextStyle,
 } from "react-native";
-import { colors } from "../../constants/colors";
-import { spacing } from "../../constants/spacing";
-import { typography } from "../../constants/typography";
+import { colors } from "../../constants/colors.constants";
+import { spacing } from "../../constants/spacing.constants";
+import { typography } from "../../constants/typography.constants";
 
 type Props = {
   title: string;

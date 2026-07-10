@@ -14,11 +14,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 
 import MapViewWrapper, { Marker } from "../components/MapViewWrapper";
 import AppButton from "../components/ui/AppButton";
-import { colors } from "../constants/colors";
-import { spacing } from "../constants/spacing";
-import { fetchComments, fetchRescueById, postComment, postReply } from "../services/rescueService";
-import { liveTrackingStyles as styles } from "../styles/liveTracking.styles";
-import type { LiveTrackingResponse, RescueComment } from "../types/api";
+import { colors } from "../constants/colors.constants";
+import { spacing } from "../constants/spacing.constants";
+import { fetchComments, fetchRescueById, postComment, postReply } from "../services/rescue.service";
+import { liveTrackingStyles as styles } from "../styles/live-tracking.styles";
+import type { LiveTrackingResponse, RescueComment } from "../types/Api";
 
 type Params = {
   requestId?: string | string[];

@@ -9,18 +9,18 @@ import {
   Platform,
   Image,
 } from "react-native";
-import { colors } from "../constants/colors";
-import { spacing } from "../constants/spacing";
-import { typography } from "../constants/typography";
+import { colors } from "../constants/colors.constants";
+import { spacing } from "../constants/spacing.constants";
+import { typography } from "../constants/typography.constants";
 import { useRouter, type Href } from "expo-router";
 
 /* ──────────────────────────────────────────────
  * Route constants – typed once, used everywhere
  * ────────────────────────────────────────────── */
 const nearbyRescuersRoute = "/nearby-rescuers" as Href;
-const rescueHistoryRoute = "/rescue-history" as Href;
-const myRescuesRoute = "/my-rescues" as Href;
-const discussionForumRoute = "/discussion-forum" as Href;
+const rescueHistoryRoute = "/RescueHistory" as Href;
+const myRescuesRoute = "/MyRescues" as Href;
+const discussionForumRoute = "/DiscussionForum" as Href;
 
 export default function ActivitiesDiscussionScreen() {
   const router = useRouter();

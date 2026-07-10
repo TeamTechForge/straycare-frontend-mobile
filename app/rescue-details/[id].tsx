@@ -15,17 +15,17 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import AppButton from "../../components/ui/AppButton";
-import { colors } from "../../constants/colors";
-import { spacing } from "../../constants/spacing";
+import { colors } from "../../constants/colors.constants";
+import { spacing } from "../../constants/spacing.constants";
 import {
   fetchComments,
   fetchRescueById,
   getApiBaseUrl,
   postComment,
   postReply,
-} from "../../services/rescueService";
-import { rescueDetailsStyles as styles } from "../../styles/rescueDetails.styles";
-import type { RescueComment } from "../../types/api";
+} from "../../services/rescue.service";
+import { rescueDetailsStyles as styles } from "../../styles/rescue-details.styles";
+import type { RescueComment } from "../../types/Api";
 
 /* ─────────────────────────────────────────────────────────────
  * Fallback static details when the backend is down or mock data

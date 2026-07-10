@@ -22,9 +22,9 @@ import {
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 
-import { colors } from "../../constants/colors";
-import { spacing } from "../../constants/spacing";
-import { typography } from "../../constants/typography";
+import { colors } from "../../constants/colors.constants";
+import { spacing } from "../../constants/spacing.constants";
+import { typography } from "../../constants/typography.constants";
 
 // ─── Params from /searching-help ───────────────────────────────────────────────
 type RescuerFoundParams = {

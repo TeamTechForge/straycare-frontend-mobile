@@ -2,7 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { API_URL } from "../constants/Config";
+import { API_URL } from "../constants/config.constants";
 import {
   FlatList,
   StyleSheet,

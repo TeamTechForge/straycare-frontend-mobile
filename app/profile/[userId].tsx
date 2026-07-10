@@ -17,7 +17,7 @@ import * as SecureStore from "expo-secure-store";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { API_URL } from "../../constants/Config";
+import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { useChatApi } from "../../hooks/useChatApi";
 import PrimaryButton from "../../components/PrimaryButton";

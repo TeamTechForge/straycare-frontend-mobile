@@ -17,8 +17,8 @@
 import * as React from "react";
 import { ImageBackground, StyleSheet, Text, View } from "react-native";
 
-import { colors } from "../constants/colors";
-import { typography } from "../constants/typography";
+import { colors } from "../constants/colors.constants";
+import { typography } from "../constants/typography.constants";
 
 // ── Map Bounding Box Context ───────────────────────────────────────────────
 // Used to pass projection parameters from the map wrapper down to the markers.

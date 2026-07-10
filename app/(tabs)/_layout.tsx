@@ -38,7 +38,7 @@ export default function TabLayout() {
     >
       {/* Home Tab */}
       <Tabs.Screen
-        name="home"
+        name="Home"
         options={{
           title: 'Home',
           tabBarIcon: ({ color, focused }) => (
@@ -49,7 +49,7 @@ export default function TabLayout() {
 
       {/* Community Tab */}
       <Tabs.Screen
-        name="communityFeed"
+        name="CommunityFeed"
         options={{
           title: 'Community',
           tabBarIcon: ({ color, focused }) => (
@@ -60,7 +60,7 @@ export default function TabLayout() {
 
       {/* Report Tab (Center Action Tab) */}
       <Tabs.Screen
-        name="report"
+        name="Report"
         options={{
           title: '',
           tabBarIcon: () => (
@@ -75,7 +75,7 @@ export default function TabLayout() {
 
       {/*  Chat Tab */}
       <Tabs.Screen
-        name="chats"
+        name="Chats"
         options={{
           title: 'Chat',
           tabBarIcon: ({ color, focused }) => (
@@ -86,7 +86,7 @@ export default function TabLayout() {
 
       {/*  Profile Tab */}
       <Tabs.Screen
-        name="profile"
+        name="Profile"
         options={{
           title: 'Profile',
           tabBarIcon: ({ color, focused }) => (

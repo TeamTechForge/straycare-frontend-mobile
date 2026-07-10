@@ -16,7 +16,7 @@ import {
 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
-import { API_URL } from "../../constants/Config";
+import { API_URL } from "../../constants/config.constants";
 
 /**
  * ContactSupportScreen

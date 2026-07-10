@@ -39,13 +39,13 @@ export default function HomePage() {
       <View style={styles.buttonContainer}>
         <PrimaryButton
           title="Create Account"
-          onPress={() => router.push("/auth/register")}
+          onPress={() => router.push("/auth/Register")}
         />
 
         <PrimaryButton
           title="Login"
           variant="outline"
-          onPress={() => router.push("/auth/login")}
+          onPress={() => router.push("/auth/Login")}
         />
       </View>
 

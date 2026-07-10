@@ -3,7 +3,7 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as SecureStore from "expo-secure-store";
-import { API_URL } from "../../constants/Config";
+import { API_URL } from "../../constants/config.constants";
 
 import SettingsRow from "../../components/settings/SettingsRow";
 import { useAuth } from "../../contexts/AuthContext";
@@ -105,7 +105,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon="document-text-outline"
           title="Terms & Privacy Policy"
-          onPress={() => router.push("/auth/termsPrivacyScreen")}
+          onPress={() => router.push("/auth/TermsPrivacyScreen")}
         />
         <SettingsRow
           icon="information-circle-outline"

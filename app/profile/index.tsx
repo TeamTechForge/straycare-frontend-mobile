@@ -2,7 +2,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { API_URL } from "../../constants/Config";
+import { API_URL } from "../../constants/config.constants";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
@@ -15,10 +15,10 @@ import ProfileTabBar from "../../components/profile/ProfileTabBar";
 import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
 import SavedPreviewCard from "../../components/profile/SavedPreviewCard";
 
-import GeneralUserProfile from "./generalUserProfile";
-import VolunteerProfile from "./volunteerProfile";
-import NGOProfile from "./ngoProfile";
-import VetProfile from "./vetProfile";
+import GeneralUserProfile from "./GeneralUserProfile";
+import VolunteerProfile from "./VolunteerProfile";
+import NGOProfile from "./NgoProfile";
+import VetProfile from "./VetProfile";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -95,7 +95,7 @@ export default function ProfileScreen() {
       try {
         const token = await SecureStore.getItemAsync("authToken");
         if (!token) {
-          router.replace("/auth/login");
+          router.replace("/auth/Login");
           return;
         }
 

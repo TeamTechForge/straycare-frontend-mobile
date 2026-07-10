@@ -20,7 +20,7 @@ import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/
 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
-import { API_URL } from "../../constants/Config";
+import { API_URL } from "../../constants/config.constants";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const BRAND_COLOR = "#F5A623";

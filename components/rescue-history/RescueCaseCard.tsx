@@ -18,11 +18,11 @@ import {
   View,
 } from "react-native";
 
-import { colors } from "../../constants/colors";
-import { spacing } from "../../constants/spacing";
-import { typography } from "../../constants/typography";
-import { getApiBaseUrl } from "../../services/rescueService";
-import type { RescueCaseRecord } from "../../types/api";
+import { colors } from "../../constants/colors.constants";
+import { spacing } from "../../constants/spacing.constants";
+import { typography } from "../../constants/typography.constants";
+import { getApiBaseUrl } from "../../services/rescue.service";
+import type { RescueCaseRecord } from "../../types/Api";
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 

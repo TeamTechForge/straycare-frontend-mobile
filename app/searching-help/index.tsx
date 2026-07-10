@@ -28,7 +28,7 @@ import {
 import { useLocalSearchParams, router } from "expo-router";
 import axios from "axios"; // axios v1 — uses AbortController, NOT CancelToken
 
-import type { FindNearestResponse } from "../../types/api";
+import type { FindNearestResponse } from "../../types/Api";
 
 // ─── URL params ────────────────────────────────────────────────────────────────
 type SearchParams = {

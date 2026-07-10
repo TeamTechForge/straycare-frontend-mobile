@@ -4,7 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl, Modal, TextInput, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { API_URL } from "../../constants/Config";
+import { API_URL } from "../../constants/config.constants";
 
 import EmptyStateCard from "../../components/profile/EmptyStateCard";
 import ProfileHeaderCard from "../../components/profile/ProfileHeaderCard";
@@ -173,7 +173,7 @@ export default function NGOProfile() {
 
         <Text style={styles.headerTitle}>NGO PROFILE</Text>
 
-        <TouchableOpacity onPress={() => router.push("/notifications")}>
+        <TouchableOpacity onPress={() => router.push("/Notifications")}>
           <Ionicons name="notifications-outline" size={20} color="#222" />
         </TouchableOpacity>
       </View>
