@@ -156,26 +156,26 @@ export default function GeneralUserProfile() {
 
 
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_COLOR} />
         }
       >
-  <ProfileHeaderCard
-    name={userData.name}
-    location={userData.location}
-    bio={userData.bio}
-    memberSince={userData.memberSince}
-    avatar={userData.avatar}
-    role={user?.role}
-    onEditPress={() => router.push("/profile/EditGeneralUserProfile")}
-  />
+        <ProfileHeaderCard
+          name={userData.name}
+          location={userData.location}
+          bio={userData.bio}
+          memberSince={userData.memberSince}
+          avatar={userData.avatar}
+          role={user?.role}
+          onEditPress={() => router.push("/profile/EditGeneralUserProfile")}
+        />
 
-  <ProfileStatsRow stats={stats} />
+        <ProfileStatsRow stats={stats} />
 
-  <ProfileTabBar activeTab={activeTab} onChange={setActiveTab} />
+        <ProfileTabBar activeTab={activeTab} onChange={setActiveTab} />
 
 
         <View style={styles.sectionContent}>
@@ -190,7 +190,7 @@ export default function GeneralUserProfile() {
                   time={post.time}
                 />
               ))
-            ) : ( 
+            ) : (
 
               <EmptyStateCard
                 icon="paw"
@@ -256,8 +256,8 @@ export default function GeneralUserProfile() {
       <ProfileMenuDrawer
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
-        user={{ 
-          name: userData.name, 
+        user={{
+          name: userData.name,
           avatar: userData.avatar,
           role: user?.role,
           status: profile?.status
@@ -272,13 +272,13 @@ export default function GeneralUserProfile() {
         }}
         onSettingsPress={() => {
           setMenuVisible(false);
-          router.push("/profile/settings");
+          router.push("/profile/Settings");
         }}
         onLogoutPress={async () => {
           setMenuVisible(false);
           await logout();
           router.replace("/");
-        }} 
+        }}
       />
     </SafeAreaView>
   );
