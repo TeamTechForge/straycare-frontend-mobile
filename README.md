@@ -1,50 +1,48 @@
-# Welcome to your Expo app 👋
+# 🐾 StrayCare
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+StrayCare is a comprehensive platform designed to bridge the gap between compassionate individuals, veterinary professionals, and NGOs to provide better care for stray animals. 
 
-## Get started
+Whether it's reporting an animal in need of rescue, seeking medical help, or coordinating donations, StrayCare provides the necessary tools to make a positive impact on animal welfare.
 
-1. Install dependencies
+## 🌟 Key Features
 
-   ```bash
-   npm install
-   ```
+- **Role-Based Profiles:** Tailored experiences for General Users, NGOs, and Vets.
+- **Rescue Reporting:** Users can quickly report stray animals in need of medical attention or rescue.
+- **Real-Time Communication:** Integrated Socket.IO chat allows seamless communication between users, NGOs, and Vets.
+- **Donation Management:** Facilitates donations to verified NGOs to support rescue efforts.
+- **Community Forum:** A space for users to discuss, share advice, and build a supportive community.
+- **In-App Notifications:** Real-time updates on rescue status, profile verification, and messages.
 
-2. Start the app
+## 🏗️ Project Structure
 
-   ```bash
-   npx expo start
-   ```
+The project is divided into a Node.js backend and a React Native mobile application.
 
-In the output, you'll find options to open the app in a
+### Backend (`straycare-backend`)
+- **Tech Stack:** Node.js, Express, TypeScript, MongoDB (Mongoose), Socket.IO.
+- **Responsibilities:** Handles API requests, user authentication, role management, real-time web sockets for chat/notifications, and database operations.
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### Frontend (`straycare-frontend-mobile`)
+- **Tech Stack:** React Native, Expo, TypeScript.
+- **Responsibilities:** Delivers a smooth, cross-platform mobile experience for users to interact with the StrayCare ecosystem.
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## 🚀 Getting Started
 
-## Get a fresh project
-
-When you're ready, run:
-
+### 1. Backend Setup
+Navigate to the backend directory, install dependencies, and start the development server:
 ```bash
-npm run reset-project
+cd straycare-backend
+npm install
+npm run dev
+```
+*(Make sure to set up your `.env` file based on `.env.example` before running)*
+
+### 2. Frontend Setup
+Navigate to the frontend directory, install dependencies, and start Expo:
+```bash
+cd straycare-frontend-mobile
+npm install
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
-
-## Learn more
-
-To learn more about developing your project with Expo, look at the following resources:
-
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 🤝 Contributing
+Contributions, issues, and feature requests are welcome! Let's work together to make the world a better place for our furry friends.
