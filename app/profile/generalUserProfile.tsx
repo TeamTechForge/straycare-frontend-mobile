@@ -170,7 +170,7 @@ export default function GeneralUserProfile() {
     memberSince={userData.memberSince}
     avatar={userData.avatar}
     role={user?.role}
-    onEditPress={() => router.push("/profile/editGeneralUserProfile")}
+    onEditPress={() => router.push("/profile/EditGeneralUserProfile")}
   />
 
   <ProfileStatsRow stats={stats} />

@@ -36,7 +36,7 @@ export default function DonationSummary() {
           style={styles.button}
           onPress={() =>
             router.push({
-              pathname: "/donate/payhereCheckout",
+              pathname: "/donate/PayhereCheckout",
               params: {
                 amount: formattedAmount,
                 category,
@@ -53,7 +53,7 @@ export default function DonationSummary() {
       </View>
 
       <View style={styles.bottomBar}>
-        <Ionicons name="Home" size={24} color="#000" />
+        <Ionicons name="home" size={24} color="#000" />
         <Ionicons name="people-outline" size={24} color="#000" />
         <Ionicons name="add-circle-outline" size={24} color="#000" />
         <Ionicons name="chatbubble-outline" size={24} color="#000" />

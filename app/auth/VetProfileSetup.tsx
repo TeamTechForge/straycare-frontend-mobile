@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -72,7 +73,7 @@ export default function VetProfileSetupScreen() {
     if (uri.startsWith("content://")) {
       try {
         const cacheDir = `${cacheDirectory}UploadCache/`;
-        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => {});
+        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => { });
         const localUri = `${cacheDir}${name}`;
         await copyAsync({ from: uri, to: localUri });
         uri = localUri;
@@ -93,13 +94,13 @@ export default function VetProfileSetupScreen() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: formData,
+      body: formData as any,
     });
 
     if (!res.ok) {
       let errorMsg = "Failed to upload file to Cloudinary";
       try {
-        const errorData = await res.json();
+        const errorData: any = await res.json();
         if (errorData && errorData.message) {
           errorMsg = errorData.message;
         }
@@ -109,7 +110,7 @@ export default function VetProfileSetupScreen() {
       throw new Error(errorMsg);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     return data.url;
   };
 
@@ -132,7 +133,7 @@ export default function VetProfileSetupScreen() {
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           if (data.name) setName(data.name);
           if (data.phone) setPhone(data.phone);
@@ -148,7 +149,7 @@ export default function VetProfileSetupScreen() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      alert("Permission to access gallery is required.");
+      Alert.alert("Permission to access gallery is required.");
       return;
     }
 
@@ -177,7 +178,7 @@ export default function VetProfileSetupScreen() {
       }
     } catch (error) {
       console.error("Document picking error:", error);
-      alert("Failed to pick document");
+      Alert.alert("Failed to pick document");
     }
   };
 
@@ -185,7 +186,7 @@ export default function VetProfileSetupScreen() {
     const { status } = await Location.requestForegroundPermissionsAsync();
 
     if (status !== "granted") {
-      alert("Permission denied for location.");
+      Alert.alert("Permission denied for location.");
       return;
     }
 
@@ -311,16 +312,16 @@ export default function VetProfileSetupScreen() {
         }),
       });
 
-      const data = await response.json();
+      const data: any = await response.json();
       if (response.ok) {
         await refreshUser();
         router.replace("/auth/CompletedProfileSetup");
       } else {
-        alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
+        Alert.alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
       }
     } catch (error: any) {
       console.error("Profile submission error:", error);
-      alert(error.message || "Something went wrong. Please check connection.");
+      Alert.alert(error.message || "Something went wrong. Please check connection.");
     } finally {
       setIsSubmitting(false);
     }

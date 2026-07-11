@@ -153,7 +153,7 @@ export default function CommunityPostView() {
                 })
               }
             >
-              <MaterialIcons name="Report" size={20} color="#E54D4D" />
+              <MaterialIcons name="report" size={20} color="#E54D4D" />
               <Text style={styles.reportBtnText}>Report Post</Text>
             </TouchableOpacity>
           </View>

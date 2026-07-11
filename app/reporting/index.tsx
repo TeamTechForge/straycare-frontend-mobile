@@ -145,7 +145,7 @@ export default function ReportingMapScreen() {
               description={report.status}
               onPress={() =>
                 router.push({
-                  pathname: "/reporting/casedetails",
+                  pathname: "/reporting/CaseDetails",
                   params: { caseId: report.caseId },
                 })
               }
@@ -158,7 +158,7 @@ export default function ReportingMapScreen() {
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
           title="Add a Case +"
-          onPress={() => router.push("/reporting/animal-details")}
+          onPress={() => router.push("/reporting/AnimalDetails")}
         />
       </View>
     </View>

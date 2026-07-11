@@ -58,7 +58,7 @@ const PayHereCheckout = () => {
         { timeout: 15000, headers: { "Content-Type": "application/json" } }
       );
 
-      const data = res.data;
+      const data: any = res.data;
       setOrderData(data);
 
       const url =
@@ -83,7 +83,7 @@ const PayHereCheckout = () => {
       setPaymentUrl(url);
     } catch (error: any) {
       console.log("AXIOS ERROR:", error?.message || error);
-      router.replace("/donate/donationSummary");
+      router.replace("/donate/DonationSummary");
     } finally {
       setLoading(false);
     }
@@ -117,7 +117,7 @@ const PayHereCheckout = () => {
       const orderId = urlParams.get("order_id") || orderData?.order_id;
       await saveDonation("SUCCESS");
       router.replace({
-        pathname: "/donate/donationSuccess",
+        pathname: "/donate/DonationSuccess",
         params: {
           transactionId: orderId,
           amount: orderData?.amount,
@@ -131,7 +131,7 @@ const PayHereCheckout = () => {
       setPaymentHandled(true);
 
       await saveDonation("FAILED");
-      router.replace("/donate/donationSummary");
+      router.replace("/donate/DonationSummary");
     }
   };
 

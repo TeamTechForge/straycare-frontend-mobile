@@ -57,7 +57,7 @@ export default function VetProfile() {
             headers: { Authorization: `Bearer ${token}` },
           });
           if (donationRes.ok) {
-            const donationData = await donationRes.json();
+            const donationData: any = await donationRes.json();
             setTotalDonations(donationData.total || 0);
           }
         }
@@ -192,7 +192,7 @@ export default function VetProfile() {
           memberSince={userData.memberSince}
           avatar={userData.avatar}
           role={user?.role}
-          onEditPress={() => router.push("/profile/editVetProfile")}
+          onEditPress={() => router.push("/profile/EditVetProfile")}
         />
 
         <ProfileStatsRow stats={stats} />

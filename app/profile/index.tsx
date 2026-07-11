@@ -111,7 +111,7 @@ export default function ProfileScreen() {
           const notifRes = await fetch(`${API_URL}/notifications`, {
             headers: { Authorization: `Bearer ${token}` },
           });
-          const notifications = await notifRes.json();
+          const notifications: any = await notifRes.json();
           if (notifRes.ok) {
             setHasUnread(notifications.some((n: any) => !n.isRead));
           }

@@ -28,6 +28,7 @@ import { typography } from "../../constants/typography.constants";
 
 // ─── Params from /searching-help ───────────────────────────────────────────────
 type RescuerFoundParams = {
+  caseId?: string | string[];
   name?: string | string[];
   distance?: string | string[];
   rescuerId?: string | string[];

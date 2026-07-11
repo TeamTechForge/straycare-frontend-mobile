@@ -42,7 +42,7 @@ export default function HomeScreen() {
         });
         if (res.ok) {
           const data = await res.json();
-          setSearchResults(data);
+          setSearchResults(data as any[]);
         }
       } catch (err) {
         console.error("Search fetch error:", err);

@@ -55,7 +55,7 @@ export default function ContactSupportScreen() {
         });
         
         if (response.ok) {
-          const data = await response.json();
+          const data: any = await response.json();
           setName(data.name || "");
           setEmail(data.email || "");
         }
@@ -144,14 +144,14 @@ export default function ContactSupportScreen() {
             label="Name"
             placeholder="Your name"
             value={name}
-            editable={false} // Auto-filled from profile
+            editable={false} onChangeText={() => {}} // Auto-filled from profile
           />
 
           <InputField
             label="Email Address"
             placeholder="yourname@example.com"
             value={email}
-            editable={false} // Auto-filled from profile
+            editable={false} onChangeText={() => {}} // Auto-filled from profile
           />
 
           <InputField

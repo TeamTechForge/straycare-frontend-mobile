@@ -2,16 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import {
-  Image,
+import { Alert, Image,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-} from "react-native";
+  ActivityIndicator, } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -90,13 +88,13 @@ export default function EditVetProfileScreen() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: formData,
+      body: formData as any,
     });
 
     if (!res.ok) {
       let errorMsg = "Failed to upload file to Cloudinary";
       try {
-        const errorData = await res.json();
+        const errorData: any = await res.json();
         if (errorData && errorData.message) {
           errorMsg = errorData.message;
         }
@@ -106,7 +104,7 @@ export default function EditVetProfileScreen() {
       throw new Error(errorMsg);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     return data.url;
   };
 
@@ -119,7 +117,7 @@ export default function EditVetProfileScreen() {
         const userRes = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const userData = await userRes.json();
+        const userData: any = await userRes.json();
         if (userRes.ok) {
           setName(userData.name);
           setPhone(userData.phone || "");
@@ -128,7 +126,7 @@ export default function EditVetProfileScreen() {
         const profileRes = await fetch(`${API_URL}/profiles/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const profileData = await profileRes.json();
+        const profileData: any = await profileRes.json();
         if (profileRes.ok) {
           setPrimaryLocation(profileData.primaryLocation || "");
           setBio(profileData.bio || "");
@@ -177,7 +175,7 @@ export default function EditVetProfileScreen() {
       }
     } catch (error) {
       console.error("Document picking error:", error);
-      alert("Failed to pick document");
+      Alert.alert("Failed to pick document");
     }
   };
 
@@ -223,15 +221,15 @@ export default function EditVetProfileScreen() {
       });
 
       if (response.ok) {
-        alert("Vet profile updated successfully");
+        Alert.alert("Vet profile updated successfully");
         router.back();
       } else {
-        const data = await response.json();
-        alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to update profile");
+        const data: any = await response.json();
+        Alert.alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to update profile");
       }
     } catch (error: any) {
       console.error("Update Vet profile error:", error);
-      alert(error.message || "Something went wrong");
+      Alert.alert(error.message || "Something went wrong");
     } finally {
       setIsSubmitting(false);
     }

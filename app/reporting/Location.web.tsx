@@ -16,7 +16,7 @@ export default function LocationPicker() {
 
   const handleConfirm = () => {
     router.push({
-      pathname: "/reporting/animal-details",
+      pathname: "/reporting/AnimalDetails",
       params: {
         locationLat: "0",
         locationLng: "0",

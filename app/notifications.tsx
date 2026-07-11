@@ -17,7 +17,7 @@ const BRAND_COLOR = "#f59e0b";
 
 export default function NotificationsScreen() {
   const router = useRouter();
-  const [notifications, setNotifications] = useState([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
@@ -31,7 +31,7 @@ export default function NotificationsScreen() {
       });
       const data = await response.json();
       if (response.ok) {
-        setNotifications(data);
+        setNotifications(data as any[]);
       }
     } catch (error) {
       console.error("Fetch notifications error:", error);

@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -74,7 +75,7 @@ export default function ngoProfileSetup() {
     if (uri.startsWith("content://")) {
       try {
         const cacheDir = `${cacheDirectory}UploadCache/`;
-        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => {});
+        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => { });
         const localUri = `${cacheDir}${name}`;
         await copyAsync({ from: uri, to: localUri });
         uri = localUri;
@@ -95,13 +96,13 @@ export default function ngoProfileSetup() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: formData,
+      body: formData as any,
     });
 
     if (!res.ok) {
       let errorMsg = "Failed to upload file to Cloudinary";
       try {
-        const errorData = await res.json();
+        const errorData = await res.json() as { message?: string };
         if (errorData && errorData.message) {
           errorMsg = errorData.message;
         }
@@ -111,7 +112,7 @@ export default function ngoProfileSetup() {
       throw new Error(errorMsg);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     return data.url;
   };
 
@@ -123,7 +124,7 @@ export default function ngoProfileSetup() {
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           if (data.phone) setPhone(data.phone);
         }
@@ -176,7 +177,7 @@ export default function ngoProfileSetup() {
       }
     } catch (error) {
       console.error("Document picking error:", error);
-      alert("Failed to pick document");
+      Alert.alert("Failed to pick document");
     }
   };
 
@@ -184,12 +185,12 @@ export default function ngoProfileSetup() {
     try {
       // Validate merchant ID and secret relationship
       setPaymentValidationError("");
-      
+
       if (merchantId && !merchantSecret) {
         setPaymentValidationError("Merchant Secret is required when Merchant ID is provided.");
         return;
       }
-      
+
       if (merchantSecret && !merchantId) {
         setPaymentValidationError("Merchant ID is required when Merchant Secret is provided.");
         return;
@@ -225,16 +226,16 @@ export default function ngoProfileSetup() {
         }),
       });
 
-      const data = await response.json();
+      const data: any = await response.json();
       if (response.ok) {
         await refreshUser();
         router.replace("/auth/CompletedProfileSetup");
       } else {
-        alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
+        Alert.alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
       }
     } catch (error: any) {
       console.error("Profile submission error:", error);
-      alert(error.message || "Something went wrong. Please check connection.");
+      Alert.alert(error.message || "Something went wrong. Please check connection.");
     } finally {
       setIsSubmitting(false);
     }

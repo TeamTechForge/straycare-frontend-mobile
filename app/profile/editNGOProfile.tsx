@@ -2,16 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import {
-  Image,
+import { Alert, Image,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-} from "react-native";
+  ActivityIndicator, } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -89,13 +87,13 @@ export default function EditNGOProfileScreen() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: formData,
+      body: formData as any,
     });
 
     if (!res.ok) {
       let errorMsg = "Failed to upload file to Cloudinary";
       try {
-        const errorData = await res.json();
+        const errorData: any = await res.json();
         if (errorData && errorData.message) {
           errorMsg = errorData.message;
         }
@@ -105,7 +103,7 @@ export default function EditNGOProfileScreen() {
       throw new Error(errorMsg);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     return data.url;
   };
 
@@ -118,7 +116,7 @@ export default function EditNGOProfileScreen() {
         const userRes = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const userData = await userRes.json();
+        const userData: any = await userRes.json();
         if (userRes.ok) {
           setPhone(userData.phone || "");
         }
@@ -126,7 +124,7 @@ export default function EditNGOProfileScreen() {
         const profileRes = await fetch(`${API_URL}/profiles/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const profileData = await profileRes.json();
+        const profileData: any = await profileRes.json();
         if (profileRes.ok) {
           setOrgName(profileData.orgName || "");
           setContactPerson(profileData.contactPerson || "");
@@ -175,7 +173,7 @@ export default function EditNGOProfileScreen() {
       }
     } catch (error) {
       console.error("Document picking error:", error);
-      alert("Failed to pick document");
+      Alert.alert("Failed to pick document");
     }
   };
 
@@ -221,15 +219,15 @@ export default function EditNGOProfileScreen() {
       });
 
       if (response.ok) {
-        alert("NGO profile updated successfully");
+        Alert.alert("NGO profile updated successfully");
         router.back();
       } else {
-        const data = await response.json();
-        alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to update profile");
+        const data: any = await response.json();
+        Alert.alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to update profile");
       }
     } catch (error: any) {
       console.error("Update NGO profile error:", error);
-      alert(error.message || "Something went wrong");
+      Alert.alert(error.message || "Something went wrong");
     } finally {
       setIsSubmitting(false);
     }

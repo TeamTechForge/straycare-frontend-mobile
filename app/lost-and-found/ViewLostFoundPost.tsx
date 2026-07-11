@@ -15,7 +15,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { getAnimalPostById, getBaseUrl, reportAnimalPost } from '../../api/api.service';
+import { getAnimalPostById, reportAnimalPost } from '../../api/api.service';
+import { BASE_URL } from '../../constants/config.constants';
 
 // ─── Colour changes were made ────────────────────────────────────────────────────────────
 const C = {
@@ -38,7 +39,7 @@ const C = {
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const IMAGE_HEIGHT = 280;
-const BASE_URL = getBaseUrl();
+// BASE_URL is imported from constants
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AnimalPost {
@@ -705,3 +706,4 @@ const s = StyleSheet.create({
     color: C.onPrimary
   },
 });
+

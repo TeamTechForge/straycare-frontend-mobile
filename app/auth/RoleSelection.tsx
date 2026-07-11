@@ -32,7 +32,7 @@ export default function SelectRoleScreen() {
   // ✅ handle continue — reads JWT from SecureStore, sends as Bearer token
   const handleContinue = async () => {
     if (!selectedRole) {
-      alert("Please select a role");
+      Alert.alert("Please select a role");
       return;
     }
 
@@ -62,7 +62,7 @@ export default function SelectRoleScreen() {
           body: JSON.stringify({ role: "general_user" }),
         });
 
-        const data = await response.json();
+        const data: any = await response.json();
         console.log("📥 Response:", data);
 
         if (response.ok) {
@@ -78,11 +78,11 @@ export default function SelectRoleScreen() {
           // to ensure back button doesn't loop back to role choice.
           router.replace("/auth/ReporterProfileSetup");
         } else {
-          alert(data.message || "Failed to select role");
+          Alert.alert(data.message || "Failed to select role");
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Error:", error);
-        alert("Something went wrong. Please try again.");
+        Alert.alert("Something went wrong. Please try again.");
       }
     } else if (selectedRole === "rescuer") {
       // Navigate to specialized selection; replace to clear the primary role stack.
@@ -92,7 +92,7 @@ export default function SelectRoleScreen() {
 
   return (
     <View style={styles.container}>
-      
+
       {/* 🔙 Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={handleBack}>
@@ -130,7 +130,7 @@ export default function SelectRoleScreen() {
         </Text>
 
         <Image
-          source={require("../../assets/images/reporter-roleSelection.jpg")} 
+          source={require("../../assets/images/reporter-roleSelection.jpg")}
           style={[
             styles.image,
             selectedRole !== "reporter" && styles.grayImage,
@@ -159,7 +159,7 @@ export default function SelectRoleScreen() {
         </Text>
 
         <Image
-          source={require("../../assets/images/rescuer-roleSelection.jpg")} 
+          source={require("../../assets/images/rescuer-roleSelection.jpg")}
           style={[
             styles.image,
             selectedRole !== "rescuer" && styles.grayImage,

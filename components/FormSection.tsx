@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from "react-native";
 
-export default function FormSection({ title, children }) {
+export default function FormSection({ title, children }: any) {
   return (
     <View style={styles.section}>
       <Text style={styles.title}>

@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 
 import {
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -52,7 +53,7 @@ export default function VolunteerProfileSetupScreen() {
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           if (data.name) setName(data.name);
           if (data.phone) setPhone(data.phone);
@@ -89,7 +90,7 @@ export default function VolunteerProfileSetupScreen() {
     if (uri.startsWith("content://")) {
       try {
         const cacheDir = `${cacheDirectory}UploadCache/`;
-        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => {});
+        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => { });
         const localUri = `${cacheDir}${name}`;
         await copyAsync({ from: uri, to: localUri });
         uri = localUri;
@@ -110,13 +111,13 @@ export default function VolunteerProfileSetupScreen() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: formData,
+      body: formData as any,
     });
 
     if (!res.ok) {
       let errorMsg = "Failed to upload file to Cloudinary";
       try {
-        const errorData = await res.json();
+        const errorData: any = await res.json();
         if (errorData && errorData.message) {
           errorMsg = errorData.message;
         }
@@ -126,7 +127,7 @@ export default function VolunteerProfileSetupScreen() {
       throw new Error(errorMsg);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     return data.url;
   };
 
@@ -134,7 +135,7 @@ export default function VolunteerProfileSetupScreen() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      alert("Permission to access gallery is required.");
+      Alert.alert("Permission to access gallery is required.");
       return;
     }
 
@@ -154,7 +155,7 @@ export default function VolunteerProfileSetupScreen() {
     const { status } = await Location.requestForegroundPermissionsAsync();
 
     if (status !== "granted") {
-      alert("Permission denied for location.");
+      Alert.alert("Permission denied for location.");
       return;
     }
 
@@ -228,16 +229,16 @@ export default function VolunteerProfileSetupScreen() {
         }),
       });
 
-      const data = await response.json();
+      const data: any = await response.json();
       if (response.ok) {
         await refreshUser();
         router.replace("/auth/CompletedProfileSetup");
       } else {
-        alert(data.message || "Failed to save profile");
+        Alert.alert(data.message || "Failed to save profile");
       }
     } catch (error) {
       console.error("Profile submission error:", error);
-      alert("Something went wrong. Please check connection.");
+      Alert.alert("Something went wrong. Please check connection.");
     }
   };
 

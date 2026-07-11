@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  Alert,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -25,7 +26,7 @@ export default function ForgotPasswordScreen() {
 
   const handleRequestReset = async () => {
     if (!email) {
-      alert("Please enter your email");
+      Alert.alert("Please enter your email");
       return;
     }
 
@@ -37,17 +38,17 @@ export default function ForgotPasswordScreen() {
         body: JSON.stringify({ email }),
       });
 
-      const data = await response.json();
+      const data: any = await response.json();
       if (response.ok) {
-        alert(data.message + (data.resetToken ? "\nToken (DEV ONLY): " + data.resetToken : ""));
+        Alert.alert(data.message + (data.resetToken ? "\nToken (DEV ONLY): " + data.resetToken : ""));
         setStep(2);
         if (data.resetToken) setToken(data.resetToken);
       } else {
-        alert(data.message || "Request failed");
+        Alert.alert(data.message || "Request failed");
       }
     } catch (error) {
       console.error("Forgot password error:", error);
-      alert("Connection error");
+      Alert.alert("Connection error");
     } finally {
       setLoading(false);
     }
@@ -55,7 +56,7 @@ export default function ForgotPasswordScreen() {
 
   const handlePasswordReset = async () => {
     if (!token || !newPassword) {
-      alert("Please enter both token and new password");
+      Alert.alert("Please enter both token and new password");
       return;
     }
 
@@ -67,17 +68,17 @@ export default function ForgotPasswordScreen() {
         body: JSON.stringify({ token, newPassword }),
       });
 
-      const data = await response.json();
+      const data: any = await response.json();
       if (response.ok) {
-        alert("Password reset successful! Please log in.");
+        Alert.alert("Password reset successful! Please log in.");
         // Success! Replace the stack to ensure the user goes straight to login.
         router.replace("/auth/Login");
       } else {
-        alert(data.message || "Reset failed");
+        Alert.alert(data.message || "Reset failed");
       }
     } catch (error) {
       console.error("Reset password error:", error);
-      alert("Connection error");
+      Alert.alert("Connection error");
     } finally {
       setLoading(false);
     }
@@ -85,7 +86,7 @@ export default function ForgotPasswordScreen() {
 
   return (
     <View style={styles.container}>
-      
+
       {/* 🔙 Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
@@ -104,7 +105,7 @@ export default function ForgotPasswordScreen() {
 
       {/* 📄 Description */}
       <Text style={styles.description}>
-        {step === 1 
+        {step === 1
           ? "No worries! Enter the email address associated with your StrayCare account and we'll send you a link to reset your password."
           : "Enter the reset token sent to your email and your new password below."}
       </Text>
@@ -158,7 +159,7 @@ export default function ForgotPasswordScreen() {
               disabled={loading}
             />
           </View>
-          
+
           <TouchableOpacity onPress={() => setStep(1)} style={{ marginTop: 15, alignItems: 'center' }}>
             <Text style={{ color: BRAND_COLOR }}>Back to Request</Text>
           </TouchableOpacity>

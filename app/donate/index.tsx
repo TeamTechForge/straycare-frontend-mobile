@@ -77,7 +77,7 @@ export default function DonateScreen() {
     }
 
     router.push({
-      pathname: '/donate/donationSummary',
+      pathname: '/donate/DonationSummary',
       params: {
         category,
         organization,       // _id for merchant ID lookup
@@ -200,7 +200,7 @@ export default function DonateScreen() {
       </View>
 
       <View style={styles.bottomBar}>
-        <Ionicons name="Home" size={24} color="#000" />
+        <Ionicons name="home" size={24} color="#000" />
         <Ionicons name="people-outline" size={24} color="#000" />
         <Ionicons name="add-circle-outline" size={24} color="#000" />
         <Ionicons name="chatbubble-outline" size={24} color="#000" />

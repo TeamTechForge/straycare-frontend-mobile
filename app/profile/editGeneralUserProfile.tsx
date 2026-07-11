@@ -2,16 +2,14 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import {
-  Image,
+import { Alert, Image,
   ScrollView,
   StyleSheet,
   Text,
   TextInput,
   TouchableOpacity,
   View,
-  ActivityIndicator,
-} from "react-native";
+  ActivityIndicator, } from "react-native";
 
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -46,7 +44,7 @@ export default function EditProfileScreen() {
         const userRes = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const userData = await userRes.json();
+        const userData: any = await userRes.json();
         if (userRes.ok) {
           setFullName(userData.name);
           setEmail(userData.email);
@@ -56,7 +54,7 @@ export default function EditProfileScreen() {
         const profileRes = await fetch(`${API_URL}/profiles/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const profileData = await profileRes.json();
+        const profileData: any = await profileRes.json();
         if (profileRes.ok) {
           setLocation(profileData.location || "");
           setBio(profileData.bio || "");
@@ -117,13 +115,13 @@ export default function EditProfileScreen() {
       headers: {
         Authorization: `Bearer ${token}`,
       },
-      body: formData,
+      body: formData as any,
     });
 
     if (!res.ok) {
       let errorMsg = "Failed to upload file to Cloudinary";
       try {
-        const errorData = await res.json();
+        const errorData: any = await res.json();
         if (errorData && errorData.message) {
           errorMsg = errorData.message;
         }
@@ -133,7 +131,7 @@ export default function EditProfileScreen() {
       throw new Error(errorMsg);
     }
 
-    const data = await res.json();
+    const data: any = await res.json();
     return data.url;
   };
 
@@ -149,7 +147,7 @@ export default function EditProfileScreen() {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
 
     if (!permission.granted) {
-      alert("Permission to access gallery is required.");
+      Alert.alert("Permission to access gallery is required.");
       return;
     }
 
@@ -170,7 +168,7 @@ export default function EditProfileScreen() {
     const { status } = await Location.requestForegroundPermissionsAsync();
 
     if (status !== "granted") {
-      alert("Permission denied for location.");
+      Alert.alert("Permission denied for location.");
       return;
     }
 
@@ -249,15 +247,15 @@ export default function EditProfileScreen() {
       });
 
       if (response.ok) {
-        alert("Profile updated successfully");
+        Alert.alert("Profile updated successfully");
         router.back();
       } else {
-        const data = await response.json();
-        alert(data.message || "Failed to update profile");
+        const data: any = await response.json();
+        Alert.alert(data.message || "Failed to update profile");
       }
     } catch (error) {
       console.error("Update profile error:", error);
-      alert("Something went wrong");
+      Alert.alert("Something went wrong");
     }
   };
 

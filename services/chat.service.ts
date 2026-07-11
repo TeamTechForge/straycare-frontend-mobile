@@ -47,7 +47,7 @@ export const chatService = {
     });
     logResponse(url, res.status);
     if (!res.ok) {
-      const error = await res.json();
+      const error = (await res.json()) as { message?: string };
       throw new Error(error.message || "Failed to create conversation");
     }
     return res.json();

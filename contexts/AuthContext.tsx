@@ -57,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       });
 
       if (response.ok) {
-        const data = await response.json();
+        const data: any = await response.json();
         let profileStatus: "Pending" | "Verified" | "Rejected" = "Pending";
 
         if (data.role === "ngo" || data.role === "vet") {
@@ -66,7 +66,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               headers: { Authorization: `Bearer ${storedToken}` },
             });
             if (profileRes.ok) {
-              const profileData = await profileRes.json();
+              const profileData: any = await profileRes.json();
               profileStatus = profileData.status || "Pending";
             }
           } catch (profileErr) {

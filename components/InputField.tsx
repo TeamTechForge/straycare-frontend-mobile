@@ -8,8 +8,8 @@ type Props = {
   value: string;
   onChangeText: (text: string) => void;
   secure?: boolean;
-  icon?: string;
-  rightIcon?: string;
+  icon?: any;
+  rightIcon?: any;
   onRightIconPress?: () => void;
   label?: string;
   error?: string;

@@ -34,14 +34,14 @@ const uploadToCloudinary = async (imageUri: string) => {
   try {
     const response = await fetch(CLOUDINARY_URL, {
       method: 'POST',
-      body: data,
+      body: data as any,
       headers: {
         'Accept': 'application/json',
         'Content-Type': 'multipart/form-data',
       },
     });
 
-    const result = await response.json();
+    const result: any = await response.json();
     return result.secure_url; // Returns the permanent public URL
     
   } catch (error) {
@@ -146,7 +146,7 @@ export default function UploadPhotos() {
       const uploadedUrls = await Promise.all(uploadPromises);
 
       // 2. Filter out any uploads that failed
-      const validUrls = uploadedUrls.filter(url => url !== null);
+      const validUrls = uploadedUrls.filter((url: any) => url !== null);
 
       if (validUrls.length === 0) {
         Alert.alert("Upload Failed", "Could not upload images to the server.");
@@ -156,7 +156,7 @@ export default function UploadPhotos() {
 
       // 3. Pass the valid Cloudinary URLs to the next screen
       router.push({
-        pathname: "/reporting/review",
+        pathname: "/reporting/Review",
         params: {
           ...params,
           mode: isEditing ? "edit" : undefined,

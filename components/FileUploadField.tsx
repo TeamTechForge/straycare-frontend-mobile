@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { StyleSheet, Text, TouchableOpacity } from "react-native";
 
-export default function FileUploadField({ file, onPick }) {
+export default function FileUploadField({ file, onPick }: any) {
   return (
     <TouchableOpacity style={styles.container} onPress={onPick}>
       <Ionicons name="cloud-upload-outline" size={24} color="#999" />

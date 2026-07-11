@@ -33,7 +33,7 @@ export default function DonationHistory() {
   const fetchDonations = async () => {
     try {
       const res = await axios.get(`${BACKEND_URL}/api/donations/history`);
-      setDonations(res.data); // stores donations in state
+      setDonations(res.data as any[]); // stores donations in state
     } catch (err) {
       console.error("Error fetching donations:", err);
     } finally {
@@ -80,7 +80,7 @@ export default function DonationHistory() {
           <TouchableOpacity
             style={styles.receiptBtn}
             // Passes donation object as string to receipt screen
-            onPress={() => router.push({ pathname: "/donate/receipt", params: { donation: JSON.stringify(item) } })}
+            onPress={() => router.push({ pathname: "/donate/Receipt", params: { donation: JSON.stringify(item) } })}
           >
             <Text style={styles.receiptText}>Receipt</Text>
           </TouchableOpacity>
@@ -118,7 +118,7 @@ export default function DonationHistory() {
 
       {/* Bottom navigation bar */}
       <View style={styles.bottomBar}>
-        <Ionicons name="Home" size={24} color="#000" />
+        <Ionicons name="home" size={24} color="#000" />
         <Ionicons name="people-outline" size={24} color="#000" />
         <Ionicons name="add-circle-outline" size={24} color="#000" />
         <Ionicons name="chatbubble-outline" size={24} color="#000" />

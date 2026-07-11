@@ -87,6 +87,12 @@ export default function PublicProfileScreen() {
 
   const fetchProfileAndStats = async () => {
     try {
+      if (!userId || typeof userId !== "string" || !/^[0-9a-fA-F]{24}$/.test(userId)) {
+        console.warn(`Invalid userId passed to profile route: ${userId}`);
+        setLoading(false);
+        return;
+      }
+
       const token = await SecureStore.getItemAsync("authToken");
       
       // 1. Fetch public profile and stats
@@ -95,7 +101,9 @@ export default function PublicProfileScreen() {
       });
       
       if (!response.ok) {
-        throw new Error("Failed to fetch profile");
+        const errorText = await response.text();
+        console.warn("Profile fetch failed:", response.status, errorText);
+        throw new Error(`Failed to fetch profile: ${response.status} ${errorText}`);
       }
 
       const data = (await response.json()) as any;
@@ -142,7 +150,7 @@ export default function PublicProfileScreen() {
       }
 
     } catch (error: any) {
-      console.error("Error fetching public profile:", error);
+      console.warn("Error fetching public profile:", error);
       Alert.alert("Error", "Could not load user profile.");
     } finally {
       setLoading(false);

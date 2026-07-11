@@ -80,7 +80,7 @@ export default function Success() {
           title="View Case"
           onPress={() =>
             router.push({
-              pathname: "/reporting/casedetails",
+              pathname: "/reporting/CaseDetails",
               params: { caseId },
             })
           }

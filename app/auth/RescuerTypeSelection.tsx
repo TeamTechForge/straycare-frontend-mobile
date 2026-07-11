@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useState } from "react";
 import {
+  Alert,
   ActivityIndicator,
   StyleSheet,
   Text,
@@ -28,7 +29,7 @@ export default function RescuerTypeScreen() {
 
   const handleContinue = async () => {
     if (!selectedType) {
-      alert("Please select a type");
+      Alert.alert("Please select a type");
       return;
     }
 
@@ -36,7 +37,7 @@ export default function RescuerTypeScreen() {
     const token = await SecureStore.getItemAsync("authToken");
 
     if (!token) {
-      alert("Session expired. Please log in again.");
+      Alert.alert("Session expired. Please log in again.");
       return;
     }
 
@@ -52,10 +53,10 @@ export default function RescuerTypeScreen() {
         body: JSON.stringify({ role: selectedType }),
       });
 
-      const data = await response.json();
+      const data: any = await response.json();
 
       if (!response.ok) {
-        alert(data.message || "Failed to select role");
+        Alert.alert(data.message || "Failed to select role");
         setIsLoading(false);
         return;
       }
@@ -78,9 +79,9 @@ export default function RescuerTypeScreen() {
         // once they begin entering their professional vet details.
         router.replace("/auth/VetProfileSetup");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Rescuer type error:", error);
-      alert("Something went wrong. Please try again.");
+      Alert.alert("Something went wrong. Please try again.");
       setIsLoading(false);
     }
   };

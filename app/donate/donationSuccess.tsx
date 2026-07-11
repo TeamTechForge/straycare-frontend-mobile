@@ -54,7 +54,7 @@ export default function DonationSuccess() {
 
           <TouchableOpacity
             style={styles.button}
-            onPress={() => router.push("/donate/history")}
+            onPress={() => router.push("/donate/History")}
           >
             <Text style={styles.buttonText}>View Donation History</Text>
           </TouchableOpacity>

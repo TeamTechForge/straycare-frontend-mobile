@@ -68,8 +68,8 @@ export default function HelpSupportScreen() {
         <Text style={styles.sectionHeader}>QUICK HELP TOPICS</Text>
         <View style={styles.card}>
           {HELP_TOPICS.map((topic, index) => (
-            <TouchableOpacity 
-              key={index} 
+            <TouchableOpacity
+              key={index}
               style={[styles.topicRow, index === HELP_TOPICS.length - 1 && { borderBottomWidth: 0 }]}
             >
               <Text style={styles.topicText}>{topic}</Text>
@@ -96,9 +96,9 @@ export default function HelpSupportScreen() {
         <Text style={styles.contactSubtitle}>
           If you couldn't find what you were looking for, our team is here to help.
         </Text>
-        <TouchableOpacity 
-          style={styles.contactButton} 
-          onPress={() => router.push("/profile/contactSupport")}
+        <TouchableOpacity
+          style={styles.contactButton}
+          onPress={() => router.push("/profile/ContactSupport")}
         >
           <Ionicons name="mail-outline" size={20} color="#fff" />
           <Text style={styles.contactButtonText}>Contact Support</Text>

@@ -21,7 +21,7 @@ export default function OnboardingCompleteScreen() {
         const response = await fetch(`${API_URL}/auth/me`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        const data = await response.json();
+        const data: any = await response.json();
         if (response.ok) {
           setUserName(data.name);
         }
@@ -46,7 +46,7 @@ export default function OnboardingCompleteScreen() {
             style={styles.logoImage}
           />
         </View>
-        
+
       </View>
 
       {/* Success Illustration */}

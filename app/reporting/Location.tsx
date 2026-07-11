@@ -123,7 +123,7 @@ export default function LocationPicker() {
     // 🔥 EDIT MODE → return to Review
     if (isEditing) {
       router.push({
-        pathname: "/reporting/review",
+        pathname: "/reporting/Review",
         params: {
           ...params,
           mode: "edit",
@@ -137,7 +137,7 @@ export default function LocationPicker() {
 
     // 🔥 NORMAL FLOW → go to Upload Photos
     router.push({
-      pathname: "/reporting/upload-photos",
+      pathname: "/reporting/UploadPhotos",
       params: {
         ...params,
         locationLat: region.latitude.toString(),

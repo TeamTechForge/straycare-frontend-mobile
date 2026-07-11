@@ -82,7 +82,7 @@ export default function Review() {
 
   const editAnimalDetails = () => {
     router.push({
-      pathname: "/reporting/animal-details",
+      pathname: "/reporting/AnimalDetails",
       params: {
         ...params,
         mode: "edit",
@@ -94,7 +94,7 @@ export default function Review() {
 
   const editLocation = () => {
     router.push({
-      pathname: "/reporting/location",
+      pathname: "/reporting/Location",
       params: {
         ...params,
         mode: "edit",
@@ -106,7 +106,7 @@ export default function Review() {
 
   const editPhotos = () => {
     router.push({
-      pathname: "/reporting/upload-photos",
+      pathname: "/reporting/UploadPhotos",
       params: {
         ...params,
         mode: "edit",

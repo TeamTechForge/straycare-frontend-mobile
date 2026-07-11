@@ -1,13 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import * as SecureStore from "expo-secure-store";
 import { API_URL } from "../../constants/config.constants";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
-import { Alert } from "react-native";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -80,7 +79,7 @@ export default function ResetPasswordScreen() {
         }),
       });
 
-      const data = await response.json();
+      const data: any = await response.json();
 
       if (response.ok) {
         Alert.alert("Success", "Password updated successfully");

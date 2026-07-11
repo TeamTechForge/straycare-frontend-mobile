@@ -32,6 +32,7 @@ import type { FindNearestResponse } from "../../types/Api";
 
 // ─── URL params ────────────────────────────────────────────────────────────────
 type SearchParams = {
+  excludeIds?: string | string[];
   lat?: string | string[];
   lng?: string | string[];
   caseId?: string | string[];

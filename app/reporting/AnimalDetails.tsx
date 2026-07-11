@@ -68,7 +68,7 @@ export default function AnimalDetails() {
     // ---------------------------------------------------------
     if (isEditing) {
       router.push({
-        pathname: "/reporting/review",
+        pathname: "/reporting/Review",
         params: {
           ...params, // keep all previous values
           animalType,
@@ -86,7 +86,7 @@ export default function AnimalDetails() {
     // 🔥 NORMAL FLOW: Go to Location screen
     // ---------------------------------------------------------
     router.push({
-      pathname: "/reporting/location",
+      pathname: "/reporting/Location",
       params: {
         animalType,
         breed,

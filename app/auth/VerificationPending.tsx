@@ -65,7 +65,7 @@ export default function VerificationPendingScreen() {
   }, [refreshUser]);
 
   const handleReturnHome = () => {
-    alert("Your account is still under review.");
+    Alert.alert("Your account is still under review.");
   };
 
   const handleContactSupport = () => {
@@ -127,9 +127,9 @@ export default function VerificationPendingScreen() {
         <Text style={{ textAlign: 'center', color: '#888', fontSize: 13, marginBottom: 10 }}>
           Verification usually takes 24-48 hours.
         </Text>
-        <PrimaryButton 
-          title="Check for Notifications" 
-          onPress={handleCheckNotifications} 
+        <PrimaryButton
+          title="Check for Notifications"
+          onPress={handleCheckNotifications}
         />
       </View>
 

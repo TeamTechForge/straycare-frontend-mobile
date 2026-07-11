@@ -165,8 +165,8 @@ export default function VolunteerProfile() {
         </TouchableOpacity>
       </View>
 
-      <ScrollView 
-        showsVerticalScrollIndicator={false} 
+      <ScrollView
+        showsVerticalScrollIndicator={false}
         contentContainerStyle={styles.scrollContent}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={BRAND_COLOR} />
@@ -179,7 +179,7 @@ export default function VolunteerProfile() {
           memberSince={userData.memberSince}
           avatar={userData.avatar}
           role={user?.role}
-          onEditPress={() => router.push("/profile/editVolunteerProfile")}
+          onEditPress={() => router.push("/profile/EditVolunteerProfile")}
         />
 
         <ProfileStatsRow stats={stats} />
@@ -283,8 +283,8 @@ export default function VolunteerProfile() {
       <ProfileMenuDrawer
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
-        user={{ 
-          name: userData.name, 
+        user={{
+          name: userData.name,
           avatar: userData.avatar,
           role: user?.role,
           status: profile?.status
@@ -297,13 +297,13 @@ export default function VolunteerProfile() {
         }}
         onSettingsPress={() => {
           setMenuVisible(false);
-          router.push("/profile/settings");
+          router.push("/profile/Settings");
         }}
         onLogoutPress={async () => {
           setMenuVisible(false);
           await logout();
           router.replace("/");
-        }} 
+        }}
       />
     </SafeAreaView>
   );

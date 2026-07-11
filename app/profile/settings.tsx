@@ -33,9 +33,9 @@ export default function SettingsScreen() {
       if (response.ok) {
         await SecureStore.deleteItemAsync("authToken");
         setDeleteModalVisible(false);
-        router.replace("/profile/accountDeleted");
+        router.replace("/profile/AccountDeleted");
       } else {
-        const errorData = await response.json();
+        const errorData: any = await response.json();
         Alert.alert("Error", errorData.message || "Failed to delete account");
       }
     } catch (error) {
@@ -65,7 +65,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon="lock-closed-outline"
           title="Change Password"
-          onPress={() => router.push("/profile/resetPassword")}
+          onPress={() => router.push("/profile/ResetPassword")}
         />
         <SettingsRow
           icon="globe-outline"
@@ -100,7 +100,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon="help-circle-outline"
           title="Help & Support"
-          onPress={() => router.push("/profile/helpSupport")}
+          onPress={() => router.push("/profile/HelpSupport")}
         />
         <SettingsRow
           icon="document-text-outline"
@@ -110,7 +110,7 @@ export default function SettingsScreen() {
         <SettingsRow
           icon="information-circle-outline"
           title="About StrayCare"
-          onPress={() => router.push("/profile/about")}
+          onPress={() => router.push("/profile/About")}
         />
       </View>
 
