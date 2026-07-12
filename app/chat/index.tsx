@@ -174,7 +174,7 @@ export default function ChatsScreen() {
                     <TouchableOpacity onPress={() => router.push("/chat/New")} style={{ marginRight: 4 }}>
                         <Feather name="edit" size={22} color="#111" />
                     </TouchableOpacity>
-                    <TouchableOpacity>
+                    <TouchableOpacity onPress={() => router.push("/call-history" as any)}>
                         <Ionicons name="call-outline" size={24} color="#111" />
                     </TouchableOpacity>
                 </View>
