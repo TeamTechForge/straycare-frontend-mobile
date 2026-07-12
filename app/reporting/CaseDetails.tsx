@@ -13,6 +13,7 @@ import MapView, { Marker } from "react-native-maps";
 import { getReportByCaseId, updateCaseStatus } from "../../api/stray-api.service";
 import PrimaryButton from "../../components/PrimaryButton";
 import { useAuth } from "../../contexts/AuthContext";
+import { useRescueUpdates } from "../../hooks/useRescueUpdates";
 
 type Reporter = {
   id: string;
@@ -90,6 +91,14 @@ export default function CaseDetailsScreen() {
 
   // 🔒 Check if user is a rescuer
   const isRescuer = user && ["volunteer", "ngo", "vet"].includes(user.role);
+
+  // 📡 Real-time updates via Socket.io
+  useRescueUpdates(report, (updatedReport) => {
+    setReport(updatedReport);
+    setNotificationMessage(`Case updated: ${updatedReport.status}`);
+    setShowNotification(true);
+    setTimeout(() => setShowNotification(false), 3000);
+  });
 
   useEffect(() => {
     const loadCase = async () => {
