@@ -34,4 +34,13 @@ export class CallLogService {
     if (!response.ok) throw new Error('Failed to clear call history');
     return await response.json();
   }
+  public static async markSeen() {
+    const token = await SecureStore.getItemAsync('authToken');
+    const response = await fetch(`${API_URL}/call-logs/seen`, {
+      method: 'PUT',
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    if (!response.ok) throw new Error('Failed to mark calls as seen');
+    return await response.json();
+  }
 }

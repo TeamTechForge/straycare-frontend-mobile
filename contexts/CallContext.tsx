@@ -8,6 +8,8 @@ import { CallState } from "../enums/CallState";
 import { CallEvents } from "../enums/CallEvents";
 import { WebRTCService } from "../services/WebRTCService";
 import { ICallParticipantDTO } from "../types/call";
+import callAudioService from '../services/CallAudioService';
+import { useSocket } from './SocketContext';
 import IncomingCallModal from "../components/call/IncomingCallModal";
 
 interface CallContextType {
@@ -27,6 +29,7 @@ const CallContext = createContext<CallContextType | undefined>(undefined);
 
 export function CallProvider({ children }: { children: React.ReactNode }) {
   const { user, token } = useAuth();
+  const { refreshCallBadge } = useSocket();
   const router = useRouter();
 
   const [callState, setCallState] = useState<CallState>(CallState.IDLE);
@@ -82,12 +85,14 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       isCallerRef.current = false;
       setActiveCallData(payload.caller);
       setCallState(CallState.INCOMING);
+      callAudioService.playIncoming();
     });
 
     // Handle Call Accepted
     socket.on(CallEvents.ACCEPTED, async (payload: any) => {
       if (!isCallerRef.current) return;
       setCallState(CallState.CONNECTING);
+      callAudioService.stopOutgoing();
       try {
         const offer = await webrtcService.createOffer();
         socket.emit(CallEvents.WEBRTC_OFFER, {
@@ -109,6 +114,18 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setCallState(CallState.IDLE);
       setActiveCallData(null);
       webrtcService.cleanup();
+      callAudioService.stopAll();
+      if (router.canGoBack()) {
+         router.back();
+      }
+    });
+
+    // Handle Call Busy
+    socket.on(CallEvents.BUSY, () => {
+      setCallState(CallState.IDLE);
+      setActiveCallData(null);
+      webrtcService.cleanup();
+      callAudioService.stopAll();
       if (router.canGoBack()) {
          router.back();
       }
@@ -119,6 +136,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       setCallState(CallState.IDLE);
       setActiveCallData(null);
       webrtcService.cleanup();
+      callAudioService.stopAll();
+      refreshCallBadge();
       // If we are on the call screen, go back
       if (router.canGoBack()) {
           // Wait, router.back might pop incorrectly if we are not on call screen, but typically we are
@@ -161,6 +180,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     return () => {
       socket.disconnect();
       socketRef.current = null;
+      callAudioService.stopAll();
     };
   }, [user?._id, token]);
 
@@ -197,6 +217,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         caller: { userId: user._id, name: user.name },
         calleeId,
       });
+      
+      callAudioService.playOutgoing();
 
       // Navigate to Call Screen
       router.push(`/call/${calleeId}`);
@@ -204,6 +226,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       console.error("Failed to start call", err);
       setCallState(CallState.IDLE);
       setActiveCallData(null);
+      callAudioService.stopOutgoing();
     }
   }, [user]);
 
@@ -223,6 +246,8 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
       // Navigate to call screen
       router.push(`/call/${activeCallData.userId}`);
+      
+      callAudioService.stopIncoming();
     } catch (err) {
       console.error("Failed to accept call", err);
       endCall();
@@ -237,6 +262,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     });
     setCallState(CallState.IDLE);
     setActiveCallData(null);
+    callAudioService.stopIncoming();
   }, [activeCallData, user]);
 
   const endCall = useCallback(() => {
@@ -249,6 +275,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
     setCallState(CallState.IDLE);
     setActiveCallData(null);
     webrtcService.cleanup();
+    callAudioService.stopAll();
   }, [activeCallData, user]);
 
   const toggleMute = useCallback(() => {

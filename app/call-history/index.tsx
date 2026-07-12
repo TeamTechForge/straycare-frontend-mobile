@@ -4,18 +4,33 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { CallLogService } from "../../services/CallLogService";
 import { useCall } from "../../contexts/CallContext";
+import { useSocket } from "../../contexts/SocketContext";
+import { useAuth } from "../../contexts/AuthContext";
+import { chatService } from "../../services/chat.service";
 
 const BRAND_COLOR = "#F5A623";
 
 export default function CallHistoryScreen() {
   const router = useRouter();
   const { startCall } = useCall();
+  const { refreshCallBadge } = useSocket();
   const [logs, setLogs] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const { token } = useAuth();
 
   useEffect(() => {
     fetchHistory();
+    markAsSeen();
   }, []);
+
+  const markAsSeen = async () => {
+    try {
+      await CallLogService.markSeen();
+      refreshCallBadge();
+    } catch (err) {
+      console.error("Failed to mark calls as seen", err);
+    }
+  };
 
   const fetchHistory = async () => {
     try {
@@ -78,13 +93,32 @@ export default function CallHistoryScreen() {
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  const navigateToChat = async (otherUser: any) => {
+    if (!token) return;
+    try {
+      const conv = await chatService.getOrCreateConversation(token, otherUser.userId);
+      router.push({
+        pathname: "/chat/[conversationId]",
+        params: {
+          conversationId: conv._id,
+          recipientName: otherUser.name,
+          recipientId: otherUser.userId,
+          recipientImage: otherUser.profileImage || "",
+        },
+      });
+    } catch (error) {
+      console.error("Failed to navigate to chat", error);
+      Alert.alert("Error", "Could not open chat conversation.");
+    }
+  };
+
   const renderItem = ({ item }: { item: any }) => {
     const isIncoming = item.direction === "INCOMING";
     const otherUser = isIncoming ? item.caller : item.receiver;
     const isMissed = item.status === "MISSED" || (item.status === "RINGING" && item.duration === 0);
 
     return (
-      <View style={styles.logItem}>
+      <TouchableOpacity style={styles.logItem} onPress={() => navigateToChat(otherUser)}>
         <View style={styles.avatarContainer}>
           {otherUser.profileImage ? (
             <Image source={{ uri: otherUser.profileImage }} style={styles.avatar} />
@@ -123,7 +157,7 @@ export default function CallHistoryScreen() {
             </TouchableOpacity>
           </View>
         </View>
-      </View>
+      </TouchableOpacity>
     );
   };
 

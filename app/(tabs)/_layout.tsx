@@ -2,6 +2,7 @@ import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { View, StyleSheet, Platform } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useSocket } from '../../contexts/SocketContext';
 
 const BRAND_COLOR = "#F5A623";
 const TAB_BAR_BG = "#FFF7E6";
@@ -10,6 +11,7 @@ const TAB_BAR_BG = "#FFF7E6";
 
 export default function TabLayout() {
   const insets = useSafeAreaInsets();
+  const { hasUnreadChats } = useSocket();
 
   return (
     <Tabs
@@ -79,7 +81,10 @@ export default function TabLayout() {
         options={{
           title: 'Chat',
           tabBarIcon: ({ color, focused }) => (
-            <Ionicons name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"} size={24} color={color} />
+            <View>
+              <Ionicons name={focused ? "chatbubble-ellipses" : "chatbubble-ellipses-outline"} size={24} color={color} />
+              {hasUnreadChats && <View style={styles.badgeDot} />}
+            </View>
           ),
         }}
       />
@@ -119,5 +124,16 @@ const styles = StyleSheet.create({
     elevation: 10,
     borderWidth: 4,
     borderColor: '#fff',
+  },
+  badgeDot: {
+    position: 'absolute',
+    top: -2,
+    right: -4,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#EF4444', // Minimalistic red dot
+    borderWidth: 1.5,
+    borderColor: '#FFF7E6',
   },
 });

@@ -20,14 +20,14 @@ export default function CallScreen() {
       if (router.canGoBack()) {
         router.back();
       } else {
-        router.push("/(tabs)"); // Fallback
+        router.push("/"); // Fallback
       }
     }
   }, [callState]);
 
   // Call Timer
   useEffect(() => {
-    let interval: NodeJS.Timeout;
+    let interval: ReturnType<typeof setInterval>;
     if (callState === CallState.CONNECTED) {
       interval = setInterval(() => {
         setCallDuration((prev) => prev + 1);
