@@ -4,14 +4,16 @@ import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, FlatList } from "react-native";
 import { API_URL } from "../../constants/config.constants";
+import { useNotification } from "../../contexts/NotificationContext";
 
 const BRAND_COLOR = "#F5A623";
 
 // Show the main landing screen with personalized data for the logged-in user.
 export default function HomeScreen() {
   const router = useRouter();
+  const { unreadCount, fetchNotifications } = useNotification();
   const [user, setUser] = useState<any>(null);
-  
+
   // Search states
   const [searchQuery, setSearchQuery] = useState("");
   const [debouncedQuery, setDebouncedQuery] = useState("");
@@ -54,7 +56,12 @@ export default function HomeScreen() {
     performSearch();
   }, [debouncedQuery]);
 
-  //Loads user profile data 
+  // Fetch notifications on mount
+  useEffect(() => {
+    fetchNotifications();
+  }, []);
+
+  // Loads user profile data
   useEffect(() => {
     const fetchUser = async () => {
       try {
@@ -88,9 +95,14 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={styles.notificationIcon}
-          onPress={() => router.push("/Notifications")}
+          onPress={() => router.push("/modals/notifications")}
         >
           <Ionicons name="notifications-outline" size={24} color="#000" />
+          {unreadCount > 0 && (
+            <View style={styles.badge}>
+              <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
+            </View>
+          )}
         </TouchableOpacity>
       </View>
 
@@ -257,6 +269,23 @@ const styles = StyleSheet.create({
   notificationIcon: {
     position: "absolute",
     right: 0,
+  },
+  badge: {
+    position: "absolute",
+    top: -5,
+    right: -5,
+    backgroundColor: "#f44336",
+    borderRadius: 10,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    minWidth: 20,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  badgeText: {
+    color: "#fff",
+    fontSize: 12,
+    fontWeight: "bold",
   },
   logo: {
     width: 150,
