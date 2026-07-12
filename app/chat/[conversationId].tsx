@@ -27,6 +27,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import { useChat } from "../../hooks/useChat";
 import { useChatApi } from "../../hooks/useChatApi";
+import { useCall } from "../../contexts/CallContext";
 import { API_URL } from "../../constants/config.constants";
 
 const BRAND_COLOR = "#F5A623";
@@ -45,6 +46,7 @@ export default function ChatRoomScreen() {
   const { setTyping, emitReadReceipt, onNewMessage, onTyping, onStopTyping, onReadAck, onDeleteMessage } =
     useChat(conversationId);
   const { fetchMessages, sendMessage, markAsRead, deleteMessage } = useChatApi();
+  const { startCall } = useCall();
 
   const [messages, setMessages] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -436,7 +438,11 @@ export default function ChatRoomScreen() {
               router.push(`/profile/${recipientId}`);
             }
           }}
-          onCallPress={() => Alert.alert("Coming Soon", "Voice calling will be available in Phase 2.")}
+          onCallPress={() => {
+            if (recipientId) {
+              startCall(recipientId, recipientName || "User", recipientImage);
+            }
+          }}
         />
       )}
 
