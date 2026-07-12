@@ -7,10 +7,21 @@ import {
   StyleSheet,
   Text,
   View,
+  Alert,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import { getReportByCaseId, updateCaseStatus } from "../../api/stray-api.service";
 import PrimaryButton from "../../components/PrimaryButton";
+import { useAuth } from "../../contexts/AuthContext";
+
+type Reporter = {
+  id: string;
+  name: string;
+  phone?: string;
+  email?: string;
+  role?: string;
+  profileImage?: string;
+};
 
 type Report = {
   caseId: string;
@@ -20,6 +31,8 @@ type Report = {
   status: string;
   notes?: string;
   anonymous?: boolean;
+  reporterUserId?: string;
+  reporter?: Reporter;
   location: {
     lat: number;
     lng: number;
@@ -64,14 +77,19 @@ const getNextStatus = (current: string) => {
 export default function CaseDetailsScreen() {
   const { caseId } = useLocalSearchParams();
   const router = useRouter();
+  const { user } = useAuth();
 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
+  const [updating, setUpdating] = useState(false);
 
   // 🔔 Notification States
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
+
+  // 🔒 Check if user is a rescuer
+  const isRescuer = user && ["volunteer", "ngo", "vet"].includes(user.role);
 
   useEffect(() => {
     const loadCase = async () => {
@@ -92,9 +110,19 @@ export default function CaseDetailsScreen() {
   const handleStatusUpdate = async () => {
     if (!report) return;
 
+    // 🔒 Check if user is a rescuer
+    if (!isRescuer) {
+      Alert.alert(
+        "Access Denied",
+        "Only rescuers, volunteers, NGOs, and veterinarians can update case status."
+      );
+      return;
+    }
+
     const next = getNextStatus(report.status);
     if (!next) return;
 
+    setUpdating(true);
     try {
       const updated = await updateCaseStatus(report.caseId, next);
       setReport(updated);
@@ -103,8 +131,20 @@ export default function CaseDetailsScreen() {
       setNotificationMessage(`Case updated: ${next}`);
       setShowNotification(true);
       setTimeout(() => setShowNotification(false), 3000);
-    } catch (err) {
+    } catch (err: any) {
       console.log("Failed to update status:", err);
+
+      // Handle 403 Forbidden error
+      if (err?.response?.status === 403) {
+        Alert.alert(
+          "Permission Denied",
+          "You don't have permission to update this case status. Only rescuers can update cases."
+        );
+      } else {
+        Alert.alert("Error", "Failed to update case status. Please try again.");
+      }
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -167,14 +207,45 @@ export default function CaseDetailsScreen() {
         <Text style={styles.label}>Category</Text>
         <Text style={styles.value}>{report.category}</Text>
 
-        <Text style={styles.label}>Reported As</Text>
-        <Text style={styles.value}>
-          {report.anonymous ? "Anonymous User" : "Identified User"}
-        </Text>
-
         <Text style={styles.label}>Location</Text>
         <Text style={styles.value}>{report.location?.address || "Unknown"}</Text>
       </View>
+
+      {/* Reporter Card */}
+      {report.anonymous ? (
+        <View style={[styles.sectionCard, styles.anonymousCard]}>
+          <Text style={styles.anonymousBadge}>🔒 Anonymous Report</Text>
+          <Text style={styles.value}>Reporter details hidden for privacy</Text>
+        </View>
+      ) : (
+        report.reporter && (
+          <View style={[styles.sectionCard, styles.reporterCard]}>
+            <Text style={styles.label}>Reported By</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
+              {report.reporter.profileImage && (
+                <Image
+                  source={{ uri: report.reporter.profileImage }}
+                  style={styles.reporterAvatar}
+                />
+              )}
+              <View style={{ flex: 1, marginLeft: 12 }}>
+                <Text style={styles.reporterName}>{report.reporter.name}</Text>
+                {report.reporter.role && (
+                  <Text style={styles.reporterRole}>
+                    {report.reporter.role.replace(/_/g, " ").toUpperCase()}
+                  </Text>
+                )}
+                {report.reporter.phone && (
+                  <Text style={styles.reporterContact}>📞 {report.reporter.phone}</Text>
+                )}
+                {report.reporter.email && (
+                  <Text style={styles.reporterContact}>✉️ {report.reporter.email}</Text>
+                )}
+              </View>
+            </View>
+          </View>
+        )
+      )}
 
       {report.location?.lat != null && report.location?.lng != null && (
         <MapView
@@ -202,17 +273,28 @@ export default function CaseDetailsScreen() {
         <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
       </View>
 
-      {nextStatus && (
+      {/* ✅ Status Update Button - Rescuers Only */}
+      {nextStatus && isRescuer && (
         <PrimaryButton
-          title={`Mark as "${nextStatus}"`}
+          title={updating ? "Updating..." : `Mark as "${nextStatus}"`}
           onPress={handleStatusUpdate}
+          disabled={updating}
         />
+      )}
+
+      {/* 🔒 Info Message for Non-Rescuers */}
+      {nextStatus && !isRescuer && (
+        <View style={styles.restrictedMessage}>
+          <Text style={styles.restrictedText}>
+            ℹ️ Only rescuers can update case status
+          </Text>
+        </View>
       )}
 
       <Text style={styles.label}>Rescue Timeline :</Text>
 
       {report.timeline && report.timeline.length > 0 ? (
-        report.timeline.map((entry, index) => (
+        report.timeline.map((entry: any, index: number) => (
           <View key={index} style={styles.timelineItem}>
             <View
               style={[
@@ -222,12 +304,27 @@ export default function CaseDetailsScreen() {
             />
             <View style={styles.timelineContent}>
               <Text style={styles.timelineStatus}>{entry.status}</Text>
-              <Text style={styles.timelineTime}>
-                {new Date(entry.timestamp).toLocaleString()}
-              </Text>
+
+              {/* Show message with rescuer info if available */}
               {entry.message && (
                 <Text style={styles.timelineMessage}>{entry.message}</Text>
               )}
+
+              {/* Show rescuer details card if available */}
+              {entry.rescuerName && (
+                <View style={styles.rescuerInfoBox}>
+                  <Text style={styles.rescuerInfoLabel}>
+                    👤 {entry.rescuerName}
+                  </Text>
+                  <Text style={styles.rescuerInfoRole}>
+                    {entry.rescuerRole?.replace(/_/g, " ").toUpperCase()}
+                  </Text>
+                </View>
+              )}
+
+              <Text style={styles.timelineTime}>
+                {new Date(entry.timestamp).toLocaleString()}
+              </Text>
             </View>
           </View>
         ))
@@ -335,5 +432,82 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 4,
     color: "#222",
+  },
+  reporterCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#F5A623",
+    backgroundColor: "#fffbf0",
+  },
+  anonymousCard: {
+    borderLeftWidth: 4,
+    borderLeftColor: "#999",
+    backgroundColor: "#f5f5f5",
+  },
+  anonymousBadge: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#666",
+    marginBottom: 8,
+  },
+  reporterAvatar: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    backgroundColor: "#ddd",
+  },
+  reporterName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#222",
+  },
+  reporterRole: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#F5A623",
+    marginTop: 4,
+  },
+  reporterContact: {
+    fontSize: 13,
+    color: "#555",
+    marginTop: 3,
+  },
+
+  restrictedMessage: {
+    backgroundColor: "#e3f2fd",
+    borderLeftWidth: 4,
+    borderLeftColor: "#2196F3",
+    padding: 14,
+    borderRadius: 8,
+    marginVertical: 16,
+  },
+
+  restrictedText: {
+    fontSize: 14,
+    fontWeight: "500",
+    color: "#1565c0",
+    textAlign: "center",
+  },
+
+  rescuerInfoBox: {
+    backgroundColor: "#f5f5f5",
+    borderLeftWidth: 3,
+    borderLeftColor: "#F5A623",
+    padding: 10,
+    borderRadius: 6,
+    marginTop: 8,
+    marginBottom: 8,
+  },
+
+  rescuerInfoLabel: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#333",
+  },
+
+  rescuerInfoRole: {
+    fontSize: 12,
+    color: "#F5A623",
+    fontWeight: "500",
+    marginTop: 4,
   },
 });
