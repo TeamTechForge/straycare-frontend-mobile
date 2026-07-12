@@ -16,6 +16,8 @@ export class WebRTCService {
   private onIceCandidateCallback?: (candidate: RTCIceCandidate) => void;
   private onRemoteStreamCallback?: (stream: MediaStream) => void;
 
+  private iceCandidateQueue: RTCIceCandidate[] = [];
+
   constructor() {
     this.remoteStream = new MediaStream();
   }
@@ -85,9 +87,28 @@ export class WebRTCService {
     return offer;
   }
 
+  private async processIceCandidateQueue(): Promise<void> {
+    const hasRemoteDesc = this.peerConnection?.remoteDescription || this.peerConnection?.currentRemoteDescription;
+    if (!this.peerConnection || !hasRemoteDesc) return;
+    
+    console.log(`[WebRTCService] Processing ICE candidate queue. Size: ${this.iceCandidateQueue.length}`);
+    while (this.iceCandidateQueue.length > 0) {
+      const candidate = this.iceCandidateQueue.shift();
+      if (candidate) {
+        try {
+          await this.peerConnection.addIceCandidate(candidate);
+          console.log(`[WebRTCService] Successfully added queued ICE candidate.`);
+        } catch (e) {
+          console.error(`[WebRTCService] Error adding queued ICE candidate:`, e);
+        }
+      }
+    }
+  }
+
   public async handleOffer(offer: any): Promise<RTCSessionDescription> {
     if (!this.peerConnection) throw new Error("PeerConnection not initialized");
     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
+    await this.processIceCandidateQueue();
     const answer = await this.peerConnection.createAnswer();
     await this.peerConnection.setLocalDescription(answer);
     return answer;
@@ -96,11 +117,28 @@ export class WebRTCService {
   public async handleAnswer(answer: any): Promise<void> {
     if (!this.peerConnection) throw new Error("PeerConnection not initialized");
     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(answer));
+    await this.processIceCandidateQueue();
   }
 
   public async addIceCandidate(candidate: any): Promise<void> {
     if (!this.peerConnection) throw new Error("PeerConnection not initialized");
-    await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+    
+    // In react-native-webrtc, currentRemoteDescription might be needed or remoteDescription
+    const hasRemoteDesc = this.peerConnection.remoteDescription || this.peerConnection.currentRemoteDescription;
+    
+    console.log(`[WebRTCService] addIceCandidate. hasRemoteDesc: ${!!hasRemoteDesc}`);
+
+    if (!hasRemoteDesc) {
+      console.log(`[WebRTCService] Queueing ICE candidate because remote description is null.`);
+      this.iceCandidateQueue.push(new RTCIceCandidate(candidate));
+      return;
+    }
+    try {
+      await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      console.log(`[WebRTCService] Successfully added ICE candidate.`);
+    } catch (e) {
+      console.error(`[WebRTCService] Error adding ICE candidate:`, e);
+    }
   }
 
   public toggleMute(isMuted: boolean): void {
@@ -120,6 +158,7 @@ export class WebRTCService {
     // We intentionally don't do new MediaStream() right away so that
     // old remote streams are cleared completely.
     this.remoteStream = new MediaStream();
+    this.iceCandidateQueue = [];
 
     if (this.peerConnection) {
       this.peerConnection.close();

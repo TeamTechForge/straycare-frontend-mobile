@@ -41,6 +41,17 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   // Track if we are the caller to know how to handle connection
   const isCallerRef = useRef<boolean>(false);
 
+  const callStateRef = useRef<CallState>(callState);
+  const activeCallDataRef = useRef<ICallParticipantDTO | null>(activeCallData);
+
+  useEffect(() => {
+    callStateRef.current = callState;
+  }, [callState]);
+
+  useEffect(() => {
+    activeCallDataRef.current = activeCallData;
+  }, [activeCallData]);
+
   // Initialize Socket.IO connection for /call namespace
   useEffect(() => {
     if (!user?._id || !token) {
@@ -63,7 +74,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
 
     // Handle Incoming Call
     socket.on(CallEvents.INCOMING, (payload: any) => {
-      if (callState !== CallState.IDLE) {
+      if (callStateRef.current !== CallState.IDLE) {
         // We are already in a call, maybe auto-decline with busy signal? (YAGNI for now, just ignore or decline)
         socket.emit(CallEvents.DECLINED, { callerId: payload.caller.userId, calleeId: user._id });
         return;
@@ -81,12 +92,15 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
         const offer = await webrtcService.createOffer();
         socket.emit(CallEvents.WEBRTC_OFFER, {
           callerId: user._id,
-          calleeId: activeCallData?.userId,
+          calleeId: payload.calleeId,
           offer,
         });
       } catch (err) {
         console.error("Failed to create offer", err);
-        endCall();
+        socket.emit(CallEvents.ENDED, { callerId: user._id, calleeId: payload.calleeId });
+        setCallState(CallState.IDLE);
+        setActiveCallData(null);
+        webrtcService.cleanup();
       }
     });
 
@@ -148,7 +162,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       socket.disconnect();
       socketRef.current = null;
     };
-  }, [user?._id, token, callState]);
+  }, [user?._id, token]);
 
   // Setup WebRTC callbacks
   useEffect(() => {

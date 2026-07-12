@@ -58,7 +58,7 @@ export function useChat(conversationId?: string) {
   // Subscribe to new messages for this conversation
   const onNewMessage = useCallback(
     (callback: (data: { message: any; conversationId: string }) => void) => {
-      if (!socket) return () => {};
+      if (!socket) return () => { };
 
       const handler = (data: { message: any; conversationId: string }) => {
         console.log(`[useChat] 📥 Socket event [message:new] received. Sender: ${data.message?.sender?._id || data.message?.sender}, Room: ${data.conversationId}, User: ${user?._id}`);
@@ -76,7 +76,7 @@ export function useChat(conversationId?: string) {
   // Subscribe to typing events
   const onTyping = useCallback(
     (callback: (data: { conversationId: string; userId: string }) => void) => {
-      if (!socket) return () => {};
+      if (!socket) return () => { };
 
       const handler = (data: { conversationId: string; userId: string }) => {
         console.log(`[useChat] 📥 Socket event [typing] received. Sender: ${data.userId}, Room: ${data.conversationId}`);
@@ -93,7 +93,7 @@ export function useChat(conversationId?: string) {
 
   const onStopTyping = useCallback(
     (callback: (data: { conversationId: string; userId: string }) => void) => {
-      if (!socket) return () => {};
+      if (!socket) return () => { };
 
       const handler = (data: { conversationId: string; userId: string }) => {
         console.log(`[useChat] 📥 Socket event [stop-typing] received. Sender: ${data.userId}, Room: ${data.conversationId}`);
@@ -111,7 +111,7 @@ export function useChat(conversationId?: string) {
   // Subscribe to read receipt acknowledgements
   const onReadAck = useCallback(
     (callback: (data: { conversationId: string; readBy: string }) => void) => {
-      if (!socket) return () => {};
+      if (!socket) return () => { };
 
       const handler = (data: { conversationId: string; readBy: string }) => {
         console.log(`[useChat] 📥 Socket event [message:read-ack] received. ReadBy: ${data.readBy}, Room: ${data.conversationId}`);
@@ -128,7 +128,7 @@ export function useChat(conversationId?: string) {
 
   const onDeleteMessage = useCallback(
     (callback: (data: { messageId: string; conversationId: string }) => void) => {
-      if (!socket) return () => {};
+      if (!socket) return () => { };
 
       const handler = (data: { messageId: string; conversationId: string }) => {
         console.log(`[useChat] 📥 Socket event [message:delete] received. MessageId: ${data.messageId}, Room: ${data.conversationId}`);
