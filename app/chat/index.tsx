@@ -25,7 +25,7 @@ const BRAND_COLOR = "#F5A623";
 export default function ChatsScreen() {
     const router = useRouter();
     const { user } = useAuth();
-    const { socket, onlineUsers } = useSocket();
+    const { socket, onlineUsers, hasUnseenMissedCalls } = useSocket();
     const { fetchConversations, deleteConversation } = useChatApi();
 
     const [conversations, setConversations] = useState<any[]>([]);
@@ -174,8 +174,9 @@ export default function ChatsScreen() {
                     <TouchableOpacity onPress={() => router.push("/chat/New")} style={{ marginRight: 4 }}>
                         <Feather name="edit" size={22} color="#111" />
                     </TouchableOpacity>
-                    <TouchableOpacity>
-                        <Ionicons name="call-outline" size={24} color="#111" />
+                    <TouchableOpacity onPress={() => router.push("/call-history" as any)} style={{ position: "relative" }}>
+                        <Ionicons name="call" size={22} color="#333" />
+                        {hasUnseenMissedCalls && <View style={styles.badgeDot} />}
                     </TouchableOpacity>
                 </View>
             </View>
@@ -264,6 +265,17 @@ const styles = StyleSheet.create({
     },
     listContent: {
         paddingBottom: 100,
+    },
+    badgeDot: {
+        position: 'absolute',
+        top: -2,
+        right: -4,
+        width: 10,
+        height: 10,
+        borderRadius: 5,
+        backgroundColor: '#EF4444',
+        borderWidth: 1.5,
+        borderColor: '#fff',
     },
     emptyContainer: {
         flex: 1,

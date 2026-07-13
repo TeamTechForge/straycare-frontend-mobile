@@ -6,17 +6,27 @@ import React, { createContext, useContext, useEffect, useRef, useState } from "r
 import { io, Socket } from "socket.io-client";
 import { BASE_URL } from "../constants/config.constants";
 import { useAuth } from "./AuthContext";
+import { chatService } from "../services/chat.service";
+import { CallLogService } from "../services/CallLogService";
 
 type SocketContextType = {
   socket: Socket | null;
   isConnected: boolean;
   onlineUsers: Set<string>;
+  hasUnreadChats: boolean;
+  hasUnseenMissedCalls: boolean;
+  refreshChatBadge: () => Promise<void>;
+  refreshCallBadge: () => Promise<void>;
 };
 
 const SocketContext = createContext<SocketContextType>({
   socket: null,
   isConnected: false,
   onlineUsers: new Set(),
+  hasUnreadChats: false,
+  hasUnseenMissedCalls: false,
+  refreshChatBadge: async () => {},
+  refreshCallBadge: async () => {},
 });
 
 export function SocketProvider({ children }: { children: React.ReactNode }) {
@@ -24,6 +34,40 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const socketRef = useRef<Socket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+  const [hasUnreadChats, setHasUnreadChats] = useState(false);
+  const [hasUnseenMissedCalls, setHasUnseenMissedCalls] = useState(false);
+
+  const refreshChatBadge = async () => {
+    if (!token || !user?._id) return;
+    try {
+      const conversations = await chatService.getConversations(token);
+      const hasUnread = conversations.some((c: any) => c.unreadCounts?.[user._id] > 0);
+      console.log(`[SocketContext] refreshChatBadge: hasUnread=${hasUnread}`);
+      setHasUnreadChats(hasUnread);
+    } catch (error) {
+      console.error("[SocketContext] Error refreshing chat badge", error);
+    }
+  };
+
+  const refreshCallBadge = async () => {
+    if (!token || !user?._id) return;
+    try {
+      const history = await CallLogService.getHistory();
+      const hasUnseen = history.some((l: any) => {
+        const isMissed = l.status === "MISSED";
+        const notSeen = !l.isSeen;
+        const isReceiver = l.receiver.userId === user._id;
+        if (isMissed && notSeen && isReceiver) {
+           console.log(`[SocketContext] Found unseen missed call: ${l._id}`);
+        }
+        return isMissed && notSeen && isReceiver;
+      });
+      console.log(`[SocketContext] refreshCallBadge: hasUnseenMissedCalls=${hasUnseen}`);
+      setHasUnseenMissedCalls(hasUnseen);
+    } catch (error) {
+      console.error("[SocketContext] Error refreshing call badge", error);
+    }
+  };
 
   useEffect(() => {
     // Only connect when we have an authenticated user
@@ -58,6 +102,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
 
       // Announce this user is online
       socket.emit("user:join", { userId: user._id });
+
+      // Fetch initial badges
+      refreshChatBadge();
+      refreshCallBadge();
     });
 
     socket.on("disconnect", (reason) => {
@@ -102,6 +150,15 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       });
     });
 
+    // ── Badges Sync ─────────────────────────────────────────
+    socket.on("message:new", refreshChatBadge);
+    socket.on("message:read-ack", refreshChatBadge);
+    
+    // In straycare we emit 'call:ended' over the /call namespace, not /chat namespace.
+    // However, if we need to cross-communicate, we might just poll or wait for the user to open the history.
+    // Wait, since call is on /call namespace, listening here won't catch call:ended natively.
+    // Instead, the CallContext will trigger the refresh. We can expose it in context.
+
     return () => {
       console.log("[SocketContext] Cleaning up socket connection");
       socket.disconnect();
@@ -116,6 +173,10 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
         socket: socketRef.current,
         isConnected,
         onlineUsers,
+        hasUnreadChats,
+        hasUnseenMissedCalls,
+        refreshChatBadge,
+        refreshCallBadge,
       }}
     >
       {children}

@@ -1,7 +1,7 @@
 // components/chat/ChatHeader.tsx
 // Header for the chat room screen. Shows back button, user info, online status, and call button.
 
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, TouchableOpacity, View, Image } from "react-native";
@@ -13,11 +13,12 @@ type Props = {
   name: string;
   isOnline: boolean;
   profileImage?: string;
+  canCall?: boolean;
   onCallPress?: () => void;
   onTitlePress?: () => void;
 };
 
-export default function ChatHeader({ name, isOnline, profileImage, onCallPress, onTitlePress }: Props) {
+export default function ChatHeader({ name, isOnline, profileImage, canCall, onCallPress, onTitlePress }: Props) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
 
@@ -46,9 +47,17 @@ export default function ChatHeader({ name, isOnline, profileImage, onCallPress, 
         </View>
       </TouchableOpacity>
 
-      {/* Call button (Phase 2 — visually present, functionality TBD) */}
-      <TouchableOpacity onPress={onCallPress} style={styles.callButton}>
-        <Ionicons name="call-outline" size={22} color={BRAND_COLOR} />
+      {/* Call button */}
+      <TouchableOpacity 
+        onPress={onCallPress} 
+        style={[styles.callButton, canCall === false && { opacity: 0.5, backgroundColor: "#F3F4F6" }]}
+        disabled={canCall === false}
+      >
+        {canCall === false ? (
+          <Feather name="lock" size={18} color="#9CA3AF" />
+        ) : (
+          <Ionicons name="call-outline" size={22} color={BRAND_COLOR} />
+        )}
       </TouchableOpacity>
     </View>
   );

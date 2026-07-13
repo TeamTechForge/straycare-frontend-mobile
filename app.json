@@ -14,6 +14,14 @@
     "android": {
       "package": "com.techforge.straycare",
       "googleServicesFile": "./google-services.json",
+      "config": {
+        "googleMaps": {
+          "apiKey": "AIzaSyCv7X13DcKqsRx-LajzoyeWGOGVqBoOtuA"
+        }
+      },
+      "permissions": [
+        "android.permission.RECORD_AUDIO"
+      ],
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#FFFFFF"
@@ -49,7 +57,14 @@
           }
         }
       ],
-      "@react-native-google-signin/google-signin"
+      "@react-native-google-signin/google-signin",
+      [
+        "@config-plugins/react-native-webrtc",
+        {
+          "cameraPermission": "Allow StrayCare to use your camera for video calls.",
+          "microphonePermission": "Allow StrayCare to use your microphone for voice calls."
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

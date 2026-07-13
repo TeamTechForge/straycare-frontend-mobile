@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import { ActivityIndicator, View, Platform } from "react-native";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
+import { CallProvider } from "../contexts/CallContext";
 import { NotificationProvider, useNotification } from "../contexts/NotificationContext";
 import { useFonts } from "expo-font";
 import { AlertProvider } from "../components/GlobalAlert";
@@ -214,10 +215,12 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <NotificationProvider>
-          <AlertProvider>
-            <InitialLayout />
-          </AlertProvider>
+         <NotificationProvider>
+            <CallProvider>
+               <AlertProvider>
+                  <InitialLayout />
+               </AlertProvider>
+            </CallProvider>
         </NotificationProvider>
       </SocketProvider>
     </AuthProvider>
