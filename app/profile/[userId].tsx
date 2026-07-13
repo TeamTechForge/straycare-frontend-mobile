@@ -27,6 +27,7 @@ import PostPreviewCard from "../../components/profile/PostPreviewCard";
 import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
 import DropdownMenu from "../../components/profile/DropdownMenu";
 import ReportUserModal from "../../components/profile/ReportUserModal";
+import ProfileStatsRow from "../../components/profile/ProfileStatsRow";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -311,28 +312,7 @@ export default function PublicProfileScreen() {
     }
   };
 
-  // Compile stats depending on user type
-  const renderStats = () => {
-    const statsList = [];
-    if (userData.role === "general_user") {
-      statsList.push({ value: statsData.reportsCount || 0, label: "REPORTS" });
-      statsList.push({ value: statsData.postsCount || 0, label: "POSTS" });
-    } else {
-      statsList.push({ value: statsData.postsCount || 0, label: "POSTS" });
-      statsList.push({ value: statsData.rescuesCompleted || 0, label: "RESCUES" });
-    }
 
-    return (
-      <View style={styles.statsRow}>
-        {statsList.map((stat, i) => (
-          <View key={i} style={styles.statBox}>
-            <Text style={styles.statValue}>{stat.value}</Text>
-            <Text style={styles.statLabel}>{stat.label}</Text>
-          </View>
-        ))}
-      </View>
-    );
-  };
 
   // Determine available tabs
   const getTabs = () => {
@@ -448,7 +428,17 @@ export default function PublicProfileScreen() {
         </View>
 
         {/* Stats Row */}
-        {renderStats()}
+        <ProfileStatsRow stats={
+          userData.role === "general_user"
+            ? [
+                { value: statsData.reportsCount || 0, label: "REPORTS" },
+                { value: statsData.postsCount || 0, label: "POSTS" },
+              ]
+            : [
+                { value: statsData.postsCount || 0, label: "POSTS" },
+                { value: statsData.rescuesCompleted || 0, label: "RESCUES" },
+              ]
+        } />
 
         {/* Tabs Bar */}
         <View style={styles.tabContainer}>
@@ -606,7 +596,8 @@ const styles = StyleSheet.create({
   profileCard: {
     backgroundColor: "#FFFFFF",
     alignItems: "center",
-    paddingVertical: 24,
+    paddingTop: 24,
+    paddingBottom: 4,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
@@ -739,29 +730,7 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    backgroundColor: "#FFFFFF",
-    paddingVertical: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#E5E7EB",
-  },
-  statBox: {
-    alignItems: "center",
-    flex: 1,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#6B7280",
-    marginTop: 4,
-  },
+
   tabContainer: {
     flexDirection: "row",
     backgroundColor: "#FFFFFF",
