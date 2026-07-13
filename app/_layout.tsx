@@ -5,6 +5,7 @@ import { ActivityIndicator, View, Platform } from "react-native";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
 import { CallProvider } from "../contexts/CallContext";
+import { NotificationProvider, useNotification } from "../contexts/NotificationContext";
 import { useFonts } from "expo-font";
 import { AlertProvider } from "../components/GlobalAlert";
 
@@ -12,6 +13,7 @@ function InitialLayout() {
   const { user, token, isLoading } = useAuth();
   const segments = useSegments() as any;
   const router = useRouter();
+  const { addNotification } = useNotification();
 
   useEffect(() => {
     if (isLoading) return;
@@ -77,6 +79,39 @@ function InitialLayout() {
       }
     }
   }, [user, isLoading, segments, token]);
+
+  // ─── Push Notifications Setup (Optional - only on native build) ───
+  useEffect(() => {
+    if (!token || !user) return;
+
+    const setupPushNotifications = async () => {
+      try {
+        // Lazy load push notification service (only available on native builds)
+        const { pushNotificationService } = await import("../services/pushNotificationService");
+
+        pushNotificationService.initializePushNotifications((notification) => {
+          // Handle incoming push notification
+          if (notification.request.content.data) {
+            const data = notification.request.content.data;
+            addNotification({
+              _id: `push-${Date.now()}`,
+              userId: user.id || "",
+              title: notification.request.content.title || "Notification",
+              message: notification.request.content.body || "",
+              type: (data.type as any) || "info",
+              read: false,
+              createdAt: new Date().toISOString(),
+            });
+          }
+        });
+      } catch (error) {
+        // Push notifications not available (normal in Expo Go)
+        console.log("[PUSH] Push notifications not available:", (error as any)?.message);
+      }
+    };
+
+    setupPushNotifications();
+  }, [token, user, addNotification]);
 
   // ─── Global Rescue Request Listener ───
   useEffect(() => {
@@ -180,11 +215,13 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SocketProvider>
-        <CallProvider>
-          <AlertProvider>
-            <InitialLayout />
-          </AlertProvider>
-        </CallProvider>
+         <NotificationProvider>
+            <CallProvider>
+               <AlertProvider>
+                  <InitialLayout />
+               </AlertProvider>
+            </CallProvider>
+        </NotificationProvider>
       </SocketProvider>
     </AuthProvider>
   );

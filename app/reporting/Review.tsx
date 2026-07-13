@@ -1,4 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { useState } from "react";
 import {
   Alert,
   Image,
@@ -7,6 +8,7 @@ import {
   Text,
   TouchableOpacity,
   View,
+  ActivityIndicator,
 } from "react-native";
 import { submitReport } from "../../api/stray-api.service";
 import PrimaryButton from "../../components/PrimaryButton";
@@ -14,6 +16,7 @@ import PrimaryButton from "../../components/PrimaryButton";
 export default function Review() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // ---------------------------------------------------------
   // SAFE PARAM FIX
@@ -39,6 +42,10 @@ export default function Review() {
   // SUBMIT REPORT
   // ---------------------------------------------------------
   const handleSubmit = async () => {
+    // Prevent double-submit
+    if (isSubmitting) return;
+
+    setIsSubmitting(true);
     try {
       const reportData = {
         caseId,
@@ -60,19 +67,32 @@ export default function Review() {
       console.log("Report submitted:", result);
 
       router.push({
-        pathname: "/searching-help",
+        pathname: "/reporting/Success",
         params: {
           caseId,
+          animalType: reportData.animalType,
           lat: String(reportData.location.lat),
           lng: String(reportData.location.lng),
-          animalType: reportData.animalType,
-          animalPhoto: photos[0] || "",
-          description: reportData.notes || "",
         },
       });
     } catch (error: any) {
       console.error("Error submitting report:", error);
-      Alert.alert("Submission Failed", error?.message || "Failed to submit report. Try again.");
+
+      // Handle duplicate key error
+      if (error?.response?.status === 409) {
+        Alert.alert(
+          "Report Already Exists",
+          "This report ID already exists. Please go back and try again.",
+          [{ text: "OK", onPress: () => router.back() }]
+        );
+      } else {
+        Alert.alert(
+          "Submission Failed",
+          error?.message || "Failed to submit report. Try again."
+        );
+      }
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -189,7 +209,17 @@ export default function Review() {
       </View>
 
       {/* SUBMIT BUTTON */}
-      <PrimaryButton title="Submit Report" onPress={handleSubmit} />
+      <PrimaryButton
+        title={isSubmitting ? "Submitting..." : "Submit Report"}
+        onPress={handleSubmit}
+        disabled={isSubmitting}
+      />
+      {isSubmitting && (
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="small" color="#F5A623" />
+          <Text style={styles.loadingText}>Submitting your report...</Text>
+        </View>
+      )}
     </ScrollView>
   );
 }
@@ -286,5 +316,22 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginTop: 2,
     color: "#333",
+  },
+
+  loadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: 20,
+    padding: 12,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+  },
+
+  loadingText: {
+    marginLeft: 12,
+    fontSize: 16,
+    fontWeight: "500",
+    color: "#F5A623",
   },
 });
