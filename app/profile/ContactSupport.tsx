@@ -13,6 +13,7 @@ import {
   TouchableOpacity, 
   View 
 } from "react-native";
+import { Picker } from "@react-native-picker/picker";
 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
@@ -32,6 +33,7 @@ export default function ContactSupportScreen() {
   // Form states
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [category, setCategory] = useState("General Inquiry");
   const [subject, setSubject] = useState("");
   const [message, setMessage] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -74,6 +76,12 @@ export default function ContactSupportScreen() {
     if (!subject.trim()) {
       newErrors.subject = "Subject is required";
       valid = false;
+    } else if (subject.trim().length < 5) {
+      newErrors.subject = "Subject must be at least 5 characters";
+      valid = false;
+    } else if (subject.trim().length > 100) {
+      newErrors.subject = "Subject cannot exceed 100 characters";
+      valid = false;
     }
 
     if (!message.trim()) {
@@ -81,6 +89,9 @@ export default function ContactSupportScreen() {
       valid = false;
     } else if (message.trim().length < 10) {
       newErrors.message = "Please provide more details (min 10 chars)";
+      valid = false;
+    } else if (message.trim().length > 2000) {
+      newErrors.message = "Message cannot exceed 2000 characters";
       valid = false;
     }
 
@@ -93,26 +104,48 @@ export default function ContactSupportScreen() {
 
     setIsSubmitting(true);
     
-    // Simulate API call
-    setTimeout(() => {
-      setIsSubmitting(false);
-      
-      /**
-       * TODO: Backend API Integration
-       * Add a POST request to your support endpoint here.
-       * Example:
-       * await fetch(`${API_URL}/support/contact`, {
-       *   method: 'POST',
-       *   body: JSON.stringify({ name, email, subject, message })
-       * });
-       */
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) {
+        Alert.alert("Error", "You must be logged in to submit a request.");
+        setIsSubmitting(false);
+        return;
+      }
 
-      Alert.alert(
-        "Request Submitted",
-        "Your support request has been submitted. Our team will get back to you soon.",
-        [{ text: "Back to Help", onPress: () => router.back() }]
-      );
-    }, 1500);
+      const response = await fetch(`${API_URL}/support`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          category,
+          subject: subject.trim(),
+          message: message.trim(),
+        }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setSubject("");
+        setMessage("");
+        setCategory("General Inquiry");
+        
+        Alert.alert(
+          "Request Submitted",
+          "Your support request has been submitted successfully. Our support team will review your request and respond as soon as possible.",
+          [{ text: "Back to Help", onPress: () => router.back() }]
+        );
+      } else {
+        Alert.alert("Error", data.error || "Failed to submit request.");
+      }
+    } catch (error) {
+      console.error("Error submitting support request:", error);
+      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -153,6 +186,23 @@ export default function ContactSupportScreen() {
             value={email}
             editable={false} onChangeText={() => {}} // Auto-filled from profile
           />
+
+          <View style={styles.pickerContainer}>
+            <Text style={styles.fieldLabel}>Category</Text>
+            <View style={styles.pickerWrapper}>
+              <Picker
+                selectedValue={category}
+                onValueChange={(itemValue) => setCategory(itemValue)}
+                style={styles.picker}
+              >
+                <Picker.Item label="General Inquiry" value="General Inquiry" />
+                <Picker.Item label="Bug Report" value="Bug Report" />
+                <Picker.Item label="Account Issue" value="Account Issue" />
+                <Picker.Item label="Feature Request" value="Feature Request" />
+                <Picker.Item label="Technical Support" value="Technical Support" />
+              </Picker>
+            </View>
+          </View>
 
           <InputField
             label="Subject"
@@ -238,6 +288,21 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: "#333",
     marginBottom: 8,
+  },
+  pickerContainer: {
+    marginBottom: 4,
+  },
+  pickerWrapper: {
+    backgroundColor: "#F9F9F9",
+    borderWidth: 1,
+    borderColor: "#EEE",
+    borderRadius: 12,
+    overflow: "hidden",
+  },
+  picker: {
+    height: 50,
+    width: "100%",
+    color: "#333",
   },
   messageContainer: {
     marginTop: 4,

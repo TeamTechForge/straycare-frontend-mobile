@@ -11,12 +11,14 @@ import {
 import { useNotification, Notification } from "../../contexts/NotificationContext";
 
 export default function NotificationCenter() {
-  const { notifications, unreadCount, fetchNotifications, markAsRead, loading } =
+  const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead, loading } =
     useNotification();
   const [refreshing, setRefreshing] = React.useState(false);
 
   useEffect(() => {
-    fetchNotifications();
+    fetchNotifications().then(() => {
+      markAllAsRead();
+    });
   }, []);
 
   const handleRefresh = async () => {

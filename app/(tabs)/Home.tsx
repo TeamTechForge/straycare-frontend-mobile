@@ -95,14 +95,10 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={styles.notificationIcon}
-          onPress={() => router.push("/modals/notifications")}
+          onPress={() => router.push("/modals/Notifications" as any)}
         >
           <Ionicons name="notifications-outline" size={24} color="#000" />
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
-            </View>
-          )}
+          {unreadCount > 0 && <View style={styles.badgeDot} />}
         </TouchableOpacity>
       </View>
 
@@ -270,22 +266,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 0,
   },
-  badge: {
+  badgeDot: {
     position: "absolute",
-    top: -5,
-    right: -5,
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: "#f44336",
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    minWidth: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  badgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
+    borderWidth: 1.5,
+    borderColor: "#F4F4F4",
   },
   logo: {
     width: 150,

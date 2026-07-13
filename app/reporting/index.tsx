@@ -157,7 +157,7 @@ export default function ReportingMapScreen() {
       {/* Add Case Button */}
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
-          title="Add a Case +"
+          title="Report a Case +"
           onPress={() => router.push("/reporting/AnimalDetails")}
         />
       </View>

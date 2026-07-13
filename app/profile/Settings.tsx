@@ -1,12 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Alert, Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { API_URL } from "../../constants/config.constants";
 
 import SettingsRow from "../../components/settings/SettingsRow";
 import { useAuth } from "../../contexts/AuthContext";
+import { pushNotificationService } from "../../services/pushNotificationService";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -17,6 +18,39 @@ export default function SettingsScreen() {
   const [locationEnabled, setLocationEnabled] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+
+  useEffect(() => {
+    // Load saved preferences
+    const loadPreferences = async () => {
+      const savedPush = await SecureStore.getItemAsync("pushEnabled");
+      if (savedPush !== null) {
+        setPushEnabled(savedPush === "true");
+      }
+      
+      const savedLocation = await SecureStore.getItemAsync("locationEnabled");
+      if (savedLocation !== null) {
+        setLocationEnabled(savedLocation === "true");
+      }
+    };
+    loadPreferences();
+  }, []);
+
+  const handlePushToggle = async (enabled: boolean) => {
+    setPushEnabled(enabled);
+    await SecureStore.setItemAsync("pushEnabled", enabled ? "true" : "false");
+
+    if (enabled) {
+      await pushNotificationService.initializePushNotifications();
+    } else {
+      await pushNotificationService.removeTokenFromBackend();
+    }
+  };
+
+  const handleLocationToggle = async (enabled: boolean) => {
+    setLocationEnabled(enabled);
+    await SecureStore.setItemAsync("locationEnabled", enabled ? "true" : "false");
+    // In future: update location tracking logic based on this preference
+  };
 
   const handleDeleteAccount = async () => {
     try {
@@ -89,14 +123,14 @@ export default function SettingsScreen() {
           title="Location Services"
           showSwitch
           switchValue={locationEnabled}
-          onSwitchChange={setLocationEnabled}
+          onSwitchChange={handleLocationToggle}
         />
         <SettingsRow
           icon="send-outline"
           title="Enable Push Notifications"
           showSwitch
           switchValue={pushEnabled}
-          onSwitchChange={setPushEnabled}
+          onSwitchChange={handlePushToggle}
         />
       </View>
 
