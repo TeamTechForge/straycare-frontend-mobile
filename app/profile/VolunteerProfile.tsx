@@ -160,7 +160,7 @@ export default function VolunteerProfile() {
 
         <Text style={styles.headerTitle}>VOLUNTEER PROFILE</Text>
 
-        <TouchableOpacity onPress={() => router.push("/Notifications")}>
+        <TouchableOpacity onPress={() => router.push("/modals/Notifications" as any)}>
           <Ionicons name="notifications-outline" size={20} color="#222" />
         </TouchableOpacity>
       </View>

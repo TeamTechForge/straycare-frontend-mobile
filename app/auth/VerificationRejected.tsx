@@ -47,7 +47,7 @@ export default function VerificationRejectedScreen() {
     } catch (e) {
       console.error(e);
     }
-    router.push("/Notifications");
+    router.push("/modals/Notifications" as any);
   };
 
   return (

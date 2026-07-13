@@ -173,7 +173,7 @@ export default function VetProfile() {
 
         <Text style={styles.headerTitle}>VET PROFILE</Text>
 
-        <TouchableOpacity onPress={() => router.push("/Notifications")}>
+        <TouchableOpacity onPress={() => router.push("/modals/Notifications" as any)}>
           <Ionicons name="notifications-outline" size={20} color="#222" />
         </TouchableOpacity>
       </View>
