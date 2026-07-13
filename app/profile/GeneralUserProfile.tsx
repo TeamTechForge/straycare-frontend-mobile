@@ -109,7 +109,6 @@ export default function GeneralUserProfile() {
     fetchData();
   };
 
-  // TODO: Replace with backend/API data later
   const [posts, setPosts] = useState<Post[]>([]);
   const [reports, setReports] = useState<any[]>([]);
   const [savedItems, setSavedItems] = useState<SavedItem[]>([]);
@@ -170,7 +169,7 @@ export default function GeneralUserProfile() {
           memberSince={userData.memberSince}
           avatar={userData.avatar}
           role={user?.role}
-          onEditPress={() => router.push("/profile/EditGeneralUserProfile")}
+          onEditPress={() => router.push("/profile/EditProfile")}
         />
 
         <ProfileStatsRow stats={stats} />
@@ -188,6 +187,7 @@ export default function GeneralUserProfile() {
                   likes={post.likes}
                   comments={post.comments}
                   time={post.time}
+                  onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: post.id || (post as any)._id } })}
                 />
               ))
             ) : (
@@ -212,6 +212,12 @@ export default function GeneralUserProfile() {
                     image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
                     caseId={report.caseId}
                     summary={report.summary}
+                    onPress={() => {
+                      router.push({
+                        pathname: "/live-tracking/[requestId]",
+                        params: { requestId: report.caseId || report._id },
+                      });
+                    }}
                     onTrackPress={() => {
                       router.push({
                         pathname: "/live-tracking/[requestId]",
@@ -240,6 +246,7 @@ export default function GeneralUserProfile() {
                     subtitle={item.subtitle}
                     location={item.location}
                     image={item.image}
+                    onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: item.id || (item as any)._id } })}
                   />
                 ))}
               </View>

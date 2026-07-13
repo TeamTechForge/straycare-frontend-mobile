@@ -8,6 +8,7 @@ type Props = {
   subtitle: string;
   location: string;
   image: string;
+  onPress?: () => void;
 };
 
 export default function SavedPreviewCard({
@@ -15,9 +16,10 @@ export default function SavedPreviewCard({
   subtitle,
   location,
   image,
+  onPress,
 }: Props) {
   return (
-    <View style={styles.savedCard}>
+    <TouchableOpacity style={styles.savedCard} onPress={onPress} activeOpacity={0.8}>
       <View>
         <Image source={{ uri: image }} style={styles.savedImage} />
         <TouchableOpacity style={styles.savedBookmark}>
@@ -32,7 +34,7 @@ export default function SavedPreviewCard({
         <Ionicons name="location-outline" size={11} color="#888" />
         <Text style={styles.savedLocation}>{location}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

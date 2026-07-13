@@ -179,7 +179,7 @@ export default function VolunteerProfile() {
           memberSince={userData.memberSince}
           avatar={userData.avatar}
           role={user?.role}
-          onEditPress={() => router.push("/profile/EditVolunteerProfile")}
+          onEditPress={() => router.push("/profile/EditProfile")}
         />
 
         <ProfileStatsRow stats={stats} />
@@ -207,6 +207,7 @@ export default function VolunteerProfile() {
                   summary={rescue.summary}
                   actionText="Update Status"
                   onActionPress={() => handleUpdateDetails(rescue.caseId)}
+                  onPress={() => router.push({ pathname: "/rescue-details/[id]", params: { id: rescue.caseId || rescue._id } })}
                 />
               ))
             ) : (
@@ -229,6 +230,12 @@ export default function VolunteerProfile() {
                   image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
                   caseId={report.caseId}
                   summary={report.summary}
+                  onPress={() => {
+                    router.push({
+                      pathname: "/live-tracking/[requestId]",
+                      params: { requestId: report.caseId || report._id },
+                    });
+                  }}
                   onTrackPress={() => {
                     router.push({
                       pathname: "/live-tracking/[requestId]",

@@ -474,6 +474,7 @@ export default function PublicProfileScreen() {
                   likes={post.likes}
                   comments={post.commentCount}
                   time={new Date(post.createdAt).toLocaleDateString()}
+                  onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: post._id } })}
                 />
               ))
             ) : (

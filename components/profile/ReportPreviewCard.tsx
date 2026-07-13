@@ -13,6 +13,7 @@ type Props = {
   onActionPress?: () => void;
   actionText?: string;
   summary?: string;
+  onPress?: () => void;
 };
 
 export default function ReportPreviewCard({
@@ -25,9 +26,10 @@ export default function ReportPreviewCard({
   onActionPress,
   actionText = "Update",
   summary,
+  onPress,
 }: Props) {
   return (
-    <View style={styles.reportCard}>
+    <TouchableOpacity style={styles.reportCard} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.cardHeaderRow}>
         <Image source={{ uri: image || "https://via.placeholder.com/150" }} style={styles.reportImage} />
         <View style={styles.reportInfo}>
@@ -66,7 +68,7 @@ export default function ReportPreviewCard({
           ))}
         </View>
       )}
-    </View>
+    </TouchableOpacity>
   );
 }
 
