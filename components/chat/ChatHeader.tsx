@@ -48,8 +48,8 @@ export default function ChatHeader({ name, isOnline, profileImage, canCall, onCa
       </TouchableOpacity>
 
       {/* Call button */}
-      <TouchableOpacity 
-        onPress={onCallPress} 
+      <TouchableOpacity
+        onPress={onCallPress}
         style={[styles.callButton, canCall === false && { opacity: 0.5, backgroundColor: "#F3F4F6" }]}
         disabled={canCall === false}
       >
@@ -68,7 +68,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingBottom: 14,
+    paddingBottom: 16,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#f0f0f0",
@@ -80,6 +80,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
+    paddingTop: 18,
     gap: 10,
   },
   avatarSmall: {

@@ -314,8 +314,8 @@ export default function VetProfileSetupScreen() {
 
       const data: any = await response.json();
       if (response.ok) {
-        await refreshUser();
         router.replace("/auth/CompletedProfileSetup");
+        setTimeout(() => refreshUser(), 500);
       } else {
         Alert.alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
       }

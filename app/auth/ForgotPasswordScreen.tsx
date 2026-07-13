@@ -40,9 +40,8 @@ export default function ForgotPasswordScreen() {
 
       const data: any = await response.json();
       if (response.ok) {
-        Alert.alert(data.message + (data.resetToken ? "\nToken (DEV ONLY): " + data.resetToken : ""));
+        Alert.alert(data.message);
         setStep(2);
-        if (data.resetToken) setToken(data.resetToken);
       } else {
         Alert.alert(data.message || "Request failed");
       }
@@ -56,7 +55,7 @@ export default function ForgotPasswordScreen() {
 
   const handlePasswordReset = async () => {
     if (!token || !newPassword) {
-      Alert.alert("Please enter both token and new password");
+      Alert.alert("Please enter both the 6-digit code and a new password");
       return;
     }
 
@@ -106,8 +105,8 @@ export default function ForgotPasswordScreen() {
       {/* 📄 Description */}
       <Text style={styles.description}>
         {step === 1
-          ? "No worries! Enter the email address associated with your StrayCare account and we'll send you a link to reset your password."
-          : "Enter the reset token sent to your email and your new password below."}
+          ? "No worries! Enter the email address associated with your StrayCare account and we'll send you a 6-digit code to reset your password."
+          : "Enter the 6-digit reset code sent to your email and your new password below."}
       </Text>
 
       {step === 1 ? (
@@ -124,7 +123,7 @@ export default function ForgotPasswordScreen() {
           {/* 🔘 Button */}
           <View style={{ marginTop: 20 }}>
             <PrimaryButton
-              title={loading ? "Sending..." : "Send Reset Link"}
+              title={loading ? "Sending..." : "Send the 6-digit reset code"}
               onPress={handleRequestReset}
               disabled={loading}
             />
@@ -133,12 +132,13 @@ export default function ForgotPasswordScreen() {
       ) : (
         <>
           {/* 🔑 Token Input */}
-          <Text style={styles.label}>Reset Token</Text>
+          <Text style={styles.label}>6-Digit Reset Code</Text>
           <InputField
-            placeholder="Enter token"
+            placeholder="123456"
             value={token}
             onChangeText={setToken}
             icon="key-outline"
+            keyboardType="numeric"
           />
 
           {/* 🔒 New Password Input */}
@@ -160,9 +160,13 @@ export default function ForgotPasswordScreen() {
             />
           </View>
 
-          <TouchableOpacity onPress={() => setStep(1)} style={{ marginTop: 15, alignItems: 'center' }}>
-            <Text style={{ color: BRAND_COLOR }}>Back to Request</Text>
-          </TouchableOpacity>
+          <View style={{ marginTop: 10 }}>
+            <PrimaryButton
+              title="Back to Request"
+              variant="outline"
+              onPress={() => setStep(1)}
+            />
+          </View>
         </>
       )}
 
@@ -199,11 +203,12 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginBottom: 20,
+    marginTop: 20,
     gap: 10,
   },
 
   headerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: "600",
   },
 

@@ -85,7 +85,7 @@ export default function ProfileScreen() {
     },
   ];
 
-  const [activeTab, setActiveTab] = useState<"posts" | "reports" | "saved">("posts");
+  const [activeTab, setActiveTab] = useState<"posts" | "reports" | "saved">("reports");
   const [menuVisible, setMenuVisible] = useState(false);
   const [hasUnread, setHasUnread] = useState(false);
   const [currentUser, setCurrentUser] = useState<any>(null);

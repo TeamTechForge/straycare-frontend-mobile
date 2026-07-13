@@ -118,7 +118,7 @@ export default function PublicProfileScreen() {
 
       // Set initial tab based on role
       if (data.user.role === "general_user") {
-        setActiveTab("posts");
+        setActiveTab("reports");
       } else {
         setActiveTab("posts");
       }
@@ -316,13 +316,11 @@ export default function PublicProfileScreen() {
 
   // Determine available tabs
   const getTabs = () => {
-    const tabs = [{ id: "posts", label: "Posts" }];
     if (userData.role === "general_user") {
-      tabs.push({ id: "reports", label: "Reports" });
+      return [{ id: "reports", label: "Reports" }, { id: "posts", label: "Posts" }];
     } else {
-      tabs.push({ id: "rescues", label: "Rescues" });
+      return [{ id: "posts", label: "Posts" }, { id: "rescues", label: "Rescues" }];
     }
-    return tabs;
   };
 
   return (

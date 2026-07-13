@@ -118,7 +118,7 @@ export default function GeneralUserProfile() {
     { value: posts.length, label: "POSTS" },
   ];
 
-  const [activeTab, setActiveTab] = useState<TabKey>("posts");
+  const [activeTab, setActiveTab] = useState<TabKey>("reports");
   const [menuVisible, setMenuVisible] = useState(false);
 
   if (loading) {

@@ -122,11 +122,12 @@ export default function HomeScreen() {
       </View>
 
       {/* SEARCH BAR CONTAINER */}
-      <View style={{ zIndex: 10, position: "relative" }}>
+      <View style={[{ zIndex: 10, position: "relative" }, searchQuery.trim().length > 0 && { flex: 1 }]}>
         <View style={styles.searchBar}>
-          <Feather name="search" size={18} color="#888" />
+          <Feather name="search" size={18} color="#747272ff" />
           <TextInput
             placeholder="Search for Vets/Shelters"
+            placeholderTextColor="#9CA3AF"
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -134,7 +135,7 @@ export default function HomeScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => { setSearchQuery(""); setSearchResults([]); }}>
-              <Feather name="x" size={18} color="#888" />
+              <Feather name="x" size={18} color="#7b7a7aff" />
             </TouchableOpacity>
           )}
         </View>
@@ -150,7 +151,8 @@ export default function HomeScreen() {
               <FlatList
                 data={searchResults}
                 keyExtractor={(item, index) => item.userId + index}
-                style={{ maxHeight: 300 }}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: 20 }}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                   <TouchableOpacity
@@ -207,9 +209,11 @@ export default function HomeScreen() {
       </View>
 
       {/* QUICK ACTIONS */}
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
+      {searchQuery.trim().length === 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-      <View style={styles.grid}>
+          <View style={styles.grid}>
         <ActionCard
           icon={<MaterialCommunityIcons name="hand-heart" size={24} color="#F5A623" />}
           label="Donate"
@@ -232,7 +236,9 @@ export default function HomeScreen() {
           label="Lost & Found"
           onPress={() => router.push("/lost-and-found")}
         />
-      </View>
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -319,16 +325,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchDropdown: {
-    position: "absolute",
-    top: 50,
-    left: 0,
-    right: 0,
+    flex: 1,
+    marginTop: 10,
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#E5E5E5",
     padding: 10,
-    zIndex: 999,
     elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
