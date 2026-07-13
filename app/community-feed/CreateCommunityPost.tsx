@@ -86,7 +86,7 @@ export default function CreateCommunityPost() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      mediaTypes: ['images'],
       allowsEditing: true,
       aspect: [5, 4],
       quality: 0.8,

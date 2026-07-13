@@ -68,6 +68,11 @@ export default function SettingsScreen() {
           onPress={() => router.push("/profile/ResetPassword")}
         />
         <SettingsRow
+          icon="shield-checkmark-outline"
+          title="Privacy & Communication"
+          onPress={() => router.push("/profile/PrivacySettings")}
+        />
+        <SettingsRow
           icon="globe-outline"
           title="Language"
           subtitle="English (US)"

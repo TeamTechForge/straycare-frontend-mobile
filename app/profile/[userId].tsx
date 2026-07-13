@@ -20,6 +20,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { useChatApi } from "../../hooks/useChatApi";
+import { useCall } from "../../contexts/CallContext";
 import PrimaryButton from "../../components/PrimaryButton";
 import EmptyStateCard from "../../components/profile/EmptyStateCard";
 import PostPreviewCard from "../../components/profile/PostPreviewCard";
@@ -66,14 +67,16 @@ export default function PublicProfileScreen() {
   const { userId } = useLocalSearchParams();
   const { user } = useAuth();
   const { createConversation } = useChatApi();
+  const { startCall } = useCall();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  
+
   // Profile Data
   const [userData, setUserData] = useState<any>(null);
   const [profileData, setProfileData] = useState<any>(null);
   const [statsData, setStatsData] = useState<any>({});
+  const [permissions, setPermissions] = useState<any>(null);
 
   // Tab Data
   const [posts, setPosts] = useState<Post[]>([]);
@@ -94,12 +97,12 @@ export default function PublicProfileScreen() {
       }
 
       const token = await SecureStore.getItemAsync("authToken");
-      
+
       // 1. Fetch public profile and stats
       const response = await fetch(`${API_URL}/users/${userId}/public-profile`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
-      
+
       if (!response.ok) {
         const errorText = await response.text();
         console.warn("Profile fetch failed:", response.status, errorText);
@@ -110,6 +113,7 @@ export default function PublicProfileScreen() {
       setUserData(data.user);
       setProfileData(data.profile);
       setStatsData(data.stats);
+      setPermissions(data.permissions);
 
       // Set initial tab based on role
       if (data.user.role === "general_user") {
@@ -205,6 +209,20 @@ export default function PublicProfileScreen() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleCall = () => {
+    if (!user) {
+      Alert.alert("Authentication required", "Please log in to call this user.");
+      return;
+    }
+
+    if (user._id === userId) {
+      Alert.alert("Error", "You cannot call yourself.");
+      return;
+    }
+
+    startCall(userId as string, userData?.name || "User", profileData?.profileImage || "");
   };
 
   const handleShare = async () => {
@@ -401,14 +419,29 @@ export default function PublicProfileScreen() {
 
           {/* Action Buttons */}
           <View style={styles.actionsContainer}>
-            <TouchableOpacity style={styles.msgButton} onPress={handleMessage}>
-              <Ionicons name="chatbubble-ellipses-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
+            <TouchableOpacity
+              style={[styles.msgButton, permissions?.canMessage === false && styles.disabledButton]}
+              onPress={handleMessage}
+              disabled={permissions?.canMessage === false}
+            >
+              {permissions?.canMessage === false ? (
+                <Feather name="lock" size={16} color="#FFF" style={{ marginRight: 6 }} />
+              ) : (
+                <Ionicons name="chatbubble-ellipses-outline" size={18} color="#FFF" style={{ marginRight: 6 }} />
+              )}
               <Text style={styles.msgButtonText}>Message</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.callButton} disabled>
-              {/* TODO: Implement direct calling in future releases */}
-              <Ionicons name="call-outline" size={18} color="#9CA3AF" style={{ marginRight: 6 }} />
+            <TouchableOpacity
+              style={[styles.callButton, permissions?.canCall === false && styles.disabledButton]}
+              onPress={handleCall}
+              disabled={permissions?.canCall === false}
+            >
+              {permissions?.canCall === false ? (
+                <Feather name="lock" size={16} color="#9CA3AF" style={{ marginRight: 6 }} />
+              ) : (
+                <Ionicons name="call-outline" size={18} color="#9CA3AF" style={{ marginRight: 6 }} />
+              )}
               <Text style={styles.callButtonText}>Call</Text>
             </TouchableOpacity>
           </View>
@@ -684,6 +717,9 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "600",
   },
+  disabledButton: {
+    opacity: 0.5,
+  },
   callButton: {
     flexDirection: "row",
     alignItems: "center",
@@ -699,7 +735,7 @@ const styles = StyleSheet.create({
     opacity: 0.6,
   },
   callButtonText: {
-    color: "#9CA3AF",
+    color: "#55575bff",
     fontSize: 14,
     fontWeight: "600",
   },

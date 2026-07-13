@@ -131,6 +131,20 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       }
     });
 
+    // Handle Call Unauthorized (Privacy Block)
+    socket.on(CallEvents.UNAUTHORIZED, () => {
+      setCallState(CallState.IDLE);
+      setActiveCallData(null);
+      webrtcService.cleanup();
+      callAudioService.stopAll();
+      import("react-native").then(({ Alert }) => {
+        Alert.alert("Call Blocked", "This user is not accepting calls due to their privacy settings.");
+      });
+      if (router.canGoBack()) {
+         router.back();
+      }
+    });
+
     // Handle Call Ended
     socket.on(CallEvents.ENDED, () => {
       setCallState(CallState.IDLE);

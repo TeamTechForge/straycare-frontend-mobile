@@ -55,6 +55,12 @@ export default function NewChatScreen() {
   // Handle user selection
   const handleSelectUser = async (selectedUser: any) => {
     if (creating) return;
+
+    if (selectedUser.permissions && selectedUser.permissions.canMessage === false) {
+      router.push(`/profile/${selectedUser._id}`);
+      return;
+    }
+
     setCreating(true);
 
     try {
@@ -148,7 +154,11 @@ export default function NewChatScreen() {
         </View>
 
         {/* Action Icon */}
-        <Feather name="message-square" size={18} color="#9CA3AF" />
+        {item.permissions?.canMessage === false ? (
+          <Feather name="lock" size={18} color="#9CA3AF" />
+        ) : (
+          <Feather name="message-square" size={18} color="#9CA3AF" />
+        )}
       </TouchableOpacity>
     );
   };

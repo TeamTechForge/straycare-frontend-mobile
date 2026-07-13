@@ -16,7 +16,7 @@ import {
   Modal,
   Image,
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { Ionicons, Feather } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import ChatHeader from "../../components/chat/ChatHeader";
 import ChatInput from "../../components/chat/ChatInput";
@@ -52,10 +52,12 @@ export default function ChatRoomScreen() {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [hasMore, setHasMore] = useState(true);
+  const [canMessage, setCanMessage] = useState(true);
+  const [canCall, setCanCall] = useState(true);
   const [isOtherTyping, setIsOtherTyping] = useState(false);
   const [otherTypingName, setOtherTypingName] = useState("");
   const flatListRef = useRef<FlatList>(null);
-  
+
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
   const [isLocationPickerVisible, setIsLocationPickerVisible] = useState(false);
@@ -76,7 +78,22 @@ export default function ChatRoomScreen() {
     } finally {
       setLoading(false);
     }
-  }, [conversationId, fetchMessages, user?._id]);
+
+    if (recipientId && token) {
+      try {
+        const response = await fetch(`${API_URL}/users/${recipientId}/public-profile`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (response.ok) {
+          const data: any = await response.json();
+          setCanMessage(data.permissions?.canMessage ?? true);
+          setCanCall(data.permissions?.canCall ?? true);
+        }
+      } catch (err) {
+        console.error("Failed to fetch permissions", err);
+      }
+    }
+  }, [conversationId, fetchMessages, user?._id, recipientId, token]);
 
   useEffect(() => {
     loadMessages();
@@ -157,13 +174,13 @@ export default function ChatRoomScreen() {
         prev.map((msg) =>
           msg._id === messageId
             ? {
-                ...msg,
-                isDeletedForEveryone: true,
-                text: "This message was deleted.",
-                type: "text",
-                imageUrl: undefined,
-                location: undefined,
-              }
+              ...msg,
+              isDeletedForEveryone: true,
+              text: "This message was deleted.",
+              type: "text",
+              imageUrl: undefined,
+              location: undefined,
+            }
             : msg
         )
       );
@@ -352,13 +369,13 @@ export default function ChatRoomScreen() {
           prev.map((msg) =>
             msg._id === messageId
               ? {
-                  ...msg,
-                  isDeletedForEveryone: true,
-                  text: "This message was deleted.",
-                  type: "text",
-                  imageUrl: undefined,
-                  location: undefined,
-                }
+                ...msg,
+                isDeletedForEveryone: true,
+                text: "This message was deleted.",
+                type: "text",
+                imageUrl: undefined,
+                location: undefined,
+              }
               : msg
           )
         );
@@ -415,77 +432,85 @@ export default function ChatRoomScreen() {
         style={styles.container}
         behavior="padding"
       >
-      {/* Header */}
-      {isSelectionMode ? (
-        <View style={[styles.selectionHeader, { paddingTop: Math.max(insets.top, 20) }]}>
-          <View style={styles.selectionHeaderLeft}>
-            <TouchableOpacity onPress={() => setSelectedMessages(new Set())} style={styles.iconButton}>
-              <Ionicons name="close" size={24} color="#111" />
+        {/* Header */}
+        {isSelectionMode ? (
+          <View style={[styles.selectionHeader, { paddingTop: Math.max(insets.top, 20) }]}>
+            <View style={styles.selectionHeaderLeft}>
+              <TouchableOpacity onPress={() => setSelectedMessages(new Set())} style={styles.iconButton}>
+                <Ionicons name="close" size={24} color="#111" />
+              </TouchableOpacity>
+              <Text style={styles.selectionTitle}>{selectedMessages.size} Selected</Text>
+            </View>
+            <TouchableOpacity onPress={() => setIsDeleteModalVisible(true)} style={styles.iconButton}>
+              <Ionicons name="trash-outline" size={24} color="#EF4444" />
             </TouchableOpacity>
-            <Text style={styles.selectionTitle}>{selectedMessages.size} Selected</Text>
           </View>
-          <TouchableOpacity onPress={() => setIsDeleteModalVisible(true)} style={styles.iconButton}>
-            <Ionicons name="trash-outline" size={24} color="#EF4444" />
-          </TouchableOpacity>
-        </View>
-      ) : (
-        <ChatHeader
-          name={recipientName || "Chat"}
-          isOnline={isRecipientOnline}
-          profileImage={recipientImage}
-          onTitlePress={() => {
-            if (recipientId) {
-              router.push(`/profile/${recipientId}`);
-            }
-          }}
-          onCallPress={() => {
-            if (recipientId) {
-              startCall(recipientId, recipientName || "User", recipientImage);
-            }
-          }}
-        />
-      )}
+        ) : (
+          <ChatHeader
+            name={recipientName || "Chat"}
+            isOnline={isRecipientOnline}
+            profileImage={recipientImage}
+            canCall={canCall}
+            onTitlePress={() => {
+              if (recipientId) {
+                router.push(`/profile/${recipientId}`);
+              }
+            }}
+            onCallPress={() => {
+              if (recipientId) {
+                startCall(recipientId, recipientName || "User", recipientImage);
+              }
+            }}
+          />
+        )}
 
-      {/* Messages */}
-      {loading ? (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={BRAND_COLOR} />
-        </View>
-      ) : (
-        <FlatList
-          ref={flatListRef}
-          data={messages}
-          renderItem={renderMessage}
-          keyExtractor={(item) => item._id}
-          inverted
-          contentContainerStyle={styles.messageList}
-          onEndReached={loadMore}
-          onEndReachedThreshold={0.3}
-          ListFooterComponent={
-            loadingMore ? (
-              <ActivityIndicator
-                size="small"
-                color={BRAND_COLOR}
-                style={{ paddingVertical: 10 }}
-              />
-            ) : null
-          }
-          ListHeaderComponent={
-            isOtherTyping ? <TypingIndicator userName={otherTypingName} /> : null
-          }
-          showsVerticalScrollIndicator={false}
-        />
-      )}
+        {/* Messages */}
+        {loading ? (
+          <View style={styles.loadingContainer}>
+            <ActivityIndicator size="large" color={BRAND_COLOR} />
+          </View>
+        ) : (
+          <FlatList
+            ref={flatListRef}
+            data={messages}
+            renderItem={renderMessage}
+            keyExtractor={(item) => item._id}
+            inverted
+            contentContainerStyle={styles.messageList}
+            onEndReached={loadMore}
+            onEndReachedThreshold={0.3}
+            ListFooterComponent={
+              loadingMore ? (
+                <ActivityIndicator
+                  size="small"
+                  color={BRAND_COLOR}
+                  style={{ paddingVertical: 10 }}
+                />
+              ) : null
+            }
+            ListHeaderComponent={
+              isOtherTyping ? <TypingIndicator userName={otherTypingName} /> : null
+            }
+            showsVerticalScrollIndicator={false}
+          />
+        )}
 
-      {/* Input */}
-      <ChatInput
-        onSendText={handleSendText}
-        onSendImages={handleSendImages}
-        onSendLocation={handleSendLocation}
-        onChooseLocation={() => setIsLocationPickerVisible(true)}
-        onTyping={(isTyping) => setTyping(isTyping)}
-        disabled={loading}
-      />
+        {/* Input */}
+        {canMessage ? (
+          <ChatInput
+            onSendText={handleSendText}
+            onSendImages={handleSendImages}
+            onSendLocation={handleSendLocation}
+            onChooseLocation={() => setIsLocationPickerVisible(true)}
+            onTyping={(isTyping) => setTyping(isTyping)}
+            disabled={loading}
+          />
+        ) : (
+          <View style={styles.blockedContainer}>
+            <Feather name="lock" size={16} color="#6B7280" />
+            <Text style={styles.blockedText}>This user isn't accepting messages.</Text>
+          </View>
+        )}
       </KeyboardAvoidingView>
       <Modal
         visible={isDeleteModalVisible}
@@ -493,9 +518,9 @@ export default function ChatRoomScreen() {
         animationType="fade"
         onRequestClose={() => setIsDeleteModalVisible(false)}
       >
-        <TouchableOpacity 
-          style={styles.modalOverlay} 
-          activeOpacity={1} 
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
           onPress={() => setIsDeleteModalVisible(false)}
         >
           <View style={styles.modalContent}>
@@ -504,26 +529,26 @@ export default function ChatRoomScreen() {
             </View>
             <Text style={styles.modalTitle}>Delete Messages</Text>
             <Text style={styles.modalDesc}>This action cannot be undone.</Text>
-            
+
             <View style={styles.modalButtonGroup}>
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.modalButtonDestructive]} 
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalButtonDestructive]}
                 onPress={() => handleDeleteSelected("me")}
               >
                 <Text style={styles.modalButtonTextDestructive}>Delete for Me</Text>
               </TouchableOpacity>
 
               {canDeleteForEveryone && (
-                <TouchableOpacity 
-                  style={[styles.modalButton, styles.modalButtonDestructive]} 
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.modalButtonDestructive]}
                   onPress={() => handleDeleteSelected("everyone")}
                 >
                   <Text style={styles.modalButtonTextDestructive}>Delete for Everyone</Text>
                 </TouchableOpacity>
               )}
 
-              <TouchableOpacity 
-                style={[styles.modalButton, styles.modalCancelButton]} 
+              <TouchableOpacity
+                style={[styles.modalButton, styles.modalCancelButton]}
                 onPress={() => setIsDeleteModalVisible(false)}
               >
                 <Text style={styles.modalButtonText}>Cancel</Text>
@@ -679,5 +704,18 @@ const styles = StyleSheet.create({
   },
   messageList: {
     paddingVertical: 8,
+  },
+  blockedContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 16,
+    backgroundColor: "#F3F4F6",
+    gap: 8,
+  },
+  blockedText: {
+    color: "#6B7280",
+    fontSize: 13,
+    fontWeight: "500",
   },
 });
