@@ -219,7 +219,7 @@ export default function HomeScreen() {
         <ActionCard
           icon={<MaterialCommunityIcons name="dog" size={24} color="#F5A623" />}
           label="Report a Case"
-          onPress={() => router.push("/reporting")}
+          onPress={() => router.push("/reporting/AnimalDetails")}
         />
 
         <ActionCard

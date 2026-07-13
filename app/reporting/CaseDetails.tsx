@@ -94,7 +94,7 @@ export default function CaseDetailsScreen() {
 
   // 📡 Real-time updates via Socket.io
   useRescueUpdates(report, (updatedReport) => {
-    setReport(updatedReport);
+    setReport(updatedReport as Report);
     setNotificationMessage(`Case updated: ${updatedReport.status}`);
     setShowNotification(true);
     setTimeout(() => setShowNotification(false), 3000);
@@ -353,8 +353,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFB700",
     padding: 12,
     borderRadius: 8,
-    marginBottom: 10,
+    marginBottom: 20,
     alignItems: "center",
+
   },
   notificationText: {
     color: "black",

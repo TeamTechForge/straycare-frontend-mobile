@@ -17,16 +17,16 @@ import PrimaryButton from "../../components/PrimaryButton";
 // ☁️ CLOUDINARY UPLOAD HELPER
 const uploadToCloudinary = async (imageUri: string) => {
   const data = new FormData();
-  
+
   // Appending the file in the format React Native requires
   data.append('file', {
     uri: imageUri,
-    type: 'image/jpeg', 
+    type: 'image/jpeg',
     name: 'stray_report.jpg',
   } as any); // "as any" bypasses strict TypeScript checking for this specific RN quirk
-  
-  
-  data.append('upload_preset', 'straycare_report_images'); 
+
+
+  data.append('upload_preset', 'straycare_report_images');
 
   // REPLACE YOUR_CLOUD_NAME with your actual Cloudinary cloud name
   const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dljp2yzpb/image/upload";
@@ -43,7 +43,7 @@ const uploadToCloudinary = async (imageUri: string) => {
 
     const result: any = await response.json();
     return result.secure_url; // Returns the permanent public URL
-    
+
   } catch (error) {
     console.error("Cloudinary Upload Error:", error);
     return null;
@@ -142,7 +142,7 @@ export default function UploadPhotos() {
         if (uri.startsWith('http')) return uri;
         return uploadToCloudinary(uri);
       });
-      
+
       const uploadedUrls = await Promise.all(uploadPromises);
 
       // 2. Filter out any uploads that failed
@@ -174,7 +174,7 @@ export default function UploadPhotos() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        
+
         {/* HEADER */}
         <Text style={styles.header}>Upload Photos</Text>
         <Text style={styles.subtext}>Add up to 5 photos.</Text>
@@ -242,6 +242,7 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 8,
     textAlign: "center",
+    paddingTop: 22,
   },
   subtext: {
     fontSize: 14,
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
 
   bottomButtonWrapper: {
     position: "absolute",
-    bottom: 20,
+    bottom: 30,
     left: 20,
     right: 20,
   },
