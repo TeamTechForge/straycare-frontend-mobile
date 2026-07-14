@@ -2,21 +2,11 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { Alert, Image,
-  ScrollView,
-  StyleSheet,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  View,
-  ActivityIndicator, } from "react-native";
-
+import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import * as DocumentPicker from "expo-document-picker";
-
 import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
-
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import FileUploadField from "../../components/FileUploadField";
@@ -25,20 +15,37 @@ import { SafeAreaView } from "react-native-safe-area-context";
 
 const BRAND_COLOR = "#F5A623";
 
-export default function EditVetProfileScreen() {
+export default function EditProfileScreen() {
   const router = useRouter();
 
+  // Common user fields
+  const [role, setRole] = useState("general_user");
   const [name, setName] = useState("");
-  const [primaryLocation, setPrimaryLocation] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
+
+  // Common profile fields
+  const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
+  const [profileImage, setProfileImage] = useState<string | null>(null);
+
+  // Vet & NGO Common
+  const [merchantId, setMerchantId] = useState("");
+
+  // Vet Specific
   const [clinicName, setClinicName] = useState("");
   const [clinicAddress, setClinicAddress] = useState("");
   const [licenseNumber, setLicenseNumber] = useState("");
   const [yearsOfExperience, setYearsOfExperience] = useState("");
-  const [profileImage, setProfileImage] = useState<string | null>(null);
   const [licenseDocument, setLicenseDocument] = useState<any>(null);
-  const [merchantId, setMerchantId] = useState("");
+
+  // NGO Specific
+  const [orgName, setOrgName] = useState("");
+  const [contactPerson, setContactPerson] = useState("");
+  const [regNumber, setRegNumber] = useState("");
+  const [foundedYear, setFoundedYear] = useState("");
+  const [verificationDocument, setVerificationDocument] = useState<any>(null);
+
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -46,29 +53,28 @@ export default function EditVetProfileScreen() {
     if (!uriOrAsset) return null;
 
     let uri = "";
-    let name = "upload_file";
+    let nameStr = "upload_file";
     let mimeType = "image/jpeg";
 
     if (typeof uriOrAsset === "object" && uriOrAsset.uri) {
       uri = uriOrAsset.uri;
-      name = uriOrAsset.name || "upload_file";
+      nameStr = uriOrAsset.name || "upload_file";
       mimeType = uriOrAsset.mimeType || "application/octet-stream";
     } else if (typeof uriOrAsset === "string" && (uriOrAsset.startsWith("file://") || uriOrAsset.startsWith("content://"))) {
       uri = uriOrAsset;
       const filename = uri.split("/").pop();
-      if (filename) name = filename;
+      if (filename) nameStr = filename;
     } else if (typeof uriOrAsset === "string") {
       return uriOrAsset;
     } else {
       return null;
     }
 
-    // Resolve content:// URIs to local file:// URIs using expo-file-system
     if (uri.startsWith("content://")) {
       try {
         const cacheDir = `${cacheDirectory}UploadCache/`;
-        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => {});
-        const localUri = `${cacheDir}${name}`;
+        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => { });
+        const localUri = `${cacheDir}${nameStr}`;
         await copyAsync({ from: uri, to: localUri });
         uri = localUri;
       } catch (err) {
@@ -79,7 +85,7 @@ export default function EditVetProfileScreen() {
     const formData = new FormData();
     formData.append("file", {
       uri,
-      name,
+      name: nameStr,
       type: mimeType,
     } as any);
 
@@ -119,8 +125,10 @@ export default function EditVetProfileScreen() {
         });
         const userData: any = await userRes.json();
         if (userRes.ok) {
-          setName(userData.name);
+          setName(userData.name || "");
+          setEmail(userData.email || "");
           setPhone(userData.phone || "");
+          setRole(userData.role || "general_user");
         }
 
         const profileRes = await fetch(`${API_URL}/profiles/me`, {
@@ -128,18 +136,31 @@ export default function EditVetProfileScreen() {
         });
         const profileData: any = await profileRes.json();
         if (profileRes.ok) {
-          setPrimaryLocation(profileData.primaryLocation || "");
           setBio(profileData.bio || "");
-          setClinicName(profileData.clinicName || "");
-          setClinicAddress(profileData.clinicAddress || "");
-          setLicenseNumber(profileData.licenseNumber || "");
-          setYearsOfExperience(profileData.yearsOfExperience || "");
           setProfileImage(profileData.profileImage || null);
-          setLicenseDocument(profileData.licenseDocument || null);
-          setMerchantId(profileData.merchantId || "");
+
+          if (userData.role === "vet") {
+            setLocation(profileData.primaryLocation || "");
+            setClinicName(profileData.clinicName || "");
+            setClinicAddress(profileData.clinicAddress || "");
+            setLicenseNumber(profileData.licenseNumber || "");
+            setYearsOfExperience(profileData.yearsOfExperience || "");
+            setLicenseDocument(profileData.licenseDocument || null);
+            setMerchantId(profileData.merchantId || "");
+          } else if (userData.role === "ngo") {
+            setLocation(profileData.location || "");
+            setOrgName(profileData.orgName || "");
+            setContactPerson(profileData.contactPerson || "");
+            setRegNumber(profileData.regNumber || "");
+            setFoundedYear(profileData.foundedYear || "");
+            setVerificationDocument(profileData.verificationDocument || null);
+            setMerchantId(profileData.merchantId || "");
+          } else {
+            setLocation(profileData.location || "");
+          }
         }
       } catch (error) {
-        console.error("Fetch Vet profile edit data error:", error);
+        console.error("Fetch profile edit data error:", error);
       } finally {
         setLoading(false);
       }
@@ -171,7 +192,8 @@ export default function EditVetProfileScreen() {
       });
 
       if (!result.canceled) {
-        setLicenseDocument(result.assets[0]);
+        if (role === "vet") setLicenseDocument(result.assets[0]);
+        else if (role === "ngo") setVerificationDocument(result.assets[0]);
       }
     } catch (error) {
       console.error("Document picking error:", error);
@@ -187,7 +209,7 @@ export default function EditVetProfileScreen() {
     const address = await Location.reverseGeocodeAsync(loc.coords);
 
     if (address.length > 0) {
-      setPrimaryLocation(`${address[0].city || ""}, ${address[0].country || ""}`);
+      setLocation(`${address[0].city || ""}, ${address[0].country || ""}`);
     }
   };
 
@@ -197,18 +219,22 @@ export default function EditVetProfileScreen() {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) throw new Error("No authorization token found");
 
-      // Upload local files to Cloudinary first
       const uploadedImageUrl = await uploadToCloudinaryIfLocal(profileImage, token);
-      const uploadedDocUrl = await uploadToCloudinaryIfLocal(licenseDocument, token);
 
-      const response = await fetch(`${API_URL}/profiles/vet`, {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          primaryLocation,
+      let endpoint = "/profiles/general";
+      let body: any = {};
+
+      if (role === "general_user") {
+        endpoint = "/profiles/general";
+        body = { location, bio, profileImage: uploadedImageUrl };
+      } else if (role === "volunteer") {
+        endpoint = "/profiles/volunteer";
+        body = { location, bio, profileImage: uploadedImageUrl };
+      } else if (role === "vet") {
+        endpoint = "/profiles/vet";
+        const uploadedDocUrl = await uploadToCloudinaryIfLocal(licenseDocument, token);
+        body = {
+          primaryLocation: location,
           bio,
           clinicName,
           clinicAddress,
@@ -217,18 +243,41 @@ export default function EditVetProfileScreen() {
           profileImage: uploadedImageUrl,
           licenseDocument: uploadedDocUrl,
           merchantId,
-        }),
+        };
+      } else if (role === "ngo") {
+        endpoint = "/profiles/ngo";
+        const uploadedDocUrl = await uploadToCloudinaryIfLocal(verificationDocument, token);
+        body = {
+          orgName,
+          contactPerson,
+          regNumber,
+          foundedYear,
+          location,
+          bio,
+          profileImage: uploadedImageUrl,
+          verificationDocument: uploadedDocUrl,
+          merchantId,
+        };
+      }
+
+      const response = await fetch(`${API_URL}${endpoint}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
-        Alert.alert("Vet profile updated successfully");
+        Alert.alert("Profile updated successfully");
         router.back();
       } else {
         const data: any = await response.json();
         Alert.alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to update profile");
       }
     } catch (error: any) {
-      console.error("Update Vet profile error:", error);
+      console.error("Update profile error:", error);
       Alert.alert(error.message || "Something went wrong");
     } finally {
       setIsSubmitting(false);
@@ -243,6 +292,8 @@ export default function EditVetProfileScreen() {
     );
   }
 
+  const roleTitle = role === "vet" ? "Vet" : role === "ngo" ? "NGO" : role === "volunteer" ? "Volunteer" : "User";
+
   return (
     <SafeAreaView style={styles.container}>
       <ScrollView
@@ -254,7 +305,7 @@ export default function EditVetProfileScreen() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#222" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Edit Vet Profile</Text>
+          <Text style={styles.headerTitle}>Edit {roleTitle} Profile</Text>
           <View style={styles.headerSpacer} />
         </View>
 
@@ -264,7 +315,7 @@ export default function EditVetProfileScreen() {
               <Image source={{ uri: profileImage }} style={styles.avatarImage} />
             ) : (
               <View style={styles.avatarPlaceholder}>
-                <Ionicons name="medkit" size={50} color="#F3E5D8" />
+                <Ionicons name="person" size={50} color="#F3E5D8" />
               </View>
             )}
             <TouchableOpacity style={styles.cameraIcon} onPress={handlePickProfileImage}>
@@ -276,13 +327,29 @@ export default function EditVetProfileScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.label}>Full Name</Text>
-        <InputField value={name} onChangeText={setName} placeholder="Enter name" editable={false} />
+        {role === "ngo" ? (
+          <>
+            <Text style={styles.label}>Organization Name</Text>
+            <InputField value={orgName} onChangeText={setOrgName} placeholder="Enter org name" />
+          </>
+        ) : (
+          <>
+            <Text style={styles.label}>Full Name</Text>
+            <InputField value={name} onChangeText={setName} placeholder="Enter name" editable={false} />
+          </>
+        )}
 
-        <Text style={styles.label}>Primary Location</Text>
+        {role !== "ngo" && role !== "vet" && (
+          <>
+            <Text style={styles.label}>Email Address</Text>
+            <InputField value={email} onChangeText={setEmail} placeholder="Enter email" editable={false} />
+          </>
+        )}
+
+        <Text style={styles.label}>{role === "vet" ? "Primary Location" : "Location"}</Text>
         <InputField
-          value={primaryLocation}
-          onChangeText={setPrimaryLocation}
+          value={location}
+          onChangeText={setLocation}
           placeholder="Enter location"
           icon="location-outline"
           rightIcon="locate-outline"
@@ -290,7 +357,18 @@ export default function EditVetProfileScreen() {
         />
 
         <Text style={styles.label}>Phone Number</Text>
-        <InputField value={phone} onChangeText={setPhone} placeholder="Enter phone" editable={false} />
+        <InputField value={phone} onChangeText={setPhone} placeholder="Enter phone" editable={true} />
+
+        {role === "ngo" && (
+          <>
+            <Text style={styles.label}>Contact Person</Text>
+            <InputField value={contactPerson} onChangeText={setContactPerson} placeholder="Enter contact person" />
+            <Text style={styles.label}>Registration Number</Text>
+            <InputField value={regNumber} onChangeText={setRegNumber} placeholder="Enter reg number" />
+            <Text style={styles.label}>Founded Year</Text>
+            <InputField value={foundedYear} onChangeText={setFoundedYear} placeholder="e.g. 2015" />
+          </>
+        )}
 
         <View style={styles.bioSection}>
           <Text style={styles.bioLabel}>Short Bio</Text>
@@ -298,29 +376,45 @@ export default function EditVetProfileScreen() {
             style={styles.bioInput}
             value={bio}
             onChangeText={setBio}
-            placeholder="About your experience..."
+            placeholder="Tell us about yourself..."
             multiline
           />
         </View>
 
-        <Text style={styles.label}>Clinic Name</Text>
-        <InputField value={clinicName} onChangeText={setClinicName} placeholder="Enter clinic name" />
+        {role === "vet" && (
+          <>
+            <Text style={styles.label}>Clinic Name</Text>
+            <InputField value={clinicName} onChangeText={setClinicName} placeholder="Enter clinic name" />
 
-        <Text style={styles.label}>Clinic Address</Text>
-        <InputField value={clinicAddress} onChangeText={setClinicAddress} placeholder="Enter clinic address" />
+            <Text style={styles.label}>Clinic Address</Text>
+            <InputField value={clinicAddress} onChangeText={setClinicAddress} placeholder="Enter clinic address" />
 
-        <Text style={styles.label}>License Number</Text>
-        <InputField value={licenseNumber} onChangeText={setLicenseNumber} placeholder="Enter license number" />
+            <Text style={styles.label}>License Number</Text>
+            <InputField value={licenseNumber} onChangeText={setLicenseNumber} placeholder="Enter license number" />
 
-        <Text style={styles.label}>Years of Experience</Text>
-        <InputField value={yearsOfExperience} onChangeText={setYearsOfExperience} placeholder="e.g. 10" />
+            <Text style={styles.label}>Years of Experience</Text>
+            <InputField value={yearsOfExperience} onChangeText={setYearsOfExperience} placeholder="e.g. 10" />
 
-        <Text style={styles.label}>Medical License Document</Text>
-        <FileUploadField file={licenseDocument} onPick={handlePickDocument} />
-        <Text style={styles.helperText}>Replace license document if needed.</Text>
+            <Text style={styles.label}>Medical License Document</Text>
+            <FileUploadField file={licenseDocument} onPick={handlePickDocument} />
+            <Text style={styles.helperText}>Replace license document if needed.</Text>
+          </>
+        )}
 
-        <Text style={styles.label}>PayHere Merchant ID</Text>
-        <InputField value={merchantId} onChangeText={setMerchantId} placeholder="Enter Merchant ID" />
+        {role === "ngo" && (
+          <>
+            <Text style={styles.label}>Verification Document</Text>
+            <FileUploadField file={verificationDocument} onPick={handlePickDocument} />
+            <Text style={styles.helperText}>Replace verification document if needed.</Text>
+          </>
+        )}
+
+        {(role === "vet" || role === "ngo") && (
+          <>
+            <Text style={styles.label}>PayHere Merchant ID</Text>
+            <InputField value={merchantId} onChangeText={setMerchantId} placeholder="Enter Merchant ID" />
+          </>
+        )}
 
         <View style={styles.buttonSection}>
           <PrimaryButton

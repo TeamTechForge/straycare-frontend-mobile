@@ -17,6 +17,7 @@ interface NotificationContextType {
   unreadCount: number;
   addNotification: (notification: Notification) => void;
   markAsRead: (notificationId: string) => void;
+  markAllAsRead: () => void;
   removeNotification: (notificationId: string) => void;
   clearNotifications: () => void;
   fetchNotifications: () => Promise<void>;
@@ -118,6 +119,37 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     setNotifications((prev) => prev.filter((n) => n._id !== notificationId));
   };
 
+  // Mark all notifications as read
+  const markAllAsRead = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) return;
+
+      const unreadIds = notifications.filter((n) => !n.read).map((n) => n._id);
+      if (unreadIds.length === 0) return;
+
+      // Optimistically update UI
+      setNotifications((prev) =>
+        prev.map((n) => ({ ...n, read: true }))
+      );
+
+      // Hit the backend for each unread (or ideally a bulk endpoint if it existed, but we'll do individual for now)
+      await Promise.all(
+        unreadIds.map((id) =>
+          fetch(`${API_URL}/stray/notifications/${id}/read`, {
+            method: "PATCH",
+            headers: {
+              Authorization: `Bearer ${token}`,
+              "Content-Type": "application/json",
+            },
+          })
+        )
+      );
+    } catch (error) {
+      console.warn("[NOTIFICATION] Failed to mark all as read:", error);
+    }
+  };
+
   // Clear all notifications
   const clearNotifications = () => {
     setNotifications([]);
@@ -142,6 +174,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         unreadCount,
         addNotification,
         markAsRead,
+        markAllAsRead,
         removeNotification,
         clearNotifications,
         fetchNotifications,

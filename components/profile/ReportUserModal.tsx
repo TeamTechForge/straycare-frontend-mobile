@@ -36,8 +36,8 @@ export default function ReportUserModal({ visible, onClose, onSubmit }: Props) {
   const [submitting, setSubmitting] = useState(false);
 
   const handleSubmit = async () => {
-    if (description.trim().length < 20) {
-      Alert.alert("Error", "Please provide a description of at least 20 characters.");
+    if (description.trim().length < 15) {
+      Alert.alert("Error", "Please provide a description of at least 15 characters.");
       return;
     }
 
@@ -83,7 +83,7 @@ export default function ReportUserModal({ visible, onClose, onSubmit }: Props) {
                 </Picker>
               </View>
 
-              <Text style={styles.label}>Description (Minimum 20 characters)</Text>
+              <Text style={styles.label}>Description (Minimum 15 characters)</Text>
               <TextInput
                 style={styles.textArea}
                 multiline
@@ -95,14 +95,14 @@ export default function ReportUserModal({ visible, onClose, onSubmit }: Props) {
                 editable={!submitting}
               />
               <Text style={styles.charCounter}>
-                {description.length} characters (min 20)
+                {description.length} characters (min 15)
               </Text>
 
               <View style={styles.buttonRow}>
                 <PrimaryButton
                   title={submitting ? "Submitting..." : "Submit Report"}
                   onPress={handleSubmit}
-                  disabled={submitting || description.trim().length < 20}
+                  disabled={submitting || description.trim().length < 15}
                 />
               </View>
             </View>
@@ -156,6 +156,7 @@ const styles = StyleSheet.create({
   picker: {
     width: "100%",
     height: 50,
+    color: "#72767bff",
   },
   textArea: {
     borderWidth: 1,

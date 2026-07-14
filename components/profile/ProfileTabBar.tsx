@@ -10,7 +10,7 @@ type Props = {
   tabs?: TabKey[];
 };
 
-export default function ProfileTabBar({ activeTab, onChange, tabs = ["posts", "reports", "saved"] }: Props) {
+export default function ProfileTabBar({ activeTab, onChange, tabs = ["reports", "posts", "saved"] }: Props) {
   return (
     <View style={styles.tabRow}>
       {tabs.map((tab) => (

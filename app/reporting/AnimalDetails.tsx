@@ -200,6 +200,7 @@ const styles = StyleSheet.create({
     color: "#333",
     marginBottom: 20,
     textAlign: "center",
+    paddingTop: 22,
   },
 
   label: {
@@ -268,7 +269,7 @@ const styles = StyleSheet.create({
 
   bottomButtonWrapper: {
     position: "absolute",
-    bottom: 20,
+    bottom: 30,
     left: 20,
     right: 20,
   },

@@ -226,18 +226,19 @@ export default function Review() {
 
 const styles = StyleSheet.create({
   container: {
-    padding: 20,
+    padding: 25,
     paddingBottom: 60,
+    paddingTop: 35,
     backgroundColor: "#fafafa",
   },
 
   caseCard: {
-    backgroundColor: "#FFF4D1",
+    backgroundColor: "#fdefc3ff",
     padding: 20,
     borderRadius: 12,
     marginBottom: 20,
-    borderWidth: 1,
-    borderColor: "#ddd",
+    borderWidth: 2,
+    borderColor: "#acababff",
     alignItems: "center",
   },
 

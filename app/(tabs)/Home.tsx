@@ -95,14 +95,10 @@ export default function HomeScreen() {
 
         <TouchableOpacity
           style={styles.notificationIcon}
-          onPress={() => router.push("/modals/notifications")}
+          onPress={() => router.push("/modals/Notifications" as any)}
         >
           <Ionicons name="notifications-outline" size={24} color="#000" />
-          {unreadCount > 0 && (
-            <View style={styles.badge}>
-              <Text style={styles.badgeText}>{unreadCount > 9 ? "9+" : unreadCount}</Text>
-            </View>
-          )}
+          {unreadCount > 0 && <View style={styles.badgeDot} />}
         </TouchableOpacity>
       </View>
 
@@ -126,11 +122,12 @@ export default function HomeScreen() {
       </View>
 
       {/* SEARCH BAR CONTAINER */}
-      <View style={{ zIndex: 10, position: "relative" }}>
+      <View style={[{ zIndex: 10, position: "relative" }, searchQuery.trim().length > 0 && { flex: 1 }]}>
         <View style={styles.searchBar}>
-          <Feather name="search" size={18} color="#888" />
+          <Feather name="search" size={18} color="#747272ff" />
           <TextInput
             placeholder="Search for Vets/Shelters"
+            placeholderTextColor="#9CA3AF"
             style={styles.searchInput}
             value={searchQuery}
             onChangeText={setSearchQuery}
@@ -138,7 +135,7 @@ export default function HomeScreen() {
           />
           {searchQuery.length > 0 && (
             <TouchableOpacity onPress={() => { setSearchQuery(""); setSearchResults([]); }}>
-              <Feather name="x" size={18} color="#888" />
+              <Feather name="x" size={18} color="#7b7a7aff" />
             </TouchableOpacity>
           )}
         </View>
@@ -154,7 +151,8 @@ export default function HomeScreen() {
               <FlatList
                 data={searchResults}
                 keyExtractor={(item, index) => item.userId + index}
-                style={{ maxHeight: 300 }}
+                style={{ flex: 1 }}
+                contentContainerStyle={{ paddingBottom: 20 }}
                 keyboardShouldPersistTaps="handled"
                 renderItem={({ item }) => (
                   <TouchableOpacity
@@ -211,9 +209,11 @@ export default function HomeScreen() {
       </View>
 
       {/* QUICK ACTIONS */}
-      <Text style={styles.sectionTitle}>Quick Actions</Text>
+      {searchQuery.trim().length === 0 && (
+        <>
+          <Text style={styles.sectionTitle}>Quick Actions</Text>
 
-      <View style={styles.grid}>
+          <View style={styles.grid}>
         <ActionCard
           icon={<MaterialCommunityIcons name="hand-heart" size={24} color="#F5A623" />}
           label="Donate"
@@ -223,7 +223,7 @@ export default function HomeScreen() {
         <ActionCard
           icon={<MaterialCommunityIcons name="dog" size={24} color="#F5A623" />}
           label="Report a Case"
-          onPress={() => router.push("/reporting")}
+          onPress={() => router.push("/reporting/AnimalDetails")}
         />
 
         <ActionCard
@@ -236,7 +236,9 @@ export default function HomeScreen() {
           label="Lost & Found"
           onPress={() => router.push("/lost-and-found")}
         />
-      </View>
+          </View>
+        </>
+      )}
     </View>
   );
 }
@@ -270,22 +272,16 @@ const styles = StyleSheet.create({
     position: "absolute",
     right: 0,
   },
-  badge: {
+  badgeDot: {
     position: "absolute",
-    top: -5,
-    right: -5,
+    top: -2,
+    right: -2,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
     backgroundColor: "#f44336",
-    borderRadius: 10,
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    minWidth: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  badgeText: {
-    color: "#fff",
-    fontSize: 12,
-    fontWeight: "bold",
+    borderWidth: 1.5,
+    borderColor: "#F4F4F4",
   },
   logo: {
     width: 150,
@@ -329,16 +325,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   searchDropdown: {
-    position: "absolute",
-    top: 50,
-    left: 0,
-    right: 0,
+    flex: 1,
+    marginTop: 10,
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
     borderWidth: 1,
     borderColor: "#E5E5E5",
     padding: 10,
-    zIndex: 999,
     elevation: 5,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },

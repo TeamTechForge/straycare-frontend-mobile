@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  BackHandler,
   StyleSheet,
   Text,
   TouchableOpacity,
@@ -94,6 +95,16 @@ export default function ReportingMapScreen() {
     }
   }, [reports, mapReady]);
 
+  // Override hardware back button to navigate to Home
+  useEffect(() => {
+    const onBackPress = () => {
+      router.push("/(tabs)/Home");
+      return true; // Prevent default behavior
+    };
+    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => subscription.remove();
+  }, [router]);
+
   if (loading) {
     return (
       <View style={styles.center}>
@@ -134,21 +145,22 @@ export default function ReportingMapScreen() {
 
           return (
             <Marker
-              // ✅ Fix applied here: Forces the marker to re-render when status changes
-              key={`${report.caseId}-${report.status}`}
+              key={report.caseId}
               coordinate={{
                 latitude: report.location.lat,
                 longitude: report.location.lng,
               }}
               pinColor={getMarkerColor(report.status)}
-              title={report.animalType}
-              description={report.status}
-              onPress={() =>
-                router.push({
-                  pathname: "/reporting/CaseDetails",
-                  params: { caseId: report.caseId },
-                })
-              }
+              onPress={() => {
+                // Delay navigation slightly to prevent Android ViewManager crash
+                // when unmounting/navigating during map gesture handling
+                setTimeout(() => {
+                  router.push({
+                    pathname: "/reporting/CaseDetails",
+                    params: { caseId: report.caseId },
+                  });
+                }, 50);
+              }}
             />
           );
         })}
@@ -157,7 +169,7 @@ export default function ReportingMapScreen() {
       {/* Add Case Button */}
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
-          title="Add a Case +"
+          title="Report a Case +"
           onPress={() => router.push("/reporting/AnimalDetails")}
         />
       </View>
@@ -187,7 +199,7 @@ const styles = StyleSheet.create({
   subtext: { fontSize: 14, color: "#666", textAlign: "center" },
   bottomButtonWrapper: {
     position: "absolute",
-    bottom: 20,
+    bottom: 90,
     left: 20,
     right: 20,
   },

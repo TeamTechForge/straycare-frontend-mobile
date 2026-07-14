@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
-import { Image, StyleSheet, Text, View } from "react-native";
+import { Image, StyleSheet, Text, View, TouchableOpacity } from "react-native";
 
 type Props = {
   image: string;
   likes: number;
   comments: number;
   time: string;
+  onPress?: () => void;
 };
 
 export default function PostPreviewCard({
@@ -13,9 +14,10 @@ export default function PostPreviewCard({
   likes,
   comments,
   time,
+  onPress,
 }: Props) {
   return (
-    <View style={styles.postCard}>
+    <TouchableOpacity style={styles.postCard} onPress={onPress} activeOpacity={0.8}>
       <Image source={{ uri: image }} style={styles.postImage} />
       <View style={styles.postOverlayBottom}>
         <View style={styles.postMetaLeft}>
@@ -30,7 +32,7 @@ export default function PostPreviewCard({
         </View>
         <Text style={styles.postTime}>{time}</Text>
       </View>
-    </View>
+    </TouchableOpacity>
   );
 }
 

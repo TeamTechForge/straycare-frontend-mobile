@@ -1,6 +1,7 @@
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 import { API_URL } from "../constants/config.constants";
 
 // Configure notification handler
@@ -9,6 +10,8 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: true,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
@@ -31,8 +34,17 @@ export const pushNotificationService = {
         return null;
       }
 
+      const projectId =
+        Constants?.expoConfig?.extra?.eas?.projectId ??
+        Constants?.easConfig?.projectId;
+
+      if (!projectId) {
+        console.warn("[PUSH] No EAS projectId found in app.json. Skipping push token registration.");
+        return null;
+      }
+
       // Get the push token
-      const token = await Notifications.getExpoPushTokenAsync();
+      const token = await Notifications.getExpoPushTokenAsync({ projectId });
       console.log("[PUSH] Expo push token:", token.data);
 
       return token.data;
@@ -74,6 +86,33 @@ export const pushNotificationService = {
     }
   },
 
+  // Remove push token from backend (when user opts out)
+  async removeTokenFromBackend(): Promise<boolean> {
+    try {
+      const authToken = await SecureStore.getItemAsync("authToken");
+      if (!authToken) return false;
+
+      const response = await fetch(`${API_URL}/users/push-token`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${authToken}`,
+        },
+      });
+
+      if (response.ok) {
+        console.log("[PUSH] Push token removed from backend successfully");
+        await SecureStore.deleteItemAsync("pushToken");
+        return true;
+      } else {
+        console.error("[PUSH] Failed to remove push token from backend:", response.status);
+        return false;
+      }
+    } catch (error) {
+      console.error("[PUSH] Error removing push token from backend:", error);
+      return false;
+    }
+  },
+
   // Listen for incoming push notifications
   listenForNotifications(
     onNotification: (notification: Notifications.Notification) => void
@@ -104,6 +143,12 @@ export const pushNotificationService = {
     onNotification?: (notification: Notifications.Notification) => void
   ): Promise<void> {
     try {
+      const pushPref = await SecureStore.getItemAsync("pushEnabled");
+      if (pushPref === "false") {
+        console.log("[PUSH] Push notifications disabled by user preference");
+        return;
+      }
+
       // Setup and get token
       const pushToken = await this.setupPushNotifications();
 

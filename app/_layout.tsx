@@ -53,11 +53,11 @@ function InitialLayout() {
 
         if (needsApproval && !isApproved) {
           const onProfileSetup = segments[1] === "NgoProfileSetup" || segments[1] === "VetProfileSetup";
-          const isAllowedScreen = segments[1] === "VerificationPending" || 
-                                  segments[1] === "VerificationRejected" ||
-                                  segments[1] === "CompletedProfileSetup" ||
-                                  (user.profileStatus === "Rejected" && onProfileSetup);
-          const isNotificationsScreen = segments[0] === "Notifications";
+          const isAllowedScreen = segments[1] === "VerificationPending" ||
+            segments[1] === "VerificationRejected" ||
+            segments[1] === "CompletedProfileSetup" ||
+            (user.profileStatus === "Rejected" && onProfileSetup);
+          const isNotificationsScreen = segments[0] === "modals" && segments[1] === "Notifications";
 
           if (!isAllowedScreen && !isNotificationsScreen) {
             if (user.profileStatus === "Rejected") {
@@ -71,7 +71,8 @@ function InitialLayout() {
           // Redirect to home if they are sitting on guest/pending/setup routes or index
           if (inAuthGroup || onWelcomeScreen) {
             const onCompletedProfileSetup = segments[1] === "CompletedProfileSetup";
-            if (!onCompletedProfileSetup) {
+            const onTermsPrivacyScreen = segments[1] === "TermsPrivacyScreen";
+            if (!onCompletedProfileSetup && !onTermsPrivacyScreen) {
               router.replace("/(tabs)/Home");
             }
           }
@@ -95,7 +96,7 @@ function InitialLayout() {
             const data = notification.request.content.data;
             addNotification({
               _id: `push-${Date.now()}`,
-              userId: user.id || "",
+              userId: user._id || "",
               title: notification.request.content.title || "Notification",
               message: notification.request.content.body || "",
               type: (data.type as any) || "info",
@@ -215,12 +216,12 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <SocketProvider>
-         <NotificationProvider>
-            <CallProvider>
-               <AlertProvider>
-                  <InitialLayout />
-               </AlertProvider>
-            </CallProvider>
+        <NotificationProvider>
+          <CallProvider>
+            <AlertProvider>
+              <InitialLayout />
+            </AlertProvider>
+          </CallProvider>
         </NotificationProvider>
       </SocketProvider>
     </AuthProvider>

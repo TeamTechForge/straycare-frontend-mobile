@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { useState } from "react";
 
 /**
  * HelpSupportScreen
@@ -34,15 +35,35 @@ const FAQ_DATA = [
 ];
 
 const HELP_TOPICS = [
-  "How to report a stray animal",
-  "How rescue status updates work",
-  "How adoption requests work",
-  "How donations are tracked",
-  "How NGO/Vet verification works",
+  {
+    title: "How to report a stray animal",
+    content: "Go to the Reporting tab, add photos, enter the animal's location and condition, and submit your report to notify nearby rescuers.",
+  },
+  {
+    title: "How rescue status updates work",
+    content: "When a rescuer accepts your report, its status changes to 'In Progress'. Once rescued and treated, the status will be marked as 'Resolved'.",
+  },
+  {
+    title: "How adoption requests work",
+    content: "Browse animals available for adoption. When you submit a request, the shelter will review it and contact you for the next steps.",
+  },
+  {
+    title: "How donations are tracked",
+    content: "You can track your donations in the Profile section. Donations go directly to verified NGOs and you will receive a receipt for your records.",
+  },
+  {
+    title: "How NGO/Vet verification works",
+    content: "NGOs and Vets must submit their registration details. Our admin team verifies these details to ensure authenticity before approving the account.",
+  },
 ];
 
 export default function HelpSupportScreen() {
   const router = useRouter();
+  const [expandedTopicIndex, setExpandedTopicIndex] = useState<number | null>(null);
+
+  const toggleTopic = (index: number) => {
+    setExpandedTopicIndex(expandedTopicIndex === index ? null : index);
+  };
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -68,13 +89,20 @@ export default function HelpSupportScreen() {
         <Text style={styles.sectionHeader}>QUICK HELP TOPICS</Text>
         <View style={styles.card}>
           {HELP_TOPICS.map((topic, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.topicRow, index === HELP_TOPICS.length - 1 && { borderBottomWidth: 0 }]}
-            >
-              <Text style={styles.topicText}>{topic}</Text>
-              <Ionicons name="chevron-forward" size={16} color="#CCC" />
-            </TouchableOpacity>
+            <View key={index} style={[styles.topicContainer, index === HELP_TOPICS.length - 1 && { borderBottomWidth: 0 }]}>
+              <TouchableOpacity
+                style={styles.topicRow}
+                onPress={() => toggleTopic(index)}
+              >
+                <Text style={styles.topicText}>{topic.title}</Text>
+                <Ionicons name={expandedTopicIndex === index ? "chevron-down" : "chevron-forward"} size={16} color="#CCC" />
+              </TouchableOpacity>
+              {expandedTopicIndex === index && (
+                <View style={styles.topicContentWrapper}>
+                  <Text style={styles.topicContent}>{topic.content}</Text>
+                </View>
+              )}
+            </View>
           ))}
         </View>
       </View>
@@ -162,18 +190,29 @@ const styles = StyleSheet.create({
     shadowRadius: 10,
     elevation: 2,
   },
+  topicContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
+  },
   topicRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingVertical: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F0F0F0",
   },
   topicText: {
     fontSize: 14,
     color: "#333",
     fontWeight: "500",
+  },
+  topicContentWrapper: {
+    paddingBottom: 14,
+    paddingRight: 14,
+  },
+  topicContent: {
+    fontSize: 14,
+    color: "#555",
+    lineHeight: 20,
   },
   faqCard: {
     backgroundColor: "#fff",

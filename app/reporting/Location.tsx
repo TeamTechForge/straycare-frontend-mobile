@@ -26,7 +26,7 @@ export default function LocationPicker() {
   // SAFE PARAM FIX
   // ---------------------------------------------------------
   const safe = (v: string | string[] | undefined): string =>
-  Array.isArray(v) ? v[0] : v || "";
+    Array.isArray(v) ? v[0] : v || "";
 
 
   // ---------------------------------------------------------
@@ -215,11 +215,12 @@ const styles = StyleSheet.create({
   address: {
     fontSize: 16,
     color: "#333",
+    paddingBottom: 70,
   },
 
   bottomButtonWrapper: {
     position: "absolute",
-    bottom: 20,
+    bottom: 25,
     left: 20,
     right: 20,
   },

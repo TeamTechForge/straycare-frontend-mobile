@@ -11,12 +11,14 @@ import {
 import { useNotification, Notification } from "../../contexts/NotificationContext";
 
 export default function NotificationCenter() {
-  const { notifications, unreadCount, fetchNotifications, markAsRead, loading } =
+  const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead, loading } =
     useNotification();
   const [refreshing, setRefreshing] = React.useState(false);
 
   useEffect(() => {
-    fetchNotifications();
+    fetchNotifications().then(() => {
+      markAllAsRead();
+    });
   }, []);
 
   const handleRefresh = async () => {
@@ -144,7 +146,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingVertical: 26,
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
@@ -153,6 +155,7 @@ const styles = StyleSheet.create({
     fontSize: 20,
     fontWeight: "600",
     color: "#333",
+    paddingTop: 15,
   },
   badge: {
     backgroundColor: "#f44336",

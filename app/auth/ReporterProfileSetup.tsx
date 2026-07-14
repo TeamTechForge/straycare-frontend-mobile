@@ -227,8 +227,8 @@ export default function ReporterProfileSetupScreen() {
 
       const data: any = await response.json();
       if (response.ok) {
-        await refreshUser();
         router.replace("/auth/CompletedProfileSetup");
+        setTimeout(() => refreshUser(), 500);
       } else {
         Alert.alert(data.message || "Failed to save profile");
       }

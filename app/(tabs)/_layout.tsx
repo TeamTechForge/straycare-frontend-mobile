@@ -68,7 +68,7 @@ export default function TabLayout() {
           tabBarIcon: () => (
             <View style={styles.centerTabContainer}>
               <View style={styles.centerTab}>
-                <Ionicons name="add" size={32} color="#fff" />
+                <Ionicons name="map" size={28} color="#fff" />
               </View>
             </View>
           ),
