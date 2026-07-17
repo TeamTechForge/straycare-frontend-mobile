@@ -66,12 +66,19 @@ const requestJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
 
   let response;
   try {
+    const SecureStore = require("expo-secure-store");
+    const token = await SecureStore.getItemAsync("authToken");
+    const headers: any = {
+      "Content-Type": "application/json",
+      ...(init?.headers || {}),
+    };
+    if (token) {
+      headers["Authorization"] = `Bearer ${token}`;
+    }
+
     response = await fetch(url, {
-      headers: {
-        "Content-Type": "application/json",
-        ...(init?.headers || {}),
-      },
       ...init,
+      headers,
     });
   } catch (networkError) {
     console.error(`[forum.service] NETWORK ERROR:`, networkError);

@@ -181,7 +181,7 @@ const styles = StyleSheet.create({
     padding: 16,
     marginBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
+    borderBottomColor: "#923838ff",
   },
   unreadCard: {
     backgroundColor: "#f9f9f9",
@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
   },
   message: {
     fontSize: 14,
-    color: "#666",
+    color: "#565555ff",
     marginBottom: 6,
     lineHeight: 20,
   },

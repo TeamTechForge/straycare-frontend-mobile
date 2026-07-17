@@ -244,6 +244,36 @@ export default function PublicProfileScreen() {
     Alert.alert("Link Copied", "Profile link copied to clipboard.");
   };
 
+  const handleBlockUser = async () => {
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      if (!token) {
+        Alert.alert("Authentication required", "Please log in to block this user.");
+        return;
+      }
+
+      const response = await fetch(`${API_URL}/users/${userId}/block`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        }
+      });
+
+      const resData: any = await response.json();
+
+      if (response.ok) {
+        Alert.alert("Success", resData.message);
+        setMenuVisible(false);
+      } else {
+        Alert.alert("Error", resData.message || "Failed to block user.");
+      }
+    } catch (error: any) {
+      console.error("Block user error:", error);
+      Alert.alert("Error", "Something went wrong. Please check your connection.");
+    }
+  };
+
   const handleReportSubmit = async (reason: string, description: string): Promise<boolean> => {
     try {
       const token = await SecureStore.getItemAsync("authToken");
@@ -429,13 +459,13 @@ export default function PublicProfileScreen() {
         <ProfileStatsRow stats={
           userData.role === "general_user"
             ? [
-                { value: statsData.reportsCount || 0, label: "REPORTS" },
-                { value: statsData.postsCount || 0, label: "POSTS" },
-              ]
+              { value: statsData.reportsCount || 0, label: "REPORTS" },
+              { value: statsData.postsCount || 0, label: "POSTS" },
+            ]
             : [
-                { value: statsData.postsCount || 0, label: "POSTS" },
-                { value: statsData.rescuesCompleted || 0, label: "RESCUES" },
-              ]
+              { value: statsData.postsCount || 0, label: "POSTS" },
+              { value: statsData.rescuesCompleted || 0, label: "RESCUES" },
+            ]
         } />
 
         {/* Tabs Bar */}
@@ -547,6 +577,12 @@ export default function PublicProfileScreen() {
             label: "Report User",
             icon: "alert-circle-outline",
             onPress: () => setReportModalVisible(true),
+            destructive: true,
+          },
+          {
+            label: "Block/Unblock User",
+            icon: "ban-outline",
+            onPress: handleBlockUser,
             destructive: true,
           },
         ]}
