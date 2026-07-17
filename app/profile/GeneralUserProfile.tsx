@@ -275,7 +275,7 @@ export default function GeneralUserProfile() {
         }}
         onDonationsPress={() => {
           setMenuVisible(false);
-          router.push("/donate");
+          router.push("/donate/History");
         }}
         onSettingsPress={() => {
           setMenuVisible(false);

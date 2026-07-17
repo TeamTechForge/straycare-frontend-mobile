@@ -313,7 +313,7 @@ export default function VetProfile() {
         onProfilePress={() => setMenuVisible(false)}
         onDonationsPress={() => {
           setMenuVisible(false);
-          router.push("/donate");
+          router.push("/donate/DonationHub");
         }}
         onSettingsPress={() => {
           setMenuVisible(false);

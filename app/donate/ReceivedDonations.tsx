@@ -26,7 +26,7 @@ export default function ReceivedDonations() {
 
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Received Donations</Text>
+
 
             {/* Total Donations */}
             <View style={styles.totalBox}>
@@ -42,21 +42,13 @@ export default function ReceivedDonations() {
                 contentContainerStyle={{ paddingBottom: 80 }}
             />
 
-            {/* Bottom Navigation */}
-            <View style={styles.bottomNav}>
-                <Ionicons name="home-outline" size={24} />
-                <Ionicons name="people-outline" size={24} />
-                <Ionicons name="location-outline" size={24} />
-                <Ionicons name="chatbubble-outline" size={24} />
-                <Ionicons name="person-outline" size={24} />
-            </View>
+
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-    title: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
+    container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 10 },
     totalBox: {
         backgroundColor: "#F5A623",
         padding: 15,

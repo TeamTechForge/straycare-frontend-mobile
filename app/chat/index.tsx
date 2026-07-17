@@ -105,7 +105,16 @@ export default function ChatsScreen() {
 
     // Get the other participant in a 1:1 conversation
     const getOtherParticipant = (conversation: any) => {
-        return conversation.participants?.find((p: any) => p._id !== user?._id);
+        let other = conversation.participants?.find((p: any) => p && p._id !== user?._id);
+        if (!other) {
+            return {
+                _id: "deleted",
+                name: "Deleted User",
+                role: "",
+                profileImage: "https://ui-avatars.com/api/?name=Deleted+User&background=eaeaea&color=999"
+            };
+        }
+        return other;
     };
 
     // Format time for display
