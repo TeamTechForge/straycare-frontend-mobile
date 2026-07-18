@@ -1,5 +1,5 @@
 import React, { useCallback, useMemo, useState } from "react";
-import { ActivityIndicator, RefreshControl, SafeAreaView, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Image, RefreshControl, SafeAreaView, ScrollView, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
@@ -144,6 +144,14 @@ export default function DiscussionThreadScreen() {
         ) : (
           <>
             <ThreadHeaderCard title={headerTitle} likes={post?.likes ?? thread.likes} />
+
+            {post?.imageUrl ? (
+              <Image
+                source={{ uri: post.imageUrl }}
+                style={{ width: "90%", height: 200, alignSelf: "center", borderRadius: 12, marginTop: 8, marginBottom: 12 }}
+                resizeMode="cover"
+              />
+            ) : null}
 
             <ScrollView
               style={styles.list}

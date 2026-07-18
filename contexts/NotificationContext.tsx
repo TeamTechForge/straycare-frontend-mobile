@@ -9,6 +9,8 @@ export interface Notification {
   message: string;
   type: "success" | "error" | "info" | "warning";
   read: boolean;
+  rescueRequestId?: string;
+  caseId?: string;
   createdAt: string;
 }
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Pressable } from "react-native";
+import { View, Text, Pressable, Image } from "react-native";
 import { useRouter } from "expo-router";
 import { forumStyles as styles } from "../../styles/forum.styles";
 import type { ForumPost } from "../../types/Forum";
@@ -37,6 +37,15 @@ export default function ForumPostCard({ post, onToggleLike }: Props) {
 
       {/* Title */}
       <Text style={styles.postTitle}>{post.title}</Text>
+
+      {/* Post Image */}
+      {post.imageUrl ? (
+        <Image
+          source={{ uri: post.imageUrl }}
+          style={{ width: "100%", height: 180, borderRadius: 12, marginTop: 8, marginBottom: 8 }}
+          resizeMode="cover"
+        />
+      ) : null}
 
       {/* Author row */}
       <View style={styles.authorRow}>

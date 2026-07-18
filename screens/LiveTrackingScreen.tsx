@@ -16,6 +16,8 @@ import MapViewWrapper, { Marker } from "../components/MapViewWrapper";
 import AppButton from "../components/ui/AppButton";
 import { colors } from "../constants/colors.constants";
 import { spacing } from "../constants/spacing.constants";
+import { useAuth } from "../contexts/AuthContext";
+import { useChatApi } from "../hooks/useChatApi";
 import { fetchComments, fetchRescueById, postComment, postReply } from "../services/rescue.service";
 import { liveTrackingStyles as styles } from "../styles/live-tracking.styles";
 import type { LiveTrackingResponse, RescueComment } from "../types/Api";
@@ -96,11 +98,50 @@ export default function LiveTrackingScreen() {
   const router = useRouter();
   const { requestId } = useLocalSearchParams<Params>();
   const requestIdValue = getFirstParam(requestId) ?? "";
+  const { user } = useAuth();
+  const { createConversation } = useChatApi();
 
   // ── Rescue tracking state ──
   const [tracking, setTracking] = useState<LiveTrackingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const isReporter = useMemo(() => {
+    if (!user || !tracking) return false;
+    const currentUserId = (user as any)._id || (user as any).id;
+    const reporterId = tracking.case.reporter?.id;
+    return currentUserId && reporterId && String(currentUserId) === String(reporterId);
+  }, [user, tracking]);
+
+  const isRescuer = useMemo(() => {
+    if (!user || !tracking) return false;
+    const currentUserId = (user as any)._id || (user as any).id;
+    const rescuerUserId = (tracking.case.rescuer as any)?.userId || tracking.case.rescuer?.id;
+    return currentUserId && rescuerUserId && String(currentUserId) === String(rescuerUserId);
+  }, [user, tracking]);
+
+  const otherParty = useMemo(() => {
+    if (!tracking) return null;
+    if (isReporter) {
+      return {
+        role: "rescuer",
+        id: (tracking.case.rescuer as any)?.userId || tracking.case.rescuer?.id,
+        name: tracking.case.rescuer?.name || "Rescuer",
+        phone: tracking.case.rescuer?.phone,
+        avatar: tracking.case.rescuer?.avatar,
+      };
+    }
+    if (isRescuer) {
+      return {
+        role: "reporter",
+        id: tracking.case.reporter?.id,
+        name: tracking.case.reporter?.name || "Reporter",
+        phone: tracking.case.reporter?.phone,
+        avatar: tracking.case.reporter?.avatar,
+      };
+    }
+    return null;
+  }, [tracking, isReporter, isRescuer]);
 
   // ── Comments state ──
   const [comments, setComments] = useState<RescueComment[]>([]);
@@ -187,19 +228,18 @@ export default function LiveTrackingScreen() {
     return () => clearInterval(interval);
   }, [loadComments]);
 
-  /* ── Handle call rescuer ── */
-  const handleCallRescuer = useCallback(() => {
-    const phone = tracking?.case.rescuer?.phone;
+  /* ── Handle Call Other Party ── */
+  const handleCallOtherParty = useCallback(() => {
+    const phone = otherParty?.phone;
     if (!phone || phone.trim().length === 0) {
       Alert.alert(
         "Phone Number Unavailable",
-        "The rescuer's phone number is not available yet. Please try again later.",
+        "The phone number for this user is not available yet. Please try again later.",
         [{ text: "OK" }]
       );
       return;
     }
 
-    // Clean phone number (remove spaces, dashes)
     const cleanedPhone = phone.replace(/[\s-]/g, "");
     const url = `tel:${cleanedPhone}`;
 
@@ -216,7 +256,51 @@ export default function LiveTrackingScreen() {
       .catch(() => {
         Alert.alert("Error", "An error occurred while trying to make the call.", [{ text: "OK" }]);
       });
-  }, [tracking]);
+  }, [otherParty]);
+
+  /* ── Handle Message Other Party ── */
+  const handleMessageOtherParty = useCallback(async () => {
+    if (!user) {
+      Alert.alert("Authentication required", "Please log in to message this user.");
+      return;
+    }
+
+    if (!otherParty || !otherParty.id) {
+      Alert.alert("Error", "Recipient details are not loaded yet.");
+      return;
+    }
+
+    if (String((user as any)._id || (user as any).id) === String(otherParty.id)) {
+      Alert.alert("Error", "You cannot message yourself.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const conversation = (await createConversation(String(otherParty.id), "direct")) as any;
+      const otherParticipant = conversation.participants?.find(
+        (p: any) => p._id !== ((user as any)._id || (user as any).id)
+      );
+
+      router.push({
+        pathname: "/chat/[conversationId]",
+        params: {
+          conversationId: conversation._id,
+          recipientName: otherParticipant?.name || otherParty.name || "Chat",
+          recipientId: String(otherParty.id),
+          recipientImage: otherParticipant?.profileImage || otherParty.avatar || "",
+        },
+      });
+    } catch (chatError: any) {
+      console.error("[LiveTracking] Failed to start conversation:", chatError);
+      Alert.alert(
+        "Could Not Start Chat",
+        chatError.message || "Something went wrong while starting the conversation."
+      );
+    } finally {
+      setLoading(false);
+    }
+  }, [user, otherParty, createConversation, router]);
 
   /* ── Handle post new comment ── */
   const handlePostComment = useCallback(async () => {
@@ -363,20 +447,37 @@ export default function LiveTrackingScreen() {
             </View>
 
             {/* ══════════════════════════════════════════
-             *  📞 Call Rescuer Button
+             *  📞 & 💬 Call & Message Buttons
              * ══════════════════════════════════════════ */}
-            <TouchableOpacity
-              style={styles.callButton}
-              activeOpacity={0.85}
-              onPress={handleCallRescuer}
-            >
-              <View style={styles.callIconCircle}>
-                <Text style={styles.callIcon}>📞</Text>
+            {otherParty ? (
+              <View style={{ flexDirection: "row", gap: 12, marginVertical: 12 }}>
+                <TouchableOpacity
+                  style={[styles.callButton, { flex: 1, marginVertical: 0 }]}
+                  activeOpacity={0.85}
+                  onPress={handleCallOtherParty}
+                >
+                  <View style={styles.callIconCircle}>
+                    <Text style={styles.callIcon}>📞</Text>
+                  </View>
+                  <Text style={styles.callButtonText}>
+                    Call {otherParty.role === "rescuer" ? "Rescuer" : "Reporter"}
+                  </Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.callButton, { flex: 1, marginVertical: 0, backgroundColor: "#FFF2D8" }]}
+                  activeOpacity={0.85}
+                  onPress={handleMessageOtherParty}
+                >
+                  <View style={[styles.callIconCircle, { backgroundColor: colors.primary }]}>
+                    <Text style={styles.callIcon}>💬</Text>
+                  </View>
+                  <Text style={[styles.callButtonText, { color: colors.primary }]}>
+                    Message
+                  </Text>
+                </TouchableOpacity>
               </View>
-              <Text style={styles.callButtonText}>
-                Call Rescuer{tracking.case.rescuer?.name ? ` — ${tracking.case.rescuer.name}` : ""}
-              </Text>
-            </TouchableOpacity>
+            ) : null}
 
             {/* ══════════════════════════════════════════
              *  Tracking Notes Card
