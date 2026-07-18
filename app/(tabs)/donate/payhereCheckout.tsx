@@ -1,11 +1,20 @@
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { WebView } from "react-native-webview";
 
 const INJECTED_JS = `
   (function() {
+    try {
+      const style = document.createElement('style');
+      style.innerHTML = 'body, html { background-color: #ffffff !important; background: #ffffff !important; }';
+      document.head.appendChild(style);
+    } catch (e) {
+      console.log("CSS injection error:", e);
+    }
+
     function checkCard() {
       const inputs = document.querySelectorAll('input');
       inputs.forEach(function(input) {
@@ -27,35 +36,39 @@ const PayHereCheckout = () => {
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [orderData, setOrderData] = useState<any>(null);
-  const [paymentHandled, setPaymentHandled] = useState(false); // prevent double save
+  const [paymentHandled, setPaymentHandled] = useState(false);
 
-  const BACKEND_URL = "http://192.168.8.160:5000";
+  const BACKEND_URL = "http://192.168.8.100:5000";
 
-  // organization = _id, organizationName = display name
   const { amount, category, organization, organizationName, frequency, plan } = useLocalSearchParams();
 
   useEffect(() => {
     initiatePayment();
   }, []);
 
+  const getAuthHeaders = async () => {
+    const token = await SecureStore.getItemAsync("authToken");
+    return { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } };
+  };
+
   const initiatePayment = async () => {
     try {
       setLoading(true);
 
-      console.log("SENDING organizationId:", organization);
+      const config = await getAuthHeaders();
 
       const res = await axios.post(
         `${BACKEND_URL}/api/donations/initiate`,
         {
           amount: parseFloat(amount as string) || 1000,
-          organizationId: organization,   // _id for merchant ID lookup
-          organization: organizationName, // display name for donation record
+          organizationId: organization,
+          organization: organizationName,
           category,
           frequency,
           plan,
           items: "Donation",
         },
-        { timeout: 15000, headers: { "Content-Type": "application/json" } }
+        { ...config, timeout: 15000 }
       );
 
       const data = res.data;
@@ -91,15 +104,22 @@ const PayHereCheckout = () => {
 
   const saveDonation = async (status: string) => {
     try {
-      await axios.post(`${BACKEND_URL}/api/donations/save`, {
-        orderId: orderData?.order_id,
-        amount: orderData?.amount,
-        category: orderData?.category,
-        organization: orderData?.organization,
-        frequency: orderData?.frequency,
-        plan: orderData?.plan,
-        status,
-      });
+      const config = await getAuthHeaders();
+
+      await axios.post(
+        `${BACKEND_URL}/api/donations/save`,
+        {
+          orderId: orderData?.order_id,
+          amount: orderData?.amount,
+          category: orderData?.category,
+          organization: orderData?.organization,
+          organizationId: orderData?.organizationId,
+          frequency: orderData?.frequency,
+          plan: orderData?.plan,
+          status,
+        },
+        config
+      );
     } catch (err) {
       console.log("Failed to save donation:", err);
     }
@@ -110,7 +130,7 @@ const PayHereCheckout = () => {
     console.log("NAV URL:", url);
 
     if (url.includes("/payhere/return")) {
-      if (paymentHandled) return; // prevent double save
+      if (paymentHandled) return;
       setPaymentHandled(true);
 
       const urlParams = new URLSearchParams(url.split("?")[1]);
@@ -127,7 +147,7 @@ const PayHereCheckout = () => {
     }
 
     if (url.includes("/payhere/cancel")) {
-      if (paymentHandled) return; // prevent double save
+      if (paymentHandled) return;
       setPaymentHandled(true);
 
       await saveDonation("FAILED");
@@ -137,14 +157,14 @@ const PayHereCheckout = () => {
 
   if (loading || !paymentUrl) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" }}>
+        <ActivityIndicator size="large" color="#F5A623" />
       </View>
     );
   }
 
   return (
-    <View style={{ flex: 1 }}>
+    <View style={{ flex: 1, backgroundColor: "#fff" }}>
       <WebView
         source={{ uri: paymentUrl }}
         onNavigationStateChange={handleNavigationChange}
@@ -152,7 +172,7 @@ const PayHereCheckout = () => {
         javaScriptEnabled
         domStorageEnabled
         startInLoadingState
-        style={{ flex: 1 }}
+        style={{ flex: 1, backgroundColor: "#fff" }}
         onShouldStartLoadWithRequest={(request) => {
           const url = request.url;
           if (url.includes("/payhere/return")) {

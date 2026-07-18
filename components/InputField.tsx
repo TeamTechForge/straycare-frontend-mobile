@@ -1,15 +1,14 @@
-import { Feather } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import { useState } from "react";
 import { StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
 
 type Props = {
   placeholder: string;
   value: string;
   onChangeText: (text: string) => void;
   secure?: boolean;
-  icon?: string;
-  rightIcon?: string;
+  icon?: any;       
+  rightIcon?: any;  
   onRightIconPress?: () => void;
   label?: string;
   error?: string;
@@ -111,6 +110,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 6,
     fontWeight: "500",
+    color: "#333", // Combined styling into one single block
   },
 
   inputWrapper: {
@@ -144,12 +144,4 @@ const styles = StyleSheet.create({
     fontSize: 12,
     marginTop: 4,
   },
-  
-  label: {
-  fontSize: 13,
-  marginBottom: 6,
-  fontWeight: "500",
-  color: "#333",
-},
-  
 });

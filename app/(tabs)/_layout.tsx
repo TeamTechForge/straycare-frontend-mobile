@@ -1,15 +1,13 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet, Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter, useSegments } from 'expo-router';
+import { Tabs, useRouter, useSegments } from 'expo-router';
 import * as SecureStore from 'expo-secure-store';
 import { useEffect, useState } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { API_URL } from '../../constants/Config';
 
 const BRAND_COLOR = "#F5A623";
 const TAB_BAR_BG = "#FFF7E6";
-
 
 //file defines the bottom tab navigation for the StrayCare app.
 
@@ -182,6 +180,15 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons name={focused ? "person" : "person-outline"} size={24} color={color} />
           ),
+        }}
+      />
+
+      {/* Donate Flow (Hidden from Tab Bar) */}
+      <Tabs.Screen
+        name="donate"
+        options={{
+          href: null,
+          headerShown: false,
         }}
       />
     </Tabs>

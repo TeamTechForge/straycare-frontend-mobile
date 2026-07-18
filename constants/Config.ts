@@ -9,9 +9,8 @@ import Constants from 'expo-constants';
  * 3. Hardcoded fallback      (update when your network changes)
  */
 
-// ✅ CHANGE THIS to your machine's current LAN IP whenever your network changes.
-//    Run `ipconfig` (Windows) or `ifconfig` (Mac/Linux) to find it.
-const FALLBACK_IP = '192.168.8.142';
+
+const FALLBACK_IP = '192.168.8.100';
 const BACKEND_PORT = 5000;
 
 function resolveBaseUrl(): string {

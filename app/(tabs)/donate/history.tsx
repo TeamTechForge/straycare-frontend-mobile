@@ -1,10 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
+
 import axios from "axios";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
-// Defines the structure of a donation object from MongoDB
 type Donation = {
   _id: string;
   organization: string;
@@ -17,23 +17,23 @@ type Donation = {
 
 export default function DonationHistory() {
   const router = useRouter();
-
   const [donations, setDonations] = useState<Donation[]>([]);
-
   const [loading, setLoading] = useState(true);
+  const BACKEND_URL = "http://192.168.8.100:5000";
 
-  const BACKEND_URL="http://192.168.8.160:5000";
-
-  // Runs once when screen loads
   useEffect(() => {
     fetchDonations();
   }, []);
 
-  // Fetches all donations from MongoDB
   const fetchDonations = async () => {
     try {
-      const res = await axios.get(`${BACKEND_URL}/api/donations/history`);
-      setDonations(res.data); // stores donations in state
+      const token = await SecureStore.getItemAsync("authToken");
+
+      const res = await axios.get(`${BACKEND_URL}/api/donations/history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setDonations(res.data);
     } catch (err) {
       console.error("Error fetching donations:", err);
     } finally {
@@ -41,23 +41,15 @@ export default function DonationHistory() {
     }
   };
 
-  //each donation card 
   const renderItem = ({ item }: { item: Donation }) => (
     <View style={styles.card}>
-      
       <Text style={styles.org}>{item.organization || "StrayCare"}</Text>
-
       <Text style={styles.category}>{item.category || "General"}</Text>
-
       <Text style={styles.amount}>Rs. {item.amount.toFixed(2)}</Text>
-
       <Text style={styles.date}>{new Date(item.timestamp).toLocaleDateString()}</Text>
-
-      {/* Unique order ID from PayHere */}
       <Text style={styles.orderId}>Order: {item.orderId}</Text>
 
       <View style={styles.row}>
-        
         <View
           style={[
             styles.statusPill,
@@ -74,12 +66,9 @@ export default function DonationHistory() {
           </Text>
         </View>
 
-        {}
-        
         {item.status === "SUCCESS" && (
           <TouchableOpacity
             style={styles.receiptBtn}
-            // Passes donation object as string to receipt screen
             onPress={() => router.push({ pathname: "/donate/receipt", params: { donation: JSON.stringify(item) } })}
           >
             <Text style={styles.receiptText}>Receipt</Text>
@@ -89,50 +78,55 @@ export default function DonationHistory() {
     </View>
   );
 
-  // Show spinner while donations are loading
   if (loading) {
     return (
-      <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-        <ActivityIndicator size="large" />
+      <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" }}>
+        <ActivityIndicator size="large" color="#F5A623" />
       </View>
     );
   }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Donate & Support♡</Text>
-      <Text style={styles.heading}>Donation History</Text>
+    <View style={{ flex: 1 }}>
+      <View style={styles.container}>
+        <Text style={styles.heading}>Donation History</Text>
 
-    
-      {donations.length === 0 ? (
-        <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations yet</Text>
-      ) : (
-        
-        <FlatList
-          data={donations}                              // donations array from MongoDB
-          keyExtractor={(donation) => donation._id}     
-          renderItem={renderItem}                       
-          contentContainerStyle={{ paddingBottom: 80 }}
-        />
-      )}
-
-      {/* Bottom navigation bar */}
-      <View style={styles.bottomBar}>
-        <Ionicons name="home" size={24} color="#000" />
-        <Ionicons name="people-outline" size={24} color="#000" />
-        <Ionicons name="add-circle-outline" size={24} color="#000" />
-        <Ionicons name="chatbubble-outline" size={24} color="#000" />
-        <Ionicons name="person-outline" size={24} color="#000" />
+        {donations.length === 0 ? (
+          <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations yet</Text>
+        ) : (
+          <FlatList
+            data={donations}
+            keyExtractor={(donation) => donation._id}     
+            renderItem={renderItem}                       
+            contentContainerStyle={{ paddingBottom: 80 }}
+          />
+        )}
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-  title: { fontSize: 22, fontWeight: "bold", textAlign: "center" },
-  heading: { fontSize: 18, fontWeight: "600", marginVertical: 15, textAlign: "center", color: "#333" },
-  card: { backgroundColor: "#f9f9f9", padding: 15, borderRadius: 10, marginBottom: 15 },
+  container: { 
+    flex: 1, 
+    backgroundColor: "#fff", 
+    paddingHorizontal: 20, 
+    paddingTop: 60
+  },
+  heading: { 
+    fontSize: 22, 
+    fontWeight: "bold", 
+    marginBottom: 20, 
+    color: "#000"
+  },
+  card: { 
+    backgroundColor: "#f9f9f9", 
+    padding: 15, 
+    borderRadius: 12, 
+    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#eee"
+  },
   org: { fontSize: 16, fontWeight: "bold" },
   category: { fontSize: 13, color: "#666", marginTop: 2 },
   amount: { fontSize: 14, marginTop: 5, fontWeight: "600" },
@@ -143,5 +137,4 @@ const styles = StyleSheet.create({
   statusText: { fontWeight: "bold", fontSize: 12 },
   receiptBtn: { marginLeft: 10, paddingVertical: 4, paddingHorizontal: 10, backgroundColor: "#FFB700", borderRadius: 6 },
   receiptText: { fontSize: 12, fontWeight: "600", color: "#fff" },
-  bottomBar: { flexDirection: "row", justifyContent: "space-around", padding: 15, borderTopWidth: 1, borderColor: "#ddd", marginTop: "auto", backgroundColor: "#FFF9E6" },
 });
