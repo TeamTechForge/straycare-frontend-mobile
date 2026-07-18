@@ -10,6 +10,26 @@ export default function Success() {
     ? params.caseId[0]
     : params.caseId || "UNKNOWN";
 
+  const lat = Array.isArray(params.lat)
+    ? params.lat[0]
+    : params.lat || "";
+
+  const lng = Array.isArray(params.lng)
+    ? params.lng[0]
+    : params.lng || "";
+
+  const animalType = Array.isArray(params.animalType)
+    ? params.animalType[0]
+    : params.animalType || "";
+
+  const animalPhoto = Array.isArray(params.animalPhoto)
+    ? params.animalPhoto[0]
+    : params.animalPhoto || "";
+
+  const description = Array.isArray(params.description)
+    ? params.description[0]
+    : params.description || "";
+
   return (
     <View style={styles.container}>
       
@@ -34,6 +54,26 @@ export default function Success() {
 
       {/* BUTTONS */}
       <View style={styles.buttonGroup}>
+
+        {/* FIND NEAREST RESCUER */}
+        {lat && lng ? (
+          <PrimaryButton
+            title="Find Nearest Rescuer"
+            onPress={() =>
+              router.push({
+                pathname: "/searching-help",
+                params: {
+                  lat,
+                  lng,
+                  caseId,
+                  animalType,
+                  animalPhoto,
+                  description,
+                },
+              })
+            }
+          />
+        ) : null}
 
         {/* VIEW CASE DETAILS */}
         <PrimaryButton

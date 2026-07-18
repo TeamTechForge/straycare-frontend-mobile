@@ -1,8 +1,9 @@
 import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   StyleSheet,
@@ -13,6 +14,9 @@ import {
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/Config";
+import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthService";
+import { useAuth } from "../../contexts/AuthContext";
+import CustomAlertModal from "../../components/CustomAlertModal";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -25,8 +29,44 @@ const loginSchema = z.object({
 
 export default function LoginScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
   const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAccountNotFoundVisible, setIsAccountNotFoundVisible] = useState(false);
+
+  // Google Sign-In setup
+  const { response: googleResponse, promptAsync, isReady: isGoogleReady, isExpoGo } = useGoogleAuth();
+
+  // Handle Google Sign-In response
+  useEffect(() => {
+    if (!googleResponse) return;
+
+    const processGoogleSignIn = async () => {
+      setIsGoogleLoading(true);
+      try {
+        const result = await handleGoogleSignIn(googleResponse);
+        await SecureStore.setItemAsync("authToken", result.token);
+        await refreshUser();
+        if (result.isNewUser) {
+          router.replace("/auth/roleSelection");
+        } else {
+          router.replace("/(tabs)/home");
+        }
+      } catch (error) {
+        if (error.message === "CANCELLED") {
+          // User dismissed the popup — do nothing
+          return;
+        }
+        console.error("Google Sign-In error:", error);
+        Alert.alert("Google Sign-In Failed", error.message);
+      } finally {
+        setIsGoogleLoading(false);
+      }
+    };
+
+    processGoogleSignIn();
+  }, [googleResponse]);
 
   const {
     control,
@@ -41,12 +81,18 @@ export default function LoginScreen() {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
 
+    const url = `${API_URL}/auth/login`;
+    const headers = { "Content-Type": "application/json" };
+    const body = JSON.stringify({ email: data.email, password: data.password });
+
     try {
-      console.log("Attempting login via:", `${API_URL}/auth/login`);
-      const response = await fetch(`${API_URL}/auth/login`, {
+      console.log("Attempting login via:", url);
+      console.log("Login request headers:", headers);
+      console.log("Login request body:", body);
+      const response = await fetch(url, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: data.email, password: data.password }),
+        headers,
+        body,
         signal: controller.signal,
       });
 
@@ -54,17 +100,34 @@ export default function LoginScreen() {
       const json = await response.json();
 
       if (!response.ok) {
-        Alert.alert("Login Failed", json.message || "Invalid credentials.");
+        console.log("[Login] Response status:", response.status);
+        console.log("[Login] Response message:", json.message);
+        if (response.status === 404 || json.message === "Account not found") {
+          console.log("[Login] Showing account not found popup");
+          setIsAccountNotFoundVisible(true);
+        } else {
+          Alert.alert("Login Failed", json.message || "Invalid credentials.");
+        }
         return;
       }
 
       // Store JWT securely — never in AsyncStorage
       await SecureStore.setItemAsync("authToken", json.token);
 
+      // Refresh AuthContext so token + user are available app-wide
+      await refreshUser();
+
       router.replace("/(tabs)/home");
     } catch (error: any) {
       clearTimeout(timeoutId);
       console.error("Login error:", error);
+      console.error("Login error details:", {
+        name: error?.name,
+        message: error?.message,
+        stack: error?.stack,
+        response: error?.response,
+        request: error?.request,
+      });
       if (error.name === "AbortError") {
         Alert.alert(
           "Request Timed Out",
@@ -108,6 +171,7 @@ export default function LoginScreen() {
     <TextInput
       style={styles.input}
       placeholder="Email Address"
+      placeholderTextColor="#999"
       value={value}
       onChangeText={onChange}
       keyboardType="email-address"
@@ -131,6 +195,7 @@ export default function LoginScreen() {
       <TextInput
         style={styles.passwordInput}
         placeholder="Password"
+        placeholderTextColor="#999"
         secureTextEntry={!isPasswordVisible}
         value={value}
         onChangeText={onChange}
@@ -180,11 +245,23 @@ export default function LoginScreen() {
           <View style={styles.dividerLine} />
         </View>
 
-        {/* GOOGLE BUTTON (visual only) */}
-        <TouchableOpacity style={styles.googleButton} onPress={() => {}} disabled={isLoading}>
-          <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
-          <Text style={styles.googleButtonText}>Continue with Google</Text>
-        </TouchableOpacity>
+        {/* GOOGLE BUTTON (Only visible in Development Builds) */}
+        {!isExpoGo && (
+          <TouchableOpacity
+            style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
+            onPress={() => promptAsync()}
+            disabled={isLoading || isGoogleLoading || !isGoogleReady}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator size="small" color="#DB4437" style={styles.googleIcon} />
+            ) : (
+              <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
+            )}
+            <Text style={styles.googleButtonText}>
+              {isGoogleLoading ? "Signing in..." : "Continue with Google"}
+            </Text>
+          </TouchableOpacity>
+        )}
         
         {/*  SIGNUP LINK */}
         <View style={styles.signupContainer}>
@@ -194,6 +271,20 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
       </View>
+
+      <CustomAlertModal
+        visible={isAccountNotFoundVisible}
+        title="Account Not Found"
+        message="We couldn't find an account associated with this email. Would you like to create one?"
+        confirmLabel="Create Account"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setIsAccountNotFoundVisible(false);
+          router.push("/auth/register");
+        }}
+        onCancel={() => setIsAccountNotFoundVisible(false)}
+        onClose={() => setIsAccountNotFoundVisible(false)}
+      />
     </View>
   );
 }

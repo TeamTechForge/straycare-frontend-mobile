@@ -110,7 +110,7 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginBottom: 6,
     fontWeight: "500",
-    color: "#333", // Combined styling into one single block
+    color: "#333",
   },
 
   inputWrapper: {

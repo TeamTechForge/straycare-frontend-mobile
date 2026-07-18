@@ -1,17 +1,70 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
-
+import { useFocusEffect, useRouter } from "expo-router";
+import { useCallback, useEffect } from "react";
+import { Alert, AppState, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
+import { useAuth } from "../../contexts/AuthContext";
+import { useSocket } from "../../contexts/SocketContext";
 
 const BRAND_COLOR = "#F5A623";
 
 export default function VerificationPendingScreen() {
   const router = useRouter();
+  const { socket } = useSocket();
+  const { refreshUser, logout } = useAuth();
+
+  const handleLogout = async () => {
+    try {
+      console.log("[VerificationPending] 🚪 Logging out...");
+      await logout();
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  // Refresh user status on focus
+  useFocusEffect(
+    useCallback(() => {
+      console.log("[VerificationPending] 🔄 Screen focused, refreshing user status...");
+      refreshUser();
+    }, [refreshUser])
+  );
+
+  // Socket Listener for real-time approval
+  useEffect(() => {
+    if (!socket) return;
+
+    const onApproved = async (data: any) => {
+      console.log("[VerificationPending] 🔔 Received user:approved socket event:", data);
+      await refreshUser();
+      Alert.alert(
+        "Account Approved!",
+        "Congratulations! Your account has been verified. Welcome to StrayCare! 🐾"
+      );
+    };
+
+    socket.on("user:approved", onApproved);
+
+    return () => {
+      socket.off("user:approved", onApproved);
+    };
+  }, [socket, refreshUser]);
+
+  // AppState Listener to sync when returning to app foreground
+  useEffect(() => {
+    const subscription = AppState.addEventListener("change", async (nextAppState) => {
+      if (nextAppState === "active") {
+        console.log("[VerificationPending] 🔄 App foregrounded, checking approval status...");
+        await refreshUser();
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, [refreshUser]);
 
   const handleReturnHome = () => {
-    // router.replace("/(tabs)/home"); 
-    // Disabling for unapproved users as requested
     alert("Your account is still under review.");
   };
 
@@ -19,11 +72,21 @@ export default function VerificationPendingScreen() {
     router.push("/profile/contactSupport");
   };
 
+  const handleCheckNotifications = async () => {
+    try {
+      console.log("[VerificationPending] 🔄 Manual refresh triggered via check notifications...");
+      await refreshUser();
+    } catch (e) {
+      console.error(e);
+    }
+    router.push("/notifications");
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.push("/notifications")}>
+        <TouchableOpacity onPress={handleCheckNotifications}>
           <Ionicons name="notifications-outline" size={24} color="#000" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Verification Status</Text>
@@ -66,7 +129,7 @@ export default function VerificationPendingScreen() {
         </Text>
         <PrimaryButton 
           title="Check for Notifications" 
-          onPress={() => router.push("/notifications")} 
+          onPress={handleCheckNotifications} 
         />
       </View>
 
@@ -74,6 +137,12 @@ export default function VerificationPendingScreen() {
       <TouchableOpacity style={styles.supportRow} onPress={handleContactSupport}>
         <Ionicons name="headset-outline" size={14} color="#666" />
         <Text style={styles.supportText}>Contact Support</Text>
+      </TouchableOpacity>
+
+      {/* Logout */}
+      <TouchableOpacity style={[styles.supportRow, { marginTop: 12 }]} onPress={handleLogout}>
+        <Ionicons name="log-out-outline" size={14} color="#EF4444" />
+        <Text style={[styles.supportText, { color: "#EF4444" }]}>Sign Out</Text>
       </TouchableOpacity>
     </View>
   );

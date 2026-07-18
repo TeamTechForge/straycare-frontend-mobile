@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { getAnimalPostById, reportAnimalPost } from '../../api/api';
+import { getAnimalPostById, getBaseUrl, reportAnimalPost } from '../../api/api';
 
 // ─── Colour changes were made ────────────────────────────────────────────────────────────
 const C = {
@@ -38,7 +38,7 @@ const C = {
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const IMAGE_HEIGHT = 280;
-const BASE_URL = 'http://10.87.129.94:5000';
+const BASE_URL = getBaseUrl();
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 interface AnimalPost {
@@ -229,7 +229,7 @@ const ViewAnimalPost = () => {
       setError('');
 
       const data = await getAnimalPostById(id);
-      setPost(data);
+      setPost(data || null);
       if (!isRefresh) runEntranceAnim();
     } catch (err: any) {
       const msg =

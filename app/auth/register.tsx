@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -11,10 +12,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthService";
 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
+import CustomAlertModal from "../../components/CustomAlertModal";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -23,6 +27,7 @@ and registering the user with the backend.*/
 export default function RegisterScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const { refreshUser } = useAuth();
 
   const [agree, setAgree] = useState(false);
 
@@ -34,6 +39,43 @@ export default function RegisterScreen() {
 
   const [errors, setErrors] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
+  const [isGoogleLoading, setIsGoogleLoading] = useState(false);
+  const [isAccountExistsVisible, setIsAccountExistsVisible] = useState(false);
+
+  // Google Sign-In setup
+  const { response: googleResponse, promptAsync, isReady: isGoogleReady, isExpoGo } = useGoogleAuth();
+
+  // Handle Google Sign-In response
+  useEffect(() => {
+    if (!googleResponse) return;
+
+    const processGoogleSignIn = async () => {
+      setIsGoogleLoading(true);
+      try {
+        const result = await handleGoogleSignIn(googleResponse);
+        await SecureStore.setItemAsync("authToken", result.token);
+        await refreshUser();
+
+        if (result.isNewUser) {
+          // New Google account — needs role selection
+          router.replace("/auth/roleSelection");
+        } else {
+          // Existing account — go straight to home
+          router.replace("/(tabs)/home");
+        }
+      } catch (error) {
+        if (error.message === "CANCELLED") {
+          return;
+        }
+        console.error("Google Sign-In error:", error);
+        Alert.alert("Google Sign-In Failed", error.message);
+      } finally {
+        setIsGoogleLoading(false);
+      }
+    };
+
+    processGoogleSignIn();
+  }, [googleResponse]);
 
   useEffect(() => {
     if (params.agreed === "true") {
@@ -130,10 +172,20 @@ export default function RegisterScreen() {
         // Store JWT securely
         await SecureStore.setItemAsync("authToken", data.token);
 
+        // Refresh AuthContext so token + user are available app-wide
+        await refreshUser();
+
         router.replace("/auth/roleSelection");
       } else {
         const errMsg = data.message || (data.error ? String(data.error) : "Registration failed");
-        Alert.alert("Registration Failed", errMsg);
+        console.log("[Register] Response status:", response.status);
+        console.log("[Register] Error message:", errMsg);
+        if (errMsg.includes("already registered") || errMsg.includes("already exists") || errMsg.includes("already exist")) {
+          console.log("[Register] Showing account exists popup");
+          setIsAccountExistsVisible(true);
+        } else {
+          Alert.alert("Registration Failed", errMsg);
+        }
       }
     } catch (error: any) {
       clearTimeout(timeoutId);
@@ -155,11 +207,12 @@ export default function RegisterScreen() {
   };
 
   return (
-    <ScrollView
-      style={styles.container}
-      contentContainerStyle={{ paddingBottom: 40 }}
-      showsVerticalScrollIndicator={false}
-    >
+    <View style={{ flex: 1 }}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={{ paddingBottom: 40 }}
+        showsVerticalScrollIndicator={false}
+      >
       <Image
         source={require("../../assets/images/signupimg.jpg")}
         style={styles.topImage}
@@ -261,15 +314,27 @@ export default function RegisterScreen() {
           <View style={styles.line} />
         </View>
 
-        <TouchableOpacity style={styles.googleButton} disabled={isLoading}>
-          <MaterialCommunityIcons
-            name="google"
-            size={18}
-            color="#DB4437"
-            style={{ marginRight: 8 }}
-          />
-          <Text style={styles.googleText}>Continue with Google</Text>
-        </TouchableOpacity>
+        {!isExpoGo && (
+          <TouchableOpacity
+            style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
+            onPress={() => promptAsync()}
+            disabled={isLoading || isGoogleLoading || !isGoogleReady}
+          >
+            {isGoogleLoading ? (
+              <ActivityIndicator size="small" color="#DB4437" style={{ marginRight: 8 }} />
+            ) : (
+              <MaterialCommunityIcons
+                name="google"
+                size={18}
+                color="#DB4437"
+                style={{ marginRight: 8 }}
+              />
+            )}
+            <Text style={styles.googleText}>
+              {isGoogleLoading ? "Signing in..." : "Continue with Google"}
+            </Text>
+          </TouchableOpacity>
+        )}
 
         <View style={styles.loginContainer}>
           <Text style={{ fontSize: 13 }}>Already have an account?</Text>
@@ -279,6 +344,21 @@ export default function RegisterScreen() {
         </View>
       </View>
     </ScrollView>
+
+      <CustomAlertModal
+        visible={isAccountExistsVisible}
+        title="Account Already Exists"
+        message="This email is already registered. Please log in instead."
+        confirmLabel="Go to Login"
+        cancelLabel="Cancel"
+        onConfirm={() => {
+          setIsAccountExistsVisible(false);
+          router.push("/auth/login");
+        }}
+        onCancel={() => setIsAccountExistsVisible(false)}
+        onClose={() => setIsAccountExistsVisible(false)}
+      />
+    </View>
   );
 }
 

@@ -2,6 +2,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   ScrollView,
   StyleSheet,
@@ -10,11 +11,11 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
-
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import * as DocumentPicker from "expo-document-picker";
 
+import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
@@ -26,6 +27,7 @@ const BRAND_COLOR = "#F5A623";
 
 export default function VetProfileSetupScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   const [profileImage, setProfileImage] = useState<string | null>(null);
   const [licenseDocument, setLicenseDocument] = useState<string | null>(null);
@@ -34,6 +36,7 @@ export default function VetProfileSetupScreen() {
   const [primaryLocation, setPrimaryLocation] = useState("");
   const [phone, setPhone] = useState("");
   const [shortBio, setShortBio] = useState("");
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const [clinicName, setClinicName] = useState("");
   const [clinicAddress, setClinicAddress] = useState("");
@@ -42,6 +45,73 @@ export default function VetProfileSetupScreen() {
   const [payHereMerchantId, setPayHereMerchantId] = useState("");
   const [merchantSecret, setMerchantSecret] = useState("");
   const [paymentValidationError, setPaymentValidationError] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
+    if (!uriOrAsset) return null;
+
+    let uri = "";
+    let name = "upload_file";
+    let mimeType = "image/jpeg";
+
+    if (typeof uriOrAsset === "object" && uriOrAsset.uri) {
+      uri = uriOrAsset.uri;
+      name = uriOrAsset.name || "upload_file";
+      mimeType = uriOrAsset.mimeType || "application/octet-stream";
+    } else if (typeof uriOrAsset === "string" && (uriOrAsset.startsWith("file://") || uriOrAsset.startsWith("content://"))) {
+      uri = uriOrAsset;
+      const filename = uri.split("/").pop();
+      if (filename) name = filename;
+    } else if (typeof uriOrAsset === "string") {
+      return uriOrAsset;
+    } else {
+      return null;
+    }
+
+    // Resolve content:// URIs to local file:// URIs using expo-file-system
+    if (uri.startsWith("content://")) {
+      try {
+        const cacheDir = `${cacheDirectory}UploadCache/`;
+        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => {});
+        const localUri = `${cacheDir}${name}`;
+        await copyAsync({ from: uri, to: localUri });
+        uri = localUri;
+      } catch (err) {
+        console.error("Failed to copy content URI to local cache:", err);
+      }
+    }
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri,
+      name,
+      type: mimeType,
+    } as any);
+
+    const res = await fetch(`${API_URL}/upload/cloudinary`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      let errorMsg = "Failed to upload file to Cloudinary";
+      try {
+        const errorData = await res.json();
+        if (errorData && errorData.message) {
+          errorMsg = errorData.message;
+        }
+      } catch (e) {
+        // use default error message
+      }
+      throw new Error(errorMsg);
+    }
+
+    const data = await res.json();
+    return data.url;
+  };
 
   const [errors, setErrors] = useState({
     name: "",
@@ -120,6 +190,7 @@ export default function VetProfileSetupScreen() {
     }
 
     const loc = await Location.getCurrentPositionAsync({});
+    setCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
 
     const address = await Location.reverseGeocodeAsync({
       latitude: loc.coords.latitude,
@@ -210,7 +281,14 @@ export default function VetProfileSetupScreen() {
     }
 
     try {
+      setIsSubmitting(true);
       const token = await SecureStore.getItemAsync("authToken");
+      if (!token) throw new Error("No authorization token found");
+
+      // Upload local files to Cloudinary first
+      const uploadedImageUrl = await uploadToCloudinaryIfLocal(profileImage, token);
+      const uploadedDocUrl = await uploadToCloudinaryIfLocal(licenseDocument, token);
+
       const response = await fetch(`${API_URL}/profiles/vet`, {
         method: "POST",
         headers: {
@@ -224,22 +302,27 @@ export default function VetProfileSetupScreen() {
           clinicAddress,
           licenseNumber,
           yearsOfExperience,
-          profileImage: profileImage && typeof profileImage === 'object' ? (profileImage as any).uri : profileImage,
-          licenseDocument: licenseDocument && typeof licenseDocument === 'object' ? (licenseDocument as any).uri : licenseDocument,
+          profileImage: uploadedImageUrl,
+          licenseDocument: uploadedDocUrl,
           merchantId: payHereMerchantId,
           merchantSecret,
+          latitude: coords?.latitude,
+          longitude: coords?.longitude,
         }),
       });
 
       const data = await response.json();
       if (response.ok) {
-        router.replace("/auth/verificationPending");
+        await refreshUser();
+        router.replace("/auth/completedProfileSetup");
       } else {
-        alert(data.message || "Failed to save profile");
+        alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Profile submission error:", error);
-      alert("Something went wrong. Please check connection.");
+      alert(error.message || "Something went wrong. Please check connection.");
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -402,7 +485,11 @@ export default function VetProfileSetupScreen() {
       </Text>
 
       {/* Submit */}
-      <PrimaryButton title="Submit for Verification" onPress={handleSubmit} />
+      <PrimaryButton
+        title={isSubmitting ? "Uploading files..." : "Submit for Verification"}
+        onPress={handleSubmit}
+        disabled={isSubmitting}
+      />
     </ScrollView>
   );
 }

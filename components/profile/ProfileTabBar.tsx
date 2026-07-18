@@ -2,16 +2,15 @@ import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 const BRAND_COLOR = "#F5A623";
 
-type TabKey = "posts" | "reports" | "saved";
+export type TabKey = "posts" | "reports" | "saved" | "rescues";
 
 type Props = {
   activeTab: TabKey;
   onChange: (tab: TabKey) => void;
+  tabs?: TabKey[];
 };
 
-export default function ProfileTabBar({ activeTab, onChange }: Props) {
-  const tabs: TabKey[] = ["posts", "reports", "saved"];
-
+export default function ProfileTabBar({ activeTab, onChange, tabs = ["posts", "reports", "saved"] }: Props) {
   return (
     <View style={styles.tabRow}>
       {tabs.map((tab) => (

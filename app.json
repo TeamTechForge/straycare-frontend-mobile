@@ -12,7 +12,8 @@
       "supportsTablet": true
     },
     "android": {
-      "usesCleartextTraffic": true,
+      "package": "com.techforge.straycare",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "backgroundColor": "#FFFFFF"
@@ -27,7 +28,7 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/images/stracarelogo.png",
+          "image": "./assets/images/straycarelogo.png",
           "resizeMode": "contain",
           "backgroundColor": "#FFFFFF"
         }
@@ -39,8 +40,16 @@
           "cameraPermission": "Allow StrayCare to use your camera."
         }
       ],
-      "expo-asset",
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24
+          }
+        }
+      ],
+      "@react-native-google-signin/google-signin"
     ],
     "experiments": {
       "typedRoutes": true

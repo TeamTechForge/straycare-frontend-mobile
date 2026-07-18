@@ -4,6 +4,7 @@ import * as Location from "expo-location";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
+import { useAuth } from "../../contexts/AuthContext";
 import {
   ScrollView,
   StyleSheet,
@@ -12,6 +13,8 @@ import {
   TouchableOpacity,
   View
 } from "react-native";
+
+import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
@@ -22,6 +25,7 @@ const BRAND_COLOR = "#f59e0b";
 
 export default function ReporterProfileSetupScreen() {
   const router = useRouter();
+  const { refreshUser } = useAuth();
 
   // ✅ states
   const [name, setName] = useState("");
@@ -55,6 +59,72 @@ export default function ReporterProfileSetupScreen() {
     };
     fetchUser();
   }, []);
+
+  const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
+    if (!uriOrAsset) return null;
+
+    let uri = "";
+    let name = "upload_file";
+    let mimeType = "image/jpeg";
+
+    if (typeof uriOrAsset === "object" && uriOrAsset.uri) {
+      uri = uriOrAsset.uri;
+      name = uriOrAsset.name || "upload_file";
+      mimeType = uriOrAsset.mimeType || "application/octet-stream";
+    } else if (typeof uriOrAsset === "string" && (uriOrAsset.startsWith("file://") || uriOrAsset.startsWith("content://"))) {
+      uri = uriOrAsset;
+      const filename = uri.split("/").pop();
+      if (filename) name = filename;
+    } else if (typeof uriOrAsset === "string") {
+      return uriOrAsset;
+    } else {
+      return null;
+    }
+
+    // Resolve content:// URIs to local file:// URIs using expo-file-system
+    if (uri.startsWith("content://")) {
+      try {
+        const cacheDir = `${cacheDirectory}UploadCache/`;
+        await makeDirectoryAsync(cacheDir, { intermediates: true }).catch(() => {});
+        const localUri = `${cacheDir}${name}`;
+        await copyAsync({ from: uri, to: localUri });
+        uri = localUri;
+      } catch (err) {
+        console.error("Failed to copy content URI to local cache:", err);
+      }
+    }
+
+    const formData = new FormData();
+    formData.append("file", {
+      uri,
+      name,
+      type: mimeType,
+    } as any);
+
+    const res = await fetch(`${API_URL}/upload/cloudinary`, {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+      body: formData,
+    });
+
+    if (!res.ok) {
+      let errorMsg = "Failed to upload file to Cloudinary";
+      try {
+        const errorData = await res.json();
+        if (errorData && errorData.message) {
+          errorMsg = errorData.message;
+        }
+      } catch (e) {
+        // use default error message
+      }
+      throw new Error(errorMsg);
+    }
+
+    const data = await res.json();
+    return data.url;
+  };
 
   // ✅ image (optional)
   const handlePickImage = async () => {
@@ -136,6 +206,10 @@ export default function ReporterProfileSetupScreen() {
 
     try {
       const token = await SecureStore.getItemAsync("authToken");
+      if (!token) throw new Error("No authorization token found");
+
+      const uploadedImageUrl = await uploadToCloudinaryIfLocal(image, token);
+
       const response = await fetch(`${API_URL}/profiles/general`, {
         method: "POST",
         headers: {
@@ -146,12 +220,13 @@ export default function ReporterProfileSetupScreen() {
           name,
           location,
           bio,
-          profileImage: image, // Frontend should ideally upload to cloudinary first, but we'll send URI for now as per controller expectation
+          profileImage: uploadedImageUrl,
         }),
       });
 
       const data = await response.json();
       if (response.ok) {
+        await refreshUser();
         router.replace("/auth/completedProfileSetup");
       } else {
         alert(data.message || "Failed to save profile");

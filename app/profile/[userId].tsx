@@ -18,6 +18,8 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 import { API_URL } from "../../constants/Config";
+import { useAuth } from "../../contexts/AuthContext";
+import { useChatApi } from "../../hooks/useChatApi";
 import PrimaryButton from "../../components/PrimaryButton";
 import EmptyStateCard from "../../components/profile/EmptyStateCard";
 import PostPreviewCard from "../../components/profile/PostPreviewCard";
@@ -47,6 +49,7 @@ interface Report {
   location?: { address?: string };
   photos?: string[];
   createdAt: string;
+  summary?: string;
 }
 
 interface Rescue {
@@ -55,11 +58,14 @@ interface Rescue {
   animalDetails?: { type?: string; breed?: string; notes?: string };
   location?: { address?: string };
   createdAt: string;
+  summary?: string;
 }
 
 export default function PublicProfileScreen() {
   const router = useRouter();
   const { userId } = useLocalSearchParams();
+  const { user } = useAuth();
+  const { createConversation } = useChatApi();
 
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -73,7 +79,6 @@ export default function PublicProfileScreen() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [reports, setReports] = useState<Report[]>([]);
   const [rescues, setRescues] = useState<Rescue[]>([]);
-  const [history, setHistory] = useState<Rescue[]>([]);
 
   // UI States
   const [activeTab, setActiveTab] = useState<string>("posts");
@@ -93,7 +98,7 @@ export default function PublicProfileScreen() {
         throw new Error("Failed to fetch profile");
       }
 
-      const data = await response.json();
+      const data = (await response.json()) as any;
       setUserData(data.user);
       setProfileData(data.profile);
       setStatsData(data.stats);
@@ -110,7 +115,7 @@ export default function PublicProfileScreen() {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
       if (postsRes.ok) {
-        const postsData = await postsRes.json();
+        const postsData = (await postsRes.json()) as any;
         setPosts(postsData);
       }
 
@@ -120,20 +125,19 @@ export default function PublicProfileScreen() {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (reportsRes.ok) {
-          const reportsData = await reportsRes.json();
+          const reportsData = (await reportsRes.json()) as any;
           setReports(reportsData);
         }
       }
 
-      // 4. Fetch rescues/history (if volunteer/vet/ngo)
+      // 4. Fetch rescues (if volunteer/vet/ngo)
       if (data.user.role !== "general_user") {
-        const rescuesRes = await fetch(`${API_URL}/rescues?rescuerId=${userId}`, {
+        const rescuesRes = await fetch(`${API_URL}/rescues/my-rescues?userId=${userId}`, {
           headers: token ? { Authorization: `Bearer ${token}` } : {},
         });
         if (rescuesRes.ok) {
-          const rescuesData = await rescuesRes.json();
-          setRescues(rescuesData.filter((r: any) => r.status !== "completed"));
-          setHistory(rescuesData.filter((r: any) => r.status === "completed"));
+          const rescuesData = (await rescuesRes.json()) as any;
+          setRescues(rescuesData);
         }
       }
 
@@ -157,9 +161,42 @@ export default function PublicProfileScreen() {
     fetchProfileAndStats();
   };
 
-  const handleMessage = () => {
-    // Navigate to chat. In a real app, this would open a specific conversation room.
-    router.push("/(tabs)/chats");
+  const handleMessage = async () => {
+    if (!user) {
+      Alert.alert("Authentication required", "Please log in to message this user.");
+      return;
+    }
+
+    if (user._id === userId) {
+      Alert.alert("Error", "You cannot message yourself.");
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const conversation = (await createConversation(userId as string, "direct")) as any;
+      const otherParticipant = conversation.participants?.find(
+        (p: any) => p._id !== user._id
+      );
+
+      router.push({
+        pathname: "/chat/[conversationId]",
+        params: {
+          conversationId: conversation._id,
+          recipientName: otherParticipant?.name || userData?.name || "Chat",
+          recipientId: userId as string,
+          recipientImage: otherParticipant?.profileImage || profileData?.profileImage || "",
+        },
+      });
+    } catch (error: any) {
+      console.error("Failed to start/open conversation:", error);
+      Alert.alert(
+        "Could Not Start Chat",
+        error.message || "Something went wrong while starting the conversation."
+      );
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleShare = async () => {
@@ -201,7 +238,7 @@ export default function PublicProfileScreen() {
         }),
       });
 
-      const resData = await response.json();
+      const resData = (await response.json()) as any;
       if (response.ok) {
         Alert.alert("Success", "User has been reported. Our admin team will review this shortly.");
         return true;
@@ -255,16 +292,8 @@ export default function PublicProfileScreen() {
       statsList.push({ value: statsData.reportsCount || 0, label: "REPORTS" });
       statsList.push({ value: statsData.postsCount || 0, label: "POSTS" });
     } else {
-      statsList.push({ value: statsData.rescuesCompleted || 0, label: "COMPLETED" });
-      if (userData.role === "volunteer") {
-        statsList.push({ value: statsData.activeRescues || 0, label: "ACTIVE" });
-      } else if (userData.role === "vet") {
-        statsList.push({ value: statsData.animalsTreated || 0, label: "TREATED" });
-      } else if (userData.role === "ngo") {
-        statsList.push({ value: statsData.totalAdoptions || 0, label: "ADOPTIONS" });
-        statsList.push({ value: statsData.donationCampaignCount || 0, label: "CAMPAIGNS" });
-      }
       statsList.push({ value: statsData.postsCount || 0, label: "POSTS" });
+      statsList.push({ value: statsData.rescuesCompleted || 0, label: "RESCUES" });
     }
 
     return (
@@ -285,8 +314,7 @@ export default function PublicProfileScreen() {
     if (userData.role === "general_user") {
       tabs.push({ id: "reports", label: "Reports" });
     } else {
-      tabs.push({ id: "active_rescues", label: "Active Rescues" });
-      tabs.push({ id: "history", label: "History" });
+      tabs.push({ id: "rescues", label: "Rescues" });
     }
     return tabs;
   };
@@ -435,6 +463,7 @@ export default function PublicProfileScreen() {
                   date={new Date(report.createdAt).toLocaleDateString()}
                   status={report.status}
                   image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                  summary={report.summary}
                 />
               ))
             ) : (
@@ -446,42 +475,23 @@ export default function PublicProfileScreen() {
             )
           )}
 
-          {activeTab === "active_rescues" && (
+          {activeTab === "rescues" && (
             rescues.length > 0 ? (
-              rescues.map((rescue) => (
+              rescues.map((rescue: any) => (
                 <ReportPreviewCard
-                  key={rescue._id}
-                  title={rescue.animalDetails?.type || "Stray Animal"}
+                  key={rescue._id || rescue.caseId}
+                  title={`${rescue.animalType} (${rescue.caseId})`}
                   date={new Date(rescue.createdAt).toLocaleDateString()}
                   status={rescue.status.toUpperCase()}
-                  image="https://via.placeholder.com/150"
+                  image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                  summary={rescue.summary}
                 />
               ))
             ) : (
               <EmptyStateCard
                 icon="checkmark-done-circle-outline"
-                title="No active rescues"
-                subtitle="No ongoing rescue operations at the moment."
-              />
-            )
-          )}
-
-          {activeTab === "history" && (
-            history.length > 0 ? (
-              history.map((h) => (
-                <ReportPreviewCard
-                  key={h._id}
-                  title={h.animalDetails?.type || "Stray Animal"}
-                  date={new Date(h.createdAt).toLocaleDateString()}
-                  status="COMPLETED"
-                  image="https://via.placeholder.com/150"
-                />
-              ))
-            ) : (
-              <EmptyStateCard
-                icon="time-outline"
-                title="No history found"
-                subtitle="No completed rescue records available."
+                title="No rescues yet"
+                subtitle="This user hasn't participated in any rescue operations."
               />
             )
           )}

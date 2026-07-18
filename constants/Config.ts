@@ -15,7 +15,9 @@ const BACKEND_PORT = 5000;
 
 function resolveBaseUrl(): string {
   // 1. Explicit override always wins
-  const envUrl = process.env.EXPO_PUBLIC_API_URL;
+  const envUrl =
+    process.env.EXPO_PUBLIC_API_URL ||
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL;
   if (envUrl) {
     console.log('[Config] Using EXPO_PUBLIC_API_URL:', envUrl);
     return envUrl;
