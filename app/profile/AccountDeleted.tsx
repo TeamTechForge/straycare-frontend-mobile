@@ -9,7 +9,7 @@ export default function AccountDeletedScreen() {
 
   const handleReturnWelcome = () => {
     // TODO: later clear all auth state/tokens before redirect
-    router.replace("/");
+    router.replace("/auth/Welcome");
   };
 
   return (
@@ -69,7 +69,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 18,
+    marginBottom: 8,
+    paddingTop: 22,
   },
   headerTitle: {
     fontSize: 18,

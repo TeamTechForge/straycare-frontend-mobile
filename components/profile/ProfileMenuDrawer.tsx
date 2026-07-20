@@ -48,24 +48,7 @@ export default function ProfileMenuDrawer({
             <ProfileMenuItem icon="paw-outline" label="Adoption Corner" onPress={onAdoptionPress} />
             <ProfileMenuItem icon="card-outline" label="Donations" onPress={onDonationsPress} />
             <ProfileMenuItem icon="settings-outline" label="Settings" onPress={onSettingsPress} />
-            {isNGOorVet && (
-              <>
-                <View style={styles.sectionDivider} />
-                <Text style={styles.sectionHeader}>PROFESSIONAL TOOLS</Text>
-                <ProfileMenuItem 
-                  icon="list-outline" 
-                  label="Nearby Reports" 
-                  onPress={onNearbyReportsPress || (() => {})} 
-                  disabled={isUnapproved}
-                />
-                <ProfileMenuItem 
-                  icon="map-outline" 
-                  label="Map View" 
-                  onPress={onMapViewPress || (() => {})} 
-                  disabled={isUnapproved}
-                />
-              </>
-            )}
+
           </View>
           <TouchableOpacity style={styles.logoutRow} onPress={onLogoutPress}>
             <MaterialCommunityIcons name="logout" size={16} color="#FF5A5A" />

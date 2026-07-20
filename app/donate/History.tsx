@@ -100,8 +100,7 @@ export default function DonationHistory() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Donate & Support♡</Text>
-      <Text style={styles.heading}>Donation History</Text>
+
 
     
       {donations.length === 0 ? (
@@ -116,22 +115,13 @@ export default function DonationHistory() {
         />
       )}
 
-      {/* Bottom navigation bar */}
-      <View style={styles.bottomBar}>
-        <Ionicons name="home" size={24} color="#000" />
-        <Ionicons name="people-outline" size={24} color="#000" />
-        <Ionicons name="add-circle-outline" size={24} color="#000" />
-        <Ionicons name="chatbubble-outline" size={24} color="#000" />
-        <Ionicons name="person-outline" size={24} color="#000" />
-      </View>
+
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-  title: { fontSize: 22, fontWeight: "bold", textAlign: "center" },
-  heading: { fontSize: 18, fontWeight: "600", marginVertical: 15, textAlign: "center", color: "#333" },
+  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 10 },
   card: { backgroundColor: "#f9f9f9", padding: 15, borderRadius: 10, marginBottom: 15 },
   org: { fontSize: 16, fontWeight: "bold" },
   category: { fontSize: 13, color: "#666", marginTop: 2 },
