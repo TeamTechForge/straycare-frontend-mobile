@@ -207,7 +207,15 @@ export default function VolunteerProfile() {
                   summary={rescue.summary}
                   actionText="Update Status"
                   onActionPress={() => handleUpdateDetails(rescue.caseId)}
-                  onPress={() => router.push({ pathname: "/rescue-details/[id]", params: { id: rescue.caseId || rescue._id } })}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/rescuer-response/[requestId]",
+                      params: {
+                        requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                        caseId: rescue.caseId,
+                      },
+                    } as never)
+                  }
                 />
               ))
             ) : (

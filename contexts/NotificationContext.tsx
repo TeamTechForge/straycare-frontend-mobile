@@ -74,7 +74,7 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
         return;
       }
 
-      const data: any = await response.json();
+      const data = (await response.json()) as any;
       console.log("[NOTIFICATION] Received", data.length || 0, "notifications");
       setNotifications(Array.isArray(data) ? data : []);
     } catch (error: any) {

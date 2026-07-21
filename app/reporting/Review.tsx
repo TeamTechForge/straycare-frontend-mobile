@@ -61,6 +61,7 @@ export default function Review() {
           address: safe(params.locationAddress),
         },
         photos,
+        preventAutoMatch: true,
       };
 
       const result = await submitReport(reportData);
@@ -87,6 +88,8 @@ export default function Review() {
           params: {
             caseId,
             animalType: reportData.animalType,
+            animalPhoto: reportData.photos[0] || "",
+            description: reportData.notes || "",
             lat: String(reportData.location.lat),
             lng: String(reportData.location.lng),
           },

@@ -202,31 +202,61 @@ export default function GeneralUserProfile() {
 
           {activeTab === "reports" && (
             reports.length > 0 ? (
-              reports.map((report: any) => {
-                return (
-                  <ReportPreviewCard
-                    key={report._id || report.caseId}
-                    title={`${report.animalType} (${report.caseId})`}
-                    date={new Date(report.createdAt).toLocaleDateString()}
-                    status={report.status}
-                    image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
-                    caseId={report.caseId}
-                    summary={report.summary}
-                    onPress={() => {
-                      router.push({
-                        pathname: "/live-tracking/[requestId]",
-                        params: { requestId: report.caseId || report._id },
-                      });
-                    }}
-                    onTrackPress={() => {
-                      router.push({
-                        pathname: "/live-tracking/[requestId]",
-                        params: { requestId: report.caseId },
-                      });
-                    }}
-                  />
-                );
-              })
+              <View>
+                {/* 📌 CURRENT CASES */}
+                <Text style={styles.subSectionTitle}>Current Cases</Text>
+                {reports.filter((r: any) => ["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).length > 0 ? (
+                  reports.filter((r: any) => ["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).map((report: any) => (
+                    <ReportPreviewCard
+                      key={report._id || report.caseId}
+                      title={`${report.animalType} (${report.caseId})`}
+                      date={new Date(report.createdAt).toLocaleDateString()}
+                      status={report.status}
+                      image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                      caseId={report.caseId}
+                      summary={report.summary}
+                      onPress={() => {
+                        router.push({
+                          pathname: "/reporting/CaseDetails",
+                          params: { caseId: report.caseId },
+                        });
+                      }}
+                      onTrackPress={() => {
+                        router.push({
+                          pathname: "/request-status",
+                          params: { caseId: report.caseId },
+                        });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No active rescue cases right now.</Text>
+                )}
+
+                {/* 📜 RESCUE HISTORY */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Rescue History</Text>
+                {reports.filter((r: any) => !["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).length > 0 ? (
+                  reports.filter((r: any) => !["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).map((report: any) => (
+                    <ReportPreviewCard
+                      key={report._id || report.caseId}
+                      title={`${report.animalType} (${report.caseId})`}
+                      date={new Date(report.createdAt).toLocaleDateString()}
+                      status={report.status}
+                      image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                      caseId={report.caseId}
+                      summary={report.summary}
+                      onPress={() => {
+                        router.push({
+                          pathname: "/reporting/CaseDetails",
+                          params: { caseId: report.caseId },
+                        });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No completed rescue history yet.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="document-text-outline"
@@ -317,6 +347,20 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     paddingTop: 14,
+  },
+  subSectionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#444",
+    marginBottom: 8,
+    textTransform: "uppercase",
+    letterSpacing: 0.6,
+  },
+  noActiveText: {
+    fontSize: 13,
+    color: "#888",
+    fontStyle: "italic",
+    marginBottom: 12,
   },
   savedGrid: {
     flexDirection: "row",
