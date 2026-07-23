@@ -79,7 +79,10 @@ export default function ChatRoomScreen() {
       setLoading(false);
     }
 
-    if (recipientId && token) {
+    if (recipientId === "deleted") {
+      setCanMessage(false);
+      setCanCall(false);
+    } else if (recipientId && token) {
       try {
         const response = await fetch(`${API_URL}/users/${recipientId}/public-profile`, {
           headers: { Authorization: `Bearer ${token}` }
@@ -452,7 +455,9 @@ export default function ChatRoomScreen() {
             profileImage={recipientImage}
             canCall={canCall}
             onTitlePress={() => {
-              if (recipientId) {
+              if (recipientId === "deleted") {
+                Alert.alert("Account Deleted", "This user's profile is no longer available because they have deleted their account.");
+              } else if (recipientId) {
                 router.push(`/profile/${recipientId}`);
               }
             }}
@@ -508,7 +513,9 @@ export default function ChatRoomScreen() {
         ) : (
           <View style={styles.blockedContainer}>
             <Feather name="lock" size={16} color="#6B7280" />
-            <Text style={styles.blockedText}>This user isn't accepting messages.</Text>
+            <Text style={styles.blockedText}>
+              {recipientId === "deleted" ? "This user has deleted their account." : "This user isn't accepting messages."}
+            </Text>
           </View>
         )}
       </KeyboardAvoidingView>

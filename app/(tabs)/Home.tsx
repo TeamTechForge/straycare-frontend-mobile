@@ -197,8 +197,16 @@ export default function HomeScreen() {
                       ) : null}
                     </View>
 
-                    <View style={styles.typeBadge}>
-                      <Text style={styles.typeBadgeText}>{item.type}</Text>
+                    <View style={[
+                      styles.typeBadge,
+                      { backgroundColor: (item.type === "NGO" || item.type === "Animal Shelter") ? "#EFF6FF" : "#ECFDF5" }
+                    ]}>
+                      <Text style={[
+                        styles.typeBadgeText,
+                        { color: (item.type === "NGO" || item.type === "Animal Shelter") ? "#3B82F6" : "#10B981" }
+                      ]}>
+                        {(item.type === "NGO" || item.type === "Animal Shelter") ? "ANIMAL SHELTER" : "VETERINARIAN"}
+                      </Text>
                     </View>
                   </TouchableOpacity>
                 )}

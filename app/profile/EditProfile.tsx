@@ -31,6 +31,7 @@ export default function EditProfileScreen() {
 
   // Vet & NGO Common
   const [merchantId, setMerchantId] = useState("");
+  const [merchantSecret, setMerchantSecret] = useState("");
 
   // Vet Specific
   const [clinicName, setClinicName] = useState("");
@@ -147,6 +148,7 @@ export default function EditProfileScreen() {
             setYearsOfExperience(profileData.yearsOfExperience || "");
             setLicenseDocument(profileData.licenseDocument || null);
             setMerchantId(profileData.merchantId || "");
+            setMerchantSecret(profileData.merchantSecret || "");
           } else if (userData.role === "ngo") {
             setLocation(profileData.location || "");
             setOrgName(profileData.orgName || "");
@@ -155,6 +157,7 @@ export default function EditProfileScreen() {
             setFoundedYear(profileData.foundedYear || "");
             setVerificationDocument(profileData.verificationDocument || null);
             setMerchantId(profileData.merchantId || "");
+            setMerchantSecret(profileData.merchantSecret || "");
           } else {
             setLocation(profileData.location || "");
           }
@@ -226,14 +229,15 @@ export default function EditProfileScreen() {
 
       if (role === "general_user") {
         endpoint = "/profiles/general";
-        body = { location, bio, profileImage: uploadedImageUrl };
+        body = { name, location, bio, profileImage: uploadedImageUrl };
       } else if (role === "volunteer") {
         endpoint = "/profiles/volunteer";
-        body = { location, bio, profileImage: uploadedImageUrl };
+        body = { name, location, bio, profileImage: uploadedImageUrl };
       } else if (role === "vet") {
         endpoint = "/profiles/vet";
         const uploadedDocUrl = await uploadToCloudinaryIfLocal(licenseDocument, token);
         body = {
+          name,
           primaryLocation: location,
           bio,
           clinicName,
@@ -243,6 +247,7 @@ export default function EditProfileScreen() {
           profileImage: uploadedImageUrl,
           licenseDocument: uploadedDocUrl,
           merchantId,
+          merchantSecret,
         };
       } else if (role === "ngo") {
         endpoint = "/profiles/ngo";
@@ -257,6 +262,7 @@ export default function EditProfileScreen() {
           profileImage: uploadedImageUrl,
           verificationDocument: uploadedDocUrl,
           merchantId,
+          merchantSecret,
         };
       }
 
@@ -335,7 +341,7 @@ export default function EditProfileScreen() {
         ) : (
           <>
             <Text style={styles.label}>Full Name</Text>
-            <InputField value={name} onChangeText={setName} placeholder="Enter name" editable={false} />
+            <InputField value={name} onChangeText={setName} placeholder="Enter name" editable={true} />
           </>
         )}
 
@@ -413,6 +419,9 @@ export default function EditProfileScreen() {
           <>
             <Text style={styles.label}>PayHere Merchant ID</Text>
             <InputField value={merchantId} onChangeText={setMerchantId} placeholder="Enter Merchant ID" />
+            
+            <Text style={styles.label}>PayHere Merchant Secret</Text>
+            <InputField value={merchantSecret} onChangeText={setMerchantSecret} placeholder="Enter Merchant Secret" />
           </>
         )}
 

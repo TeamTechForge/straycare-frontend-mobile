@@ -1,6 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { FlatList, StyleSheet, Text, View } from "react-native";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, FlatList, StyleSheet, Text, View } from "react-native";
+import * as SecureStore from "expo-secure-store";
+import axios from "axios";
 
 type Donation = {
     id: string;
@@ -10,11 +12,45 @@ type Donation = {
 };
 
 export default function ReceivedDonations() {
-    const donations: Donation[] = [
-        { id: "1", donor: "Nayani Gunasena", amount: "LKR 3000", date: "12 Feb 2026" },
-        { id: "2", donor: "Anula Hewage", amount: "LKR 5000", date: "4 Feb 2026" },
-        { id: "3", donor: "Saman De Silva", amount: "LKR 7000", date: "10 Jan 2026" },
-    ];
+    const [donations, setDonations] = useState<Donation[]>([]);
+    const [total, setTotal] = useState<number>(0);
+    const [loading, setLoading] = useState(true);
+
+    const BACKEND_URL = "http://192.168.8.160:5000";
+
+    useEffect(() => {
+        fetchReceivedDonations();
+    }, []);
+
+    const fetchReceivedDonations = async () => {
+        try {
+            const token = await SecureStore.getItemAsync("authToken");
+            if (!token) return;
+
+            const userRes: any = await axios.get(`${BACKEND_URL}/api/auth/me`, {
+                headers: { Authorization: `Bearer ${token}` }
+            });
+            const orgId = userRes.data.user.id;
+
+            const donRes: any = await axios.get(`${BACKEND_URL}/api/donations/received/${orgId}`);
+
+            const fetchedDonations = donRes.data.map((d: any) => ({
+                id: d._id,
+                donor: "Anonymous Donor",
+                amount: `Rs. ${parseFloat(d.amount).toFixed(2)}`,
+                date: new Date(d.timestamp).toLocaleDateString()
+            }));
+
+            const calculatedTotal = donRes.data.reduce((sum: number, d: any) => sum + parseFloat(d.amount), 0);
+
+            setDonations(fetchedDonations);
+            setTotal(calculatedTotal);
+        } catch (error) {
+            console.error("Error fetching received donations:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const renderItem = ({ item }: { item: Donation }) => (
         <View style={styles.card}>
@@ -24,39 +60,38 @@ export default function ReceivedDonations() {
         </View>
     );
 
+    if (loading) {
+        return (
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" }}>
+                <ActivityIndicator size="large" color="#F5A623" />
+            </View>
+        );
+    }
+
     return (
         <View style={styles.container}>
-            <Text style={styles.title}>Received Donations</Text>
-
             {/* Total Donations */}
             <View style={styles.totalBox}>
                 <Text style={styles.totalLabel}>Total Donations received</Text>
-                <Text style={styles.totalAmount}>Rs. 15,000</Text>
+                <Text style={styles.totalAmount}>Rs. {total.toFixed(2)}</Text>
             </View>
 
-            {/* Donation List */}
-            <FlatList
-                data={donations}
-                keyExtractor={(donation) => donation.id}
-                renderItem={renderItem}
-                contentContainerStyle={{ paddingBottom: 80 }}
-            />
-
-            {/* Bottom Navigation */}
-            <View style={styles.bottomNav}>
-                <Ionicons name="home-outline" size={24} />
-                <Ionicons name="people-outline" size={24} />
-                <Ionicons name="location-outline" size={24} />
-                <Ionicons name="chatbubble-outline" size={24} />
-                <Ionicons name="person-outline" size={24} />
-            </View>
+            {donations.length === 0 ? (
+                <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations received yet</Text>
+            ) : (
+                <FlatList
+                    data={donations}
+                    keyExtractor={(donation) => donation.id}
+                    renderItem={renderItem}
+                    contentContainerStyle={{ paddingBottom: 80 }}
+                />
+            )}
         </View>
     );
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-    title: { fontSize: 22, fontWeight: "bold", textAlign: "center", marginBottom: 20 },
+    container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 10 },
     totalBox: {
         backgroundColor: "#F5A623",
         padding: 15,
@@ -75,15 +110,4 @@ const styles = StyleSheet.create({
     donor: { fontSize: 16, fontWeight: "bold" },
     amount: { fontSize: 14, marginTop: 5 },
     date: { fontSize: 12, color: "#555", marginTop: 5 },
-    bottomNav: {
-        flexDirection: "row",
-        justifyContent: "space-around",
-        padding: 15,
-        borderTopWidth: 1,
-        borderColor: "#ddd",
-        position: "absolute",
-        bottom: 0,
-        width: "100%",
-        backgroundColor: "#fff",
-    },
 });

@@ -66,7 +66,7 @@ export default function NewChatScreen() {
     try {
       // Find or create conversation
       const conversation = (await createConversation(selectedUser._id, "direct")) as any;
-      
+
       // Locate recipient details
       const otherParticipant = conversation.participants?.find(
         (p: any) => p._id !== user?._id
@@ -97,13 +97,11 @@ export default function NewChatScreen() {
   const getRoleBadge = (role: string) => {
     switch (role) {
       case "ngo":
-        return { text: "NGO", color: "#3B82F6", bg: "#EFF6FF" };
+        return { text: "NGO/SHELTER", color: "#3B82F6", bg: "#EFF6FF" };
       case "vet":
         return { text: "VET", color: "#10B981", bg: "#ECFDF5" };
       case "volunteer":
         return { text: "VOLUNTEER", color: "#F59E0B", bg: "#FEF3C7" };
-      case "admin":
-        return { text: "ADMIN", color: "#EF4444", bg: "#FEF2F2" };
       default:
         return { text: "USER", color: "#6B7280", bg: "#F3F4F6" };
     }
@@ -114,11 +112,11 @@ export default function NewChatScreen() {
     // Get user initials for avatar
     const initials = item.name
       ? item.name
-          .split(" ")
-          .map((n: string) => n[0])
-          .slice(0, 2)
-          .join("")
-          .toUpperCase()
+        .split(" ")
+        .map((n: string) => n[0])
+        .slice(0, 2)
+        .join("")
+        .toUpperCase()
       : "?";
 
     return (

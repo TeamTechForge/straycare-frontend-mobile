@@ -349,12 +349,14 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     marginBottom: 16,
     backgroundColor: "#F9FAFB",
+    color: "#333",
   },
   passwordInput: {
     flex: 1,
     paddingVertical: 14,
     paddingHorizontal: 16,
     fontSize: 16,
+    color: "#333",
   },
   eyeIcon: {
     paddingHorizontal: 12,

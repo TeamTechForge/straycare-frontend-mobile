@@ -14,6 +14,8 @@ import { getReportByCaseId, updateCaseStatus } from "../../api/stray-api.service
 import PrimaryButton from "../../components/PrimaryButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRescueUpdates } from "../../hooks/useRescueUpdates";
+import { API_URL } from "../../constants/config.constants";
+import axios from "axios";
 
 type Reporter = {
   id: string;
@@ -84,6 +86,7 @@ export default function CaseDetailsScreen() {
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
+  const [acceptingRescue, setAcceptingRescue] = useState(false);
 
   // 🔔 Notification States
   const [showNotification, setShowNotification] = useState(false);
@@ -288,6 +291,51 @@ export default function CaseDetailsScreen() {
           title={updating ? "Updating..." : `Mark as "${nextStatus}"`}
           onPress={handleStatusUpdate}
           disabled={updating}
+        />
+      )}
+
+      {/* 🚑 Accept Rescue Button — Rescuers Only, only when case Needs Help */}
+      {isRescuer && report.status === "Needs Help" && (
+        <PrimaryButton
+          title={acceptingRescue ? "Accepting..." : "🚑  Accept Rescue"}
+          onPress={async () => {
+            setAcceptingRescue(true);
+            try {
+              const token = await require("expo-secure-store").getItemAsync("authToken");
+              const response = await axios.post(
+                `${API_URL}/rescue/accept-from-map`,
+                { caseId: report.caseId },
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              const data = response.data as any;
+              Alert.alert(
+                "Rescue Accepted",
+                `You have accepted case ${report.caseId}. The reporter has been notified.`,
+                [
+                  {
+                    text: "Open Response Workflow",
+                    onPress: () => {
+                      router.push({
+                        pathname: "/rescuer-response/[requestId]",
+                        params: {
+                          requestId: data.requestId,
+                          caseId: report.caseId,
+                        },
+                      } as never);
+                    },
+                  },
+                ]
+              );
+              // Update local state
+              setReport({ ...report, status: "Under Rescue" });
+            } catch (err: any) {
+              const errorMsg = err?.response?.data?.error || "Failed to accept rescue. Please try again.";
+              Alert.alert("Accept Failed", errorMsg);
+            } finally {
+              setAcceptingRescue(false);
+            }
+          }}
+          disabled={acceptingRescue}
         />
       )}
 

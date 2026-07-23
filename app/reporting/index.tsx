@@ -28,13 +28,20 @@ type Report = {
 const getMarkerColor = (status: string) => {
   switch (status) {
     case "Needs Help":
-      return "red";
+      return "red";                // 🔴 Newly reported / waiting
+    case "Request Sent":
+    case "Pending":
+      return "#FFD700";            // 🟡 Request sent / waiting for response
     case "Under Rescue":
-      return "#f1eb40";
+      return "orange";             // 🟠 Accepted / rescue in progress
     case "Treated":
-      return "#63ac84";
+    case "Completed":
+      return "#63ac84";            // 🟢 Rescue completed
     case "Ready for Adoption":
-      return "#2476da";
+      return "#2476da";            // 🔵 Ready for adoption
+    case "Cancelled":
+    case "Closed":
+      return "gray";               // ⚫ Cancelled or closed
     default:
       return "gray";
   }
