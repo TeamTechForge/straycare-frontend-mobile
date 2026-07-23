@@ -1,6 +1,6 @@
-import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
@@ -32,7 +32,12 @@ export default function DonationHistory() {
   // Fetches all donations from MongoDB
   const fetchDonations = async () => {
     try {
-      const res = await axios.get(`${BACKEND_URL}/api/donations/history`);
+      const token = await SecureStore.getItemAsync("authToken");
+
+      const res = await axios.get(`${BACKEND_URL}/api/donations/history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
       setDonations(res.data as any[]); // stores donations in state
     } catch (err) {
       console.error("Error fetching donations:", err);
@@ -100,7 +105,6 @@ export default function DonationHistory() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Donate & Support♡</Text>
       <Text style={styles.heading}>Donation History</Text>
 
     
@@ -115,22 +119,12 @@ export default function DonationHistory() {
           contentContainerStyle={{ paddingBottom: 80 }}
         />
       )}
-
-      {/* Bottom navigation bar */}
-      <View style={styles.bottomBar}>
-        <Ionicons name="home" size={24} color="#000" />
-        <Ionicons name="people-outline" size={24} color="#000" />
-        <Ionicons name="add-circle-outline" size={24} color="#000" />
-        <Ionicons name="chatbubble-outline" size={24} color="#000" />
-        <Ionicons name="person-outline" size={24} color="#000" />
-      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-  title: { fontSize: 22, fontWeight: "bold", textAlign: "center" },
   heading: { fontSize: 18, fontWeight: "600", marginVertical: 15, textAlign: "center", color: "#333" },
   card: { backgroundColor: "#f9f9f9", padding: 15, borderRadius: 10, marginBottom: 15 },
   org: { fontSize: 16, fontWeight: "bold" },
@@ -143,5 +137,4 @@ const styles = StyleSheet.create({
   statusText: { fontWeight: "bold", fontSize: 12 },
   receiptBtn: { marginLeft: 10, paddingVertical: 4, paddingHorizontal: 10, backgroundColor: "#FFB700", borderRadius: 6 },
   receiptText: { fontSize: 12, fontWeight: "600", color: "#fff" },
-  bottomBar: { flexDirection: "row", justifyContent: "space-around", padding: 15, borderTopWidth: 1, borderColor: "#ddd", marginTop: "auto", backgroundColor: "#FFF9E6" },
 });
