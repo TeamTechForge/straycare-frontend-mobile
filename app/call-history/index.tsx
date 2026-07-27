@@ -96,7 +96,7 @@ export default function CallHistoryScreen() {
   const navigateToChat = async (otherUser: any) => {
     if (!token) return;
     try {
-      const conv = await chatService.getOrCreateConversation(token, otherUser.userId);
+      const conv: any = await chatService.getOrCreateConversation(token, otherUser.userId);
       router.push({
         pathname: "/chat/[conversationId]",
         params: {

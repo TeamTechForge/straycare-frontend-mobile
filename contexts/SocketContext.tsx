@@ -40,7 +40,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const refreshChatBadge = async () => {
     if (!token || !user?._id) return;
     try {
-      const conversations = await chatService.getConversations(token);
+      const conversations = (await chatService.getConversations(token)) as any[];
       const hasUnread = conversations.some((c: any) => c.unreadCounts?.[user._id] > 0);
       console.log(`[SocketContext] refreshChatBadge: hasUnread=${hasUnread}`);
       setHasUnreadChats(hasUnread);
@@ -52,7 +52,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const refreshCallBadge = async () => {
     if (!token || !user?._id) return;
     try {
-      const history = await CallLogService.getHistory();
+      const history = (await CallLogService.getHistory()) as any[];
       const hasUnseen = history.some((l: any) => {
         const isMissed = l.status === "MISSED";
         const notSeen = !l.isSeen;
