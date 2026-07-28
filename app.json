@@ -4,7 +4,7 @@
     "slug": "stray-care",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/straycarelogo.png",
+    "icon": "./assets/images/straycarelogoicon.png",
     "scheme": "straycare",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -23,13 +23,13 @@
         "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/straycarelogo.png",
+        "foregroundImage": "./assets/images/straycarelogoicon.png",
         "backgroundColor": "#FFFFFF"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/images/straycarelogo.png"
+      "favicon": "./assets/images/straycarelogoicon.png"
     },
     "plugins": [
       "expo-router",
