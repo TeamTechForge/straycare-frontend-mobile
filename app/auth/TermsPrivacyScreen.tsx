@@ -10,9 +10,9 @@ export default function TermsPrivacyScreen() {
     // go back to signup with param and restore typed values
     router.replace({
       pathname: "/auth/Register",
-      params: { 
+      params: {
         ...params,
-        agreed: "true" 
+        agreed: "true"
       },
     });
   };
@@ -80,9 +80,9 @@ export default function TermsPrivacyScreen() {
         </View>
       </ScrollView>
 
-      <PrimaryButton 
-        title="I Agree and Continue" 
-        onPress={handleAgree} 
+      <PrimaryButton
+        title="I Agree and Continue"
+        onPress={handleAgree}
       />
     </View>
   );
@@ -93,18 +93,19 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
     padding: 16,
+    paddingTop: 45,
   },
   header: {
     fontSize: 18,
     fontWeight: "bold",
     textAlign: "center",
-    marginBottom: 10,
+    marginBottom: 18,
   },
   card: {
     backgroundColor: "#f5f5f5",
     padding: 12,
     borderRadius: 10,
-    marginBottom: 10,
+    marginBottom: 12,
   },
   title: {
     fontWeight: "bold",
@@ -115,5 +116,5 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#333",
   },
-  
+
 });

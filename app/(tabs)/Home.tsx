@@ -222,28 +222,28 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
 
           <View style={styles.grid}>
-        <ActionCard
-          icon={<MaterialCommunityIcons name="hand-heart" size={24} color="#F5A623" />}
-          label="Donate"
-          onPress={() => router.push("/donate")}
-        />
+            <ActionCard
+              icon={<MaterialCommunityIcons name="hand-heart" size={24} color="#F5A623" />}
+              label="Donate"
+              onPress={() => router.push("/donate")}
+            />
 
-        <ActionCard
-          icon={<MaterialCommunityIcons name="dog" size={24} color="#F5A623" />}
-          label="Report a Case"
-          onPress={() => router.push("/reporting/AnimalDetails")}
-        />
+            <ActionCard
+              icon={<MaterialCommunityIcons name="dog" size={24} color="#F5A623" />}
+              label="Report a Case"
+              onPress={() => router.push("/reporting/AnimalDetails")}
+            />
 
-        <ActionCard
-          icon={<MaterialCommunityIcons name="paw" size={24} color="#F5A623" />}
-          label="Adopt a Pet"
-        />
+            <ActionCard
+              icon={<MaterialCommunityIcons name="paw" size={24} color="#F5A623" />}
+              label="Adopt a Pet"
+            />
 
-        <ActionCard
-          icon={<Feather name="search" size={24} color="#F5A623" />}
-          label="Lost & Found"
-          onPress={() => router.push("/lost-and-found")}
-        />
+            <ActionCard
+              icon={<Feather name="search" size={24} color="#F5A623" />}
+              label="Lost & Found"
+              onPress={() => router.push("/lost-and-found")}
+            />
           </View>
         </>
       )}
@@ -267,13 +267,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#F4F4F4",
     paddingHorizontal: 20,
     paddingTop: 10,
-    paddingBottom: 60,
+    paddingBottom: 10,
   },
   header: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 0,
     position: "relative",
   },
   notificationIcon: {
@@ -299,13 +299,13 @@ const styles = StyleSheet.create({
   greeting: {
     fontSize: 16,
     fontWeight: "600",
-    marginBottom: 20,
+    marginBottom: 25,
   },
   greetingSub: {
     fontWeight: "400",
   },
   aboutCard: {
-    marginBottom: 20,
+    marginBottom: 30,
   },
   aboutTitle: {
     fontWeight: "600",
@@ -313,7 +313,7 @@ const styles = StyleSheet.create({
   },
   aboutBox: {
     backgroundColor: "#EED7B5",
-    padding: 15,
+    padding: 20,
     borderRadius: 10,
   },
   aboutText: {
@@ -325,7 +325,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#E5E5E5",
     paddingHorizontal: 12,
     borderRadius: 25,
-    height: 45,
+    height: 50,
     marginBottom: 20,
   },
   searchInput: {
@@ -408,7 +408,7 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontWeight: "600",
-    marginBottom: 15,
+    marginBottom: 17,
   },
   grid: {
     flexDirection: "row",
@@ -418,7 +418,7 @@ const styles = StyleSheet.create({
   card: {
     width: "48%",
     backgroundColor: "#FFFFFF",
-    paddingVertical: 20,
+    paddingVertical: 30,
     borderRadius: 16,
     alignItems: "center",
     marginBottom: 15,
