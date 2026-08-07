@@ -40,12 +40,14 @@ export default function ReportPreviewCard({
               <Text style={styles.reportStatusText}>{status}</Text>
             </View>
             
-            {onTrackPress && (
-              <TouchableOpacity style={styles.trackButton} onPress={onTrackPress}>
-                <Ionicons name="navigate-circle-outline" size={12} color="#FFF" />
-                <Text style={styles.trackButtonText}>Track Live</Text>
-              </TouchableOpacity>
-            )}
+            {onTrackPress &&
+              status &&
+              ["accepted", "under rescue"].includes(status.toLowerCase()) && (
+                <TouchableOpacity style={styles.trackButton} onPress={onTrackPress}>
+                  <Ionicons name="navigate-circle-outline" size={12} color="#FFF" />
+                  <Text style={styles.trackButtonText}>Track Live</Text>
+                </TouchableOpacity>
+              )}
 
             {onActionPress && (
               <TouchableOpacity style={styles.actionButton} onPress={onActionPress}>

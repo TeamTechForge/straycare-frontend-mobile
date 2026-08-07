@@ -73,6 +73,7 @@ type RequestStatusParams = {
   excludeIds?: string | string[];
   lat?: string | string[];
   lng?: string | string[];
+  requestId?: string | string[];
 };
 
 // Helper: always unwrap Expo Router's possible array param to a single string
@@ -110,14 +111,15 @@ const TIMELINE_STEPS = [
 // ─── Component ─────────────────────────────────────────────────────────────────
 export default function RequestStatusScreen() {
   const params = useLocalSearchParams<RequestStatusParams>();
-  const { rescuerId, caseId, animalType, animalPhoto, description, excludeIds, lat, lng } = params;
+  const { rescuerId, caseId, animalType, animalPhoto, description, excludeIds, lat, lng, requestId: paramRequestId } = params;
   const rescuerIdValue = getFirstParam(rescuerId) ?? "";
+  const initialRequestId = getFirstParam(paramRequestId) ?? null;
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [status,     setStatus]     = useState<RescueStatus>("pending");
   const [rescuer,    setRescuer]    = useState<Rescuer | null>(null);
-  const [loading,    setLoading]    = useState<boolean>(true);  // true while POST is in flight
-  const [requestId,  setRequestId]  = useState<string | null>(null);
+  const [loading,    setLoading]    = useState<boolean>(!initialRequestId);  // skip POST if initialRequestId exists
+  const [requestId,  setRequestId]  = useState<string | null>(initialRequestId);
   const [cancelled,  setCancelled]  = useState<boolean>(false); // true after user cancels
   const [cancelling, setCancelling] = useState<boolean>(false); // true during the brief "stopping" phase
 
@@ -362,6 +364,11 @@ export default function RequestStatusScreen() {
 
           console.log("[RequestStatus] Poll result:", newStatus);
 
+          // Always update rescuer details if returned
+          if (responseData.rescuer) {
+            setRescuer(responseData.rescuer);
+          }
+
           if (newStatus !== "pending") {
             if (newStatus === "rejected") {
               if (pollRef.current) {
@@ -402,7 +409,6 @@ export default function RequestStatusScreen() {
             }
 
             setStatus(newStatus);
-            setRescuer(responseData.rescuer);
             // Status resolved — stop polling
             if (pollRef.current) {
               clearInterval(pollRef.current);
@@ -659,8 +665,8 @@ export default function RequestStatusScreen() {
                 {/* Role label */}
                 <Text style={styles.rescuerRole}>Rescuer</Text>
 
-                {/* Phone button */}
-                {rescuer.phone ? (
+                {/* Phone button — only shown when accepted */}
+                {status === "accepted" && rescuer.phone ? (
                   <TouchableOpacity
                     onPress={() => { void Linking.openURL(`tel:${rescuer.phone}`); }}
                     activeOpacity={0.7}

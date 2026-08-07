@@ -7,10 +7,15 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
+  Alert,
 } from "react-native";
 import { useNotification, Notification } from "../../contexts/NotificationContext";
+import * as SecureStore from "expo-secure-store";
+import { API_URL } from "../../constants/config.constants";
+import { useRouter } from "expo-router";
 
 export default function NotificationCenter() {
+  const router = useRouter();
   const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead, loading } =
     useNotification();
   const [refreshing, setRefreshing] = React.useState(false);
@@ -62,6 +67,94 @@ export default function NotificationCenter() {
     return date.toLocaleDateString();
   };
 
+  const handlePressNotification = async (item: Notification) => {
+    // Mark as read
+    await markAsRead(item._id);
+
+    // If this is a rescue request notification, show accept/reject actions
+    if (item.title === "New Rescue Request" && item.rescueRequestId) {
+      Alert.alert(
+        "New Rescue Request",
+        item.message,
+        [
+          {
+            text: "Reject Request",
+            style: "destructive",
+            onPress: async () => {
+              try {
+                const token = await SecureStore.getItemAsync("authToken");
+                if (!token) return;
+
+                const response = await fetch(`${API_URL}/rescue/request/${item.rescueRequestId}/respond`, {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ action: "reject" }),
+                });
+
+                if (response.ok) {
+                  Alert.alert("Rejected", "You rejected the rescue request.");
+                  void fetchNotifications();
+                } else {
+                  console.error("[NotificationCenter] Reject request failed:", response.status);
+                }
+              } catch (err) {
+                console.error("[NotificationCenter] Error rejecting request:", err);
+              }
+            }
+          },
+          {
+            text: "Accept Request",
+            onPress: async () => {
+              try {
+                const token = await SecureStore.getItemAsync("authToken");
+                if (!token) return;
+
+                const response = await fetch(`${API_URL}/rescue/request/${item.rescueRequestId}/respond`, {
+                  method: "PATCH",
+                  headers: {
+                    "Content-Type": "application/json",
+                    Authorization: `Bearer ${token}`,
+                  },
+                  body: JSON.stringify({ action: "accept" }),
+                });
+
+                if (response.ok) {
+                  // Navigate to the rescue details screen
+                  router.push({
+                    pathname: "/rescue-details/[id]",
+                    params: { id: item.rescueRequestId },
+                  } as any);
+                } else {
+                  console.error("[NotificationCenter] Accept request failed:", response.status);
+                  Alert.alert("Error", "This request may have expired or was responded to already.");
+                }
+              } catch (err) {
+                console.error("[NotificationCenter] Error accepting request:", err);
+              }
+            }
+          },
+          {
+            text: "View Details",
+            onPress: () => {
+              router.push({
+                pathname: "/rescue-details/[id]",
+                params: { id: item.rescueRequestId },
+              } as any);
+            }
+          },
+          {
+            text: "Cancel",
+            style: "cancel",
+          }
+        ],
+        { cancelable: true }
+      );
+    }
+  };
+
   const renderNotification = ({ item }: { item: Notification }) => (
     <TouchableOpacity
       style={[
@@ -69,7 +162,7 @@ export default function NotificationCenter() {
         { borderLeftColor: getTypeColor(item.type) },
         !item.read && styles.unreadCard,
       ]}
-      onPress={() => markAsRead(item._id)}
+      onPress={() => handlePressNotification(item)}
     >
       <View style={styles.notificationContent}>
         <View style={styles.titleRow}>

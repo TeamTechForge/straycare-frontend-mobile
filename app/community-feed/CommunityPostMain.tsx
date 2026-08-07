@@ -11,6 +11,7 @@ import {
   TouchableOpacity,   // Touchable wrapper with opacity feedback
   View,
 } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
 import { getCommunityFeed } from "../../api/api.service"; // API call to fetch posts
 
 
@@ -387,6 +388,20 @@ export default function CommunityFeed() {
         ))}
 
       </ScrollView>
+
+      {/* Floating AI Discussion Button */}
+      <TouchableOpacity
+        style={styles.floatingButton}
+        activeOpacity={0.85}
+        onPress={() => router.push("/DiscussionForum")}
+      >
+        <LinearGradient
+          colors={["#F5A623", "#F8C166"]}
+          style={styles.gradientButton}
+        >
+          <Ionicons name="chatbubbles" size={28} color="#FFFFFF" />
+        </LinearGradient>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -588,5 +603,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     fontWeight: "700",
     color: "#775a00",
+  },
+  floatingButton: {
+    position: "absolute",
+    bottom: 96,
+    right: 24,
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 5,
+    elevation: 6,
+  },
+  gradientButton: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

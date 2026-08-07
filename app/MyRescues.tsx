@@ -53,10 +53,12 @@ export default function MyRescuesScreen() {
   }, []);
 
   const handleViewDetails = (item: RescueCaseRecord) => {
-    // Navigate to rescue details page
     router.push({
-      pathname: "/rescue-details/[id]",
-      params: { id: item.rescueRequestId },
+      pathname: "/rescuer-response/[requestId]",
+      params: {
+        requestId: item.rescueRequestId || (item as any)._id || item.caseId,
+        caseId: item.caseId,
+      },
     } as any);
   };
 

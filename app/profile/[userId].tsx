@@ -524,6 +524,12 @@ export default function PublicProfileScreen() {
                   status={report.status}
                   image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
                   summary={report.summary}
+                  onPress={() => {
+                    router.push({
+                      pathname: "/live-tracking/[requestId]",
+                      params: { requestId: report.caseId || report._id },
+                    });
+                  }}
                 />
               ))
             ) : (
@@ -545,6 +551,12 @@ export default function PublicProfileScreen() {
                   status={rescue.status.toUpperCase()}
                   image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
                   summary={rescue.summary}
+                  onPress={() => {
+                    router.push({
+                      pathname: "/live-tracking/[requestId]",
+                      params: { requestId: rescue.caseId || rescue._id },
+                    });
+                  }}
                 />
               ))
             ) : (

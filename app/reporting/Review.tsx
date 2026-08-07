@@ -61,20 +61,40 @@ export default function Review() {
           address: safe(params.locationAddress),
         },
         photos,
+        preventAutoMatch: true,
       };
 
       const result = await submitReport(reportData);
       console.log("Report submitted:", result);
 
-      router.push({
-        pathname: "/reporting/Success",
-        params: {
-          caseId,
-          animalType: reportData.animalType,
-          lat: String(reportData.location.lat),
-          lng: String(reportData.location.lng),
-        },
-      });
+      if (result.rescueRequest) {
+        // Automatically matched! Go straight to request-status tracking
+        router.push({
+          pathname: "/request-status",
+          params: {
+            rescuerId: result.rescueRequest.rescuerId,
+            caseId: caseId,
+            animalType: reportData.animalType,
+            animalPhoto: reportData.photos[0] || "",
+            description: reportData.notes || "",
+            lat: String(reportData.location.lat),
+            lng: String(reportData.location.lng),
+            requestId: String(result.rescueRequest._id),
+          },
+        } as never);
+      } else {
+        router.push({
+          pathname: "/reporting/Success",
+          params: {
+            caseId,
+            animalType: reportData.animalType,
+            animalPhoto: reportData.photos[0] || "",
+            description: reportData.notes || "",
+            lat: String(reportData.location.lat),
+            lng: String(reportData.location.lng),
+          },
+        });
+      }
     } catch (error: any) {
       console.error("Error submitting report:", error);
 

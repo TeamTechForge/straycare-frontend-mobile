@@ -9,7 +9,7 @@ import { createPost } from "../services/forum.service";
 
 export default function ThreadPublished() {
   const router = useRouter();
-  const params = useLocalSearchParams<{ content?: string }>();
+  const params = useLocalSearchParams<{ content?: string; imageUrl?: string }>();
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -29,7 +29,7 @@ export default function ThreadPublished() {
         console.log("[ThreadPublished] ========== Publishing post ==========");
         console.log("[ThreadPublished] Content:", content.substring(0, 100));
         
-        const result = await createPost({ title: content });
+        const result = await createPost({ title: content, imageUrl: params.imageUrl });
         
         console.log("[ThreadPublished] Post created successfully");
         console.log("[ThreadPublished] Post ID:", result.post.id);

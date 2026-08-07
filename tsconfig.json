@@ -35,5 +35,5 @@
     "node_modules",
     "app-example"
   ],
-  "extends": "expo/tsconfig.base"
+  "extends": "expo/tsconfig.base.json"
 }

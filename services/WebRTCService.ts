@@ -1,37 +1,84 @@
 // services/WebRTCService.ts
 
-import {
-  RTCPeerConnection,
-  RTCIceCandidate,
-  RTCSessionDescription,
-  mediaDevices,
-  MediaStream,
+import { NativeModules } from "react-native";
+import type {
+  RTCPeerConnection as TRTCPeerConnection,
+  RTCIceCandidate as TRTCIceCandidate,
+  RTCSessionDescription as TRTCSessionDescription,
+  MediaStream as TMediaStream,
 } from "react-native-webrtc";
 
+let RTCPeerConnection: any = class DummyPeerConnection {
+  onicecandidate: any = null;
+  ontrack: any = null;
+  localDescription: any = null;
+  remoteDescription: any = null;
+  addTrack() {}
+  createOffer() { return Promise.resolve({}); }
+  createAnswer() { return Promise.resolve({}); }
+  setLocalDescription() { return Promise.resolve(); }
+  setRemoteDescription() { return Promise.resolve(); }
+  addIceCandidate() { return Promise.resolve(); }
+  getTracks() { return []; }
+  close() {}
+};
+
+let RTCIceCandidate: any = class DummyIceCandidate {};
+let RTCSessionDescription: any = class DummySessionDescription {};
+let MediaStream: any = class DummyMediaStream {
+  addTrack() {}
+  getTracks() { return []; }
+  getAudioTracks() { return []; }
+};
+let mediaDevices: any = {
+  enumerateDevices: () => Promise.resolve([]),
+  getUserMedia: () => Promise.resolve(new MediaStream()),
+};
+
+// Check if we are running in an environment with the native WebRTCModule
+// (Expo Go does NOT support native WebRTCModule)
+const hasWebRTC = !!NativeModules.WebRTCModule;
+
+if (hasWebRTC) {
+  try {
+    const webrtc = require("react-native-webrtc");
+    RTCPeerConnection = webrtc.RTCPeerConnection;
+    RTCIceCandidate = webrtc.RTCIceCandidate;
+    RTCSessionDescription = webrtc.RTCSessionDescription;
+    MediaStream = webrtc.MediaStream;
+    mediaDevices = webrtc.mediaDevices;
+  } catch (e) {
+    console.warn("WebRTC module found but failed to load:", e);
+  }
+} else {
+  console.log("WebRTC native module not found (running in Expo Go/Web). Calling feature is disabled.");
+}
+
+export { hasWebRTC };
+
 export class WebRTCService {
-  private peerConnection: RTCPeerConnection | null = null;
-  public localStream: MediaStream | null = null;
-  public remoteStream: MediaStream | null = null;
+  private peerConnection: TRTCPeerConnection | null = null;
+  public localStream: TMediaStream | null = null;
+  public remoteStream: TMediaStream | null = null;
 
-  private onIceCandidateCallback?: (candidate: RTCIceCandidate) => void;
-  private onRemoteStreamCallback?: (stream: MediaStream) => void;
+  private onIceCandidateCallback?: (candidate: TRTCIceCandidate) => void;
+  private onRemoteStreamCallback?: (stream: TMediaStream) => void;
 
-  private iceCandidateQueue: RTCIceCandidate[] = [];
+  private iceCandidateQueue: TRTCIceCandidate[] = [];
 
   constructor() {
     this.remoteStream = new MediaStream();
   }
 
   public setCallbacks(
-    onIceCandidate: (candidate: RTCIceCandidate) => void,
-    onRemoteStream: (stream: MediaStream) => void
+    onIceCandidate: (candidate: TRTCIceCandidate) => void,
+    onRemoteStream: (stream: TMediaStream) => void
   ) {
     this.onIceCandidateCallback = onIceCandidate;
     this.onRemoteStreamCallback = onRemoteStream;
   }
 
-  public async setupLocalStream(): Promise<MediaStream> {
-    const isFront = true;
+  public async setupLocalStream(): Promise<TMediaStream> {
     const devices = await mediaDevices.enumerateDevices();
     
     // We only need audio for voice calls
@@ -40,11 +87,11 @@ export class WebRTCService {
       video: false,
     });
     
-    this.localStream = stream as MediaStream;
+    this.localStream = stream as TMediaStream;
     return this.localStream;
   }
 
-  public createPeerConnection(): RTCPeerConnection {
+  public createPeerConnection(): TRTCPeerConnection {
     const configuration = {
       iceServers: [
         { urls: "stun:stun.l.google.com:19302" },
@@ -52,15 +99,16 @@ export class WebRTCService {
       ],
     };
 
-    this.peerConnection = new RTCPeerConnection(configuration);
+    const pc = new RTCPeerConnection(configuration);
+    this.peerConnection = pc;
 
-    (this.peerConnection as any).onicecandidate = (event: any) => {
+    (pc as any).onicecandidate = (event: any) => {
       if (event.candidate && this.onIceCandidateCallback) {
         this.onIceCandidateCallback(event.candidate);
       }
     };
 
-    (this.peerConnection as any).ontrack = (event: any) => {
+    (pc as any).ontrack = (event: any) => {
       if (event.track && this.remoteStream) {
         this.remoteStream.addTrack(event.track);
         if (this.onRemoteStreamCallback) {
@@ -70,17 +118,17 @@ export class WebRTCService {
     };
 
     if (this.localStream) {
-      this.localStream.getTracks().forEach((track) => {
+      this.localStream.getTracks().forEach((track: any) => {
         if (this.localStream) {
-            this.peerConnection?.addTrack(track, this.localStream);
+            pc.addTrack(track, this.localStream);
         }
       });
     }
 
-    return this.peerConnection;
+    return pc as TRTCPeerConnection;
   }
 
-  public async createOffer(): Promise<RTCSessionDescription> {
+  public async createOffer(): Promise<TRTCSessionDescription> {
     if (!this.peerConnection) throw new Error("PeerConnection not initialized");
     const offer = await this.peerConnection.createOffer({});
     await this.peerConnection.setLocalDescription(offer);
@@ -88,15 +136,16 @@ export class WebRTCService {
   }
 
   private async processIceCandidateQueue(): Promise<void> {
-    const hasRemoteDesc = this.peerConnection?.remoteDescription || (this.peerConnection as any)?.currentRemoteDescription;
-    if (!this.peerConnection || !hasRemoteDesc) return;
+    const pc = this.peerConnection as any;
+    const hasRemoteDesc = pc?.remoteDescription || pc?.currentRemoteDescription;
+    if (!pc || !hasRemoteDesc) return;
     
     console.log(`[WebRTCService] Processing ICE candidate queue. Size: ${this.iceCandidateQueue.length}`);
     while (this.iceCandidateQueue.length > 0) {
       const candidate = this.iceCandidateQueue.shift();
       if (candidate) {
         try {
-          await this.peerConnection.addIceCandidate(candidate);
+          await pc.addIceCandidate(candidate);
           console.log(`[WebRTCService] Successfully added queued ICE candidate.`);
         } catch (e) {
           console.error(`[WebRTCService] Error adding queued ICE candidate:`, e);
@@ -105,7 +154,7 @@ export class WebRTCService {
     }
   }
 
-  public async handleOffer(offer: any): Promise<RTCSessionDescription> {
+  public async handleOffer(offer: any): Promise<TRTCSessionDescription> {
     if (!this.peerConnection) throw new Error("PeerConnection not initialized");
     await this.peerConnection.setRemoteDescription(new RTCSessionDescription(offer));
     await this.processIceCandidateQueue();
@@ -122,9 +171,10 @@ export class WebRTCService {
 
   public async addIceCandidate(candidate: any): Promise<void> {
     if (!this.peerConnection) throw new Error("PeerConnection not initialized");
+    const pc = this.peerConnection as any;
     
     // In react-native-webrtc, currentRemoteDescription might be needed or remoteDescription
-    const hasRemoteDesc = this.peerConnection.remoteDescription || (this.peerConnection as any).currentRemoteDescription;
+    const hasRemoteDesc = pc.remoteDescription || pc.currentRemoteDescription;
     
     console.log(`[WebRTCService] addIceCandidate. hasRemoteDesc: ${!!hasRemoteDesc}`);
 
@@ -134,7 +184,7 @@ export class WebRTCService {
       return;
     }
     try {
-      await this.peerConnection.addIceCandidate(new RTCIceCandidate(candidate));
+      await pc.addIceCandidate(new RTCIceCandidate(candidate));
       console.log(`[WebRTCService] Successfully added ICE candidate.`);
     } catch (e) {
       console.error(`[WebRTCService] Error adding ICE candidate:`, e);
@@ -143,7 +193,7 @@ export class WebRTCService {
 
   public toggleMute(isMuted: boolean): void {
     if (this.localStream) {
-      this.localStream.getAudioTracks().forEach((track) => {
+      this.localStream.getAudioTracks().forEach((track: any) => {
         track.enabled = !isMuted;
       });
     }
@@ -151,12 +201,10 @@ export class WebRTCService {
 
   public cleanup(): void {
     if (this.localStream) {
-      this.localStream.getTracks().forEach((track) => track.stop());
+      this.localStream.getTracks().forEach((track: any) => track.stop());
       this.localStream = null;
     }
     
-    // We intentionally don't do new MediaStream() right away so that
-    // old remote streams are cleared completely.
     this.remoteStream = new MediaStream();
     this.iceCandidateQueue = [];
 

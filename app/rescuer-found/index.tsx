@@ -291,18 +291,7 @@ export default function RescuerFoundScreen() {
           </View>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.callBtn}
-          activeOpacity={0.85}
-          onPress={handleCall}
-        >
-          <View style={styles.callBtnIconCircle}>
-            <Text style={styles.callBtnIcon}>📞</Text>
-          </View>
-          <Text style={styles.callBtnText}>
-            Call {rescuerName}
-          </Text>
-        </TouchableOpacity>
+
 
         {/* ── Footer Note ── */}
         <View style={styles.footerBanner}>

@@ -8,6 +8,7 @@ export type ForumPost = {
   likes: number;
   likedByMe: boolean;
   commentCount: number;
+  imageUrl?: string;
   createdAt?: string;
 };
 

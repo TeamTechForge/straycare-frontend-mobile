@@ -139,13 +139,14 @@ export async function getAllPosts(): Promise<ForumPost[]> {
   return requestJson<ForumPost[]>(`/api/forum?userId=${encodeURIComponent(CLIENT_USER_ID)}`);
 }
 
-export async function createPost(data: { title: string; tag?: ForumPost["tag"]; author?: string }) {
+export async function createPost(data: { title: string; tag?: ForumPost["tag"]; author?: string; imageUrl?: string }) {
   return requestJson<{ message: string; post: ForumPost }>("/api/forum", {
     method: "POST",
     body: JSON.stringify({
       title: data.title,
       tag: data.tag ?? "GENERAL",
       author: data.author ?? "You",
+      imageUrl: data.imageUrl ?? "",
     }),
   });
 }
