@@ -45,3 +45,7 @@ app-example
 
 # IDEs
 .idea/
+
+# Build logs
+build_log.txt
+*.build_log.txt

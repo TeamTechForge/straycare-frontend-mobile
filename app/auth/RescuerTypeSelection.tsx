@@ -212,9 +212,10 @@ const styles = StyleSheet.create({
   subtitle: { color: "#888", marginBottom: 20 },
   card: {
     backgroundColor: "#f7f7f7",
-    padding: 15,
+    paddingHorizontal: 15,
+    paddingVertical: 28,
     borderRadius: 12,
-    marginBottom: 12,
+    marginBottom: 20,
     borderWidth: 1,
     borderColor: "#eee",
   },

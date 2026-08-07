@@ -7,7 +7,7 @@ import { API_URL } from "../../constants/config.constants";
 
 import SettingsRow from "../../components/settings/SettingsRow";
 import { useAuth } from "../../contexts/AuthContext";
-import { pushNotificationService } from "../../services/PushNotificationService";
+import { pushNotificationService } from "../../services/pushNotificationService";
 
 const BRAND_COLOR = "#F5A623";
 

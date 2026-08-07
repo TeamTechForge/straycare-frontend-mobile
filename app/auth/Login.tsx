@@ -14,7 +14,7 @@ import {
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
-import { useGoogleAuth, handleGoogleSignIn } from "../../services/GoogleAuthService";
+import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthService";
 import { useAuth } from "../../contexts/AuthContext";
 import CustomAlertModal from "../../components/CustomAlertModal";
 

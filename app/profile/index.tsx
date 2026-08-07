@@ -198,7 +198,7 @@ export default function ProfileScreen() {
     location: location,
     bio: bio,
     memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : "2026",
-    avatar: profile?.profileImage || "https://via.placeholder.com/150",
+    avatar: profile?.profileImage || user?.avatar || "https://via.placeholder.com/150",
   };
   
   // To handle saved items (all current files had it empty)

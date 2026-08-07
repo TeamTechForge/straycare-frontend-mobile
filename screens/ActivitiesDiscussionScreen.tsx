@@ -17,7 +17,7 @@ import { useRouter, type Href } from "expo-router";
 /* ──────────────────────────────────────────────
  * Route constants – typed once, used everywhere
  * ────────────────────────────────────────────── */
-const nearbyRescuersRoute = "/nearby-rescuers" as Href;
+const nearbyRescuersRoute = "/NearbyRescuers" as Href;
 const rescueHistoryRoute = "/RescueHistory" as Href;
 const myRescuesRoute = "/MyRescues" as Href;
 const discussionForumRoute = "/DiscussionForum" as Href;

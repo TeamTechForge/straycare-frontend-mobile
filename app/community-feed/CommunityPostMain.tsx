@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { getCommunityFeed } from "../../api/api.service"; // API call to fetch posts
+import { getCommunityFeed } from "../../api/apiService"; // API call to fetch posts
 
 
 const C = {

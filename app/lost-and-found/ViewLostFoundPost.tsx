@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { getAnimalPostById, reportAnimalPost } from '../../api/api.service';
+import { getAnimalPostById, reportAnimalPost } from '../../api/apiService';
 import { BASE_URL } from '../../constants/config.constants';
 
 // ─── Colour changes were made ────────────────────────────────────────────────────────────

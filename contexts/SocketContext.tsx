@@ -2,12 +2,12 @@
 // Manages the Socket.IO connection to the /chat namespace.
 // Auto-connects when user is authenticated, disconnects on logout.
 
-import React, { createContext, useContext, useEffect, useRef, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { io, Socket } from "socket.io-client";
 import { BASE_URL } from "../constants/config.constants";
 import { useAuth } from "./AuthContext";
-import { chatService } from "../services/ChatService";
-import { CallLogService } from "../services/CallLogService";
+import { chatService } from "../services/chatService";
+import { CallLogService } from "../services/callLogService";
 
 type SocketContextType = {
   socket: Socket | null;
@@ -37,7 +37,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
   const [hasUnreadChats, setHasUnreadChats] = useState(false);
   const [hasUnseenMissedCalls, setHasUnseenMissedCalls] = useState(false);
 
-  const refreshChatBadge = async () => {
+  const refreshChatBadge = useCallback(async () => {
     if (!token || !user?._id) return;
     try {
       const conversations = (await chatService.getConversations(token)) as any[];
@@ -47,9 +47,9 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("[SocketContext] Error refreshing chat badge", error);
     }
-  };
+  }, [token, user?._id]);
 
-  const refreshCallBadge = async () => {
+  const refreshCallBadge = useCallback(async () => {
     if (!token || !user?._id) return;
     try {
       const history = (await CallLogService.getHistory()) as any[];
@@ -67,7 +67,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       console.error("[SocketContext] Error refreshing call badge", error);
     }
-  };
+  }, [token, user?._id]);
 
   useEffect(() => {
     // Only connect when we have an authenticated user
@@ -165,7 +165,7 @@ export function SocketProvider({ children }: { children: React.ReactNode }) {
       socketRef.current = null;
       setIsConnected(false);
     };
-  }, [user?._id, token]);
+  }, [user?._id, token, refreshChatBadge, refreshCallBadge]);
 
   return (
     <SocketContext.Provider

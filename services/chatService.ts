@@ -1,4 +1,4 @@
-// services/ChatService.ts
+// services/chatService.ts
 // REST API wrapper for chat endpoints. Uses fetch() + Bearer token
 // matching the existing pattern from notifications.tsx and home.tsx.
 

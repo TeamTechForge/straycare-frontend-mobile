@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, ActivityIndicator, Alert, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import { CallLogService } from "../../services/CallLogService";
+import { CallLogService } from "../../services/callLogService";
 import { useCall } from "../../contexts/CallContext";
 import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { chatService } from "../../services/ChatService";
+import { chatService } from "../../services/chatService";
 
 const BRAND_COLOR = "#F5A623";
 
