@@ -22,7 +22,7 @@ import {
   fetchAllRescues,
   fetchCompletedRescues,
   fetchPendingRescues,
-} from "../services/rescue.service";
+} from "../services/RescueService";
 import { rescueHistoryStyles as styles } from "../styles/rescue-history.styles";
 import type { RescueHistoryResponse, RescueHistoryTab } from "../types/Api";
 

@@ -88,7 +88,7 @@ function InitialLayout() {
     const setupPushNotifications = async () => {
       try {
         // Lazy load push notification service (only available on native builds)
-        const { pushNotificationService } = await import("../services/pushNotificationService");
+        const { pushNotificationService } = await import("../services/PushNotificationService");
 
         pushNotificationService.initializePushNotifications((notification) => {
           // Handle incoming push notification

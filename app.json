@@ -1,10 +1,10 @@
 {
   "expo": {
-    "name": "Stray Care",
+    "name": "StrayCare",
     "slug": "stray-care",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/straycarelogoicon.png",
     "scheme": "straycare",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -23,13 +23,13 @@
         "android.permission.RECORD_AUDIO"
       ],
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
+        "foregroundImage": "./assets/images/straycarelogoicon.png",
         "backgroundColor": "#FFFFFF"
       },
       "edgeToEdgeEnabled": true
     },
     "web": {
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/straycarelogoicon.png"
     },
     "plugins": [
       "expo-router",
@@ -37,6 +37,7 @@
         "expo-splash-screen",
         {
           "image": "./assets/images/straycarelogo.png",
+          "imageWidth": 300,
           "resizeMode": "contain",
           "backgroundColor": "#FFFFFF"
         }
@@ -63,6 +64,12 @@
         {
           "cameraPermission": "Allow StrayCare to use your camera for video calls.",
           "microphonePermission": "Allow StrayCare to use your microphone for voice calls."
+        }
+      ],
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
         }
       ]
     ],

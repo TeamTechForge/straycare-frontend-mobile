@@ -6,7 +6,7 @@ import { CallLogService } from "../../services/CallLogService";
 import { useCall } from "../../contexts/CallContext";
 import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { chatService } from "../../services/chat.service";
+import { chatService } from "../../services/ChatService";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -96,7 +96,7 @@ export default function CallHistoryScreen() {
   const navigateToChat = async (otherUser: any) => {
     if (!token) return;
     try {
-      const conv = await chatService.getOrCreateConversation(token, otherUser.userId);
+      const conv: any = await chatService.getOrCreateConversation(token, otherUser.userId);
       router.push({
         pathname: "/chat/[conversationId]",
         params: {

@@ -8,7 +8,7 @@ export default function HomePage() {
 
   return (
     <View style={styles.container}>
-      
+
       {/* TOP LOGO SECTION */}
       <Image
         source={require("../assets/images/straycarelogo.png")}
@@ -58,17 +58,17 @@ const BRAND_COLOR = "#F5A623";
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F5F5F5",   
+    backgroundColor: "#F5F5F5",
     alignItems: "center",
     paddingHorizontal: 30,
-    paddingTop: 0,
+    paddingTop: 18,
   },
 
   logo: {
-    width: 120,
-    height: 120,
+    width: 140,
+    height: 140,
     resizeMode: "contain",
-    marginBottom: 10,
+    marginBottom: 0,
   },
 
   // NEW image card container
@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 30,
-    
+
   },
 
   dogImage: {
@@ -88,7 +88,7 @@ const styles = StyleSheet.create({
     height: "100%",
     resizeMode: "cover",
     borderRadius: 30,
-    
+
   },
 
   // NEW heading style

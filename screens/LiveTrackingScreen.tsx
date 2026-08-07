@@ -18,7 +18,7 @@ import { colors } from "../constants/colors.constants";
 import { spacing } from "../constants/spacing.constants";
 import { useAuth } from "../contexts/AuthContext";
 import { useChatApi } from "../hooks/useChatApi";
-import { fetchComments, fetchRescueById, postComment, postReply } from "../services/rescue.service";
+import { fetchComments, fetchRescueById, postComment, postReply } from "../services/RescueService";
 import { liveTrackingStyles as styles } from "../styles/live-tracking.styles";
 import type { LiveTrackingResponse, RescueComment } from "../types/Api";
 

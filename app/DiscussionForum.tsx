@@ -15,7 +15,7 @@ import { forumStyles as styles } from "../styles/forum.styles";
 import ForumTabs from "../components/forum/ForumTabs";
 import ForumPostCard from "../components/forum/ForumPostCard";
 import ForumBottomActions from "../components/forum/ForumBottomActions";
-import { getAllPosts, likePost } from "../services/forum.service";
+import { getAllPosts, likePost } from "../services/ForumService";
 import type { ForumPost } from "../types/Forum";
 
 type TabKey = "Newest" | "Active" | "Unanswered";

@@ -102,13 +102,13 @@ export class WebRTCService {
     const pc = new RTCPeerConnection(configuration);
     this.peerConnection = pc;
 
-    pc.onicecandidate = (event: any) => {
+    (pc as any).onicecandidate = (event: any) => {
       if (event.candidate && this.onIceCandidateCallback) {
         this.onIceCandidateCallback(event.candidate);
       }
     };
 
-    pc.ontrack = (event: any) => {
+    (pc as any).ontrack = (event: any) => {
       if (event.track && this.remoteStream) {
         this.remoteStream.addTrack(event.track);
         if (this.onRemoteStreamCallback) {
@@ -173,6 +173,7 @@ export class WebRTCService {
     if (!this.peerConnection) throw new Error("PeerConnection not initialized");
     const pc = this.peerConnection as any;
     
+    // In react-native-webrtc, currentRemoteDescription might be needed or remoteDescription
     const hasRemoteDesc = pc.remoteDescription || pc.currentRemoteDescription;
     
     console.log(`[WebRTCService] addIceCandidate. hasRemoteDesc: ${!!hasRemoteDesc}`);
