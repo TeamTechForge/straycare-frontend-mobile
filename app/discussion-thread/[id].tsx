@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, RefreshControl, SafeAreaView, ScrollView, Tex
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { getAllPosts, addComment, getThread } from "../../services/ForumService";
+import { getAllPosts, addComment, getThread, deletePost } from "../../services/ForumService";
 import type { ForumPost, ForumThreadComment } from "../../types/Forum";
 import type { ThreadData, ThreadMessage } from "../../types/Thread";
 import { threadStyles as styles } from "../../styles/thread.styles";
@@ -119,6 +119,19 @@ export default function DiscussionThreadScreen() {
     }
   }
 
+  async function handleDeleteThread() {
+    if (!id) return;
+    try {
+      setLoading(true);
+      await deletePost(id);
+      router.back();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete thread";
+      setError(message);
+      setLoading(false);
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.page}>
@@ -143,7 +156,12 @@ export default function DiscussionThreadScreen() {
           </View>
         ) : (
           <>
-            <ThreadHeaderCard title={headerTitle} likes={post?.likes ?? thread.likes} />
+            <ThreadHeaderCard
+              title={headerTitle}
+              likes={post?.likes ?? thread.likes}
+              isMine={post?.isMine}
+              onDelete={handleDeleteThread}
+            />
 
             {post?.imageUrl ? (
               <Image

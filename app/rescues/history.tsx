@@ -12,19 +12,19 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, SafeAreaView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
-import AllRescues from "../components/rescue-history/AllRescues";
-import CompletedRescues from "../components/rescue-history/CompletedRescues";
-import PendingRescues from "../components/rescue-history/PendingRescues";
-import AppButton from "../components/ui/AppButton";
-import { colors } from "../constants/colors.constants";
-import { spacing } from "../constants/spacing.constants";
+import AllRescues from "../../components/rescue-history/AllRescues";
+import CompletedRescues from "../../components/rescue-history/CompletedRescues";
+import PendingRescues from "../../components/rescue-history/PendingRescues";
+import AppButton from "../../components/ui/AppButton";
+import { colors } from "../../constants/colors.constants";
+import { spacing } from "../../constants/spacing.constants";
 import {
   fetchAllRescues,
   fetchCompletedRescues,
   fetchPendingRescues,
-} from "../services/RescueService";
-import { rescueHistoryStyles as styles } from "../styles/rescue-history.styles";
-import type { RescueHistoryResponse, RescueHistoryTab } from "../types/Api";
+} from "../../services/RescueService";
+import { rescueHistoryStyles as styles } from "../../styles/rescue-history.styles";
+import type { RescueHistoryResponse, RescueHistoryTab } from "../../types/Api";
 
 // ── Tab configuration ────────────────────────────────────────────────────────
 

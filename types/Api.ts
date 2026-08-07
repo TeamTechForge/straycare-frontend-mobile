@@ -16,6 +16,7 @@ export interface RescuerLocation {
 /** A rescuer document from the database */
 export interface Rescuer {
   _id: string;
+  userId?: string;
   name: string;
   phone?: string;
   avatar?: string;

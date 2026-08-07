@@ -393,7 +393,7 @@ export default function CommunityFeed() {
       <TouchableOpacity
         style={styles.floatingButton}
         activeOpacity={0.85}
-        onPress={() => router.push("/DiscussionForum")}
+        onPress={() => router.push("/forum" as any)}
       >
         <LinearGradient
           colors={["#F5A623", "#F8C166"]}

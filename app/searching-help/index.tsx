@@ -18,6 +18,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   Image,
   Platform,
   StyleSheet,
@@ -29,6 +30,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import axios from "axios"; // axios v1 — uses AbortController, NOT CancelToken
 
 import type { FindNearestResponse } from "../../types/Api";
+import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 
 // ─── URL params ────────────────────────────────────────────────────────────────
 type SearchParams = {
@@ -41,15 +43,9 @@ type SearchParams = {
   description?: string | string[];
 };
 
-// ─── API base URL ──────────────────────────────────────────────────────────────
-const getApiBaseUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/$/, "");
-  if (envUrl) return envUrl;
-  if (Platform.OS === "android") return "http://10.0.2.2:5000"; // Android emulator
-  return "http://localhost:5000"; // iOS simulator / web
-};
+import { BASE_URL } from "../../constants/config.constants";
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = BASE_URL;
 
 // Helper: Expo Router can pass params as arrays — always get a single string
 const getFirstParam = (value: string | string[] | undefined) =>
@@ -78,6 +74,31 @@ export default function SearchingHelpScreen() {
   const [error,      setError]      = useState<string | null>(null);
   const [cancelling, setCancelling] = useState(false); // brief "stopping" phase
   const [cancelled,  setCancelled]  = useState(false); // final cancelled state
+  const [foundRescuer, setFoundRescuer] = useState<any>(null); // assigned rescuer info
+  
+  // ── Radar Animation ───────────────────────────────────────────────────────
+  const radarAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (loading && !foundRescuer && !cancelled && !error) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(radarAnim, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(radarAnim, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          })
+        ])
+      ).start();
+    } else {
+      radarAnim.stopAnimation();
+    }
+  }, [loading, foundRescuer, cancelled, error, radarAnim]);
 
   // ── Refs ──────────────────────────────────────────────────────────────────
   // AbortController for the find-nearest POST call
@@ -206,24 +227,31 @@ export default function SearchingHelpScreen() {
         console.log("[SearchingHelp] Response:", response.data);
 
         const { rescuer, distance } = response.data;
+        
+        setFoundRescuer(rescuer);
 
-        router.replace({
-          pathname: "/rescuer-found",
-          params: {
-            name:      rescuer.name,
-            distance:  String(distance),
-            rescuerId: rescuer._id,
-            avatar:    rescuer.avatar ?? "",
-            phone:     rescuer.phone  ?? "",
-            caseId:    getFirstParam(caseId) ?? "",
-            animalType: getFirstParam(animalType) ?? "",
-            animalPhoto: getFirstParam(animalPhoto) ?? "",
-            description: getFirstParam(description) ?? "",
-            lat:       String(latitude),
-            lng:       String(longitude),
-            excludeIds: getFirstParam(excludeIds) ?? "",
-          },
-        } as never);
+        // Delay navigation so the user can see the rescuer on the map
+        setTimeout(() => {
+          if (!mountedRef.current || cancelledRef.current) return;
+          
+          router.replace({
+            pathname: "/rescuer-found",
+            params: {
+              name:      rescuer.name,
+              distance:  String(distance),
+              rescuerId: rescuer._id,
+              avatar:    rescuer.avatar ?? "",
+              phone:     rescuer.phone  ?? "",
+              caseId:    getFirstParam(caseId) ?? "",
+              animalType: getFirstParam(animalType) ?? "",
+              animalPhoto: getFirstParam(animalPhoto) ?? "",
+              description: getFirstParam(description) ?? "",
+              lat:       String(latitude),
+              lng:       String(longitude),
+              excludeIds: getFirstParam(excludeIds) ?? "",
+            },
+          } as never);
+        }, 2500);
       } catch (requestError: unknown) {
         // Aborted intentionally — UI is already updated by handleCancel()
         if (isAbortError(requestError)) {
@@ -287,12 +315,55 @@ export default function SearchingHelpScreen() {
         </>
       ) : null}
 
-      {/* Searching animation (hidden after cancellation or error) */}
+      {/* Map View & Radar animation (hidden after cancellation or error) */}
       {!cancelled && !error && (
-        <Image
-          source={require("../../assets/images/searching.gif")}
-          style={styles.image}
-        />
+        <View style={styles.mapContainer}>
+          <MapViewWrapper
+            style={StyleSheet.absoluteFillObject}
+            initialRegion={{
+              latitude: latitude,
+              longitude: longitude,
+              latitudeDelta: 0.05,
+              longitudeDelta: 0.05,
+            }}
+          >
+            {/* If rescuer is found, display them on the map */}
+            {foundRescuer && foundRescuer.location && (
+              <Marker
+                coordinate={{
+                  latitude: foundRescuer.location.latitude,
+                  longitude: foundRescuer.location.longitude,
+                }}
+                title={foundRescuer.name}
+                description="Assigned Rescuer"
+                pinColor="#2E86DE"
+              />
+            )}
+          </MapViewWrapper>
+
+          {/* Render radar animation OVER the map center if still searching */}
+          {!foundRescuer && (
+            <Animated.View
+              style={[
+                styles.radarCircle,
+                {
+                  opacity: radarAnim.interpolate({
+                    inputRange: [0, 0.8, 1],
+                    outputRange: [0.8, 0.2, 0],
+                  }),
+                  transform: [
+                    {
+                      scale: radarAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [0.5, 3],
+                      }),
+                    },
+                  ],
+                },
+              ]}
+            />
+          )}
+        </View>
       )}
 
       {/* Cancel button — visible ONLY while search is actively loading */}
@@ -367,10 +438,26 @@ const styles = StyleSheet.create({
     color: "#B00020",
     textAlign: "center",
   },
-  image: {
-    width: 180,
-    height: 180,
+  mapContainer: {
+    width: 250,
+    height: 250,
     marginTop: 30,
+    borderRadius: 125,
+    overflow: "hidden",
+    borderWidth: 2,
+    borderColor: "#e0e0e0",
+    position: "relative",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radarCircle: {
+    position: "absolute",
+    width: 100,
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: "rgba(229, 57, 53, 0.4)", // Red radar
+    borderWidth: 1,
+    borderColor: "rgba(229, 57, 53, 0.8)",
   },
   cancelButton: {
     marginTop: 32,

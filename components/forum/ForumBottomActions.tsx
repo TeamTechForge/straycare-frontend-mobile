@@ -19,7 +19,7 @@ export default function ForumBottomActions({
       {/* Primary CTA */}
       <Pressable
         style={styles.addBtn}
-        onPress={() => router.push({ pathname: "/AddContent" })}
+        onPress={() => router.push({ pathname: "/forum/add" })}
       >
         <Text style={styles.addBtnText}>＋ Add New</Text>
       </Pressable>

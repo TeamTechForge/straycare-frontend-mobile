@@ -14,15 +14,12 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
 import axios from "axios";
 
+import { useAuth } from "../../contexts/AuthContext";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
-
-// Fallback images matching design system
-const FALLBACK_RESCUER_AVATAR =
-  "https://images.unsplash.com/photo-1535930749574-1399327ce78f?w=200&h=200&fit=crop&q=80";
 
 type SearchParams = {
   lat?: string | string[];
@@ -35,15 +32,9 @@ type SearchParams = {
 
 type WorkflowState = "selecting" | "sending" | "waiting" | "accepted";
 
-// ─── API base URL helper ──────────────────────────────────────────────────────
-const getApiBaseUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/$/, "");
-  if (envUrl) return envUrl;
-  if (Platform.OS === "android") return "http://10.0.2.2:5000"; // Android emulator
-  return "http://localhost:5000"; // iOS simulator / web
-};
+import { BASE_URL } from "../../constants/config.constants";
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = BASE_URL;
 
 // ─── Helper: Haversine distance formula ────────────────────────────────────────
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
@@ -61,6 +52,7 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): nu
 export default function NearbyRescuersScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<SearchParams>();
+  const { user } = useAuth();
 
   const { caseId, animalType, animalPhoto, description } = params;
 
@@ -150,7 +142,7 @@ export default function NearbyRescuersScreen() {
         const available = rawRescuers.filter((r: any) => r.isAvailable === true);
         console.log(`[NearbyHelpMap] ${available.length} available rescuers`);
 
-        // Calculate straight line distance and sort
+        // Calculate straight line distance, filter within 5km, and sort
         const sorted = available
           .map((r: any) => {
             const distance = getDistance(
@@ -161,6 +153,7 @@ export default function NearbyRescuersScreen() {
             );
             return { ...r, distance };
           })
+          .filter((r: any) => r.distance <= 5)
           .sort((a: any, b: any) => a.distance - b.distance);
 
         setRescuers(sorted);
@@ -181,10 +174,19 @@ export default function NearbyRescuersScreen() {
     setAvatarError(false);
   }, [currentIndex]);
 
-  // ── Filter available rescuers by exclude list ───────────────────────────────
-  const filteredRescuers = rescuers.filter(
-    (r: any) => !excludeIds.includes(String(r._id))
-  );
+  // ── Filter available rescuers by exclude list and exclude reporter ──────────
+  const filteredRescuers = rescuers.filter((r: any) => {
+    if (excludeIds.includes(String(r._id))) return false;
+    if (user && user._id) {
+      const rescuerUserIdStr = r.userId ? String(r.userId) : "";
+      const rescuerIdStr = r._id ? String(r._id) : "";
+      const reporterIdStr = String(user._id);
+      if (rescuerUserIdStr === reporterIdStr || rescuerIdStr === reporterIdStr) {
+        return false;
+      }
+    }
+    return true;
+  });
 
   const selectedRescuer = filteredRescuers[currentIndex] || null;
 
@@ -197,7 +199,7 @@ export default function NearbyRescuersScreen() {
 
   const excludeCurrentAndFindNext = (rescuerIdToExclude: string) => {
     console.log("[NearbyHelpMap] Excluding rescuer ID:", rescuerIdToExclude);
-    setExcludeIds(prev => [...prev, rescuerIdToExclude]);
+    setExcludeIds((prev: string[]) => [...prev, rescuerIdToExclude]);
     setCurrentIndex(0); // Reset index to focus on the next closest available
   };
 
@@ -246,7 +248,7 @@ export default function NearbyRescuersScreen() {
 
     // 2. Countdown Timer Interval (every 1 second)
     const countdownInterval = setInterval(() => {
-      setCountdown(prev => {
+      setCountdown((prev: number) => {
         if (prev <= 1) {
           clearInterval(countdownInterval);
           return 0;
@@ -361,9 +363,9 @@ export default function NearbyRescuersScreen() {
 
   const distanceFormatted = selectedRescuer ? selectedRescuer.distance.toFixed(1) : "0";
   const etaMinutes = selectedRescuer ? Math.max(3, Math.round(selectedRescuer.distance * 6)) : 0;
-  const avatarUri = selectedRescuer && selectedRescuer.avatar && !avatarError
-    ? selectedRescuer.avatar
-    : FALLBACK_RESCUER_AVATAR;
+  const rescuerImg = selectedRescuer ? (selectedRescuer.avatar || selectedRescuer.profileImage) : null;
+  const hasAvatar = Boolean(rescuerImg && typeof rescuerImg === "string" && rescuerImg.trim().length > 0 && !avatarError);
+  const avatarUri = hasAvatar ? rescuerImg : "";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -425,11 +427,17 @@ export default function NearbyRescuersScreen() {
                 {/* Profile Wrapper */}
                 <View style={styles.profileRow}>
                   <View style={styles.avatarWrapper}>
-                    <Image
-                      source={{ uri: avatarUri }}
-                      style={styles.avatar}
-                      onError={() => setAvatarError(true)}
-                    />
+                    {hasAvatar ? (
+                      <Image
+                        source={{ uri: avatarUri }}
+                        style={styles.avatar}
+                        onError={() => setAvatarError(true)}
+                      />
+                    ) : (
+                      <View style={[styles.avatar, styles.emptyAvatar]}>
+                        <Text style={styles.emptyAvatarText}>👤</Text>
+                      </View>
+                    )}
                     <View style={styles.avatarBadge}>
                       <Text style={styles.avatarBadgeIcon}>🐾</Text>
                     </View>
@@ -529,11 +537,17 @@ export default function NearbyRescuersScreen() {
               {/* Profile Wrapper */}
               <View style={styles.profileRow}>
                 <View style={styles.avatarWrapper}>
-                  <Image
-                    source={{ uri: avatarUri }}
-                    style={styles.avatar}
-                    onError={() => setAvatarError(true)}
-                  />
+                  {hasAvatar ? (
+                    <Image
+                      source={{ uri: avatarUri }}
+                      style={styles.avatar}
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    <View style={[styles.avatar, styles.emptyAvatar]}>
+                      <Text style={styles.emptyAvatarText}>👤</Text>
+                    </View>
+                  )}
                   <View style={styles.avatarBadge}>
                     <Text style={styles.avatarBadgeIcon}>🐾</Text>
                   </View>
@@ -580,11 +594,17 @@ export default function NearbyRescuersScreen() {
               {/* Profile Wrapper */}
               <View style={styles.profileRow}>
                 <View style={styles.avatarWrapper}>
-                  <Image
-                    source={{ uri: avatarUri }}
-                    style={styles.avatar}
-                    onError={() => setAvatarError(true)}
-                  />
+                  {hasAvatar ? (
+                    <Image
+                      source={{ uri: avatarUri }}
+                      style={styles.avatar}
+                      onError={() => setAvatarError(true)}
+                    />
+                  ) : (
+                    <View style={[styles.avatar, styles.emptyAvatar]}>
+                      <Text style={styles.emptyAvatarText}>👤</Text>
+                    </View>
+                  )}
                   <View style={styles.avatarBadge}>
                     <Text style={styles.avatarBadgeIcon}>🐾</Text>
                   </View>
@@ -753,6 +773,14 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
     borderWidth: 2,
     borderColor: colors.primary,
+  },
+  emptyAvatar: {
+    backgroundColor: "#E2E8F0",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyAvatarText: {
+    fontSize: 24,
   },
   avatarBadge: {
     position: "absolute",

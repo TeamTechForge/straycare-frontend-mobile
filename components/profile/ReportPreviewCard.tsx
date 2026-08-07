@@ -16,6 +16,28 @@ type Props = {
   onPress?: () => void;
 };
 
+const getStatusColors = (status: string): { bg: string; text: string } => {
+  switch (status?.toLowerCase()) {
+    case "under rescue":
+      return { bg: "#FFF1CC", text: "#D97706" };
+    case "treated":
+      return { bg: "#DBEAFE", text: "#2563EB" };
+    case "ready for adoption":
+      return { bg: "#D1FAE5", text: "#059669" };
+    case "completed":
+      return { bg: "#D1FAE5", text: "#047857" };
+    case "needs help":
+      return { bg: "#FEE2E2", text: "#DC2626" };
+    case "pending":
+    case "request sent":
+      return { bg: "#FEF3C7", text: "#B45309" };
+    case "accepted":
+      return { bg: "#FFF1CC", text: BRAND_COLOR };
+    default:
+      return { bg: "#FFF1CC", text: BRAND_COLOR };
+  }
+};
+
 export default function ReportPreviewCard({
   title,
   date,
@@ -28,6 +50,8 @@ export default function ReportPreviewCard({
   summary,
   onPress,
 }: Props) {
+  const statusColors = getStatusColors(status);
+
   return (
     <TouchableOpacity style={styles.reportCard} onPress={onPress} activeOpacity={0.8}>
       <View style={styles.cardHeaderRow}>
@@ -36,8 +60,8 @@ export default function ReportPreviewCard({
           <Text style={styles.reportTitle}>{title}</Text>
           <Text style={styles.reportDate}>{date}</Text>
           <View style={styles.badgeRow}>
-            <View style={styles.reportStatusBadge}>
-              <Text style={styles.reportStatusText}>{status}</Text>
+            <View style={[styles.reportStatusBadge, { backgroundColor: statusColors.bg }]}>
+              <Text style={[styles.reportStatusText, { color: statusColors.text }]}>{status}</Text>
             </View>
             
             {onTrackPress &&

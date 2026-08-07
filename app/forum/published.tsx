@@ -2,10 +2,10 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, SafeAreaView, Text, View } from "react-native";
 import { useRouter, useLocalSearchParams } from "expo-router";
 
-import AppButton from "../components/ui/AppButton";
-import PublishedCard from "../components/thread/PublishedCard";
-import { styles } from "../styles/thread-published.styles";
-import { createPost } from "../services/ForumService";
+import AppButton from "../../components/ui/AppButton";
+import PublishedCard from "../../components/thread/PublishedCard";
+import { styles } from "../../styles/thread-published.styles";
+import { createPost } from "../../services/ForumService";
 
 export default function ThreadPublished() {
   const router = useRouter();
@@ -48,7 +48,7 @@ export default function ThreadPublished() {
   }, [params.content]);
 
   const goToForum = () => {
-    router.replace({ pathname: "/DiscussionForum" });
+    router.replace("/forum/index" as any);
   };
 
   return (

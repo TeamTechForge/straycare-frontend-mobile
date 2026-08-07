@@ -120,23 +120,12 @@ export default function RescuerResponseScreen() {
     }
   };
 
-  // ── Action 3: Navigate to Rescue Location in GPS Maps app ─────────────────────
+  // ── Action 3: Navigate to Rescue Location (in-app full-screen map) ─────────
   const handleNavigateToLocation = () => {
-    const lat = caseDetails?.rescueLocation?.latitude || caseDetails?.location?.lat;
-    const lng = caseDetails?.rescueLocation?.longitude || caseDetails?.location?.lng;
-
-    if (lat && lng) {
-      const mapsUrl = Platform.select({
-        ios: `maps:0,0?q=${lat},${lng}`,
-        android: `geo:0,0?q=${lat},${lng}(Rescue Location)`,
-      }) || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-
-      Linking.openURL(mapsUrl).catch(() => {
-        Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${lat},${lng}`);
-      });
-    } else {
-      Alert.alert("Location Error", "Location coordinates not available.");
-    }
+    router.push({
+      pathname: "/rescuer-navigation/[requestId]",
+      params: { requestId: requestId as string },
+    } as any);
   };
 
   // ── Action 4: Submit Rescue Progress Note ───────────────────────────────────
@@ -180,11 +169,9 @@ export default function RescuerResponseScreen() {
             setUpdatingStatus(true);
             try {
               const token = await SecureStore.getItemAsync("authToken");
-              const targetCaseId = caseDetails?.caseId || caseId;
-
               await axios.patch(
-                `${API_URL}/strays/report/${targetCaseId}/status`,
-                { status: "Completed" },
+                `${API_URL}/rescue/request/${requestId}/details`,
+                { summary: "Rescue case has been successfully concluded.", status: "Completed" },
                 { headers: { Authorization: `Bearer ${token}` } }
               );
 
@@ -200,7 +187,7 @@ export default function RescuerResponseScreen() {
               );
             } catch (err: any) {
               console.error("[RescuerResponse] Complete error:", err);
-              Alert.alert("Error", err?.response?.data?.message || "Failed to mark as completed.");
+              Alert.alert("Error", err?.response?.data?.error || "Failed to mark as completed.");
             } finally {
               setUpdatingStatus(false);
             }
@@ -229,6 +216,11 @@ export default function RescuerResponseScreen() {
   const locationLng = caseDetails?.rescueLocation?.longitude || caseDetails?.location?.lng;
   const address = caseDetails?.rescueLocation?.address || caseDetails?.location?.address || "Location on map";
   const createdTime = caseDetails?.createdAt ? new Date(caseDetails.createdAt).toLocaleString() : "Recently";
+  const timelineData = Array.isArray(caseDetails?.timeline) && caseDetails.timeline.length > 0
+    ? caseDetails.timeline
+    : [{ status: "Needs Help", message: "Your request was published on the network", timestamp: caseDetails?.createdAt || new Date().toISOString() }];
+
+  const currentUserId = user ? String((user as any)._id || (user as any).id || "") : "";
 
   return (
     <SafeAreaView style={styles.container}>
@@ -338,55 +330,112 @@ export default function RescuerResponseScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* 📝 RESCUE ACTION BUTTONS */}
-        <View style={styles.actionSection}>
-          <Text style={styles.sectionHeader}>Quick Progress Updates</Text>
-          <View style={styles.progressChipsWrap}>
-            {[
-              { label: "🚗  On the Way", note: "Rescuer is on the way to your location." },
-              { label: "📍  Arrived", note: "Rescuer has arrived at the location." },
-              { label: "🐶  Animal Located", note: "Animal has been located at the scene." },
-              { label: "🩺  Animal Rescued", note: "Animal has been safely rescued and secured." },
-              { label: "🚑  Transporting", note: "Transporting animal to veterinary care / shelter." },
-            ].map((step, idx) => (
-              <TouchableOpacity
-                key={idx}
-                style={styles.progressChipBtn}
-                onPress={async () => {
-                  setSubmittingProgress(true);
-                  try {
-                    const token = await SecureStore.getItemAsync("authToken");
-                    await axios.patch(
-                      `${API_URL}/rescue/request/${requestId}/details`,
-                      { summary: step.note },
-                      { headers: { Authorization: `Bearer ${token}` } }
-                    );
-                    Alert.alert("Progress Updated", `Status updated: ${step.label}`);
-                    fetchDetails();
-                  } catch (err: any) {
-                    Alert.alert("Error", err?.response?.data?.error || "Failed to update progress.");
-                  } finally {
-                    setSubmittingProgress(false);
-                  }
-                }}
-              >
-                <Text style={styles.progressChipText}>{step.label}</Text>
-              </TouchableOpacity>
-            ))}
+        {/* ⏱ TIMELINE TRACKER CARD */}
+        <View style={styles.card}>
+          <Text style={styles.sectionHeader}>Rescue Timeline</Text>
+          <View style={styles.timelineContainer}>
+            {timelineData.map((step: any, index: number) => {
+              const isLast = index === timelineData.length - 1;
+              return (
+                <View key={index} style={styles.timelineStep}>
+                  <View style={styles.timelineLeft}>
+                    <View style={styles.timelineIndicatorActive}>
+                      <Text style={styles.timelineIcon}>✓</Text>
+                    </View>
+                    {!isLast && <View style={[styles.timelineLine, styles.timelineLineActive]} />}
+                  </View>
+                  <View style={styles.timelineContent}>
+                    <Text style={styles.timelineStepTitleActive}>{step.status}</Text>
+                    <Text style={styles.timelineStepSub}>{step.message || "Status updated"}</Text>
+                    {step.timestamp && (
+                      <Text style={{ fontSize: 10, color: "#9CA3AF", marginTop: 2 }}>
+                        {new Date(step.timestamp).toLocaleString()}
+                      </Text>
+                    )}
+                  </View>
+                </View>
+              );
+            })}
           </View>
-
-          <PrimaryButton
-            title="📝  Custom Progress Note"
-            onPress={() => setProgressModalVisible(true)}
-            variant="outline"
-          />
-
-          <PrimaryButton
-            title={updatingStatus ? "Updating..." : "✅  Mark Rescue as Completed"}
-            onPress={handleCompleteRescue}
-            disabled={updatingStatus}
-          />
         </View>
+
+        {/* 📝 RESCUE ACTION BUTTONS */}
+        {status === "Completed" ? (
+          <View style={styles.actionSection}>
+            <View style={{
+              backgroundColor: "#D1FAE5",
+              borderRadius: 14,
+              padding: 16,
+              alignItems: "center",
+              borderWidth: 1,
+              borderColor: "#A7F3D0",
+            }}>
+              <Text style={{ fontSize: 28, marginBottom: 6 }}>✅</Text>
+              <Text style={{ fontSize: 16, fontFamily: typography.bold, color: "#047857", marginBottom: 4 }}>
+                Rescue Completed
+              </Text>
+              <Text style={{ fontSize: 13, fontFamily: typography.medium, color: "#6B7280", textAlign: "center" }}>
+                This case has been successfully concluded. No further updates can be made.
+              </Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.actionSection}>
+            <Text style={styles.sectionHeader}>Quick Progress Updates</Text>
+            <View style={styles.progressChipsWrap}>
+              {[
+                { label: "Under Rescue", note: "Rescuer is actively managing the rescue." },
+                { label: "Treated", note: "Animal has received preliminary treatment." },
+                { label: "Ready for Adoption", note: "Animal is healthy and ready for a new home." },
+                { label: "Completed", note: "Rescue case has been successfully concluded." },
+              ].map((step, idx) => {
+                const isActive = status === step.label;
+                return (
+                  <TouchableOpacity
+                    key={idx}
+                    style={[
+                      styles.progressChipBtn,
+                      isActive && { backgroundColor: "#F59E0B", borderColor: "#F59E0B" }
+                    ]}
+                    onPress={async () => {
+                      setSubmittingProgress(true);
+                      try {
+                        const token = await SecureStore.getItemAsync("authToken");
+                        await axios.patch(
+                          `${API_URL}/rescue/request/${requestId}/details`,
+                          { summary: step.note, status: step.label },
+                          { headers: { Authorization: `Bearer ${token}` } }
+                        );
+                        Alert.alert("Progress Updated", `Status updated: ${step.label}`);
+                        fetchDetails();
+                      } catch (err: any) {
+                        Alert.alert("Error", err?.response?.data?.error || "Failed to update progress.");
+                      } finally {
+                        setSubmittingProgress(false);
+                      }
+                    }}
+                  >
+                    <Text style={[styles.progressChipText, isActive && { color: "#FFFFFF" }]}>
+                      {step.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <PrimaryButton
+              title="📝  Custom Progress Note"
+              onPress={() => setProgressModalVisible(true)}
+              variant="outline"
+            />
+
+            <PrimaryButton
+              title={updatingStatus ? "Updating..." : "✅  Mark Rescue as Completed"}
+              onPress={handleCompleteRescue}
+              disabled={updatingStatus}
+            />
+          </View>
+        )}
       </ScrollView>
 
       {/* 📝 PROGRESS UPDATE MODAL */}
@@ -641,9 +690,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   navigateButton: {
-    backgroundColor: "#EFF6FF",
+    backgroundColor: "#FFF8EA",
     borderWidth: 1,
-    borderColor: "#BFDBFE",
+    borderColor: "rgba(254,185,75,0.4)",
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
@@ -651,7 +700,7 @@ const styles = StyleSheet.create({
   navigateButtonText: {
     fontSize: 14,
     fontFamily: typography.semibold,
-    color: "#1D4ED8",
+    color: "#B8860B",
   },
   actionSection: {
     gap: spacing.sm,
@@ -740,5 +789,63 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.bold,
     color: "#000000",
+  },
+  // ── Vertical Timeline Tracker ──
+  timelineContainer: {
+    paddingLeft: spacing.xs,
+    marginTop: spacing.xs,
+  },
+  timelineStep: {
+    flexDirection: "row",
+    minHeight: 65,
+  },
+  timelineLeft: {
+    alignItems: "center",
+    width: 30,
+    marginRight: spacing.sm,
+  },
+  timelineIndicatorActive: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    alignItems: "center",
+    justifyContent: "center",
+    zIndex: 2,
+    backgroundColor: colors.primary,
+    borderWidth: 2,
+    borderColor: "#FFFFFF",
+    ...Platform.select({
+      ios: { shadowColor: colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3 },
+      android: { elevation: 2 },
+    }),
+  },
+  timelineIcon: {
+    fontSize: 10,
+    color: "#FFFFFF",
+    fontFamily: typography.bold,
+  },
+  timelineLine: {
+    width: 2,
+    flex: 1,
+    backgroundColor: "#E5E7EB",
+    marginVertical: 4,
+  },
+  timelineLineActive: {
+    backgroundColor: colors.primary,
+  },
+  timelineContent: {
+    flex: 1,
+    paddingBottom: spacing.md,
+  },
+  timelineStepTitleActive: {
+    fontFamily: typography.semibold,
+    fontSize: 14,
+    color: "#92711B",
+  },
+  timelineStepSub: {
+    fontFamily: typography.medium,
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
   },
 });

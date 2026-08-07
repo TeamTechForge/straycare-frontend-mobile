@@ -15,10 +15,10 @@ import {
 } from "react-native";
 import { useRouter } from "expo-router";
 import * as ImagePicker from "expo-image-picker";
-import { colors } from "../constants/colors.constants";
-import { spacing } from "../constants/spacing.constants";
-import { typography } from "../constants/typography.constants";
-import AppButton from "../components/ui/AppButton";
+import { colors } from "../../constants/colors.constants";
+import { spacing } from "../../constants/spacing.constants";
+import { typography } from "../../constants/typography.constants";
+import AppButton from "../../components/ui/AppButton";
 
 const uploadToCloudinary = async (imageUri: string) => {
   const data = new FormData();
@@ -109,7 +109,7 @@ export default function AddContent() {
     setUploading(true);
     try {
       router.push({
-        pathname: "/ThreadPublished",
+        pathname: "/forum/published" as any,
         params: { content: content.trim(), imageUrl },
       });
     } catch (e) {

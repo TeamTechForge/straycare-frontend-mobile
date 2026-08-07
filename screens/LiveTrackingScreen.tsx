@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
-  Linking,
   SafeAreaView,
   ScrollView,
   Text,
@@ -14,9 +13,11 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 
 import MapViewWrapper, { Marker } from "../components/MapViewWrapper";
 import AppButton from "../components/ui/AppButton";
+import PrimaryButton from "../components/PrimaryButton";
 import { colors } from "../constants/colors.constants";
 import { spacing } from "../constants/spacing.constants";
 import { useAuth } from "../contexts/AuthContext";
+import { useCall } from "../contexts/CallContext";
 import { useChatApi } from "../hooks/useChatApi";
 import { fetchComments, fetchRescueById, postComment, postReply } from "../services/RescueService";
 import { liveTrackingStyles as styles } from "../styles/live-tracking.styles";
@@ -99,6 +100,7 @@ export default function LiveTrackingScreen() {
   const { requestId } = useLocalSearchParams<Params>();
   const requestIdValue = getFirstParam(requestId) ?? "";
   const { user } = useAuth();
+  const { startCall } = useCall();
   const { createConversation } = useChatApi();
 
   // ── Rescue tracking state ──
@@ -228,35 +230,22 @@ export default function LiveTrackingScreen() {
     return () => clearInterval(interval);
   }, [loadComments]);
 
-  /* ── Handle Call Other Party ── */
+  /* ── Handle Call Other Party (in-app) ── */
   const handleCallOtherParty = useCallback(() => {
-    const phone = otherParty?.phone;
-    if (!phone || phone.trim().length === 0) {
+    if (!otherParty || !otherParty.id) {
       Alert.alert(
-        "Phone Number Unavailable",
-        "The phone number for this user is not available yet. Please try again later.",
+        "Contact Unavailable",
+        "The contact details for this user are not available yet.",
         [{ text: "OK" }]
       );
       return;
     }
-
-    const cleanedPhone = phone.replace(/[\s-]/g, "");
-    const url = `tel:${cleanedPhone}`;
-
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert("Cannot Make Call", "Your device does not support phone calls.", [
-            { text: "OK" },
-          ]);
-        }
-      })
-      .catch(() => {
-        Alert.alert("Error", "An error occurred while trying to make the call.", [{ text: "OK" }]);
-      });
-  }, [otherParty]);
+    startCall(
+      String(otherParty.id),
+      otherParty.name || (otherParty.role === "rescuer" ? "Rescuer" : "Reporter"),
+      otherParty.avatar || undefined
+    );
+  }, [otherParty, startCall]);
 
   /* ── Handle Message Other Party ── */
   const handleMessageOtherParty = useCallback(async () => {
@@ -307,7 +296,9 @@ export default function LiveTrackingScreen() {
     if (!newComment.trim() || !requestIdValue) return;
     setSubmittingComment(true);
     try {
-      const created = await postComment(requestIdValue, newComment.trim());
+      const currentUserId = (user as any)?._id || (user as any)?.id || "guest-user";
+      const currentUserName = (user as any)?.name || "User";
+      const created = await postComment(requestIdValue, newComment.trim(), currentUserName, currentUserId);
       // Optimistically add to list (with empty replies array)
       setComments((prev) => [...prev, { ...created, replies: created.replies || [] }]);
       setNewComment("");
@@ -325,7 +316,9 @@ export default function LiveTrackingScreen() {
       if (!replyText.trim() || !requestIdValue) return;
       setSubmittingReply(true);
       try {
-        const created = await postReply(requestIdValue, parentId, replyText.trim());
+        const currentUserId = (user as any)?._id || (user as any)?.id || "guest-user";
+        const currentUserName = (user as any)?.name || "User";
+        const created = await postReply(requestIdValue, parentId, replyText.trim(), currentUserName, currentUserId);
         // Optimistically add reply to the parent comment
         setComments((prev) =>
           prev.map((c) =>
@@ -368,8 +361,18 @@ export default function LiveTrackingScreen() {
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
-        <Text style={styles.title}>Live Tracking</Text>
-        <Text style={styles.subtitle}>Rescue request #{requestIdValue || "—"}</Text>
+        <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
+          <TouchableOpacity 
+            style={{ padding: 8, backgroundColor: "#F3F4F6", borderRadius: 8, marginRight: 12 }} 
+            onPress={() => router.back()}
+          >
+            <Text style={{ fontSize: 20, color: "#111827" }}>←</Text>
+          </TouchableOpacity>
+          <View>
+            <Text style={[styles.title, { marginBottom: 0 }]}>Live Tracking</Text>
+            <Text style={styles.subtitle}>Rescue request #{requestIdValue || "—"}</Text>
+          </View>
+        </View>
 
         {/* ── Loading / Error Banner ── */}
         {loading ? (
@@ -413,13 +416,15 @@ export default function LiveTrackingScreen() {
              *  Rescue Details Card
              * ══════════════════════════════════════════ */}
             <View style={styles.sectionCard}>
+              <View style={{ marginBottom: 12, backgroundColor: "#FFF8EA", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, alignSelf: "flex-start", borderWidth: 1, borderColor: "rgba(254,185,75,0.4)" }}>
+                <Text style={{ fontWeight: "bold", color: "#B8860B", fontSize: 13 }}>
+                  STATUS: {tracking.status.toUpperCase()}
+                </Text>
+              </View>
               <Text style={styles.sectionTitle}>{tracking.case.animalType}</Text>
               <Text style={styles.metaText}>{tracking.case.description}</Text>
 
               <View style={styles.row}>
-                <View style={styles.chip}>
-                  <Text style={styles.chipText}>Status: {tracking.status}</Text>
-                </View>
                 <View style={styles.chip}>
                   <Text style={styles.chipText}>Distance: {tracking.distanceKm.toFixed(1)} km</Text>
                 </View>
@@ -451,31 +456,19 @@ export default function LiveTrackingScreen() {
              * ══════════════════════════════════════════ */}
             {otherParty ? (
               <View style={{ flexDirection: "row", gap: 12, marginVertical: 12 }}>
-                <TouchableOpacity
-                  style={[styles.callButton, { flex: 1, marginVertical: 0 }]}
-                  activeOpacity={0.85}
-                  onPress={handleCallOtherParty}
-                >
-                  <View style={styles.callIconCircle}>
-                    <Text style={styles.callIcon}>📞</Text>
-                  </View>
-                  <Text style={styles.callButtonText}>
-                    Call {otherParty.role === "rescuer" ? "Rescuer" : "Reporter"}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.callButton, { flex: 1, marginVertical: 0, backgroundColor: "#FFF2D8" }]}
-                  activeOpacity={0.85}
-                  onPress={handleMessageOtherParty}
-                >
-                  <View style={[styles.callIconCircle, { backgroundColor: colors.primary }]}>
-                    <Text style={styles.callIcon}>💬</Text>
-                  </View>
-                  <Text style={[styles.callButtonText, { color: colors.primary }]}>
-                    Message
-                  </Text>
-                </TouchableOpacity>
+                <View style={{ flex: 1 }}>
+                  <PrimaryButton 
+                    title={`📞 Call ${otherParty.role === "rescuer" ? "Rescuer" : "Reporter"}`} 
+                    onPress={handleCallOtherParty} 
+                  />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <PrimaryButton 
+                    title="💬 Message" 
+                    onPress={handleMessageOtherParty} 
+                    variant="outline"
+                  />
+                </View>
               </View>
             ) : null}
 
@@ -556,10 +549,10 @@ export default function LiveTrackingScreen() {
                     <View style={styles.commentBubbleHeader}>
                       <View style={styles.commentAvatar}>
                         <Text style={styles.commentAvatarText}>
-                          {getInitial(comment.userName)}
+                          {getInitial(comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName)}
                         </Text>
                       </View>
-                      <Text style={styles.commentUserName}>{comment.userName}</Text>
+                      <Text style={styles.commentUserName}>{comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName}</Text>
                       <Text style={styles.commentTime}>{timeAgo(comment.createdAt)}</Text>
                     </View>
                     <Text style={styles.commentText}>{comment.text}</Text>
@@ -593,10 +586,10 @@ export default function LiveTrackingScreen() {
                           <View style={styles.commentBubbleHeader}>
                             <View style={styles.commentAvatar}>
                               <Text style={styles.commentAvatarText}>
-                                {getInitial(reply.userName)}
+                                {getInitial(reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName)}
                               </Text>
                             </View>
-                            <Text style={styles.commentUserName}>{reply.userName}</Text>
+                            <Text style={styles.commentUserName}>{reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName}</Text>
                             <Text style={styles.commentTime}>{timeAgo(reply.createdAt)}</Text>
                           </View>
                           <Text style={styles.commentText}>{reply.text}</Text>
@@ -642,10 +635,7 @@ export default function LiveTrackingScreen() {
           </>
         ) : null}
 
-        {/* ── Back Button ── */}
-        <View style={{ marginTop: spacing.lg }}>
-          <AppButton title="Back" onPress={() => router.back()} />
-        </View>
+        {/* Removed bottom back button */}
       </ScrollView>
     </SafeAreaView>
   );
