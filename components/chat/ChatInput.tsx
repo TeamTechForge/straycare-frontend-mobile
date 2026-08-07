@@ -15,7 +15,6 @@ type Props = {
   onSendImage?: (uri: string) => void;
   onSendImages: (uris: string[]) => void;
   onSendLocation: (location: { latitude: number; longitude: number; address?: string }) => void;
-  onChooseLocation: () => void;
   onTyping: (isTyping: boolean) => void;
   disabled?: boolean;
 };
@@ -25,7 +24,6 @@ export default function ChatInput({
   onSendImage,
   onSendImages,
   onSendLocation,
-  onChooseLocation,
   onTyping,
   disabled = false,
 }: Props) {
@@ -160,16 +158,6 @@ export default function ChatInput({
               </TouchableOpacity>
 
               <TouchableOpacity 
-                style={[styles.modalButton, styles.modalSecondaryButton]} 
-                onPress={() => {
-                  setIsLocationSheetVisible(false);
-                  onChooseLocation();
-                }}
-              >
-                <Text style={styles.modalButtonTextSecondary}>Choose Location on Map</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity 
                 style={[styles.modalButton, styles.modalCancelButton]} 
                 onPress={() => setIsLocationSheetVisible(false)}
               >
@@ -274,11 +262,6 @@ const styles = StyleSheet.create({
   modalPrimaryButton: {
     backgroundColor: BRAND_COLOR,
   },
-  modalSecondaryButton: {
-    backgroundColor: "#FFFBEB",
-    borderWidth: 1,
-    borderColor: BRAND_COLOR,
-  },
   modalCancelButton: {
     backgroundColor: "#F3F4F6",
   },
@@ -286,11 +269,6 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#FFF",
-  },
-  modalButtonTextSecondary: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: BRAND_COLOR,
   },
   modalButtonText: {
     fontSize: 16,

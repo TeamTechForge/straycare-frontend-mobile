@@ -10,7 +10,7 @@ import {
   Alert,
 } from "react-native";
 import MapView, { Marker } from "react-native-maps";
-import { getReportByCaseId, updateCaseStatus } from "../../api/stray-api.service";
+import { getReportByCaseId, updateCaseStatus } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRescueUpdates } from "../../hooks/useRescueUpdates";

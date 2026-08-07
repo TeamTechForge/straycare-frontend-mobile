@@ -3,7 +3,7 @@
 
 import { useCallback } from "react";
 import { useAuth } from "../contexts/AuthContext";
-import { chatService } from "../services/ChatService";
+import { chatService } from "../services/chatService";
 
 export function useChatApi() {
   const { token, user } = useAuth();

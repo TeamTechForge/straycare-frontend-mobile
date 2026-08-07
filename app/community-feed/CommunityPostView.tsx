@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { getCommunityPost } from "../../api/api.service";
+import { getCommunityPost } from "../../api/apiService";
 
 // Converts ISO date string to readable format like "MAR 15, 2024"
 function formatDate(dateStr: string): string {

@@ -1,5 +1,7 @@
+import React, { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import ImageViewer from "../ui/ImageViewer";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -22,6 +24,8 @@ export default function ProfileHeaderCard({
   onEditPress,
   role,
 }: Props) {
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+
   const getRoleLabel = (role?: string) => {
     switch (role) {
       case "general_user":
@@ -38,9 +42,9 @@ export default function ProfileHeaderCard({
   };
   return (
     <View style={styles.profileTop}>
-      <View style={styles.avatarOuter}>
+      <TouchableOpacity onPress={() => setIsViewerVisible(true)} style={styles.avatarOuter}>
         <Image source={{ uri: avatar }} style={styles.avatar} />
-      </View>
+      </TouchableOpacity>
 
       <View style={styles.badgeContainer}>
         {role && (
@@ -64,6 +68,12 @@ export default function ProfileHeaderCard({
       <TouchableOpacity style={styles.editButton} onPress={onEditPress}>
         <Text style={styles.editButtonText}>Edit Profile</Text>
       </TouchableOpacity>
+
+      <ImageViewer 
+        imageUrl={avatar} 
+        visible={isViewerVisible} 
+        onClose={() => setIsViewerVisible(false)} 
+      />
     </View>
   );
 }

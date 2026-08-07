@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   Alert,
@@ -28,7 +28,7 @@ import { API_URL } from "../../constants/config.constants";
 
 const BRAND_COLOR = "#f59e0b";
 
-export default function ngoProfileSetup() {
+export default function NgoProfileSetupScreen() {
   const router = useRouter();
   const { refreshUser } = useAuth();
 
@@ -49,6 +49,29 @@ export default function ngoProfileSetup() {
   const [merchantSecret, setMerchantSecret] = useState("");
   const [paymentValidationError, setPaymentValidationError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const [errors, setErrors] = useState({
+    orgName: "",
+    contactPerson: "",
+    regNumber: "",
+    year: "",
+    phone: "",
+    location: "",
+  });
+
+  // Persist form state in a ref so it survives Android Activity recreation
+  // (which can happen when ImagePicker opens the system gallery)
+  const formPersistRef = useRef<{
+    orgName: string; contactPerson: string; regNumber: string; year: string;
+    phone: string; location: string; bio: string;
+    coords: { latitude: number; longitude: number } | null;
+    image: string | null; merchantId: string; merchantSecret: string;
+  } | null>(null);
+
+  // Mirror all field changes into the persist ref
+  useEffect(() => {
+    formPersistRef.current = { orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret };
+  }, [orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret]);
 
   const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
     if (!uriOrAsset) return null;
@@ -116,8 +139,24 @@ export default function ngoProfileSetup() {
     return data.url;
   };
 
-  // Fetch user details on mount
+  // Fetch user details on mount, and restore form state if Android recreated the Activity
   useEffect(() => {
+    // If we have a persisted snapshot (Android returned from gallery), restore it
+    const saved = formPersistRef.current;
+    if (saved) {
+      if (saved.orgName) setOrgName(saved.orgName);
+      if (saved.contactPerson) setContactPerson(saved.contactPerson);
+      if (saved.regNumber) setRegNumber(saved.regNumber);
+      if (saved.year) setYear(saved.year);
+      if (saved.phone) setPhone(saved.phone);
+      if (saved.location) setLocation(saved.location);
+      if (saved.bio) setBio(saved.bio);
+      if (saved.coords) setCoords(saved.coords);
+      if (saved.image) setImage(saved.image);
+      if (saved.merchantId) setMerchantId(saved.merchantId);
+      if (saved.merchantSecret) setMerchantSecret(saved.merchantSecret);
+    }
+
     const fetchUser = async () => {
       try {
         const token = await SecureStore.getItemAsync("authToken");
@@ -126,7 +165,8 @@ export default function ngoProfileSetup() {
         });
         const data: any = await response.json();
         if (response.ok) {
-          if (data.phone) setPhone(data.phone);
+          // Only pre-fill from API if not already restored from persisted state
+          if (!saved?.phone && data.phone) setPhone(data.phone);
         }
       } catch (error) {
         console.error("Error fetching user:", error);
@@ -181,7 +221,23 @@ export default function ngoProfileSetup() {
     }
   };
 
+  const validate = () => {
+    const newErrors = { orgName: "", contactPerson: "", regNumber: "", year: "", phone: "", location: "" };
+    let valid = true;
+
+    if (!orgName.trim()) { newErrors.orgName = "Organization name is required"; valid = false; }
+    if (!contactPerson.trim()) { newErrors.contactPerson = "Contact person is required"; valid = false; }
+    if (!regNumber.trim()) { newErrors.regNumber = "Registration number is required"; valid = false; }
+    if (!year.trim()) { newErrors.year = "Founded year is required"; valid = false; }
+    if (!phone.trim()) { newErrors.phone = "Phone number is required"; valid = false; }
+    if (!location.trim()) { newErrors.location = "Address is required"; valid = false; }
+
+    setErrors(newErrors);
+    return valid;
+  };
+
   const handleSubmit = async () => {
+    if (!validate()) return;
     try {
       // Validate merchant ID and secret relationship
       setPaymentValidationError("");
@@ -228,8 +284,8 @@ export default function ngoProfileSetup() {
 
       const data: any = await response.json();
       if (response.ok) {
-        router.replace("/auth/CompletedProfileSetup");
-        setTimeout(() => refreshUser(), 500);
+        await refreshUser();
+        router.replace("/auth/VerificationPending");
       } else {
         Alert.alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
       }
@@ -274,10 +330,10 @@ export default function ngoProfileSetup() {
 
       {/* ORGANIZATION DETAILS */}
       <FormSection title="Organization Details">
-        <InputField label="Organization Name *" placeholder="e.g. Save The Strays Foundation" value={orgName} onChangeText={setOrgName} />
-        <InputField label="Contact Person Name *" placeholder="e.g. Jane Doe" value={contactPerson} onChangeText={setContactPerson} />
-        <InputField label="Registration Number *" placeholder="e.g. NGO-SL-2024-001" value={regNumber} onChangeText={setRegNumber} />
-        <InputField label="Founded Year *" placeholder="e.g. 2015" value={year} onChangeText={setYear} keyboardType="numeric" />
+        <InputField label="Organization Name *" placeholder="e.g. Save The Strays Foundation" value={orgName} onChangeText={setOrgName} error={errors.orgName} />
+        <InputField label="Contact Person Name *" placeholder="e.g. Jane Doe" value={contactPerson} onChangeText={setContactPerson} error={errors.contactPerson} />
+        <InputField label="Registration Number *" placeholder="e.g. NGO-SL-2024-001" value={regNumber} onChangeText={setRegNumber} error={errors.regNumber} />
+        <InputField label="Founded Year *" placeholder="e.g. 2015" value={year} onChangeText={setYear} keyboardType="numeric" error={errors.year} />
       </FormSection>
 
       {/* CONTACT */}
@@ -289,6 +345,7 @@ export default function ngoProfileSetup() {
           onChangeText={setPhone}
           icon="call-outline"
           keyboardType="phone-pad"
+          error={errors.phone}
         />
 
         <InputField
@@ -297,6 +354,7 @@ export default function ngoProfileSetup() {
           value={location}
           onChangeText={setLocation}
           icon="location-outline"
+          error={errors.location}
           rightIcon="locate-outline"
           onRightIconPress={handleGetLocation}
         />

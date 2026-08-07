@@ -11,7 +11,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { getFoundPosts } from "../../api/api.service";
+import { getFoundPosts } from "../../api/apiService";
 
 type Pet = {
   _id: string;

@@ -23,7 +23,7 @@ import {
   getApiBaseUrl,
   postComment,
   postReply,
-} from "../../services/RescueService";
+} from "../../services/rescueService";
 import { rescueDetailsStyles as styles } from "../../styles/rescue-details.styles";
 import type { RescueComment } from "../../types/Api";
 

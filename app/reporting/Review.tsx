@@ -10,7 +10,7 @@ import {
   View,
   ActivityIndicator,
 } from "react-native";
-import { submitReport } from "../../api/stray-api.service";
+import { submitReport } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 
 export default function Review() {

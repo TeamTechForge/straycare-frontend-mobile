@@ -1,7 +1,8 @@
 // Root layout for the app, defining the navigation stack and global providers.
 import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { ActivityIndicator, View, Platform } from "react-native";
+import * as SecureStore from "expo-secure-store";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
 import { CallProvider } from "../contexts/CallContext";
@@ -14,9 +15,26 @@ function InitialLayout() {
   const segments = useSegments() as any;
   const router = useRouter();
   const { addNotification } = useNotification();
+  const [hasCheckedCompletion, setHasCheckedCompletion] = useState(false);
+  const [shouldShowCompletion, setShouldShowCompletion] = useState(false);
+
+  // Check if newly approved NGOs/Vets need to see the completion screen
+  useEffect(() => {
+    if (user && (user.role === "ngo" || user.role === "vet") && user.profileStatus === "Verified") {
+      SecureStore.getItemAsync(`seenCompletion_${user._id}`).then((seen) => {
+        if (!seen) {
+          setShouldShowCompletion(true);
+          SecureStore.setItemAsync(`seenCompletion_${user._id}`, "true");
+        }
+        setHasCheckedCompletion(true);
+      });
+    } else {
+      setHasCheckedCompletion(true);
+    }
+  }, [user]);
 
   useEffect(() => {
-    if (isLoading) return;
+    if (isLoading || !hasCheckedCompletion) return;
 
     const inAuthGroup = segments[0] === "auth";
     const onWelcomeScreen = segments.length === 0 || segments[0] === "index";
@@ -30,7 +48,8 @@ function InitialLayout() {
     } else {
       // User is authenticated
       if (!user.profileCompleted) {
-        const onRoleSelection = segments[1] === "RoleSelection" || segments[1] === "RescuerTypeSelection";
+        const seg = segments[1]?.toLowerCase();
+        const onRoleSelection = seg === "roleselection" || seg === "rescuertypeselection";
         if (!user.roleSelected) {
           if (!onRoleSelection) {
             router.replace("/auth/RoleSelection");
@@ -68,18 +87,31 @@ function InitialLayout() {
           }
         } else {
           // User is fully approved / unrestricted
+          // Check if they need to see the completion screen once
+          if (shouldShowCompletion && segments[1] !== "CompletedProfileSetup") {
+            router.replace("/auth/CompletedProfileSetup");
+            return;
+          }
+
           // Redirect to home if they are sitting on guest/pending/setup routes or index
           if (inAuthGroup || onWelcomeScreen) {
             const onCompletedProfileSetup = segments[1] === "CompletedProfileSetup";
             const onTermsPrivacyScreen = segments[1] === "TermsPrivacyScreen";
-            if (!onCompletedProfileSetup && !onTermsPrivacyScreen) {
+            const seg = segments[1]?.toLowerCase();
+            const onSetupScreens = seg === "reporterprofilesetup" || 
+                                   seg === "volunteerprofilesetup" || 
+                                   seg === "ngoprofilesetup" || 
+                                   seg === "vetprofilesetup";
+
+            // If they are on a setup screen, let the component handle its own navigation
+            if (!onCompletedProfileSetup && !onTermsPrivacyScreen && !onSetupScreens) {
               router.replace("/(tabs)/Home");
             }
           }
         }
       }
     }
-  }, [user, isLoading, segments, token]);
+  }, [user, isLoading, segments, token, hasCheckedCompletion, shouldShowCompletion]);
 
   // ─── Push Notifications Setup (Optional - only on native build) ───
   useEffect(() => {
@@ -88,7 +120,7 @@ function InitialLayout() {
     const setupPushNotifications = async () => {
       try {
         // Lazy load push notification service (only available on native builds)
-        const { pushNotificationService } = await import("../services/PushNotificationService");
+        const { pushNotificationService } = await import("../services/pushNotificationService");
 
         pushNotificationService.initializePushNotifications((notification) => {
           // Handle incoming push notification

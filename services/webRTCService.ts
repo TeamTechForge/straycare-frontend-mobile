@@ -1,4 +1,4 @@
-// services/WebRTCService.ts
+// services/webRTCService.ts
 
 import { NativeModules } from "react-native";
 import type {

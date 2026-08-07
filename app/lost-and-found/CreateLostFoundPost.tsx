@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { createAnimalPost } from '../../api/api.service';
+import { createAnimalPost } from '../../api/apiService';
 
 // Centralized color tokens used across all components and styles
 const C = {

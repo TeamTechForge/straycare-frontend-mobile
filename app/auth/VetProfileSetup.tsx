@@ -1,7 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import {
   Alert,
@@ -47,6 +47,20 @@ export default function VetProfileSetupScreen() {
   const [merchantSecret, setMerchantSecret] = useState("");
   const [paymentValidationError, setPaymentValidationError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Persist form state in a ref so it survives Android Activity recreation
+  // (which can happen when ImagePicker opens the system gallery)
+  const formPersistRef = useRef<{
+    profileImage: string | null; name: string; primaryLocation: string;
+    phone: string; shortBio: string; coords: { latitude: number; longitude: number } | null;
+    clinicName: string; clinicAddress: string; licenseNumber: string;
+    yearsOfExperience: string; payHereMerchantId: string; merchantSecret: string;
+  } | null>(null);
+
+  // Mirror all field changes into the persist ref
+  useEffect(() => {
+    formPersistRef.current = { profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret };
+  }, [profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret]);
 
   const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
     if (!uriOrAsset) return null;
@@ -125,8 +139,25 @@ export default function VetProfileSetupScreen() {
     licenseDocument: "",
   });
 
-  // Fetch user details on mount
+  // Fetch user details on mount, and restore form state if Android recreated the Activity
   useEffect(() => {
+    // If we have a persisted snapshot (Android returned from gallery), restore it
+    const saved = formPersistRef.current;
+    if (saved) {
+      if (saved.profileImage) setProfileImage(saved.profileImage);
+      if (saved.name) setName(saved.name);
+      if (saved.primaryLocation) setPrimaryLocation(saved.primaryLocation);
+      if (saved.phone) setPhone(saved.phone);
+      if (saved.shortBio) setShortBio(saved.shortBio);
+      if (saved.coords) setCoords(saved.coords);
+      if (saved.clinicName) setClinicName(saved.clinicName);
+      if (saved.clinicAddress) setClinicAddress(saved.clinicAddress);
+      if (saved.licenseNumber) setLicenseNumber(saved.licenseNumber);
+      if (saved.yearsOfExperience) setYearsOfExperience(saved.yearsOfExperience);
+      if (saved.payHereMerchantId) setPayHereMerchantId(saved.payHereMerchantId);
+      if (saved.merchantSecret) setMerchantSecret(saved.merchantSecret);
+    }
+
     const fetchUser = async () => {
       try {
         const token = await SecureStore.getItemAsync("authToken");
@@ -135,8 +166,9 @@ export default function VetProfileSetupScreen() {
         });
         const data: any = await response.json();
         if (response.ok) {
-          if (data.name) setName(data.name);
-          if (data.phone) setPhone(data.phone);
+          // Only pre-fill from API if not already restored from persisted state
+          if (!saved?.name && data.name) setName(data.name);
+          if (!saved?.phone && data.phone) setPhone(data.phone);
         }
       } catch (error) {
         console.error("Error fetching user:", error);
@@ -314,8 +346,8 @@ export default function VetProfileSetupScreen() {
 
       const data: any = await response.json();
       if (response.ok) {
-        router.replace("/auth/CompletedProfileSetup");
-        setTimeout(() => refreshUser(), 500);
+        await refreshUser();
+        router.replace("/auth/VerificationPending");
       } else {
         Alert.alert(data.message ? `${data.message}${data.error ? `: ${data.error}` : ""}` : "Failed to save profile");
       }
