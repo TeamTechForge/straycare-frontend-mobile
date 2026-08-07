@@ -46,6 +46,9 @@ type Report = {
     status: string;
     timestamp: string;
     message?: string;
+    rescuerId?: string;
+    rescuerName?: string;
+    rescuerRole?: string;
   }[];
 };
 
