@@ -5,7 +5,7 @@ import { useRouter, useLocalSearchParams } from "expo-router";
 import AppButton from "../components/ui/AppButton";
 import PublishedCard from "../components/thread/PublishedCard";
 import { styles } from "../styles/thread-published.styles";
-import { createPost } from "../services/forum.service";
+import { createPost } from "../services/ForumService";
 
 export default function ThreadPublished() {
   const router = useRouter();

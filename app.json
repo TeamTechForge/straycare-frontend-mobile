@@ -65,6 +65,12 @@
           "cameraPermission": "Allow StrayCare to use your camera for video calls.",
           "microphonePermission": "Allow StrayCare to use your microphone for voice calls."
         }
+      ],
+      [
+        "expo-audio",
+        {
+          "enableBackgroundPlayback": true
+        }
       ]
     ],
     "experiments": {

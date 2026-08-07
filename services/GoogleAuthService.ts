@@ -5,10 +5,42 @@ import { useState } from "react";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { Alert } from "react-native";
 
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+type GoogleAuthResponseSuccess = {
+  type: "success";
+  params: { id_token: string };
+};
+
+type GoogleAuthResponseCancel = {
+  type: "cancel" | "dismiss";
+};
+
+type GoogleAuthResponseError = {
+  type: "error";
+  error: string;
+};
+
+type GoogleAuthResponse =
+  | GoogleAuthResponseSuccess
+  | GoogleAuthResponseCancel
+  | GoogleAuthResponseError
+  | null;
+
+type BackendAuthResponse = {
+  success: boolean;
+  token: string;
+  user: object;
+  isNewUser: boolean;
+  message?: string;
+};
+
+// ─── Setup ────────────────────────────────────────────────────────────────────
+
 // Detect if running inside the standard Expo Go client app
 const isExpoGo = Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-let GoogleSignin = null;
+let GoogleSignin: any = null;
 if (!isExpoGo) {
   // Only load the native library if running in a standalone/dev build
   GoogleSignin = require("@react-native-google-signin/google-signin").GoogleSignin;
@@ -17,6 +49,8 @@ if (!isExpoGo) {
   });
 }
 
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
 /**
  * Custom hook that mimics expo-auth-session useAuthRequest.
  * It uses the native Google SDK under the hood but returns the same
@@ -24,9 +58,9 @@ if (!isExpoGo) {
  * don't need to change.
  */
 export function useGoogleAuth() {
-  const [response, setResponse] = useState(null);
+  const [response, setResponse] = useState<GoogleAuthResponse>(null);
 
-  const promptAsync = async () => {
+  const promptAsync = async (): Promise<void> => {
     if (isExpoGo) {
       Alert.alert(
         "Google Sign-In Unavailable",
@@ -38,33 +72,31 @@ export function useGoogleAuth() {
     try {
       setResponse(null); // Clear previous responses
       await GoogleSignin.hasPlayServices();
-      
+
       // Clear previous Google session to force the account chooser popup
       try {
         await GoogleSignin.signOut();
-      } catch (signOutError) {
+      } catch {
         // Ignore if there was no active session
       }
 
       const userInfo = await GoogleSignin.signIn();
-      const idToken = userInfo.idToken || userInfo.data?.idToken;
-      
+      const idToken: string | undefined = userInfo.idToken || userInfo.data?.idToken;
+
       if (!idToken) {
         throw new Error("Google Sign-In succeeded but no ID Token was received.");
       }
 
       setResponse({
         type: "success",
-        params: {
-          id_token: idToken,
-        },
+        params: { id_token: idToken },
       });
-    } catch (error) {
+    } catch (error: any) {
       console.error("Native Google Sign-In error details:", error);
-      
+
       // Match cancel code
       if (
-        error.code === "SIGN_IN_CANCELLED" || 
+        error.code === "SIGN_IN_CANCELLED" ||
         error.code === "12501" ||
         error.message?.includes("SIGN_IN_CANCELLED")
       ) {
@@ -87,16 +119,20 @@ export function useGoogleAuth() {
   };
 }
 
+// ─── Functions ────────────────────────────────────────────────────────────────
+
 /**
  * Complete the Google Sign-In flow after native Google SDK returns.
- * 
+ *
  * Takes the mocked response from useGoogleAuth and runs the standard
  * Firebase login and Backend exchange.
  *
- * @param {object} response - The response object from useGoogleAuth
- * @returns {Promise<{ success: boolean, token: string, user: object, isNewUser: boolean }>}
+ * @param response - The response object from useGoogleAuth
+ * @returns Promise resolving to { success, token, user, isNewUser }
  */
-export async function handleGoogleSignIn(response) {
+export async function handleGoogleSignIn(
+  response: GoogleAuthResponse
+): Promise<{ success: boolean; token: string; user: object; isNewUser: boolean }> {
   if (!response) {
     throw new Error("No response received from Google Sign-In.");
   }
@@ -111,25 +147,28 @@ export async function handleGoogleSignIn(response) {
 
   if (response.type !== "success") {
     throw new Error(
-      `Google Sign-In failed with type: ${response.type}. Please try again.`
+      `Google Sign-In failed with type: ${(response as any).type}. Please try again.`
     );
   }
 
   const { id_token } = response.params;
 
   if (!id_token) {
-    throw new Error(
-      "Failed to obtain ID token from Google. Please try again."
-    );
+    throw new Error("Failed to obtain ID token from Google. Please try again.");
   }
 
   // Authenticate with Firebase using the Google credential
-  let firebaseUser;
+  let firebaseUser: ReturnType<typeof signInWithCredential> extends Promise<infer U>
+    ? U extends { user: infer V }
+      ? V
+      : never
+    : never;
+
   try {
     const credential = GoogleAuthProvider.credential(id_token);
     const userCredential = await signInWithCredential(auth, credential);
-    firebaseUser = userCredential.user;
-  } catch (error) {
+    firebaseUser = userCredential.user as any;
+  } catch (error: any) {
     const message =
       error.code === "auth/invalid-credential"
         ? "Google credential is invalid or expired. Please try again."
@@ -140,15 +179,15 @@ export async function handleGoogleSignIn(response) {
   }
 
   // Get the Firebase ID token to send to the backend
-  let firebaseIdToken;
+  let firebaseIdToken: string;
   try {
-    firebaseIdToken = await firebaseUser.getIdToken();
-  } catch (error) {
+    firebaseIdToken = await (firebaseUser as any).getIdToken();
+  } catch {
     throw new Error("Failed to obtain Firebase ID token. Please try again.");
   }
 
   // Send the Firebase ID token to the backend
-  let backendResponse;
+  let backendResponse: BackendAuthResponse;
   try {
     const controller = new AbortController();
     const timeoutId = setTimeout(() => controller.abort(), 15000);
@@ -161,14 +200,12 @@ export async function handleGoogleSignIn(response) {
     });
 
     clearTimeout(timeoutId);
-    backendResponse = await res.json();
+    backendResponse = (await res.json()) as BackendAuthResponse;
 
     if (!res.ok) {
-      throw new Error(
-        backendResponse.message || "Backend authentication failed."
-      );
+      throw new Error(backendResponse.message || "Backend authentication failed.");
     }
-  } catch (error) {
+  } catch (error: any) {
     if (error.name === "AbortError") {
       throw new Error(
         "The server took too long to respond. Please check your connection and try again."
@@ -193,11 +230,11 @@ export async function handleGoogleSignIn(response) {
 /**
  * Clear the Google Sign-In session on the device.
  */
-export async function clearGoogleSession() {
+export async function clearGoogleSession(): Promise<void> {
   if (isExpoGo || !GoogleSignin) return;
   try {
     await GoogleSignin.signOut();
-  } catch (error) {
+  } catch {
     // Ignore error if there was no active session
   }
 }

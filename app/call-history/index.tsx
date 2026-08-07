@@ -6,7 +6,7 @@ import { CallLogService } from "../../services/CallLogService";
 import { useCall } from "../../contexts/CallContext";
 import { useSocket } from "../../contexts/SocketContext";
 import { useAuth } from "../../contexts/AuthContext";
-import { chatService } from "../../services/chat.service";
+import { chatService } from "../../services/ChatService";
 
 const BRAND_COLOR = "#F5A623";
 

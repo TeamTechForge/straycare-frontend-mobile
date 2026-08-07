@@ -275,7 +275,15 @@ export default function ProfileScreen() {
                   summary={rescue.summary}
                   actionText="Update Status"
                   onActionPress={() => handleUpdateDetails(rescue.caseId)}
-                  onPress={() => router.push({ pathname: "/rescue-details/[id]", params: { id: rescue.caseId || rescue._id } })}
+                  onPress={() =>
+                    router.push({
+                      pathname: "/rescuer-response/[requestId]" as any,
+                      params: {
+                        requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                        caseId: rescue.caseId,
+                      },
+                    })
+                  }
                 />
               ))
             ) : (
@@ -289,29 +297,95 @@ export default function ProfileScreen() {
 
           {activeTab === "reports" && (
             reports.length > 0 ? (
-              reports.map((report: any) => (
-                <ReportPreviewCard
-                  key={report._id || report.caseId}
-                  title={`${report.animalType} (${report.caseId})`}
-                  date={new Date(report.createdAt).toLocaleDateString()}
-                  status={report.status}
-                  image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
-                  caseId={report.caseId}
-                  summary={report.summary}
-                  onPress={() => {
-                    router.push({
-                      pathname: "/live-tracking/[requestId]",
-                      params: { requestId: report.caseId || report._id },
-                    });
-                  }}
-                  onTrackPress={() => {
-                    router.push({
-                      pathname: "/live-tracking/[requestId]",
-                      params: { requestId: report.caseId },
-                    });
-                  }}
-                />
-              ))
+              <View>
+                {/* 📌 CURRENT CASES */}
+                <Text style={styles.subSectionTitle}>Current Cases</Text>
+                {reports.filter((r: any) => ["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).length > 0 ? (
+                  reports.filter((r: any) => ["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).map((report: any) => (
+                    <ReportPreviewCard
+                      key={report._id || report.caseId}
+                      title={`${report.animalType} (${report.caseId})`}
+                      date={new Date(report.createdAt).toLocaleDateString()}
+                      status={report.status}
+                      image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                      caseId={report.caseId}
+                      summary={report.summary}
+                      onPress={() => {
+                        if (isGeneralUser) {
+                          router.push({
+                            pathname: "/reporting/CaseDetails",
+                            params: { caseId: report.caseId },
+                          });
+                        } else {
+                          router.push({
+                            pathname: "/live-tracking/[requestId]",
+                            params: { requestId: report.caseId || report._id },
+                          });
+                        }
+                      }}
+                      onTrackPress={() => {
+                        if (isGeneralUser) {
+                          router.push({
+                            pathname: "/request-status",
+                            params: { caseId: report.caseId },
+                          });
+                        } else {
+                          router.push({
+                            pathname: "/live-tracking/[requestId]",
+                            params: { requestId: report.caseId },
+                          });
+                        }
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No active rescue cases right now.</Text>
+                )}
+
+                {/* 📜 RESCUE HISTORY */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Rescue History</Text>
+                {reports.filter((r: any) => !["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).length > 0 ? (
+                  reports.filter((r: any) => !["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).map((report: any) => (
+                    <ReportPreviewCard
+                      key={report._id || report.caseId}
+                      title={`${report.animalType} (${report.caseId})`}
+                      date={new Date(report.createdAt).toLocaleDateString()}
+                      status={report.status}
+                      image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                      caseId={report.caseId}
+                      summary={report.summary}
+                      onPress={() => {
+                        if (isGeneralUser) {
+                          router.push({
+                            pathname: "/reporting/CaseDetails",
+                            params: { caseId: report.caseId },
+                          });
+                        } else {
+                          router.push({
+                            pathname: "/live-tracking/[requestId]",
+                            params: { requestId: report.caseId || report._id },
+                          });
+                        }
+                      }}
+                      onTrackPress={() => {
+                        if (isGeneralUser) {
+                          router.push({
+                            pathname: "/request-status",
+                            params: { caseId: report.caseId },
+                          });
+                        } else {
+                          router.push({
+                            pathname: "/live-tracking/[requestId]",
+                            params: { requestId: report.caseId },
+                          });
+                        }
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No past rescue history.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="document-text-outline"
@@ -425,6 +499,20 @@ const styles = StyleSheet.create({
   },
   sectionContent: {
     paddingTop: 14,
+  },
+  subSectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#444",
+    marginBottom: 10,
+    marginLeft: 4,
+  },
+  noActiveText: {
+    fontSize: 13,
+    color: "#888",
+    fontStyle: "italic",
+    marginLeft: 4,
+    marginBottom: 10,
   },
   savedGrid: {
     flexDirection: "row",

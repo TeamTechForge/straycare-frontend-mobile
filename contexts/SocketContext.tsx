@@ -6,7 +6,7 @@ import React, { createContext, useContext, useEffect, useRef, useState } from "r
 import { io, Socket } from "socket.io-client";
 import { BASE_URL } from "../constants/config.constants";
 import { useAuth } from "./AuthContext";
-import { chatService } from "../services/chat.service";
+import { chatService } from "../services/ChatService";
 import { CallLogService } from "../services/CallLogService";
 
 type SocketContextType = {

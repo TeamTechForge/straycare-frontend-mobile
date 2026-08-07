@@ -21,7 +21,7 @@ import {
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
-import { getApiBaseUrl } from "../../services/rescue.service";
+import { getApiBaseUrl } from "../../services/RescueService";
 import type { RescueCaseRecord } from "../../types/Api";
 
 // ─── Props ───────────────────────────────────────────────────────────────────

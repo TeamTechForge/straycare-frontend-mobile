@@ -3,7 +3,7 @@ import { ActivityIndicator, Image, RefreshControl, SafeAreaView, ScrollView, Tex
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { getAllPosts, addComment, getThread } from "../../services/forum.service";
+import { getAllPosts, addComment, getThread } from "../../services/ForumService";
 import type { ForumPost, ForumThreadComment } from "../../types/Forum";
 import type { ThreadData, ThreadMessage } from "../../types/Thread";
 import { threadStyles as styles } from "../../styles/thread.styles";
