@@ -620,7 +620,7 @@ const styles = StyleSheet.create({
     color: "#1E3A8A",
   },
   iconButton: {
-    padding: 4,
+    padding: 2,
   },
   modalOverlay: {
     flex: 1,
