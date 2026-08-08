@@ -11,12 +11,12 @@ import {
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 
-import { forumStyles as styles } from "../styles/forum.styles";
-import ForumTabs from "../components/forum/ForumTabs";
-import ForumPostCard from "../components/forum/ForumPostCard";
-import ForumBottomActions from "../components/forum/ForumBottomActions";
-import { getAllPosts, likePost } from "../services/forumService";
-import type { ForumPost } from "../types/Forum";
+import { forumStyles as styles } from "../../styles/forum.styles";
+import ForumTabs from "../../components/forum/ForumTabs";
+import ForumPostCard from "../../components/forum/ForumPostCard";
+import ForumBottomActions from "../../components/forum/ForumBottomActions";
+import { getAllPosts, likePost } from "../../services/ForumService";
+import type { ForumPost } from "../../types/Forum";
 
 type TabKey = "Newest" | "Active" | "Unanswered";
 
@@ -93,6 +93,21 @@ export default function DiscussionForumScreen() {
     }
   }
 
+  /* ── Delete handler ─────────────────────────────────────────────────── */
+  async function handleDeletePost(id: string) {
+    try {
+      console.log("[DiscussionForum] Deleting post", id);
+      const { deletePost } = await import("../../services/ForumService");
+      await deletePost(id);
+      setPosts((prev) => prev.filter((p) => p.id !== id));
+      console.log("[DiscussionForum] Post deleted successfully");
+    } catch (deleteError) {
+      const message = deleteError instanceof Error ? deleteError.message : "Failed to delete post";
+      console.error("[DiscussionForum] ERROR deleting post:", message);
+      setError(message);
+    }
+  }
+
   /* ── Render ─────────────────────────────────────────────────────────── */
   return (
     <SafeAreaView style={styles.safe}>
@@ -162,6 +177,7 @@ export default function DiscussionForumScreen() {
                 key={post.id}
                 post={post}
                 onToggleLike={() => void toggleLike(post.id)}
+                onDeletePost={handleDeletePost}
               />
             ))}
           </ScrollView>

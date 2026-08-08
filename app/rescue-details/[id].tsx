@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Linking,
   SafeAreaView,
   ScrollView,
   Text,
@@ -17,6 +16,8 @@ import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import AppButton from "../../components/ui/AppButton";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
+import { useAuth } from "../../contexts/AuthContext";
+import { useCall } from "../../contexts/CallContext";
 import {
   fetchComments,
   fetchRescueById,
@@ -168,6 +169,10 @@ export default function RescueDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const idValue = id ?? "";
+  const { user, token } = useAuth();
+  const { startCall } = useCall();
+  
+  const [responding, setResponding] = useState(false);
 
   // ── Rescue Details State ──
   const [details, setDetails] = useState<any>(null);
@@ -244,36 +249,53 @@ export default function RescueDetailsScreen() {
   }, [loadCommentsList]);
 
   /* ─────────────────────────────────────────────────────────────
-   * Call Dialer Trigger
+   * Respond to Request (Accept / Reject)
    * ───────────────────────────────────────────────────────────── */
-  const handleCall = useCallback((phone: string | undefined, name: string) => {
-    if (!phone || phone.trim().length === 0) {
+  const respondToRequest = async (action: "accept" | "reject") => {
+    if (!token) return;
+    setResponding(true);
+    try {
+      const baseUrl = getApiBaseUrl();
+      const respondRes = await fetch(`${baseUrl}/api/rescue/request/${idValue}/respond`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action }),
+      });
+      if (respondRes.ok) {
+        if (action === "accept") {
+          await loadDetails(); // refresh to show accepted state
+        } else {
+          router.replace("/"); // go back if rejected
+        }
+      } else {
+        const errData = await respondRes.json();
+        Alert.alert("Error", errData.error || "Failed to respond to request.");
+      }
+    } catch (err) {
+      console.error("Error responding to request:", err);
+      Alert.alert("Error", "Network error occurred.");
+    } finally {
+      setResponding(false);
+    }
+  };
+
+  /* ─────────────────────────────────────────────────────────────
+   * In-App Call Trigger
+   * ───────────────────────────────────────────────────────────── */
+  const handleCall = useCallback((userId: string | undefined, name: string, avatar?: string) => {
+    if (!userId || userId.trim().length === 0) {
       Alert.alert(
-        "Phone Number Unavailable",
-        `The phone number for ${name} is not available right now.`,
+        "Contact Unavailable",
+        `Contact details for ${name} are not available right now.`,
         [{ text: "OK" }]
       );
       return;
     }
-
-    const cleanedPhone = phone.replace(/[\s-]/g, "");
-    const url = `tel:${cleanedPhone}`;
-
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert("Cannot Make Call", "Your device does not support phone calls.", [
-            { text: "OK" },
-          ]);
-        }
-      })
-      .catch((err) => {
-        Alert.alert("Error", "An error occurred while trying to place the call.", [{ text: "OK" }]);
-        console.error("[RescueDetails] Phone call error:", err);
-      });
-  }, []);
+    startCall(userId, name, avatar);
+  }, [startCall]);
 
   /* ─────────────────────────────────────────────────────────────
    * Post Comment / Reply Handlers
@@ -282,7 +304,9 @@ export default function RescueDetailsScreen() {
     if (!newComment.trim() || !idValue) return;
     setSubmittingComment(true);
     try {
-      const created = await postComment(idValue, newComment.trim());
+      const currentUserId = (user as any)?._id || (user as any)?.id || "guest-user";
+      const currentUserName = (user as any)?.name || "User";
+      const created = await postComment(idValue, newComment.trim(), currentUserName, currentUserId);
       setComments((prev) => [...prev, { ...created, replies: created.replies || [] }]);
       setNewComment("");
     } catch (err) {
@@ -291,14 +315,16 @@ export default function RescueDetailsScreen() {
     } finally {
       setSubmittingComment(false);
     }
-  }, [newComment, idValue]);
+  }, [newComment, idValue, user]);
 
   const handlePostReply = useCallback(
     async (parentId: string) => {
       if (!replyText.trim() || !idValue) return;
       setSubmittingReply(true);
       try {
-        const created = await postReply(idValue, parentId, replyText.trim());
+        const currentUserId = (user as any)?._id || (user as any)?.id || "guest-user";
+        const currentUserName = (user as any)?.name || "User";
+        const created = await postReply(idValue, parentId, replyText.trim(), currentUserName, currentUserId);
         setComments((prev) =>
           prev.map((c) =>
             c._id === parentId ? { ...c, replies: [...(c.replies || []), created] } : c
@@ -313,7 +339,7 @@ export default function RescueDetailsScreen() {
         setSubmittingReply(false);
       }
     },
-    [replyText, idValue]
+    [replyText, idValue, user]
   );
 
   /* ─────────────────────────────────────────────────────────────
@@ -335,15 +361,32 @@ export default function RescueDetailsScreen() {
     [details]
   );
 
+  // ── Access Control: who is the current user? ──
+  const currentUserId = user ? String((user as any)._id || (user as any).id || "") : "";
+  const isAssignedRescuer = useMemo(() => {
+    if (!user || !details?.rescuer) return false;
+    const rescuerUserId = details.rescuer.userId ? String(details.rescuer.userId) : "";
+    const rescuerId = details.rescuer.id ? String(details.rescuer.id) : "";
+    return (
+      (rescuerUserId && rescuerUserId === currentUserId) ||
+      (rescuerId && rescuerId === currentUserId)
+    );
+  }, [user, details, currentUserId]);
+
+  const isReporter = useMemo(() => {
+    if (!user || !details?.reporter) return false;
+    const reporterId = details.reporter.id ? String(details.reporter.id) : "";
+    return reporterId && reporterId === currentUserId;
+  }, [user, details, currentUserId]);
+
   // ── Timeline status indices ──
-  const timelineSteps = ["Request Sent", "Rescuer Assigned", "Rescuer On The Way", "Completed"];
-  const currentStatusIndex = useMemo(() => {
-    if (!details) return 0;
-    const status = details.status;
-    if (status === "pending") return 0;
-    if (status === "accepted") return 2; // Assigned and On The Way
-    if (status === "completed") return 3; // Fully completed
-    return 0; // default / rejected
+  const timelineData = useMemo(() => {
+    if (!details || !details.timeline || !Array.isArray(details.timeline) || details.timeline.length === 0) {
+      return [
+        { status: "Needs Help", message: "Your request was published on the network", timestamp: details?.createdAt || new Date().toISOString() }
+      ];
+    }
+    return details.timeline;
   }, [details]);
 
   if (loading) {
@@ -437,67 +480,34 @@ export default function RescueDetailsScreen() {
         <View style={styles.card}>
           <Text style={styles.cardTitle}>⏱ Rescue Journey Timeline</Text>
           <View style={styles.timelineContainer}>
-            {timelineSteps.map((step, index) => {
-              const isCompleted = index <= currentStatusIndex;
-              const isLast = index === timelineSteps.length - 1;
+            {timelineData.map((step: any, index: number) => {
+              const isLast = index === timelineData.length - 1;
 
               return (
-                <View key={step} style={styles.timelineStep}>
+                <View key={index} style={styles.timelineStep}>
                   {/* Circle + Line */}
                   <View style={styles.timelineLeft}>
-                    <View
-                      style={[
-                        styles.timelineIndicator,
-                        isCompleted
-                          ? styles.timelineIndicatorActive
-                          : styles.timelineIndicatorInactive,
-                      ]}
-                    >
-                      {isCompleted ? (
-                        <Text style={styles.timelineIcon}>✓</Text>
-                      ) : (
-                        <Text style={[styles.timelineIcon, { color: "#9CA3AF" }]}>
-                          {index + 1}
-                        </Text>
-                      )}
+                    <View style={styles.timelineIndicatorActive}>
+                      <Text style={styles.timelineIcon}>✓</Text>
                     </View>
                     {!isLast && (
-                      <View
-                        style={[
-                          styles.timelineLine,
-                          isCompleted && index < currentStatusIndex
-                            ? styles.timelineLineActive
-                            : null,
-                        ]}
-                      />
+                      <View style={[styles.timelineLine, styles.timelineLineActive]} />
                     )}
                   </View>
 
                   {/* Step Description */}
                   <View style={styles.timelineContent}>
-                    <Text
-                      style={[
-                        styles.timelineStepTitle,
-                        isCompleted ? styles.timelineStepTitleActive : null,
-                      ]}
-                    >
-                      {step}
+                    <Text style={styles.timelineStepTitleActive}>
+                      {step.status}
                     </Text>
                     <Text style={styles.timelineStepSub}>
-                      {index === 0 && "Your request was published on the network"}
-                      {index === 1 &&
-                        (details.rescuer
-                          ? `Assigned to ${details.rescuer.name}`
-                          : "Awaiting rescue team acceptance")}
-                      {index === 2 &&
-                        (details.status === "accepted" || details.status === "completed"
-                          ? "Rescue worker is traveling to the location"
-                          : "Pending journey start")}
-                      {index === 3 &&
-                        (details.status === "completed"
-                          ? "Case successfully resolved!"
-                          : "Pending final resolution")}
+                      {step.message || "Status updated"}
                     </Text>
+                    {step.timestamp && (
+                      <Text style={{ fontSize: 10, color: "#9CA3AF", marginTop: 2 }}>
+                        {new Date(step.timestamp).toLocaleString()}
+                      </Text>
+                    )}
                   </View>
                 </View>
               );
@@ -655,33 +665,39 @@ export default function RescueDetailsScreen() {
           </View>
 
           {/* New comment composition */}
-          <View style={styles.commentInputRow}>
-            <TextInput
-              style={styles.commentInput}
-              placeholder="Post a new update/comment..."
-              placeholderTextColor="#9CA3AF"
-              value={newComment}
-              onChangeText={setNewComment}
-              multiline
-              maxLength={500}
-              editable={!submittingComment}
-            />
-            <TouchableOpacity
-              style={[
-                styles.commentSendBtn,
-                (!newComment.trim() || submittingComment) && styles.commentSendBtnDisabled,
-              ]}
-              activeOpacity={0.8}
-              onPress={handlePostComment}
-              disabled={!newComment.trim() || submittingComment}
-            >
-              {submittingComment ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.commentSendIcon}>➤</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          {isAssignedRescuer || isReporter ? (
+            <View style={styles.commentInputRow}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Post a new update/comment..."
+                placeholderTextColor="#9CA3AF"
+                value={newComment}
+                onChangeText={setNewComment}
+                multiline
+                maxLength={500}
+                editable={!submittingComment}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.commentSendBtn,
+                  (!newComment.trim() || submittingComment) && styles.commentSendBtnDisabled,
+                ]}
+                activeOpacity={0.8}
+                onPress={handlePostComment}
+                disabled={!newComment.trim() || submittingComment}
+              >
+                {submittingComment ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.commentSendIcon}>➤</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ padding: spacing.sm, alignItems: "center", backgroundColor: "#F9FAFB", borderRadius: 8, marginVertical: 8 }}>
+              <Text style={[styles.helperText, { textAlign: "center" }]}>View Only — Only the assigned rescuer or reporter can post updates.</Text>
+            </View>
+          )}
 
           {/* Loader */}
           {commentsLoading && comments.length === 0 ? (
@@ -703,9 +719,9 @@ export default function RescueDetailsScreen() {
               <View style={styles.commentBubble}>
                 <View style={styles.commentBubbleHeader}>
                   <View style={styles.commentAvatar}>
-                    <Text style={styles.commentAvatarText}>{getInitial(comment.userName)}</Text>
+                    <Text style={styles.commentAvatarText}>{getInitial(comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName)}</Text>
                   </View>
-                  <Text style={styles.commentUserName}>{comment.userName}</Text>
+                  <Text style={styles.commentUserName}>{comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName}</Text>
                   <Text style={styles.commentTime}>{timeAgo(comment.createdAt)}</Text>
                 </View>
                 <Text style={styles.commentText}>{comment.text}</Text>
@@ -740,10 +756,10 @@ export default function RescueDetailsScreen() {
                       <View style={styles.commentBubbleHeader}>
                         <View style={styles.commentAvatar}>
                           <Text style={styles.commentAvatarText}>
-                            {getInitial(reply.userName)}
+                            {getInitial(reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName)}
                           </Text>
                         </View>
-                        <Text style={styles.commentUserName}>{reply.userName}</Text>
+                        <Text style={styles.commentUserName}>{reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName}</Text>
                         <Text style={styles.commentTime}>{timeAgo(reply.createdAt)}</Text>
                       </View>
                       <Text style={styles.commentText}>{reply.text}</Text>
@@ -787,9 +803,26 @@ export default function RescueDetailsScreen() {
           ))}
         </View>
 
-        {/* ── Done Button ── */}
-        <AppButton title="Exit Details" onPress={() => router.back()} style={{ marginTop: spacing.md }} />
+        {/* Removed Exit Details button */}
       </ScrollView>
+
+      {/* ── Rescuer Action Bar ── */}
+      {details?.status === "pending" && details?.rescuer && (user?._id === details.rescuer.id || user?._id === details.rescuer.userId) && (
+        <View style={styles.actionBar}>
+          <AppButton 
+            title="Reject" 
+            onPress={() => respondToRequest("reject")} 
+            style={[styles.actionBtn, { backgroundColor: "#EF4444" }]} 
+            disabled={responding}
+          />
+          <AppButton 
+            title="Accept" 
+            onPress={() => respondToRequest("accept")} 
+            style={[styles.actionBtn, { backgroundColor: "#10B981" }]} 
+            disabled={responding}
+          />
+        </View>
+      )}
     </SafeAreaView>
   );
 }

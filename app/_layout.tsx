@@ -170,46 +170,18 @@ function InitialLayout() {
           isAlertActive = true;
           activeAlertId = data.request._id;
 
-          const respondToRequest = async (action: "accept" | "reject") => {
-            try {
-              const respondRes = await fetch(`${API_URL}/rescue/request/${data.request._id}/respond`, {
-                method: "PATCH",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ action }),
-              });
-              if (respondRes.ok && action === "accept") {
-                router.push(`/rescue-details/${data.request._id}`);
-              }
-            } catch (err) {
-              console.error("Error responding to request:", err);
-            } finally {
-              isAlertActive = false;
-            }
-          };
+          // Automatically push to the rescue details screen where the rescuer can view the case
+          // before deciding to Accept or Reject.
+          router.push(`/rescue-details/${data.request._id}`);
 
-          const { Alert } = require("react-native");
-          Alert.alert(
-            "New Rescue Request",
-            `A new case of ${data.request.animalType || "stray animal"} has been assigned to you. Do you accept?`,
-            [
-              {
-                text: "Reject",
-                onPress: () => respondToRequest("reject"),
-                style: "cancel",
-              },
-              {
-                text: "Accept",
-                onPress: () => respondToRequest("accept"),
-              },
-            ],
-            { cancelable: false }
-          );
+          // Give a small delay before allowing another redirect
+          setTimeout(() => {
+            isAlertActive = false;
+          }, 3000);
         }
       } catch (err) {
         console.error("Global active request check failed:", err);
+        isAlertActive = false;
       }
     };
 

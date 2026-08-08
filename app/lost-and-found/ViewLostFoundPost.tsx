@@ -15,7 +15,8 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { getAnimalPostById, reportAnimalPost } from '../../api/apiService';
+import { getAnimalPostById, reportAnimalPost } from '../../api/api.service';
+import { useCall } from '../../contexts/CallContext';
 import { BASE_URL } from '../../constants/config.constants';
 
 // ─── Colour changes were made ────────────────────────────────────────────────────────────
@@ -248,14 +249,20 @@ const ViewAnimalPost = () => {
     fetchPost();
   }, [fetchPost]);
 
+  const { startCall } = useCall();
+
   // ─── Call handler ───────────────────────────────────────────────────────────
   const handleCall = () => {
     if (!post) return;
-    const url = `tel:${post.contactNumber}`;
-    Linking.canOpenURL(url).then(ok => {
-      if (ok) Linking.openURL(url);
-      else Alert.alert('Call', `Contact number: ${post.contactNumber}`);
-    });
+    const ownerId = (post as any).userId || (post as any).ownerId || (post as any).postedBy;
+    if (!ownerId) {
+      Alert.alert(
+        'Contact Unavailable',
+        'In-app calling requires the user ID, which is not available for this post.'
+      );
+      return;
+    }
+    startCall(String(ownerId), post.contactName || 'User');
   };
 
   // ─── Report handler ─────────────────────────────────────────────────────────

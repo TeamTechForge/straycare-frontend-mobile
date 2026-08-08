@@ -2,25 +2,15 @@ import { Platform } from "react-native";
 
 import type { LiveTrackingResponse, RescueByIdResponse, RescueCaseRecord, RescueComment } from "../types/Api";
 
-const getApiBaseUrls = (): string[] => {
-  const explicitUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+import { BASE_URL } from "../constants/config.constants";
 
-  if (explicitUrl) {
-    return [explicitUrl.replace(/\/$/, "")];
-  }
-
-  if (Platform.OS === "android") {
-    return ["http://10.0.2.2:5001", "http://10.0.2.2:5000"];
-  }
-
-  return ["http://localhost:5001", "http://localhost:5000"];
-};
+const getApiBaseUrls = (): string[] => [BASE_URL];
 
 /**
  * Returns the primary API base URL for building image/upload URLs.
  * Components use this to prefix relative photo paths like /uploads/photo.jpg
  */
-export const getApiBaseUrl = (): string => getApiBaseUrls()[0];
+export const getApiBaseUrl = (): string => BASE_URL;
 
 const buildUrl = (baseUrl: string, path: string) => `${baseUrl}${path}`;
 
