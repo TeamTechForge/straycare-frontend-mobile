@@ -298,8 +298,8 @@ export default function SearchingHelpScreen() {
       {/* Main content */}
       {loading && !cancelling ? (
         <>
-          <ActivityIndicator size="large" color="#2E86DE" />
-          <Text style={styles.text}>Searching for Nearby Help…</Text>
+          <ActivityIndicator size="large" color="#E53935" />
+          <Text style={styles.text}>Finding nearby rescuer…</Text>
         </>
       ) : cancelled ? (
         <>

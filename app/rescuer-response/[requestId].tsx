@@ -27,8 +27,38 @@ import { API_URL } from "../../constants/config.constants";
 import { useCall } from "../../contexts/CallContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
+import { fetchComments, postComment, postReply } from "../../services/rescueService";
+import type { RescueComment } from "../../types/Api";
 
 const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1535930749574-1399327ce78f?w=200&h=200&fit=crop&q=80";
+
+const resolvePhotoUrl = (url: string | undefined): string => {
+  if (!url) return DEFAULT_AVATAR;
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+  const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+  return `${API_URL}${cleanUrl}`;
+};
+
+const getInitial = (name?: string): string => {
+  if (!name || name.trim().length === 0) return "U";
+  return name.trim().charAt(0).toUpperCase();
+};
+
+const timeAgo = (timestamp?: string): string => {
+  if (!timestamp) return "Just now";
+  const now = new Date();
+  const date = new Date(timestamp);
+  const diffSec = Math.floor((now.getTime() - date.getTime()) / 1000);
+  if (diffSec < 60) return "Just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDays = Math.floor(diffHr / 24);
+  return `${diffDays}d ago`;
+};
 
 export default function RescuerResponseScreen() {
   const router = useRouter();
@@ -48,6 +78,17 @@ export default function RescuerResponseScreen() {
   const [progressModalVisible, setProgressModalVisible] = useState(false);
   const [progressNote, setProgressNote] = useState("");
   const [submittingProgress, setSubmittingProgress] = useState(false);
+
+  // Comments state
+  const [comments, setComments] = useState<RescueComment[]>([]);
+  const [commentsLoading, setCommentsLoading] = useState(false);
+  const [newComment, setNewComment] = useState("");
+  const [submittingComment, setSubmittingComment] = useState(false);
+
+  // Replies state
+  const [replyingTo, setReplyingTo] = useState<string | null>(null);
+  const [replyText, setReplyText] = useState("");
+  const [submittingReply, setSubmittingReply] = useState(false);
 
   // Fetch full case & request details
   const fetchDetails = useCallback(async () => {
@@ -82,6 +123,68 @@ export default function RescuerResponseScreen() {
   useEffect(() => {
     fetchDetails();
   }, [fetchDetails]);
+
+  // ── Fetch Comments & Auto-Poll every 5 seconds ──────────────────────────────
+  const loadCommentsList = useCallback(async () => {
+    const targetId = caseId || requestId;
+    if (!targetId) return;
+    try {
+      const data = await fetchComments(targetId);
+      setComments(data);
+    } catch (err) {
+      console.warn("[RescuerResponse] Failed to load comments:", err);
+    }
+  }, [caseId, requestId]);
+
+  useEffect(() => {
+    void loadCommentsList();
+    const interval = setInterval(() => {
+      void loadCommentsList();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [loadCommentsList]);
+
+  const handlePostComment = useCallback(async () => {
+    const targetId = caseId || requestId;
+    if (!newComment.trim() || !targetId) return;
+    setSubmittingComment(true);
+    try {
+      const currentUserId = (user as any)?._id || (user as any)?.id || "rescuer";
+      const currentUserName = (user as any)?.name || "Rescuer";
+      const created = await postComment(targetId, newComment.trim(), currentUserName, currentUserId);
+      setComments((prev) => [...prev, { ...created, replies: created.replies || [] }]);
+      setNewComment("");
+    } catch (err) {
+      Alert.alert("Error", "Failed to post comment. Please try again.");
+    } finally {
+      setSubmittingComment(false);
+    }
+  }, [newComment, caseId, requestId, user]);
+
+  const handlePostReply = useCallback(
+    async (parentId: string) => {
+      const targetId = caseId || requestId;
+      if (!replyText.trim() || !targetId) return;
+      setSubmittingReply(true);
+      try {
+        const currentUserId = (user as any)?._id || (user as any)?.id || "rescuer";
+        const currentUserName = (user as any)?.name || "Rescuer";
+        const created = await postReply(targetId, parentId, replyText.trim(), currentUserName, currentUserId);
+        setComments((prev) =>
+          prev.map((c) =>
+            c._id === parentId ? { ...c, replies: [...(c.replies || []), created] } : c
+          )
+        );
+        setReplyText("");
+        setReplyingTo(null);
+      } catch (err) {
+        Alert.alert("Error", "Failed to post reply. Please try again.");
+      } finally {
+        setSubmittingReply(false);
+      }
+    },
+    [replyText, caseId, requestId, user]
+  );
 
   // Join Socket.IO room for real-time updates
   useEffect(() => {
@@ -207,7 +310,8 @@ export default function RescuerResponseScreen() {
   }
 
   const reporterName = caseDetails?.reporterName || caseDetails?.reporter?.name || "Reporter";
-  const reporterAvatar = caseDetails?.reporterAvatar || caseDetails?.reporter?.avatar || DEFAULT_AVATAR;
+  const rawAvatar = caseDetails?.reporterAvatar || caseDetails?.reporter?.avatar || caseDetails?.reporter?.profileImage;
+  const reporterAvatar = rawAvatar ? resolvePhotoUrl(rawAvatar) : DEFAULT_AVATAR;
   const animalType = caseDetails?.animalType || "Rescue Animal";
   const description = caseDetails?.description || caseDetails?.notes || "No notes provided.";
   const photos = caseDetails?.photos || [];
@@ -226,12 +330,11 @@ export default function RescuerResponseScreen() {
     <SafeAreaView style={styles.container}>
       {/* HEADER BAR */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backPill} onPress={() => router.back()}>
-          <Text style={styles.backChevron}>‹</Text>
-          <Text style={styles.backText}>Back</Text>
+        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
+          <Text style={styles.backIcon}>←</Text>
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Response Processing</Text>
-        <View style={{ width: 60 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -290,11 +393,16 @@ export default function RescuerResponseScreen() {
           {/* PHOTOS SCROLL */}
           {photos.length > 0 && (
             <View style={{ marginTop: 12 }}>
-              <Text style={styles.infoLabel}>Photos:</Text>
+              <Text style={styles.infoLabel}>Photos ({photos.length}):</Text>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 8 }}>
-                {photos.map((uri: string, idx: number) => (
-                  <Image key={idx} source={{ uri }} style={styles.photoItem} />
-                ))}
+                {photos.map((rawUri: string, idx: number) => {
+                  const uri = resolvePhotoUrl(rawUri);
+                  return (
+                    <TouchableOpacity key={idx} activeOpacity={0.9}>
+                      <Image source={{ uri }} style={styles.photoItem} resizeMode="cover" />
+                    </TouchableOpacity>
+                  );
+                })}
               </ScrollView>
             </View>
           )}
@@ -436,6 +544,140 @@ export default function RescuerResponseScreen() {
             />
           </View>
         )}
+
+        {/* 💬 REPORTER COMMENTS & CASE DISCUSSION CARD */}
+        <View style={styles.card}>
+          <Text style={styles.sectionHeader}>💬  Reporter Comments & Case Discussion</Text>
+          
+          {/* Comment Input Composition */}
+          <View style={styles.commentInputRow}>
+            <TextInput
+              style={styles.commentInput}
+              placeholder="Type a message or note for reporter..."
+              placeholderTextColor="#9CA3AF"
+              value={newComment}
+              onChangeText={setNewComment}
+              multiline
+              maxLength={500}
+              editable={!submittingComment}
+            />
+            <TouchableOpacity
+              style={[
+                styles.commentSendBtn,
+                (!newComment.trim() || submittingComment) && styles.commentSendBtnDisabled,
+              ]}
+              activeOpacity={0.85}
+              onPress={handlePostComment}
+              disabled={!newComment.trim() || submittingComment}
+            >
+              {submittingComment ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.commentSendIcon}>➤</Text>
+              )}
+            </TouchableOpacity>
+          </View>
+
+          {/* Empty State */}
+          {comments.length === 0 ? (
+            <Text style={styles.commentEmpty}>No reporter comments yet.</Text>
+          ) : null}
+
+          {/* Comments List */}
+          {comments.map((comment) => (
+            <View key={comment._id} style={{ marginTop: 12 }}>
+              {/* Top Level Comment */}
+              <View style={styles.commentBubble}>
+                <View style={styles.commentBubbleHeader}>
+                  <View style={styles.commentAvatar}>
+                    <Text style={styles.commentAvatarText}>
+                      {getInitial(comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName)}
+                    </Text>
+                  </View>
+                  <Text style={styles.commentUserName}>
+                    {comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName}
+                  </Text>
+                  <Text style={styles.commentTime}>{timeAgo(comment.createdAt)}</Text>
+                </View>
+                <Text style={styles.commentText}>{comment.text}</Text>
+
+                <View style={styles.commentActions}>
+                  <TouchableOpacity
+                    style={styles.replyTrigger}
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      setReplyingTo(replyingTo === comment._id ? null : comment._id);
+                      setReplyText("");
+                    }}
+                  >
+                    <Text style={styles.replyTriggerText}>
+                      {replyingTo === comment._id ? "Cancel" : "↩ Reply"}
+                    </Text>
+                  </TouchableOpacity>
+                  {comment.replies && comment.replies.length > 0 ? (
+                    <Text style={styles.commentCount}>
+                      {comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}
+                    </Text>
+                  ) : null}
+                </View>
+              </View>
+
+              {/* Replies List */}
+              {comment.replies && comment.replies.length > 0 ? (
+                <View style={styles.replyContainer}>
+                  {comment.replies.map((reply) => (
+                    <View key={reply._id} style={styles.replyBubble}>
+                      <View style={styles.commentBubbleHeader}>
+                        <View style={styles.commentAvatar}>
+                          <Text style={styles.commentAvatarText}>
+                            {getInitial(reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName)}
+                          </Text>
+                        </View>
+                        <Text style={styles.commentUserName}>
+                          {reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName}
+                        </Text>
+                        <Text style={styles.commentTime}>{timeAgo(reply.createdAt)}</Text>
+                      </View>
+                      <Text style={styles.commentText}>{reply.text}</Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {/* Reply Input Composition */}
+              {replyingTo === comment._id ? (
+                <View style={styles.replyInputRow}>
+                  <TextInput
+                    style={styles.replyInput}
+                    placeholder={`Reply to ${comment.userName}...`}
+                    placeholderTextColor="#9CA3AF"
+                    value={replyText}
+                    onChangeText={setReplyText}
+                    multiline
+                    maxLength={500}
+                    editable={!submittingReply}
+                    autoFocus
+                  />
+                  <TouchableOpacity
+                    style={[
+                      styles.replySendBtn,
+                      (!replyText.trim() || submittingReply) && styles.commentSendBtnDisabled,
+                    ]}
+                    activeOpacity={0.85}
+                    onPress={() => handlePostReply(comment._id)}
+                    disabled={!replyText.trim() || submittingReply}
+                  >
+                    {submittingReply ? (
+                      <ActivityIndicator size="small" color="#FFFFFF" />
+                    ) : (
+                      <Text style={styles.commentSendIcon}>➤</Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+              ) : null}
+            </View>
+          ))}
+        </View>
       </ScrollView>
 
       {/* 📝 PROGRESS UPDATE MODAL */}
@@ -485,55 +727,41 @@ export default function RescuerResponseScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAF9F6",
-  },
-  centerContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    backgroundColor: "#FAF9F6",
-  },
-  loadingText: {
-    marginTop: spacing.md,
-    fontSize: 15,
-    fontFamily: typography.medium,
-    color: colors.text,
+    backgroundColor: "#fafafa",
   },
   header: {
-    height: 56,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: spacing.md,
+    paddingVertical: spacing.md,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
-    borderColor: "#E5E7EB",
+    borderBottomColor: "#eee",
   },
-  backPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+  backButton: {
+    width: 40,
+    height: 40,
     borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
     borderWidth: 1,
-    borderColor: "#E5E7EB",
-    gap: 4,
+    borderColor: "#ddd",
+    ...Platform.select({
+      ios: { shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 4 },
+      android: { elevation: 2 },
+    }),
   },
-  backChevron: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#111111",
-  },
-  backText: {
-    fontSize: 11,
-    fontFamily: typography.semibold,
-    color: "#111111",
+  backIcon: {
+    fontSize: 20,
+    color: "#333",
+    fontWeight: "700",
   },
   headerTitle: {
-    fontSize: 16,
+    fontSize: 18,
     fontFamily: typography.bold,
-    color: colors.text,
+    color: "#333",
   },
   scrollContent: {
     padding: spacing.md,
@@ -541,29 +769,31 @@ const styles = StyleSheet.create({
     gap: spacing.md,
   },
   statusBanner: {
-    backgroundColor: "#FFF8EA",
+    backgroundColor: "#F5A62315",
     borderRadius: 16,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: "rgba(254,185,75,0.3)",
+    borderColor: "#F5A623",
     alignItems: "center",
   },
   statusBadge: {
-    backgroundColor: "#FFE5B4",
+    backgroundColor: "#F5A62333",
     paddingVertical: 4,
     paddingHorizontal: 12,
     borderRadius: 12,
     marginBottom: 6,
+    borderWidth: 1,
+    borderColor: "#F5A623",
   },
   statusBadgeText: {
     fontFamily: typography.bold,
     fontSize: 13,
-    color: "#B8860B",
+    color: "#333",
   },
   statusBannerSubtext: {
     fontSize: 13,
     fontFamily: typography.medium,
-    color: "#4B5563",
+    color: "#333",
     textAlign: "center",
   },
   card: {
@@ -571,12 +801,12 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: spacing.md,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#ddd",
   },
   sectionHeader: {
     fontSize: 15,
     fontFamily: typography.bold,
-    color: colors.text,
+    color: "#333",
     marginBottom: spacing.sm,
   },
   reporterRow: {
@@ -588,9 +818,9 @@ const styles = StyleSheet.create({
     width: 54,
     height: 54,
     borderRadius: 27,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#f9f9f9",
     borderWidth: 2,
-    borderColor: colors.primary,
+    borderColor: "#F5A623",
   },
   reporterInfo: {
     marginLeft: spacing.md,
@@ -599,33 +829,31 @@ const styles = StyleSheet.create({
   reporterName: {
     fontSize: 17,
     fontFamily: typography.bold,
-    color: colors.text,
+    color: "#333",
   },
   reporterRole: {
     fontSize: 12,
     fontFamily: typography.medium,
     color: "#6B7280",
-    marginTop: 2,
-  },
-  reportedTime: {
-    fontSize: 11,
-    fontFamily: typography.regular,
-    color: "#9CA3AF",
-    marginTop: 2,
   },
   communicationRow: {
     flexDirection: "row",
-    gap: spacing.sm,
+    gap: 12,
+    marginTop: spacing.sm,
+    alignItems: "center",
   },
   callButton: {
     flex: 1,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: colors.primary,
+    backgroundColor: "#F5A623",
     borderRadius: 12,
     paddingVertical: 12,
+    paddingHorizontal: 8,
     gap: 6,
+    borderWidth: 1,
+    borderColor: "#F5A623",
   },
   callButtonText: {
     fontSize: 14,
@@ -637,17 +865,18 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     paddingVertical: 12,
+    paddingHorizontal: 8,
     gap: 6,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderWidth: 1.5,
+    borderColor: "#F5A623",
   },
   chatButtonText: {
     fontSize: 14,
     fontFamily: typography.semibold,
-    color: "#111827",
+    color: "#000000",
   },
   commIcon: {
     fontSize: 16,
@@ -658,15 +887,15 @@ const styles = StyleSheet.create({
   },
   infoLabel: {
     width: 100,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: typography.semibold,
-    color: "#6B7280",
+    color: "#333",
   },
   infoValue: {
     flex: 1,
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: typography.regular,
-    color: colors.text,
+    color: "#333",
   },
   photoItem: {
     width: 80,
@@ -675,9 +904,9 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   addressText: {
-    fontSize: 13,
+    fontSize: 14,
     fontFamily: typography.medium,
-    color: colors.text,
+    color: "#333",
     marginBottom: spacing.sm,
   },
   mapPreviewContainer: {
@@ -690,9 +919,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   navigateButton: {
-    backgroundColor: "#FFF8EA",
+    backgroundColor: "#F5A62333",
     borderWidth: 1,
-    borderColor: "rgba(254,185,75,0.4)",
+    borderColor: "#F5A623",
     borderRadius: 12,
     paddingVertical: 12,
     alignItems: "center",
@@ -700,7 +929,7 @@ const styles = StyleSheet.create({
   navigateButtonText: {
     fontSize: 14,
     fontFamily: typography.semibold,
-    color: "#B8860B",
+    color: "#333",
   },
   actionSection: {
     gap: spacing.sm,
@@ -713,17 +942,17 @@ const styles = StyleSheet.create({
     marginBottom: spacing.xs,
   },
   progressChipBtn: {
-    backgroundColor: "#FFF8EA",
+    backgroundColor: "#F5A62333",
     borderWidth: 1,
-    borderColor: "rgba(254,185,75,0.4)",
-    borderRadius: 20,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
+    borderColor: "#F5A623",
+    borderRadius: 12,
+    paddingVertical: 10,
+    paddingHorizontal: 14,
   },
   progressChipText: {
-    fontSize: 12,
+    fontSize: 14,
     fontFamily: typography.semibold,
-    color: "#B8860B",
+    color: "#333",
   },
   modalOverlay: {
     flex: 1,
@@ -739,7 +968,7 @@ const styles = StyleSheet.create({
   modalTitle: {
     fontSize: 18,
     fontFamily: typography.bold,
-    color: colors.text,
+    color: "#333",
     marginBottom: 4,
   },
   modalSubtext: {
@@ -749,14 +978,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   modalInput: {
-    backgroundColor: "#F9FAFB",
+    backgroundColor: "#f9f9f9",
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#ddd",
     padding: spacing.md,
     fontSize: 14,
     fontFamily: typography.regular,
-    color: colors.text,
+    color: "#333",
     textAlignVertical: "top",
     minHeight: 80,
     marginBottom: spacing.md,
@@ -767,26 +996,27 @@ const styles = StyleSheet.create({
   },
   modalCancelBtn: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: "#E5E7EB",
+    borderColor: "#ddd",
     alignItems: "center",
+    backgroundColor: "#FFFFFF",
   },
   modalCancelText: {
     fontSize: 14,
     fontFamily: typography.semibold,
-    color: "#4B5563",
+    color: "#333",
   },
   modalSubmitBtn: {
     flex: 1,
-    backgroundColor: colors.primary,
-    paddingVertical: 12,
+    backgroundColor: "#F5A623",
+    paddingVertical: 14,
     borderRadius: 12,
     alignItems: "center",
   },
   modalSubmitText: {
-    fontSize: 14,
+    fontSize: 16,
     fontFamily: typography.bold,
     color: "#000000",
   },
@@ -811,27 +1041,27 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     zIndex: 2,
-    backgroundColor: colors.primary,
+    backgroundColor: "#F5A623",
     borderWidth: 2,
     borderColor: "#FFFFFF",
     ...Platform.select({
-      ios: { shadowColor: colors.primary, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3 },
+      ios: { shadowColor: "#F5A623", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.3, shadowRadius: 3 },
       android: { elevation: 2 },
     }),
   },
   timelineIcon: {
     fontSize: 10,
-    color: "#FFFFFF",
+    color: "#000000",
     fontFamily: typography.bold,
   },
   timelineLine: {
     width: 2,
     flex: 1,
-    backgroundColor: "#E5E7EB",
+    backgroundColor: "#eee",
     marginVertical: 4,
   },
   timelineLineActive: {
-    backgroundColor: colors.primary,
+    backgroundColor: "#F5A623",
   },
   timelineContent: {
     flex: 1,
@@ -846,6 +1076,173 @@ const styles = StyleSheet.create({
     fontFamily: typography.medium,
     fontSize: 12,
     color: "#6B7280",
+    marginTop: 2,
+  },
+
+  // ── Comments & Discussion Styles ──
+  commentInputRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "flex-end",
+    marginBottom: 12,
+  },
+  commentInput: {
+    flex: 1,
+    backgroundColor: "#f9f9f9",
+    borderWidth: 1,
+    borderColor: "#ddd",
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#333",
+    maxHeight: 100,
+  },
+  commentSendBtn: {
+    backgroundColor: "#F5A623",
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  commentSendBtnDisabled: {
+    backgroundColor: "#d9d9d9",
+    opacity: 0.6,
+  },
+  commentSendIcon: {
+    color: "#000000",
+    fontSize: 16,
+    fontWeight: "bold",
+  },
+  commentEmpty: {
+    fontSize: 13,
+    color: "#9CA3AF",
+    textAlign: "center",
+    marginVertical: 12,
+  },
+  commentBubble: {
+    backgroundColor: "#f9f9f9",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  commentBubbleHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  commentAvatar: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: "#F5A623",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 8,
+  },
+  commentAvatarText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#000000",
+  },
+  commentUserName: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#333",
+    flex: 1,
+  },
+  commentTime: {
+    fontSize: 11,
+    color: "#9CA3AF",
+  },
+  commentText: {
+    fontSize: 14,
+    color: "#333",
+    lineHeight: 20,
+  },
+  commentActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 8,
+    paddingTop: 6,
+    borderTopWidth: 1,
+    borderTopColor: "#eee",
+  },
+  replyTrigger: {
+    paddingVertical: 4,
+    paddingHorizontal: 8,
+    backgroundColor: "#F5A62333",
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#F5A623",
+  },
+  replyTriggerText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#000000",
+  },
+  commentCount: {
+    fontSize: 11,
+    color: "#6B7280",
+  },
+  replyContainer: {
+    marginLeft: 20,
+    marginTop: 8,
+    gap: 8,
+  },
+  replyBubble: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 12,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#eee",
+  },
+  replyInputRow: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "flex-end",
+    marginLeft: 20,
+    marginTop: 8,
+  },
+  replyInput: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#F5A623",
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 13,
+    color: "#333",
+    maxHeight: 80,
+  },
+  replySendBtn: {
+    backgroundColor: "#F5A623",
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  centerContainer: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#fafafa",
+  },
+  loadingText: {
+    marginTop: 12,
+    fontSize: 14,
+    fontFamily: typography.medium,
+    color: "#6B7280",
+  },
+  reportedTime: {
+    fontSize: 12,
+    fontFamily: typography.regular,
+    color: "#9CA3AF",
     marginTop: 2,
   },
 });

@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { getAnimalPostById, reportAnimalPost } from '../../api/api.service';
+import { getAnimalPostById, reportAnimalPost } from '../../api/apiService';
 import { useCall } from '../../contexts/CallContext';
 import { BASE_URL } from '../../constants/config.constants';
 

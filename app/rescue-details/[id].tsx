@@ -182,6 +182,7 @@ export default function RescueDetailsScreen() {
   // ── Image State ──
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
 
   // ── Comments State ──
   const [comments, setComments] = useState<RescueComment[]>([]);
@@ -266,9 +267,16 @@ export default function RescueDetailsScreen() {
       });
       if (respondRes.ok) {
         if (action === "accept") {
-          await loadDetails(); // refresh to show accepted state
+          Alert.alert("Request Accepted! 🚑", "Case has been added to your profile under Rescue Cases.", [
+            {
+              text: "Go to Home",
+              onPress: () => router.replace("/(tabs)/Home"),
+            },
+          ]);
         } else {
-          router.replace("/"); // go back if rejected
+          Alert.alert("Request Declined", "The rescue request was declined.", [
+            { text: "OK", onPress: () => router.replace("/(tabs)/Home") }
+          ]);
         }
       } else {
         const errData = await respondRes.json();
@@ -353,9 +361,20 @@ export default function RescueDetailsScreen() {
   };
 
   // ── Memoized Resolved Values ──
-  const photoUrl = useMemo(() => resolvePhotoUrl(details?.photoUrl || details?.photos?.[0]), [
-    details,
-  ]);
+  const photosList = useMemo(() => {
+    if (Array.isArray(details?.photos) && details.photos.length > 0) {
+      return details.photos.map((p: string) => resolvePhotoUrl(p));
+    }
+    if (details?.photoUrl) {
+      return [resolvePhotoUrl(details.photoUrl)];
+    }
+    return [DEFAULT_FALLBACK_IMAGE];
+  }, [details]);
+
+  const photoUrl = useMemo(() => {
+    return photosList[selectedPhotoIndex] || photosList[0] || DEFAULT_FALLBACK_IMAGE;
+  }, [photosList, selectedPhotoIndex]);
+
   const statusStyle = useMemo(
     () => STATUS_COLORS[details?.status] ?? STATUS_COLORS.pending,
     [details]
@@ -474,6 +493,33 @@ export default function RescueDetailsScreen() {
               <Text style={styles.animalTypeText}>{details.animalType || "Rescue Animal"}</Text>
             </View>
           </View>
+
+          {/* Photos Thumbnail Gallery for all case images */}
+          {photosList.length > 1 && (
+            <View style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: "#FFF8EA", borderTopWidth: 1, borderColor: "rgba(254,185,75,0.2)" }}>
+              <Text style={{ fontSize: 11, fontFamily: "Inter-SemiBold", color: "#B8860B", marginBottom: 6 }}>
+                Case Photos ({photosList.length}):
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {photosList.map((url: string, idx: number) => (
+                  <TouchableOpacity
+                    key={idx}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedPhotoIndex(idx)}
+                    style={{
+                      marginRight: 8,
+                      borderRadius: 10,
+                      borderWidth: selectedPhotoIndex === idx ? 2.5 : 1,
+                      borderColor: selectedPhotoIndex === idx ? colors.primary : "#E5E7EB",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <Image source={{ uri: url }} style={{ width: 64, height: 64, borderRadius: 8 }} resizeMode="cover" />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </View>
 
         {/* ── 2. Timeline Tracker Card ── */}
@@ -599,21 +645,28 @@ export default function RescueDetailsScreen() {
 
           {/* Reporter row */}
           <View style={styles.profileSection}>
-            <View style={styles.avatarInitials}>
-              <Text style={styles.avatarInitialsText}>{getInitial(details.reporter?.name)}</Text>
-            </View>
+            {(details.reporter?.avatar || details.reporterAvatar) ? (
+              <Image
+                source={{ uri: resolvePhotoUrl(details.reporter?.avatar || details.reporterAvatar) }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <View style={styles.avatarInitials}>
+                <Text style={styles.avatarInitialsText}>{getInitial(details.reporterName || details.reporter?.name)}</Text>
+              </View>
+            )}
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{details.reporter?.name || "Reporter"}</Text>
+              <Text style={styles.profileName}>{details.reporterName || details.reporter?.name || "Reporter"}</Text>
               <Text style={styles.profileRole}>Case Reporter</Text>
-              {details.reporter?.phone ? (
-                <Text style={styles.profilePhone}>{details.reporter.phone}</Text>
+              {(details.reporter?.phone || details.reporterPhone) ? (
+                <Text style={styles.profilePhone}>{details.reporter?.phone || details.reporterPhone}</Text>
               ) : null}
             </View>
-            {details.reporter?.phone ? (
+            {(details.reporter?.phone || details.reporterPhone) ? (
               <TouchableOpacity
                 style={styles.callIconBtn}
                 activeOpacity={0.8}
-                onPress={() => handleCall(details.reporter?.phone, details.reporter?.name)}
+                onPress={() => handleCall(details.reporter?.phone || details.reporterPhone, details.reporterName || details.reporter?.name)}
               >
                 <Text style={styles.callIconText}>📞</Text>
               </TouchableOpacity>
@@ -624,9 +677,16 @@ export default function RescueDetailsScreen() {
           <View style={[styles.profileSection, styles.profileSectionLast]}>
             {details.rescuer ? (
               <>
-                <View style={styles.avatarInitials}>
-                  <Text style={styles.avatarInitialsText}>{getInitial(details.rescuer.name)}</Text>
-                </View>
+                {details.rescuer.avatar ? (
+                  <Image
+                    source={{ uri: resolvePhotoUrl(details.rescuer.avatar) }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <View style={styles.avatarInitials}>
+                    <Text style={styles.avatarInitialsText}>{getInitial(details.rescuer.name)}</Text>
+                  </View>
+                )}
                 <View style={styles.profileInfo}>
                   <Text style={styles.profileName}>{details.rescuer.name}</Text>
                   <Text style={styles.profileRole}>Assigned Rescuer</Text>
@@ -634,15 +694,6 @@ export default function RescueDetailsScreen() {
                     <Text style={styles.profilePhone}>{details.rescuer.phone}</Text>
                   ) : null}
                 </View>
-                {details.rescuer.phone ? (
-                  <TouchableOpacity
-                    style={styles.callIconBtn}
-                    activeOpacity={0.8}
-                    onPress={() => handleCall(details.rescuer?.phone, details.rescuer?.name)}
-                  >
-                    <Text style={styles.callIconText}>📞</Text>
-                  </TouchableOpacity>
-                ) : null}
               </>
             ) : (
               <View style={{ flex: 1, paddingVertical: spacing.sm, alignItems: "center" }}>
@@ -650,6 +701,29 @@ export default function RescueDetailsScreen() {
               </View>
             )}
           </View>
+
+          {/* Accept / Reject Action Buttons for received rescue requests */}
+          {details?.status === "pending" && (user?.role === "volunteer" || user?.role === "ngo" || user?.role === "vet" || user?.role === "rescuer") && (
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: "#E5E7EB" }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 12, backgroundColor: "#EF4444", borderRadius: 10, alignItems: "center" }}
+                onPress={() => respondToRequest("reject")}
+                disabled={responding}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 14 }}>Reject Request</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 12, backgroundColor: "#10B981", borderRadius: 10, alignItems: "center" }}
+                onPress={() => respondToRequest("accept")}
+                disabled={responding}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 14 }}>Accept Request</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* ── 6. Threaded Comments Section ── */}
@@ -806,21 +880,30 @@ export default function RescueDetailsScreen() {
         {/* Removed Exit Details button */}
       </ScrollView>
 
-      {/* ── Rescuer Action Bar ── */}
-      {details?.status === "pending" && details?.rescuer && (user?._id === details.rescuer.id || user?._id === details.rescuer.userId) && (
+      {/* ── Fixed Bottom Action Bar at bottom of page to Accept or Reject ── */}
+      {(!details?.status || details?.status === "pending" || details?.status === "Needs Help") && (
         <View style={styles.actionBar}>
-          <AppButton 
-            title="Reject" 
-            onPress={() => respondToRequest("reject")} 
-            style={[styles.actionBtn, { backgroundColor: "#EF4444" }]} 
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: "#EF4444", paddingVertical: 14, borderRadius: 12, alignItems: "center" }, responding && { opacity: 0.6 }]}
+            onPress={() => respondToRequest("reject")}
             disabled={responding}
-          />
-          <AppButton 
-            title="Accept" 
-            onPress={() => respondToRequest("accept")} 
-            style={[styles.actionBtn, { backgroundColor: "#10B981" }]} 
+            activeOpacity={0.85}
+          >
+            <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 16 }}>Reject Request</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: "#10B981", paddingVertical: 14, borderRadius: 12, alignItems: "center" }, responding && { opacity: 0.6 }]}
+            onPress={() => respondToRequest("accept")}
             disabled={responding}
-          />
+            activeOpacity={0.85}
+          >
+            {responding ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 16 }}>Accept Request</Text>
+            )}
+          </TouchableOpacity>
         </View>
       )}
     </SafeAreaView>

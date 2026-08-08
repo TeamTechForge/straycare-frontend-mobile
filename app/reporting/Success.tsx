@@ -39,10 +39,39 @@ export default function Success() {
     ? params.description[0]
     : params.description || "";
 
+  const requestId = Array.isArray(params.requestId)
+    ? params.requestId[0]
+    : params.requestId || "";
+
+  const rescuerId = Array.isArray(params.rescuerId)
+    ? params.rescuerId[0]
+    : params.rescuerId || "";
+
   // ── Entrance animations ─────────────────────────────────────────────────────
   const scaleAnim = useRef(new Animated.Value(0)).current;
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
+
+  // Auto transition to original Rescuer Finding screen (/nearby-rescuers)
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (lat && lng) {
+        router.replace({
+          pathname: "/nearby-rescuers",
+          params: {
+            lat,
+            lng,
+            caseId,
+            animalType,
+            animalPhoto,
+            description,
+          },
+        } as never);
+      }
+    }, 2000);
+
+    return () => clearTimeout(timer);
+  }, [lat, lng, caseId, animalType, animalPhoto, description]);
 
   useEffect(() => {
     Animated.sequence([
@@ -68,6 +97,22 @@ export default function Success() {
       ]),
     ]).start();
   }, []);
+
+  const goToFindingRescuer = () => {
+    if (lat && lng) {
+      router.push({
+        pathname: "/nearby-rescuers",
+        params: {
+          lat,
+          lng,
+          caseId,
+          animalType,
+          animalPhoto,
+          description,
+        },
+      } as never);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -115,20 +160,8 @@ export default function Success() {
           {/* FIND RESCUER — primary action */}
           {lat && lng ? (
             <PrimaryButton
-              title="🔍  Find Rescuer"
-              onPress={() =>
-                router.push({
-                  pathname: "/nearby-rescuers",
-                  params: {
-                    lat,
-                    lng,
-                    caseId,
-                    animalType,
-                    animalPhoto,
-                    description,
-                  },
-                })
-              }
+              title="🔍  Finding Rescuer..."
+              onPress={goToFindingRescuer}
             />
           ) : null}
 

@@ -94,7 +94,7 @@ export default function ForumPostCard({ post, onToggleLike, onDeletePost }: Prop
             }
             style={styles.actionBtn}
           >
-            <Text style={styles.actionIcon}>💬</Text>
+            <Ionicons name="chatbubble-outline" size={14} color="#333" />
             <Text style={styles.actionText}>{post.commentCount}</Text>
           </Pressable>
         </View>

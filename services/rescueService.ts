@@ -19,11 +19,17 @@ const requestJson = async <T>(path: string): Promise<T> => {
 
   for (const baseUrl of getApiBaseUrls()) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(buildUrl(baseUrl, path), {
         headers: {
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const text = await response.text();
       const body = text ? (JSON.parse(text) as T) : (null as T);
@@ -40,7 +46,14 @@ const requestJson = async <T>(path: string): Promise<T> => {
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
-      if (!message.includes("fetch") && !message.includes("Network request failed") && !message.includes("Failed to fetch")) {
+      if (
+        !message.includes("fetch") &&
+        !message.includes("Network request failed") &&
+        !message.includes("Failed to fetch") &&
+        !message.includes("timed out") &&
+        !message.includes("CanceledError") &&
+        !message.includes("AbortError")
+      ) {
         throw error;
       }
     }
@@ -57,11 +70,17 @@ const postJson = async <T>(path: string, body: Record<string, unknown>): Promise
 
   for (const baseUrl of getApiBaseUrls()) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
       const response = await fetch(buildUrl(baseUrl, path), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const text = await response.text();
       const parsed = text ? (JSON.parse(text) as T) : (null as T);
@@ -78,7 +97,14 @@ const postJson = async <T>(path: string, body: Record<string, unknown>): Promise
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
-      if (!message.includes("fetch") && !message.includes("Network request failed") && !message.includes("Failed to fetch")) {
+      if (
+        !message.includes("fetch") &&
+        !message.includes("Network request failed") &&
+        !message.includes("Failed to fetch") &&
+        !message.includes("timed out") &&
+        !message.includes("CanceledError") &&
+        !message.includes("AbortError")
+      ) {
         throw error;
       }
     }

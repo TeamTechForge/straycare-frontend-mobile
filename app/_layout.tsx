@@ -1,7 +1,7 @@
 // Root layout for the app, defining the navigation stack and global providers.
 import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, View, Platform } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, View, Platform, Alert } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
@@ -147,17 +147,14 @@ function InitialLayout() {
   }, [token, user, addNotification]);
 
   // ─── Global Rescue Request Listener ───
+  const seenRequestIdsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!token || !user) return;
-    const isRescuer = user.role === "volunteer" || user.role === "ngo" || user.role === "vet";
+    const isRescuer = user.role === "volunteer" || user.role === "ngo" || user.role === "vet" || user.role === "rescuer";
     if (!isRescuer) return;
 
-    let activeAlertId: string | null = null;
-    let isAlertActive = false;
-
     const checkActiveRequest = async () => {
-      if (isAlertActive) return;
-
       try {
         const { API_URL } = require("../constants/config.constants");
         const response = await fetch(`${API_URL}/rescue/active-request`, {
@@ -166,26 +163,34 @@ function InitialLayout() {
         if (!response.ok) return;
 
         const data: any = await response.json();
-        if (data.request && data.request._id !== activeAlertId) {
-          isAlertActive = true;
-          activeAlertId = data.request._id;
+        const reqId = data.request?.rescueRequestId || data.request?._id;
+        if (reqId && !seenRequestIdsRef.current.has(String(reqId))) {
+          seenRequestIdsRef.current.add(String(reqId));
 
-          // Automatically push to the rescue details screen where the rescuer can view the case
-          // before deciding to Accept or Reject.
-          router.push(`/rescue-details/${data.request._id}`);
+          const reporterName = data.request?.reporterName || data.request?.reporter?.name || "A reporter";
+          const animalType = data.request?.animalType || "stray animal";
 
-          // Give a small delay before allowing another redirect
-          setTimeout(() => {
-            isAlertActive = false;
-          }, 3000);
+          // In-App Alert prompting rescuer to view complete case details first
+          Alert.alert(
+            "🚨 NEW RESCUE REQUEST!",
+            `${reporterName} reported a ${animalType} needing rescue near your location. Review full details before accepting or rejecting.`,
+            [
+              {
+                text: "View Case Details",
+                onPress: () => router.push(`/rescue-details/${reqId}`),
+              },
+            ]
+          );
+
+          // Automatically push to complete rescue details screen so rescuer reviews all info first
+          router.push(`/rescue-details/${reqId}`);
         }
       } catch (err) {
         console.error("Global active request check failed:", err);
-        isAlertActive = false;
       }
     };
 
-    const interval = setInterval(checkActiveRequest, 4000);
+    const interval = setInterval(checkActiveRequest, 5000);
     return () => clearInterval(interval);
   }, [token, user]);
 

@@ -473,13 +473,50 @@ export default function LiveTrackingScreen() {
             ) : null}
 
             {/* ══════════════════════════════════════════
-             *  Tracking Notes Card
+             *  Rescue Progress Updates & Custom Notes
              * ══════════════════════════════════════════ */}
             <View style={styles.sectionCard}>
-              <Text style={styles.sectionTitle}>Tracking Notes</Text>
-              <Text style={styles.metaText}>
-                {tracking.case.summary || "No tracking updates posted yet."}
-              </Text>
+              <Text style={styles.sectionTitle}>Rescue Progress Updates</Text>
+
+              {/* 1. Custom Progress Notes (summary) */}
+              {tracking.case.summary && tracking.case.summary !== "Pending rescue request" && tracking.case.summary !== "Completed rescue" && tracking.case.summary.trim() !== "" ? (
+                <View style={{ marginTop: 8 }}>
+                  {tracking.case.summary.split("\n").filter((line: string) => line.trim() !== "").map((step: string, idx: number) => (
+                    <View key={idx} style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 10, gap: 10 }}>
+                      <View style={{ width: 10, height: 10, borderRadius: 5, backgroundColor: "#F5A623", marginTop: 4 }} />
+                      <Text style={{ flex: 1, fontSize: 13, color: "#374151", lineHeight: 18, fontFamily: "Inter-Medium" }}>
+                        {step}
+                      </Text>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {/* 2. Timeline Entries if available */}
+              {tracking.case.timeline && Array.isArray(tracking.case.timeline) && tracking.case.timeline.length > 0 ? (
+                <View style={{ marginTop: tracking.case.summary ? 12 : 6, borderTopWidth: tracking.case.summary ? 1 : 0, borderTopColor: "#F3F4F6", paddingTop: tracking.case.summary ? 10 : 0 }}>
+                  <Text style={{ fontSize: 11, fontWeight: "bold", color: "#9CA3AF", marginBottom: 8, textTransform: "uppercase", letterSpacing: 0.5 }}>Case Timeline:</Text>
+                  {tracking.case.timeline.map((entry: any, idx: number) => (
+                    <View key={idx} style={{ flexDirection: "row", alignItems: "flex-start", marginBottom: 8, gap: 10 }}>
+                      <View style={{ width: 8, height: 8, borderRadius: 4, backgroundColor: "#10B981", marginTop: 4 }} />
+                      <View style={{ flex: 1 }}>
+                        <Text style={{ fontSize: 12, fontWeight: "600", color: "#111827" }}>
+                          {entry.status || "Update"}: {entry.message}
+                        </Text>
+                        {entry.timestamp ? (
+                          <Text style={{ fontSize: 10, color: "#9CA3AF", marginTop: 2 }}>
+                            {new Date(entry.timestamp).toLocaleString()}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+                  ))}
+                </View>
+              ) : null}
+
+              {(!tracking.case.summary || tracking.case.summary === "Pending rescue request" || tracking.case.summary === "Completed rescue" || !tracking.case.summary.trim()) && (!tracking.case.timeline || tracking.case.timeline.length === 0) && (
+                <Text style={styles.metaText}>No progress updates posted yet.</Text>
+              )}
             </View>
 
             {/* ══════════════════════════════════════════

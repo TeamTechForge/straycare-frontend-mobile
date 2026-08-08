@@ -11,7 +11,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 
 import MapViewWrapper, { Marker } from "../components/MapViewWrapper";
 import { colors } from "../constants/colors.constants";
-import { fetchRescueById } from "../services/RescueService";
+import { fetchRescueById } from "../services/rescueService";
 import type { LiveTrackingResponse } from "../types/Api";
 
 type Params = {

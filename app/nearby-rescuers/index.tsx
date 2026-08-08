@@ -14,6 +14,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
 import axios from "axios";
 
+import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";
@@ -372,16 +373,15 @@ export default function NearbyRescuersScreen() {
       {/* HEADER BAR */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backPill}
+          style={styles.backIconButton}
           activeOpacity={0.7}
           onPress={() => router.back()}
           disabled={workflowState === "waiting" || workflowState === "sending"}
         >
-          <Text style={styles.backChevron}>‹</Text>
-          <Text style={styles.backText}>Back</Text>
+          <Ionicons name="arrow-back" size={24} color="#111827" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Nearby Help Map</Text>
-        <View style={{ width: 60 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       {/* MAP */}
@@ -629,22 +629,8 @@ export default function NearbyRescuersScreen() {
               {/* Action Buttons */}
               <View style={styles.buttonGroup}>
                 <PrimaryButton
-                  title="Track Rescue"
-                  onPress={() => {
-                    router.push({
-                      pathname: "/request-status",
-                      params: {
-                        requestId: requestId || "",
-                        rescuerId: selectedRescuer._id,
-                        caseId: caseId || "",
-                        animalType: animalType || "Unknown animal",
-                        animalPhoto: animalPhoto || "",
-                        description: description || "Stray animal needs help",
-                        lat: String(centerCoords.latitude),
-                        lng: String(centerCoords.longitude),
-                      },
-                    } as never);
-                  }}
+                  title="Go to Home"
+                  onPress={() => router.replace("/(tabs)/Home")}
                 />
               </View>
             </>
@@ -670,27 +656,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderColor: "#E5E7EB",
   },
-  backPill: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
-    paddingVertical: 5,
-    paddingHorizontal: 10,
+  backIconButton: {
+    padding: 8,
     borderRadius: 20,
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    gap: 4,
-  },
-  backChevron: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#111111",
-    marginTop: -2,
-  },
-  backText: {
-    fontSize: 11,
-    fontFamily: typography.semibold,
-    color: "#111111",
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
     fontSize: 16,

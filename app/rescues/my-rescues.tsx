@@ -14,7 +14,7 @@ import RescueCaseCard from "../../components/rescue-history/RescueCaseCard";
 import AppButton from "../../components/ui/AppButton";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
-import { fetchUserRescues } from "../../services/RescueService";
+import { fetchUserRescues } from "../../services/rescueService";
 import { rescueHistoryStyles as styles } from "../../styles/rescue-history.styles";
 import type { RescueCaseRecord } from "../../types/Api";
 

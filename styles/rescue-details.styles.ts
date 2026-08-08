@@ -343,6 +343,13 @@ export const rescueDetailsStyles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
   },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
   avatarInitials: {
     width: 50,
     height: 50,
