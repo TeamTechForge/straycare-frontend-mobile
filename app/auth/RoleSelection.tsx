@@ -109,66 +109,72 @@ export default function SelectRoleScreen() {
         Choose your role to continue.
       </Text>
 
-      {/* 🐶 Reporter Card */}
-      <TouchableOpacity
-        style={[
-          styles.card,
-          selectedRole === "reporter" && styles.activeCard,
-        ]}
-        onPress={() => setSelectedRole("reporter")}
-      >
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Reporter</Text>
-
-          {selectedRole === "reporter" && (
-            <Ionicons name="checkmark-circle" size={20} color={BRAND_COLOR} />
-          )}
-        </View>
-
-        <Text style={styles.cardDesc}>
-          Report stray animals, track rescue progress, and support adoption efforts.
-        </Text>
-
-        <Image
-          source={require("../../assets/images/reporter-roleSelection.jpg")}
+      <View style={{ flex: 1, gap: 15, marginBottom: 20 }}>
+        {/* 🐶 Reporter Card */}
+        <TouchableOpacity
           style={[
-            styles.image,
-            selectedRole !== "reporter" && styles.grayImage,
+            styles.card,
+            selectedRole === "reporter" && styles.activeCard,
           ]}
-        />
-      </TouchableOpacity>
+          onPress={() => setSelectedRole("reporter")}
+        >
+          <View>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Reporter</Text>
 
-      {/* 🐱 Rescuer Card */}
-      <TouchableOpacity
-        style={[
-          styles.card,
-          selectedRole === "rescuer" && styles.activeCard,
-        ]}
-        onPress={() => setSelectedRole("rescuer")}
-      >
-        <View style={styles.cardHeader}>
-          <Text style={styles.cardTitle}>Rescuer</Text>
+              {selectedRole === "reporter" && (
+                <Ionicons name="checkmark-circle" size={20} color={BRAND_COLOR} />
+              )}
+            </View>
 
-          {selectedRole === "rescuer" && (
-            <Ionicons name="checkmark-circle" size={20} color={BRAND_COLOR} />
-          )}
-        </View>
+            <Text style={styles.cardDesc}>
+              Report stray animals, track rescue progress, and support adoption efforts.
+            </Text>
+          </View>
 
-        <Text style={styles.cardDesc}>
-          Help rescue, treat, or coordinate care for street animals.
-        </Text>
+          <Image
+            source={require("../../assets/images/reporter-roleSelection.jpg")}
+            style={[
+              styles.image,
+              selectedRole !== "reporter" && styles.grayImage,
+            ]}
+          />
+        </TouchableOpacity>
 
-        <Image
-          source={require("../../assets/images/rescuer-roleSelection.jpg")}
+        {/* 🐱 Rescuer Card */}
+        <TouchableOpacity
           style={[
-            styles.image,
-            selectedRole !== "rescuer" && styles.grayImage,
+            styles.card,
+            selectedRole === "rescuer" && styles.activeCard,
           ]}
-        />
-      </TouchableOpacity>
+          onPress={() => setSelectedRole("rescuer")}
+        >
+          <View>
+            <View style={styles.cardHeader}>
+              <Text style={styles.cardTitle}>Rescuer</Text>
+
+              {selectedRole === "rescuer" && (
+                <Ionicons name="checkmark-circle" size={20} color={BRAND_COLOR} />
+              )}
+            </View>
+
+            <Text style={styles.cardDesc}>
+              Help rescue, treat, or coordinate care for street animals.
+            </Text>
+          </View>
+
+          <Image
+            source={require("../../assets/images/rescuer-roleSelection.jpg")}
+            style={[
+              styles.image,
+              selectedRole !== "rescuer" && styles.grayImage,
+            ]}
+          />
+        </TouchableOpacity>
+      </View>
 
       {/* 🔘 Button */}
-      <View style={{ marginTop: 20 }}>
+      <View style={{ marginTop: 10, marginBottom: 20 }}>
         <PrimaryButton
           title="Continue"
           onPress={handleContinue}
@@ -211,12 +217,13 @@ const styles = StyleSheet.create({
   },
 
   card: {
+    flex: 1,
     backgroundColor: "#f7f7f7",
     borderRadius: 12,
     padding: 15,
-    marginBottom: 15,
     borderWidth: 1,
     borderColor: "#eee",
+    justifyContent: "space-between",
   },
 
   activeCard: {
@@ -241,8 +248,11 @@ const styles = StyleSheet.create({
 
   image: {
     width: "100%",
-    height: 120,
+    flex: 1,
+    minHeight: 100,
     borderRadius: 10,
+    marginTop: 10,
+    resizeMode: "cover",
   },
 
   grayImage: {

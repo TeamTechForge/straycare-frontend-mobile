@@ -231,8 +231,8 @@ export default function VolunteerProfileSetupScreen() {
 
       const data: any = await response.json();
       if (response.ok) {
+        await refreshUser();
         router.replace("/auth/CompletedProfileSetup");
-        setTimeout(() => refreshUser(), 500);
       } else {
         Alert.alert(data.message || "Failed to save profile");
       }

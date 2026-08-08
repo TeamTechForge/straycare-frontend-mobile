@@ -12,13 +12,15 @@ import {
   Image,
   TouchableOpacity,
   ActivityIndicator,
+  ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { colors } from "../constants/colors.constants";
-import { spacing } from "../constants/spacing.constants";
-import { typography } from "../constants/typography.constants";
-import AppButton from "../components/ui/AppButton";
+import { colors } from "../../constants/colors.constants";
+import { spacing } from "../../constants/spacing.constants";
+import { typography } from "../../constants/typography.constants";
+import AppButton from "../../components/ui/AppButton";
 
 const uploadToCloudinary = async (imageUri: string) => {
   const data = new FormData();
@@ -109,7 +111,7 @@ export default function AddContent() {
     setUploading(true);
     try {
       router.push({
-        pathname: "/ThreadPublished",
+        pathname: "/forum/published" as any,
         params: { content: content.trim(), imageUrl },
       });
     } catch (e) {
@@ -123,22 +125,28 @@ export default function AddContent() {
     <SafeAreaView style={styles.safe}>
       <KeyboardAvoidingView
         style={styles.safe}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 20}
       >
         {/* Header */}
         <View style={styles.header}>
           <Pressable onPress={() => router.back()} style={styles.backBtn} hitSlop={10}>
-            <Text style={styles.backIcon}>‹</Text>
+            <Text style={styles.backIcon}>{"\u2190"}</Text>
           </Pressable>
 
-          <Text style={styles.headerTitle}>Add Content</Text>
+          <Text style={styles.headerTitle}>New Post</Text>
 
           {/* Spacer to keep title centered */}
           <View style={{ width: 36 }} />
         </View>
 
-        {/* Body */}
-        <View style={styles.body}>
+        {/* Scrollable Body */}
+        <ScrollView
+          style={styles.scrollBody}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.card}>
             <TextInput
               value={content}
@@ -151,23 +159,13 @@ export default function AddContent() {
             />
 
             {imageUri ? (
-              <View style={{ position: "relative", marginTop: 8, height: 120 }}>
-                <Image source={{ uri: imageUri }} style={{ width: "100%", height: "100%", borderRadius: 10 }} />
+              <View style={styles.imagePreviewContainer}>
+                <Image source={{ uri: imageUri }} style={styles.imagePreview} />
                 <TouchableOpacity
                   onPress={() => setImageUri(null)}
-                  style={{
-                    position: "absolute",
-                    top: 6,
-                    right: 6,
-                    backgroundColor: "rgba(0,0,0,0.6)",
-                    borderRadius: 12,
-                    width: 24,
-                    height: 24,
-                    alignItems: "center",
-                    justifyContent: "center"
-                  }}
+                  style={styles.removeImageBtn}
                 >
-                  <Text style={{ color: "#FFF", fontSize: 12, fontWeight: "bold" }}>✕</Text>
+                  <Ionicons name="close" size={14} color="#FFF" />
                 </TouchableOpacity>
               </View>
             ) : null}
@@ -175,23 +173,12 @@ export default function AddContent() {
 
           {/* Select Image Button */}
           <TouchableOpacity
-            style={{
-              flexDirection: "row",
-              alignItems: "center",
-              gap: 8,
-              marginTop: 16,
-              paddingVertical: 10,
-              paddingHorizontal: 20,
-              borderRadius: 22,
-              backgroundColor: "#FFF2D8",
-              borderWidth: 1,
-              borderColor: "rgba(254,185,75,0.3)"
-            }}
+            style={styles.addImageBtn}
             onPress={handlePickImage}
             disabled={uploading}
           >
-            <Text style={{ fontSize: 16 }}>📷</Text>
-            <Text style={{ fontSize: 14, fontFamily: typography.semibold, color: colors.primary }}>
+            <Ionicons name="camera-outline" size={18} color={colors.primary} />
+            <Text style={styles.addImageText}>
               {imageUri ? "Change Image" : "Add Image"}
             </Text>
           </TouchableOpacity>
@@ -199,9 +186,12 @@ export default function AddContent() {
           {uploading ? (
             <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 12 }} />
           ) : null}
+        </ScrollView>
 
+        {/* Fixed Bottom Publish Button — never covered by keyboard */}
+        <View style={styles.bottomBar}>
           <AppButton
-            title="Publish  ⤴"
+            title="Publish"
             onPress={onPublish}
             disabled={!content.trim() || uploading}
             style={styles.publishBtn}
@@ -224,19 +214,23 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.md,
     paddingBottom: spacing.md,
+    borderBottomWidth: 1,
+    borderBottomColor: "#F0F0F0",
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#ddd",
   },
   backIcon: {
-    fontSize: 28,
-    color: colors.text,
-    lineHeight: 28,
-    marginTop: -2,
+    fontSize: 20,
+    color: "#333",
+    fontWeight: "700" as const,
   },
   headerTitle: {
     flex: 1,
@@ -246,30 +240,80 @@ const styles = StyleSheet.create({
     color: colors.text,
   },
 
-  body: {
+  scrollBody: {
     flex: 1,
+  },
+  scrollContent: {
     paddingHorizontal: spacing.xl,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.xl,
+    paddingBottom: spacing.md,
     alignItems: "center",
   },
 
   card: {
     width: "100%",
-    height: 360,
-    backgroundColor: "#F7F1E6", // light cream like your figma
+    minHeight: 280,
+    backgroundColor: "#F7F1E6",
     borderRadius: 16,
     padding: spacing.md,
   },
   input: {
     flex: 1,
-    fontFamily: typography.regular, // Inter
+    fontFamily: typography.regular,
     fontSize: 15,
     color: colors.text,
+    minHeight: 200,
   },
 
+  imagePreviewContainer: {
+    position: "relative",
+    marginTop: 8,
+    height: 120,
+  },
+  imagePreview: {
+    width: "100%",
+    height: "100%",
+    borderRadius: 10,
+  },
+  removeImageBtn: {
+    position: "absolute",
+    top: 6,
+    right: 6,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    borderRadius: 12,
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+
+  addImageBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 16,
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 22,
+    backgroundColor: "#FFF2D8",
+    borderWidth: 1,
+    borderColor: "rgba(254,185,75,0.3)",
+  },
+  addImageText: {
+    fontSize: 14,
+    fontFamily: typography.semibold,
+    color: colors.primary,
+  },
+
+  bottomBar: {
+    paddingHorizontal: spacing.xl,
+    paddingTop: spacing.sm,
+    paddingBottom: Platform.OS === "ios" ? spacing.md : spacing.lg,
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
+    backgroundColor: colors.background,
+  },
   publishBtn: {
-    marginTop: spacing.xl,
     minWidth: 200,
     borderRadius: 14,
     alignSelf: "center",

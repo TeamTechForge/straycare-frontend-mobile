@@ -6,14 +6,26 @@ import { ThreadMessage } from "../../types/Thread";
 export default function ThreadMessageCard({
   message,
   onToggleLike,
+  isHighlighted = false,
 }: {
   message: ThreadMessage;
   onToggleLike: () => void;
+  isHighlighted?: boolean;
 }) {
   const badgeStyle = message.role === "Vet" ? styles.badgeVet : styles.badgeNGO;
 
   return (
-    <View style={styles.msgCard}>
+    <View
+      style={[
+        styles.msgCard,
+        isHighlighted && {
+          backgroundColor: "#FFF8EA",
+          borderWidth: 2,
+          borderColor: "#FEB94B",
+          borderRadius: 14,
+        },
+      ]}
+    >
       <View style={styles.msgTopRow}>
         <View style={styles.msgLeft}>
           <View style={styles.avatarCircle}>
@@ -23,11 +35,13 @@ export default function ThreadMessageCard({
           <View>
             <View style={styles.nameRow}>
               <Text style={styles.nameText}>{message.name}</Text>
-              <View style={[styles.roleBadge, badgeStyle]}>
-                <Text style={styles.roleText}>{message.role}</Text>
-              </View>
+              {Boolean(message.role) && (
+                <View style={[styles.roleBadge, badgeStyle]}>
+                  <Text style={styles.roleText}>{message.role}</Text>
+                </View>
+              )}
             </View>
-            <Text style={styles.subText}>{message.subtitle}</Text>
+            {Boolean(message.subtitle) && <Text style={styles.subText}>{message.subtitle}</Text>}
           </View>
         </View>
 

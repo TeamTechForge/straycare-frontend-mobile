@@ -6,9 +6,9 @@ import { BASE_URL } from "../constants/config.constants";
 import { useAuth } from "./AuthContext";
 import { CallState } from "../enums/CallState";
 import { CallEvents } from "../enums/CallEvents";
-import { WebRTCService } from "../services/WebRTCService";
+import { WebRTCService } from "../services/webRTCService";
 import { ICallParticipantDTO } from "../types/call";
-import callAudioService from '../services/CallAudioService';
+import callAudioService from '../services/callAudioService';
 import { useSocket } from './SocketContext';
 import IncomingCallModal from "../components/call/IncomingCallModal";
 

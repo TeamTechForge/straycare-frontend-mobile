@@ -12,7 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { useGoogleAuth, handleGoogleSignIn } from "../../services/google-auth.service";
+import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthService";
 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";

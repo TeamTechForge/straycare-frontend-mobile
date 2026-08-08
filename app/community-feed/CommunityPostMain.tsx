@@ -12,7 +12,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { getCommunityFeed } from "../../api/api.service"; // API call to fetch posts
+import { getCommunityFeed } from "../../api/apiService"; // API call to fetch posts
 
 
 const C = {
@@ -393,7 +393,7 @@ export default function CommunityFeed() {
       <TouchableOpacity
         style={styles.floatingButton}
         activeOpacity={0.85}
-        onPress={() => router.push("/DiscussionForum")}
+        onPress={() => router.push("/forum" as any)}
       >
         <LinearGradient
           colors={["#F5A623", "#F8C166"]}

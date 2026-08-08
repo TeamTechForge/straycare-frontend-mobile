@@ -4,36 +4,24 @@ import { useEffect, useState } from "react";
 import { StyleSheet, Text, View, Image } from "react-native";
 
 import PrimaryButton from "../../components/PrimaryButton";
+import { useAuth } from "../../contexts/AuthContext";
 import { API_URL } from "../../constants/config.constants";
 
 const BRAND_COLOR = "#F5A623";
 
 export default function OnboardingCompleteScreen() {
   const router = useRouter();
-  const [userName, setUserName] = useState("User");
+  const { user } = useAuth();
+  const userName = user?.name || "User";
 
-  useEffect(() => {
-    const fetchUser = async () => {
-      try {
-        const token = await SecureStore.getItemAsync("authToken");
-        if (!token) return;
 
-        const response = await fetch(`${API_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const data: any = await response.json();
-        if (response.ok) {
-          setUserName(data.name);
-        }
-      } catch (error) {
-        console.error("Fetch user error:", error);
-      }
-    };
-    fetchUser();
-  }, []);
 
   const handleGetStarted = () => {
-    router.replace("/(tabs)/Home");
+    if ((user?.role === "ngo" || user?.role === "vet") && user?.profileStatus !== "Verified") {
+      router.replace("/auth/VerificationPending");
+    } else {
+      router.replace("/(tabs)/Home");
+    }
   };
 
   return (

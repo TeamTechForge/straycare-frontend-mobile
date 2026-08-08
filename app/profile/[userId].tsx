@@ -28,6 +28,7 @@ import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
 import DropdownMenu from "../../components/profile/DropdownMenu";
 import ReportUserModal from "../../components/profile/ReportUserModal";
 import ProfileStatsRow from "../../components/profile/ProfileStatsRow";
+import ImageViewer from "../../components/ui/ImageViewer";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -88,6 +89,7 @@ export default function PublicProfileScreen() {
   const [activeTab, setActiveTab] = useState<string>("posts");
   const [menuVisible, setMenuVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
 
   const fetchProfileAndStats = async () => {
     try {
@@ -198,7 +200,7 @@ export default function PublicProfileScreen() {
           conversationId: conversation._id,
           recipientName: otherParticipant?.name || userData?.name || "Chat",
           recipientId: userId as string,
-          recipientImage: otherParticipant?.profileImage || profileData?.profileImage || "",
+          recipientImage: otherParticipant?.profileImage || profileData?.profileImage || userData?.avatar || "",
         },
       });
     } catch (error: any) {
@@ -223,7 +225,7 @@ export default function PublicProfileScreen() {
       return;
     }
 
-    startCall(userId as string, userData?.name || "User", profileData?.profileImage || "");
+    startCall(userId as string, userData?.name || "User", profileData?.profileImage || userData?.avatar || "");
   };
 
   const handleShare = async () => {
@@ -349,7 +351,7 @@ export default function PublicProfileScreen() {
     if (userData.role === "general_user") {
       return [{ id: "reports", label: "Reports" }, { id: "posts", label: "Posts" }];
     } else {
-      return [{ id: "posts", label: "Posts" }, { id: "rescues", label: "Rescues" }];
+      return [{ id: "posts", label: "Posts" }, { id: "rescues", label: "Rescues" }, { id: "reports", label: "Reports" }];
     }
   };
 
@@ -377,12 +379,15 @@ export default function PublicProfileScreen() {
       >
         {/* Profile Details Card */}
         <View style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
+          <TouchableOpacity 
+            style={styles.avatarContainer}
+            onPress={() => setIsViewerVisible(true)}
+          >
             <Image
-              source={{ uri: profileData?.profileImage || "https://via.placeholder.com/150" }}
+              source={{ uri: profileData?.profileImage || userData?.avatar || "https://via.placeholder.com/150" }}
               style={styles.avatar}
             />
-          </View>
+          </TouchableOpacity>
 
           <View style={styles.roleBadgeContainer}>
             <View style={[styles.roleBadge, { backgroundColor: userData.role === 'general_user' ? '#9CA3AF' : BRAND_COLOR }]}>
@@ -459,12 +464,13 @@ export default function PublicProfileScreen() {
         <ProfileStatsRow stats={
           userData.role === "general_user"
             ? [
-              { value: statsData.reportsCount || 0, label: "REPORTS" },
-              { value: statsData.postsCount || 0, label: "POSTS" },
+              { value: reports.length || statsData.reportsCount || 0, label: "REPORTS" },
+              { value: posts.length || statsData.postsCount || 0, label: "POSTS" },
             ]
             : [
-              { value: statsData.postsCount || 0, label: "POSTS" },
-              { value: statsData.rescuesCompleted || 0, label: "RESCUES" },
+              { value: posts.length || statsData.postsCount || 0, label: "POSTS" },
+              { value: rescues.length || statsData.rescuesCompleted || 0, label: "RESCUES" },
+              { value: reports.length || statsData.reportsCount || 0, label: "REPORTS" },
             ]
         } />
 
@@ -605,6 +611,12 @@ export default function PublicProfileScreen() {
         visible={reportModalVisible}
         onClose={() => setReportModalVisible(false)}
         onSubmit={handleReportSubmit}
+      />
+
+      <ImageViewer 
+        imageUrl={profileData?.profileImage || userData?.avatar || "https://via.placeholder.com/150"} 
+        visible={isViewerVisible} 
+        onClose={() => setIsViewerVisible(false)} 
       />
     </SafeAreaView>
   );

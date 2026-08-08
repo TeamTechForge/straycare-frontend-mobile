@@ -22,7 +22,6 @@ import ChatHeader from "../../components/chat/ChatHeader";
 import ChatInput from "../../components/chat/ChatInput";
 import MessageBubble from "../../components/chat/MessageBubble";
 import TypingIndicator from "../../components/chat/TypingIndicator";
-import LocationPickerModal from "../../components/chat/LocationPickerModal";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import { useChat } from "../../hooks/useChat";
@@ -60,7 +59,6 @@ export default function ChatRoomScreen() {
 
   const [selectedMessages, setSelectedMessages] = useState<Set<string>>(new Set());
   const [isDeleteModalVisible, setIsDeleteModalVisible] = useState(false);
-  const [isLocationPickerVisible, setIsLocationPickerVisible] = useState(false);
   const [activeImageUrl, setActiveImageUrl] = useState<string | null>(null);
   const isSelectionMode = selectedMessages.size > 0;
   const insets = useSafeAreaInsets();
@@ -506,7 +504,6 @@ export default function ChatRoomScreen() {
             onSendText={handleSendText}
             onSendImages={handleSendImages}
             onSendLocation={handleSendLocation}
-            onChooseLocation={() => setIsLocationPickerVisible(true)}
             onTyping={(isTyping) => setTyping(isTyping)}
             disabled={loading}
           />
@@ -565,12 +562,6 @@ export default function ChatRoomScreen() {
         </TouchableOpacity>
       </Modal>
 
-      <LocationPickerModal
-        visible={isLocationPickerVisible}
-        onClose={() => setIsLocationPickerVisible(false)}
-        onSelectLocation={handleSendLocation}
-      />
-
       <Modal
         visible={!!activeImageUrl}
         transparent={true}
@@ -620,7 +611,7 @@ const styles = StyleSheet.create({
     color: "#1E3A8A",
   },
   iconButton: {
-    padding: 4,
+    padding: 2,
   },
   modalOverlay: {
     flex: 1,

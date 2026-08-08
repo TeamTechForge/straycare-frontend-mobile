@@ -9,8 +9,8 @@ import {
   View,
   Alert,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
-import { getReportByCaseId, updateCaseStatus } from "../../api/stray-api.service";
+import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
+import { getReportByCaseId, updateCaseStatus } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRescueUpdates } from "../../hooks/useRescueUpdates";
@@ -35,6 +35,7 @@ type Report = {
   notes?: string;
   anonymous?: boolean;
   reporterUserId?: string;
+  assignedRescuerUserId?: string;
   reporter?: Reporter;
   location: {
     lat: number;
@@ -92,8 +93,24 @@ export default function CaseDetailsScreen() {
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
 
-  // 🔒 Check if user is a rescuer
+  // 🔒 Check if user is a rescuer role
   const isRescuer = user && ["volunteer", "ngo", "vet"].includes(user.role);
+
+  const currentUserId = (user as any)?._id || (user as any)?.id;
+
+  // 🔒 Check if logged-in user is the accepted rescuer for this case
+  const isAssignedRescuer = Boolean(
+    currentUserId &&
+    report?.assignedRescuerUserId &&
+    String(currentUserId) === String(report.assignedRescuerUserId)
+  );
+
+  // 🔒 Check if logged-in user is the reporter who created this report
+  const isMyReport = Boolean(
+    currentUserId &&
+    ((report?.reporterUserId && String(currentUserId) === String(report.reporterUserId)) ||
+     (report?.reporter?.id && String(currentUserId) === String(report.reporter.id)))
+  );
 
   // 📡 Real-time updates via Socket.io
   useRescueUpdates(report, (updatedReport) => {
@@ -260,7 +277,7 @@ export default function CaseDetailsScreen() {
       )}
 
       {report.location?.lat != null && report.location?.lng != null && (
-        <MapView
+        <MapViewWrapper
           provider="google"
           style={styles.map}
           initialRegion={{
@@ -276,7 +293,7 @@ export default function CaseDetailsScreen() {
               longitude: report.location.lng,
             }}
           />
-        </MapView>
+        </MapViewWrapper>
       )}
 
       {/* Notes */}
@@ -285,8 +302,8 @@ export default function CaseDetailsScreen() {
         <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
       </View>
 
-      {/* ✅ Status Update Button - Rescuers Only */}
-      {nextStatus && isRescuer && (
+      {/* ✅ Status Update Button - Only the accepted rescuer can change status */}
+      {nextStatus && isAssignedRescuer && (
         <PrimaryButton
           title={updating ? "Updating..." : `Mark as "${nextStatus}"`}
           onPress={handleStatusUpdate}
@@ -294,8 +311,8 @@ export default function CaseDetailsScreen() {
         />
       )}
 
-      {/* 🚑 Accept Rescue Button — Rescuers Only, only when case Needs Help */}
-      {isRescuer && report.status === "Needs Help" && (
+      {/* 🚑 Accept Rescue Button — Rescuers Only, when case Needs Help (NOT allowed on own reported cases) */}
+      {isRescuer && report.status === "Needs Help" && !isMyReport && (
         <PrimaryButton
           title={acceptingRescue ? "Accepting..." : "🚑  Accept Rescue"}
           onPress={async () => {
@@ -326,8 +343,12 @@ export default function CaseDetailsScreen() {
                   },
                 ]
               );
-              // Update local state
-              setReport({ ...report, status: "Under Rescue" });
+              // Update local state with assigned rescuer user ID
+              setReport({
+                ...report,
+                status: "Under Rescue",
+                assignedRescuerUserId: String(currentUserId || ""),
+              });
             } catch (err: any) {
               const errorMsg = err?.response?.data?.error || "Failed to accept rescue. Please try again.";
               Alert.alert("Accept Failed", errorMsg);
@@ -339,11 +360,29 @@ export default function CaseDetailsScreen() {
         />
       )}
 
-      {/* 🔒 Info Message for Non-Rescuers */}
-      {nextStatus && !isRescuer && (
+      {/* 🔒 Info Message for reporter opening their own reported case */}
+      {report.status === "Needs Help" && isMyReport && (
         <View style={styles.restrictedMessage}>
           <Text style={styles.restrictedText}>
-            ℹ️ Only rescuers can update case status
+            ℹ️ You reported this case. Another rescuer must accept it.
+          </Text>
+        </View>
+      )}
+
+      {/* 🔒 View-Only Banner for other rescuers & general users */}
+      {nextStatus && report.status !== "Needs Help" && !isAssignedRescuer && (
+        <View style={styles.restrictedMessage}>
+          <Text style={styles.restrictedText}>
+            🔒 View Only — Only the accepted rescuer can update case status
+          </Text>
+        </View>
+      )}
+
+      {/* 🔒 Info Message for non-rescuers when case Needs Help */}
+      {report.status === "Needs Help" && !isRescuer && !isMyReport && (
+        <View style={styles.restrictedMessage}>
+          <Text style={styles.restrictedText}>
+            ℹ️ Only rescuers can accept rescue cases
           </Text>
         </View>
       )}

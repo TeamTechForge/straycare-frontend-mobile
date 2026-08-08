@@ -16,7 +16,7 @@ import CustomAlertModal from "../../components/CustomAlertModal";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
-import { handleGoogleSignIn, useGoogleAuth } from "../../services/google-auth.service";
+import { handleGoogleSignIn, useGoogleAuth } from "../../services/googleAuthService";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";

@@ -12,6 +12,7 @@ import PrimaryButton from "../../components/PrimaryButton";
 import FileUploadField from "../../components/FileUploadField";
 import { API_URL } from "../../constants/config.constants";
 import { SafeAreaView } from "react-native-safe-area-context";
+import ImageViewer from "../../components/ui/ImageViewer";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -49,6 +50,7 @@ export default function EditProfileScreen() {
 
   const [loading, setLoading] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
 
   const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
     if (!uriOrAsset) return null;
@@ -138,7 +140,7 @@ export default function EditProfileScreen() {
         const profileData: any = await profileRes.json();
         if (profileRes.ok) {
           setBio(profileData.bio || "");
-          setProfileImage(profileData.profileImage || null);
+          setProfileImage(profileData.profileImage || userData.avatar || null);
 
           if (userData.role === "vet") {
             setLocation(profileData.primaryLocation || "");
@@ -318,7 +320,9 @@ export default function EditProfileScreen() {
         <View style={styles.imageSection}>
           <View style={styles.avatarWrapper}>
             {profileImage ? (
-              <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+              <TouchableOpacity onPress={() => setIsViewerVisible(true)}>
+                <Image source={{ uri: profileImage }} style={styles.avatarImage} />
+              </TouchableOpacity>
             ) : (
               <View style={styles.avatarPlaceholder}>
                 <Ionicons name="person" size={50} color="#F3E5D8" />
@@ -436,6 +440,12 @@ export default function EditProfileScreen() {
           </TouchableOpacity>
         </View>
       </ScrollView>
+
+      <ImageViewer 
+        imageUrl={profileImage} 
+        visible={isViewerVisible} 
+        onClose={() => setIsViewerVisible(false)} 
+      />
     </SafeAreaView>
   );
 }

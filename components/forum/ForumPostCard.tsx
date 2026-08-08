@@ -4,37 +4,31 @@ import { useRouter } from "expo-router";
 import { forumStyles as styles } from "../../styles/forum.styles";
 import type { ForumPost } from "../../types/Forum";
 
+import { Ionicons } from "@expo/vector-icons";
+import { Alert } from "react-native";
+
 type Props = {
   post: ForumPost;
   onToggleLike: () => void;
+  onDeletePost?: (postId: string) => void;
 };
 
 /**
  * Premium post card with tag badge, avatar, divider, and action row.
  * Elevated white card with consistent design tokens.
  */
-export default function ForumPostCard({ post, onToggleLike }: Props) {
+export default function ForumPostCard({ post, onToggleLike, onDeletePost }: Props) {
   const router = useRouter();
 
-  /* ── Tag styling based on type ─────────────────────────────────── */
-  const isHealth = post.tag === "HEALTH";
-  const tagBadgeStyle = isHealth ? styles.tagBadgeHealth : styles.tagBadgeGeneral;
-  const tagTextStyle = isHealth ? styles.tagTextHealth : styles.tagTextGeneral;
-  const tagLabel = isHealth ? "HEALTH" : "GENERAL";
-
-  /* ── Author initial for avatar ─────────────────────────────────── */
-  const initial = post.author?.charAt(0)?.toUpperCase() ?? "?";
+  /* ── Author display name ────────────────────────────────────────── */
+  const authorDisplayName = post.isMine ? "You" : (post.author || "User");
+  const initial = authorDisplayName.charAt(0).toUpperCase() || "?";
 
   /* ── Relative time (simple) ────────────────────────────────────── */
   const timeAgo = post.createdAt ? getRelativeTime(post.createdAt) : "";
 
   return (
     <View style={styles.postCard}>
-      {/* Tag badge */}
-      <View style={[styles.tagBadge, tagBadgeStyle]}>
-        <Text style={[styles.tagText, tagTextStyle]}>{tagLabel}</Text>
-      </View>
-
       {/* Title */}
       <Text style={styles.postTitle}>{post.title}</Text>
 
@@ -52,7 +46,7 @@ export default function ForumPostCard({ post, onToggleLike }: Props) {
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarText}>{initial}</Text>
         </View>
-        <Text style={styles.authorName}>{post.author}</Text>
+        <Text style={styles.authorName}>{authorDisplayName}</Text>
         {timeAgo ? <Text style={styles.timeText}>• {timeAgo}</Text> : null}
       </View>
 
@@ -61,37 +55,54 @@ export default function ForumPostCard({ post, onToggleLike }: Props) {
 
       {/* Actions */}
       <View style={styles.actionsRow}>
-        {/* Like button */}
-        <Pressable
-          onPress={onToggleLike}
-          style={[styles.actionBtn, post.likedByMe && styles.actionBtnLiked]}
-        >
-          <Text style={styles.actionIcon}>
-            {post.likedByMe ? "♥" : "♡"}
-          </Text>
-          <Text
-            style={[
-              styles.actionText,
-              post.likedByMe && styles.actionTextLiked,
-            ]}
+        <View style={{ flexDirection: "row", gap: 8 }}>
+          {/* Like button */}
+          <Pressable
+            onPress={onToggleLike}
+            style={[styles.actionBtn, post.likedByMe && styles.actionBtnLiked]}
           >
-            {post.likes}
-          </Text>
-        </Pressable>
+            <Text style={styles.actionIcon}>
+              {post.likedByMe ? "♥" : "♡"}
+            </Text>
+            <Text
+              style={[
+                styles.actionText,
+                post.likedByMe && styles.actionTextLiked,
+              ]}
+            >
+              {post.likes}
+            </Text>
+          </Pressable>
 
-        {/* Comment / go to thread */}
-        <Pressable
-          onPress={() =>
-            router.push({
-              pathname: "/discussion-thread/[id]",
-              params: { id: post.id },
-            })
-          }
-          style={styles.actionBtn}
-        >
-          <Text style={styles.actionIcon}>💬</Text>
-          <Text style={styles.actionText}>{post.commentCount}</Text>
-        </Pressable>
+          {/* Comment / go to thread */}
+          <Pressable
+            onPress={() =>
+              router.push({
+                pathname: "/discussion-thread/[id]",
+                params: { id: post.id },
+              })
+            }
+            style={styles.actionBtn}
+          >
+            <Ionicons name="chatbubble-outline" size={14} color="#333" />
+            <Text style={styles.actionText}>{post.commentCount}</Text>
+          </Pressable>
+        </View>
+
+        {/* Delete Button (Only for Author) */}
+        {post.isMine && onDeletePost && (
+          <Pressable
+            onPress={() => {
+              Alert.alert("Delete Post", "Are you sure you want to delete this post?", [
+                { text: "Cancel", style: "cancel" },
+                { text: "Delete", style: "destructive", onPress: () => onDeletePost(post.id) },
+              ]);
+            }}
+            style={[styles.actionBtn, { borderColor: "#FEE2E2", backgroundColor: "#FEF2F2" }]}
+          >
+            <Ionicons name="trash-outline" size={14} color="#EF4444" />
+          </Pressable>
+        )}
       </View>
     </View>
   );
