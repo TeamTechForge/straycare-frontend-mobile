@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
-import PrimaryButton from "../../../components/PrimaryButton";
+import PrimaryButton from "../../components/PrimaryButton";
 
 export default function DonationSummary() {
   const { category, organization, organizationName, frequency, plan, amount, paymentMethod, paymentFailed } =
@@ -31,24 +31,24 @@ export default function DonationSummary() {
         ) : null}
         <Text style={styles.label}>Amount: Rs. {formattedAmount}</Text>
         <Text style={styles.label}>Payment Method: {paymentMethod}</Text>
-
-        <PrimaryButton
-          title="Pay with PayHere"
-          onPress={() =>
-            router.push({
-              pathname: "/donate/PayhereCheckout",
-              params: {
-                amount: formattedAmount,
-                category,
-                organization,         // _id for merchant ID lookup
-                organizationName,     // display name for saving in donation record
-                frequency,
-                plan,
-              },
-            })
-          }
-        />
       </View>
+
+      <PrimaryButton
+        title="Pay with PayHere"
+        onPress={() =>
+          router.push({
+            pathname: "/donate/PayhereCheckout",
+            params: {
+              amount: formattedAmount,
+              category,
+              organization,         // _id for merchant ID lookup
+              organizationName,     // display name for saving in donation record
+              frequency,
+              plan,
+            },
+          })
+        }
+      />
     </View>
   );
 }
@@ -70,6 +70,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#eee",
     marginTop: 30,
+    marginBottom: 20,
   },
   label: { fontSize: 16, marginVertical: 5 },
 });

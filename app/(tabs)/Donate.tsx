@@ -1,9 +1,9 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import InputField from '../../../components/InputField';
-import PrimaryButton from '../../../components/PrimaryButton';
-import SelectField from '../../../components/SelectField';
+import InputField from '../../components/InputField';
+import PrimaryButton from '../../components/PrimaryButton';
+import SelectField from '../../components/SelectField';
 
 const BACKEND_URL = "http://192.168.8.160:5000";
 

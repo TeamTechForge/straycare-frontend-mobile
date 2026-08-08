@@ -2,10 +2,12 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
 import { StyleSheet, Text, View } from "react-native";
-import PrimaryButton from "../../../components/PrimaryButton";
+import PrimaryButton from "../../components/PrimaryButton";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function DonationSuccess() {
   const router = useRouter();
+  const { user } = useAuth();
   const { transactionId, amount, organization } = useLocalSearchParams();
 
   const displayTransactionId = transactionId
@@ -14,6 +16,16 @@ export default function DonationSuccess() {
 
   const displayAmount = amount ? `Rs. ${parseFloat(amount as string).toFixed(2)}` : "";
   const displayOrganization = organization ? String(organization) : "";
+
+  const canReceiveDonations = user?.role === "vet" || user?.role === "ngo";
+
+  const handleViewHistory = () => {
+    if (canReceiveDonations) {
+      router.push("/donate/DonationHub");
+    } else {
+      router.push("/donate/History");
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -44,8 +56,11 @@ export default function DonationSuccess() {
             Transaction ID: {displayTransactionId}
           </Text>
 
-          <PrimaryButton title="Back to Donate" onPress={() => router.replace("/donate")} />
-          <PrimaryButton title="View Donation History" onPress={() => router.push("/donate/History")} />
+          <PrimaryButton title="Back to Donate" onPress={() => router.replace("/Donate")} />
+          <PrimaryButton
+            title={canReceiveDonations ? "View Donation Hub" : "View Donation History"}
+            onPress={handleViewHistory}
+          />
         </View>
       </View>
     </View>

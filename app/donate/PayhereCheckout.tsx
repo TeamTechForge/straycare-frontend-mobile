@@ -1,7 +1,7 @@
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { WebView } from "react-native-webview";
 
@@ -37,7 +37,7 @@ const PayHereCheckout = () => {
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [orderData, setOrderData] = useState<any>(null);
-  const [paymentHandled, setPaymentHandled] = useState(false); // prevent double save
+  const paymentHandledRef = useRef(false); // prevent double save — ref updates instantly, unlike state
 
   const BACKEND_URL = "http://192.168.8.160:5000";
 
@@ -134,8 +134,8 @@ const PayHereCheckout = () => {
     console.log("NAV URL:", url);
 
     if (url.includes("/payhere/return")) {
-      if (paymentHandled) return; // prevent double save
-      setPaymentHandled(true);
+      if (paymentHandledRef.current) return; // prevent double save
+      paymentHandledRef.current = true;
 
       const urlParams = new URLSearchParams(url.split("?")[1]);
       const orderId = urlParams.get("order_id") || orderData?.order_id;
@@ -151,8 +151,8 @@ const PayHereCheckout = () => {
     }
 
     if (url.includes("/payhere/cancel")) {
-      if (paymentHandled) return; // prevent double save
-      setPaymentHandled(true);
+      if (paymentHandledRef.current) return; // prevent double save
+      paymentHandledRef.current = true;
 
       await saveDonation("FAILED");
       router.replace("/donate/DonationSummary");

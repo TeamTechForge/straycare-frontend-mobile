@@ -2,7 +2,7 @@ import { Feather, Ionicons, MaterialCommunityIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { Image, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator, FlatList } from "react-native";
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { API_URL } from "../../constants/config.constants";
 import { useNotification } from "../../contexts/NotificationContext";
 
@@ -225,7 +225,7 @@ export default function HomeScreen() {
         <ActionCard
           icon={<MaterialCommunityIcons name="hand-heart" size={24} color="#F5A623" />}
           label="Donate"
-          onPress={() => router.push("/donate")}
+          onPress={() => router.push("/Donate")}
         />
 
         <ActionCard
