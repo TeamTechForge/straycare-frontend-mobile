@@ -71,6 +71,13 @@ export type RescueLocation = RescueMarker & {
 
 export type RescueCaseStatus = "pending" | "accepted" | "rejected" | "completed";
 
+export type RescueTimelineEntry = {
+  status?: string;
+  message?: string;
+  timestamp?: string;
+  [key: string]: any;
+};
+
 export type RescueCaseRecord = {
   rescueRequestId: string;
   caseId: string;
@@ -85,10 +92,15 @@ export type RescueCaseRecord = {
   completedAt?: string | null;
   reporter: RescuePerson;
   rescuer: RescuePerson | null;
+  reporterName?: string;
+  reporterPhone?: string;
+  rescuerName?: string;
+  rescuerPhone?: string;
   location: RescueLocation;
   distanceKm: number;
   etaMinutes: number;
   summary: string;
+  timeline?: RescueTimelineEntry[];
 };
 
 export interface RescueHistoryResponse {

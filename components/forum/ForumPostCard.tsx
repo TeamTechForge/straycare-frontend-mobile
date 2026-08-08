@@ -20,25 +20,15 @@ type Props = {
 export default function ForumPostCard({ post, onToggleLike, onDeletePost }: Props) {
   const router = useRouter();
 
-  /* ── Tag styling based on type ─────────────────────────────────── */
-  const isHealth = post.tag === "HEALTH";
-  const tagBadgeStyle = isHealth ? styles.tagBadgeHealth : styles.tagBadgeGeneral;
-  const tagTextStyle = isHealth ? styles.tagTextHealth : styles.tagTextGeneral;
-  const tagLabel = isHealth ? "HEALTH" : "GENERAL";
-
-  /* ── Author initial for avatar ─────────────────────────────────── */
-  const initial = post.author?.charAt(0)?.toUpperCase() ?? "?";
+  /* ── Author display name ────────────────────────────────────────── */
+  const authorDisplayName = post.isMine ? "You" : (post.author || "User");
+  const initial = authorDisplayName.charAt(0).toUpperCase() || "?";
 
   /* ── Relative time (simple) ────────────────────────────────────── */
   const timeAgo = post.createdAt ? getRelativeTime(post.createdAt) : "";
 
   return (
     <View style={styles.postCard}>
-      {/* Tag badge */}
-      <View style={[styles.tagBadge, tagBadgeStyle]}>
-        <Text style={[styles.tagText, tagTextStyle]}>{tagLabel}</Text>
-      </View>
-
       {/* Title */}
       <Text style={styles.postTitle}>{post.title}</Text>
 
@@ -56,7 +46,7 @@ export default function ForumPostCard({ post, onToggleLike, onDeletePost }: Prop
         <View style={styles.avatarCircle}>
           <Text style={styles.avatarText}>{initial}</Text>
         </View>
-        <Text style={styles.authorName}>{post.author}</Text>
+        <Text style={styles.authorName}>{authorDisplayName}</Text>
         {timeAgo ? <Text style={styles.timeText}>• {timeAgo}</Text> : null}
       </View>
 

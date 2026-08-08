@@ -1,34 +1,60 @@
 // This file is used when the app runs in a web browser (loaded automatically by Metro).
-// react-native-maps cannot run on the web, so we show a simple placeholder instead.
-// The Marker component is a no-op (does nothing) so screens don't crash when they use it.
+// react-native-maps cannot run on the web natively without web commands, so we render a web preview container.
 
-import * as React from "react";
+import React from "react";
 import { View, Text } from "react-native";
 
-// No-op Marker — needed so screens can import { Marker } without getting an error
 export function Marker(_props: any) {
   return null;
 }
 
-export default function MapViewWrapper({ style }: { style?: any }) {
+export function Callout(_props: any) {
+  return null;
+}
+
+export function Polyline(_props: any) {
+  return null;
+}
+
+export function Circle(_props: any) {
+  return null;
+}
+
+export const PROVIDER_GOOGLE = "google";
+
+const MapViewWrapper = React.forwardRef<any, { style?: any; children?: React.ReactNode }>((props, ref) => {
+  React.useImperativeHandle(ref, () => ({
+    fitToCoordinates: () => {},
+    animateToRegion: () => {},
+    fitToElements: () => {},
+  }));
+
   return (
     <View
       style={[
         {
           width: "100%",
           height: 300,
-          backgroundColor: "#f0f0f0",
+          backgroundColor: "#E8F0FE",
           justifyContent: "center",
           alignItems: "center",
           borderRadius: 12,
+          borderWidth: 1,
+          borderColor: "#CBD5E1",
         },
-        style,
+        props.style,
       ]}
     >
-      <Text style={{ fontSize: 24 }}>🗺️</Text>
-      <Text style={{ color: "#555", marginTop: 8, fontWeight: "600" }}>
-        Map not available on Web
+      <Text style={{ fontSize: 28 }}>🗺️</Text>
+      <Text style={{ color: "#334155", marginTop: 8, fontWeight: "700", fontSize: 14 }}>
+        Interactive Map View
       </Text>
+      <Text style={{ color: "#64748B", marginTop: 2, fontSize: 12 }}>
+        (Mobile Device view active)
+      </Text>
+      {props.children}
     </View>
   );
-}
+});
+
+export default MapViewWrapper;

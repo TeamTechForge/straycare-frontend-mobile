@@ -10,7 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { getAllReports } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 
@@ -120,7 +120,7 @@ const RadarMarker = ({
 
 export default function ReportingMapScreen() {
   const router = useRouter();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
 
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -200,7 +200,7 @@ export default function ReportingMapScreen() {
       </View>
 
       {/* Map View */}
-      <MapView
+      <MapViewWrapper
         ref={mapRef}
         provider="google"
         style={styles.map}
@@ -242,7 +242,7 @@ export default function ReportingMapScreen() {
             />
           );
         })}
-      </MapView>
+      </MapViewWrapper>
 
       {/* Add Case Button */}
       <View style={styles.bottomButtonWrapper}>

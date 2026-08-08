@@ -112,6 +112,8 @@ const mapThread = (response: ForumThreadResponse): ForumThread => ({
   comments: (response.comments || []).map((comment: ForumThreadComment) => ({
     id: comment.id,
     userId: comment.userId,
+    userName: comment.userName,
+    isMine: comment.isMine,
     text: comment.text,
     timestamp: comment.timestamp,
   })),

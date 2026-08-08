@@ -1,22 +1,24 @@
-// This file decides which map component to use depending on the platform.
-//
-// Metro (the bundler) automatically picks the right file:
-//   MapViewWrapper.native.tsx → loaded on iOS and Android devices
-//   MapViewWrapper.web.tsx    → loaded when running in a browser
-//
-// This fallback file should not be loaded at runtime.
-// It's here just in case Metro doesn't find a platform-specific file.
-
-import * as React from "react";
+import React from "react";
 import { View, Text } from "react-native";
 
-// No-op Marker — screens that import { Marker } from MapViewWrapper won't break
 export function Marker(_props: any) {
   return null;
 }
 
-// Common MapView props accepted by the wrapper so TypeScript is satisfied
-// regardless of which platform file Metro resolves at runtime.
+export function Callout(_props: any) {
+  return null;
+}
+
+export function Polyline(_props: any) {
+  return null;
+}
+
+export function Circle(_props: any) {
+  return null;
+}
+
+export const PROVIDER_GOOGLE = "google";
+
 export interface Region {
   latitude: number;
   longitude: number;
@@ -27,23 +29,18 @@ export interface Region {
 export interface MapViewWrapperProps {
   style?: any;
   children?: React.ReactNode;
-  /** Initial visible map region (matches react-native-maps API) */
   initialRegion?: Region;
-  /** Current visible region (controlled) */
   region?: Region;
-  /** Any other props forwarded to the underlying map view */
   [key: string]: any;
 }
 
-export default function MapViewWrapper({
-  style,
-  children,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  initialRegion: _initialRegion,
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  region: _region,
-  ..._rest
-}: MapViewWrapperProps) {
+const MapViewWrapper = React.forwardRef<any, MapViewWrapperProps>((props, ref) => {
+  React.useImperativeHandle(ref, () => ({
+    fitToCoordinates: () => {},
+    animateToRegion: () => {},
+    fitToElements: () => {},
+  }));
+
   return (
     <View
       style={[
@@ -54,11 +51,13 @@ export default function MapViewWrapper({
           backgroundColor: "#eee",
           borderRadius: 12,
         },
-        style,
+        props.style,
       ]}
     >
-      <Text>🗺️ Map placeholder</Text>
-      {children}
+      <Text>🗺️ Map</Text>
+      {props.children}
     </View>
   );
-}
+});
+
+export default MapViewWrapper;

@@ -34,7 +34,7 @@ export const forumStyles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
-    paddingBottom: spacing.sm,
+    paddingBottom: 0,
   },
 
   /* ─── Header ─────────────────────────────────────────────────────────── */
@@ -264,11 +264,16 @@ export const forumStyles = StyleSheet.create({
   },
 
   /* ─── Bottom Actions ─────────────────────────────────────────────────── */
+  bottomContainer: {
+    paddingTop: spacing.sm,
+    backgroundColor: colors.background,
+    borderTopWidth: 1,
+    borderTopColor: "#F0F0F0",
+    marginTop: spacing.xs,
+  },
   bottomRow: {
     flexDirection: "row",
-    gap: spacing.sm,
-    marginTop: spacing.md,
-    paddingTop: spacing.sm,
+    gap: spacing.md,
   },
   addBtn: {
     flex: 1,
@@ -340,5 +345,20 @@ export const forumStyles = StyleSheet.create({
     fontFamily: typography.bold,
     fontSize: typography.body,
     color: "#1A1A1A",
+  },
+  sectionHeaderTitle: {
+    fontSize: 14,
+    fontFamily: typography.bold,
+    color: "#374151",
+    marginBottom: spacing.xs,
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+  },
+  emptySectionText: {
+    fontSize: typography.small,
+    fontFamily: typography.regular,
+    color: "#9CA3AF",
+    marginBottom: spacing.md,
+    fontStyle: "italic",
   },
 });

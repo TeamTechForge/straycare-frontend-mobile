@@ -16,6 +16,8 @@ export type ForumPost = {
 export type ForumThreadComment = {
   id: string;
   userId: string;
+  userName?: string;
+  isMine?: boolean;
   text: string;
   timestamp: string;
 };

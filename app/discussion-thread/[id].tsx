@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { ActivityIndicator, Image, RefreshControl, SafeAreaView, ScrollView, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -19,11 +19,15 @@ const mapCommentToMessage = (comment: ForumThreadComment): ThreadMessage => {
     ? "JUST NOW"
     : createdAt.toLocaleString([], { month: "short", day: "numeric", hour: "2-digit", minute: "2-digit" });
 
+  const displayName = comment.isMine
+    ? "You"
+    : (comment.userName || (comment.userId !== "forum-guest" && comment.userId !== "guest" ? comment.userId : "User"));
+
   return {
     id: comment.id,
-    name: comment.userId === "forum-guest" ? "You" : comment.userId,
-    role: "NGO",
-    subtitle: "Forum member",
+    name: displayName,
+    role: "",
+    subtitle: "",
     time: timeLabel.toUpperCase(),
     text: comment.text,
     likes: 0,
@@ -33,7 +37,8 @@ const mapCommentToMessage = (comment: ForumThreadComment): ThreadMessage => {
 
 export default function DiscussionThreadScreen() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, commentId, scrollToComments } = useLocalSearchParams<{ id: string; commentId?: string; scrollToComments?: string }>();
+  const scrollViewRef = useRef<ScrollView>(null);
 
   const [post, setPost] = useState<ForumPost | null>(null);
   const [thread, setThread] = useState<ThreadData>({ id: id ?? "", title: "Loading...", likes: 0, messages: [] });
@@ -41,6 +46,26 @@ export default function DiscussionThreadScreen() {
   const [refreshing, setRefreshing] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [activeHighlightId, setActiveHighlightId] = useState<string | null>(commentId || null);
+
+  useEffect(() => {
+    if (commentId) {
+      setActiveHighlightId(commentId);
+      const timer = setTimeout(() => {
+        setActiveHighlightId(null);
+      }, 5000);
+      return () => clearTimeout(timer);
+    }
+  }, [commentId]);
+
+  useEffect(() => {
+    if (!loading && (scrollToComments === "true" || commentId)) {
+      const timer = setTimeout(() => {
+        scrollViewRef.current?.scrollToEnd({ animated: true });
+      }, 350);
+      return () => clearTimeout(timer);
+    }
+  }, [loading, scrollToComments, commentId]);
 
   const loadThread = useCallback(async () => {
     if (!id) {
@@ -172,6 +197,7 @@ export default function DiscussionThreadScreen() {
             ) : null}
 
             <ScrollView
+              ref={scrollViewRef}
               style={styles.list}
               showsVerticalScrollIndicator={false}
               refreshControl={
@@ -188,6 +214,7 @@ export default function DiscussionThreadScreen() {
                 <ThreadMessageCard
                   key={message.id}
                   message={message}
+                  isHighlighted={message.id === activeHighlightId || message.id === commentId}
                   onToggleLike={() => toggleMessageLike(message.id)}
                 />
               ))}

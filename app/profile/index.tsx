@@ -266,28 +266,30 @@ export default function ProfileScreen() {
           )}
 
           {activeTab === "rescues" && !isGeneralUser && (
-            rescues.length > 0 ? (
-              rescues.map((rescue: any, index: number) => (
-                <ReportPreviewCard
-                  key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-${index}`}
-                  title={`${rescue.animalType} (${rescue.caseId})`}
-                  date={new Date(rescue.createdAt).toLocaleDateString()}
-                  status={rescue.status}
-                  image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
-                  summary={rescue.summary}
-                  actionText="Update Status"
-                  onActionPress={rescue.status !== "Completed" ? () => handleUpdateDetails(rescue.caseId) : undefined}
-                  onPress={() =>
-                    router.push({
-                      pathname: "/rescuer-response/[requestId]" as any,
-                      params: {
-                        requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
-                        caseId: rescue.caseId,
-                      },
-                    })
-                  }
-                />
-              ))
+            rescues.filter((r: any) => !r.status || ["accepted", "under rescue", "completed", "in progress"].includes(r.status.toLowerCase())).length > 0 ? (
+              rescues
+                .filter((r: any) => !r.status || ["accepted", "under rescue", "completed", "in progress"].includes(r.status.toLowerCase()))
+                .map((rescue: any, index: number) => (
+                  <ReportPreviewCard
+                    key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-${index}`}
+                    title={`${rescue.animalType} (${rescue.caseId})`}
+                    date={new Date(rescue.createdAt).toLocaleDateString()}
+                    status={rescue.status}
+                    image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                    summary={rescue.summary}
+                    actionText="Update Status"
+                    onActionPress={rescue.status !== "Completed" && rescue.status !== "completed" ? () => handleUpdateDetails(rescue.caseId) : undefined}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/rescuer-response/[requestId]" as any,
+                        params: {
+                          requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                          caseId: rescue.caseId,
+                        },
+                      })
+                    }
+                  />
+                ))
             ) : (
               <EmptyStateCard
                 icon="medkit-outline"
@@ -302,8 +304,8 @@ export default function ProfileScreen() {
               <View>
                 {/* 📌 CURRENT CASES */}
                 <Text style={styles.subSectionTitle}>Current Cases</Text>
-                {reports.filter((r: any) => ["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).length > 0 ? (
-                  reports.filter((r: any) => ["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).map((report: any, index: number) => (
+                {reports.filter((r: any) => ["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).length > 0 ? (
+                  reports.filter((r: any) => ["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).map((report: any, index: number) => (
                     <ReportPreviewCard
                       key={report._id || report.caseId || `current-${index}`}
                       title={`${report.animalType} (${report.caseId})`}
@@ -313,34 +315,21 @@ export default function ProfileScreen() {
                       caseId={report.caseId}
                       summary={report.summary}
                       onPress={() => {
-                        if (isGeneralUser) {
+                        router.push({
+                          pathname: "/reporting/CaseDetails",
+                          params: { caseId: report.caseId },
+                        });
+                      }}
+                      onTrackPress={() => {
+                        const statusLower = (report.status || "").toLowerCase();
+                        if (["needs help", "pending", "request sent"].includes(statusLower)) {
                           router.push({
-                            pathname: "/reporting/CaseDetails",
+                            pathname: "/request-status",
                             params: { caseId: report.caseId },
                           });
                         } else {
                           router.push({
-                            pathname: "/rescuer-response/[requestId]",
-                            params: { requestId: report.caseId || report._id },
-                          });
-                        }
-                      }}
-                      onTrackPress={() => {
-                        if (isGeneralUser) {
-                          if (["Needs Help", "Pending", "Request Sent"].includes(report.status)) {
-                            router.push({
-                              pathname: "/request-status",
-                              params: { caseId: report.caseId },
-                            });
-                          } else {
-                            router.push({
-                              pathname: "/live-tracking/[requestId]",
-                              params: { requestId: report.caseId },
-                            });
-                          }
-                        } else {
-                          router.push({
-                            pathname: "/rescuer-response/[requestId]",
+                            pathname: "/live-tracking/[requestId]",
                             params: { requestId: report.caseId },
                           });
                         }
@@ -353,8 +342,8 @@ export default function ProfileScreen() {
 
                 {/* 📜 RESCUE HISTORY */}
                 <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Rescue History</Text>
-                {reports.filter((r: any) => !["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).length > 0 ? (
-                  reports.filter((r: any) => !["Needs Help", "Pending", "Request Sent", "Under Rescue"].includes(r.status)).map((report: any, index: number) => (
+                {reports.filter((r: any) => !["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).length > 0 ? (
+                  reports.filter((r: any) => !["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).map((report: any, index: number) => (
                     <ReportPreviewCard
                       key={report._id || report.caseId || `history-${index}`}
                       title={`${report.animalType} (${report.caseId})`}
@@ -364,30 +353,16 @@ export default function ProfileScreen() {
                       caseId={report.caseId}
                       summary={report.summary}
                       onPress={() => {
-                        if (isGeneralUser) {
-                          router.push({
-                            pathname: "/reporting/CaseDetails",
-                            params: { caseId: report.caseId },
-                          });
-                        } else {
-                          router.push({
-                            pathname: "/rescuer-response/[requestId]",
-                            params: { requestId: report.caseId || report._id },
-                          });
-                        }
+                        router.push({
+                          pathname: "/reporting/CaseDetails",
+                          params: { caseId: report.caseId },
+                        });
                       }}
                       onTrackPress={() => {
-                        if (isGeneralUser) {
-                          router.push({
-                            pathname: "/live-tracking/[requestId]",
-                            params: { requestId: report.caseId },
-                          });
-                        } else {
-                          router.push({
-                            pathname: "/rescuer-response/[requestId]",
-                            params: { requestId: report.caseId },
-                          });
-                        }
+                        router.push({
+                          pathname: "/live-tracking/[requestId]",
+                          params: { requestId: report.caseId },
+                        });
                       }}
                     />
                   ))

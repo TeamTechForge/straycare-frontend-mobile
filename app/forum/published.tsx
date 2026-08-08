@@ -48,7 +48,11 @@ export default function ThreadPublished() {
   }, [params.content]);
 
   const goToForum = () => {
-    router.replace("/forum/index" as any);
+    try {
+      router.replace("/forum" as any);
+    } catch (err) {
+      router.push("/forum" as any);
+    }
   };
 
   return (

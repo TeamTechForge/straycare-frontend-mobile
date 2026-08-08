@@ -68,6 +68,14 @@ export default function DiscussionForumScreen() {
   );
 
   /* ── Filtered & sorted posts ────────────────────────────────────────── */
+  const myActivePosts = useMemo(() => {
+    return posts.filter((p) => p.isMine).sort((a, b) => b.commentCount - a.commentCount);
+  }, [posts]);
+
+  const otherActivePosts = useMemo(() => {
+    return posts.filter((p) => !p.isMine).sort((a, b) => b.commentCount - a.commentCount);
+  }, [posts]);
+
   const filtered = useMemo(() => {
     if (tab === "Newest") return posts;
     if (tab === "Active") {
@@ -161,6 +169,7 @@ export default function DiscussionForumScreen() {
           /* ── Post list ──────────────────────────────────────────── */
           <ScrollView
             style={styles.list}
+            contentContainerStyle={{ paddingBottom: 16 }}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
@@ -173,14 +182,48 @@ export default function DiscussionForumScreen() {
               />
             }
           >
-            {filtered.map((post) => (
-              <ForumPostCard
-                key={post.id}
-                post={post}
-                onToggleLike={() => void toggleLike(post.id)}
-                onDeletePost={handleDeletePost}
-              />
-            ))}
+            {tab === "Active" ? (
+              <>
+                {/* 📌 MY ACTIVE THREADS */}
+                <Text style={styles.sectionHeaderTitle}>📌 My Active Threads</Text>
+                {myActivePosts.length > 0 ? (
+                  myActivePosts.map((post) => (
+                    <ForumPostCard
+                      key={post.id}
+                      post={post}
+                      onToggleLike={() => void toggleLike(post.id)}
+                      onDeletePost={handleDeletePost}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.emptySectionText}>You have no active discussion threads yet.</Text>
+                )}
+
+                {/* 💬 OTHER ACTIVE DISCUSSIONS */}
+                <Text style={[styles.sectionHeaderTitle, { marginTop: 14 }]}>💬 Other Active Discussions</Text>
+                {otherActivePosts.length > 0 ? (
+                  otherActivePosts.map((post) => (
+                    <ForumPostCard
+                      key={post.id}
+                      post={post}
+                      onToggleLike={() => void toggleLike(post.id)}
+                      onDeletePost={handleDeletePost}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.emptySectionText}>No other active discussions found.</Text>
+                )}
+              </>
+            ) : (
+              filtered.map((post) => (
+                <ForumPostCard
+                  key={post.id}
+                  post={post}
+                  onToggleLike={() => void toggleLike(post.id)}
+                  onDeletePost={handleDeletePost}
+                />
+              ))
+            )}
           </ScrollView>
         )}
 
