@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet, Platform } from 'react-native';
+import { Tabs } from 'expo-router';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSocket } from '../../contexts/SocketContext';
 
@@ -99,13 +99,21 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Donate Flow (Hidden from Tab Bar) */}
+      <Tabs.Screen
+        name="Donate"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   centerTabContainer: {
-    // Positioned slightly higher the new tab bar height
     top: -18,
     justifyContent: 'center',
     alignItems: 'center',
@@ -132,7 +140,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#EF4444', // Minimalistic red dot
+    backgroundColor: '#EF4444',
     borderWidth: 1.5,
     borderColor: '#FFF7E6',
   },
