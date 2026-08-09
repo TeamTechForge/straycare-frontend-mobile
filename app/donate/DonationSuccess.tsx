@@ -56,27 +56,11 @@ export default function DonationSuccess() {
             Transaction ID: {displayTransactionId}
           </Text>
 
-<<<<<<< HEAD
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.replace("/donate" as any)}
-          >
-            <Text style={styles.buttonText}>Back to Donate</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.push("/donate/History")}
-          >
-            <Text style={styles.buttonText}>View Donation History</Text>
-          </TouchableOpacity>
-=======
           <PrimaryButton title="Back to Donate" onPress={() => router.replace("/Donate")} />
           <PrimaryButton
             title={canReceiveDonations ? "View Donation Hub" : "View Donation History"}
             onPress={handleViewHistory}
           />
->>>>>>> b23b2f7b86638cf6fa72e20b1c0fc53ef8a88228
         </View >
       </View >
     </View >
