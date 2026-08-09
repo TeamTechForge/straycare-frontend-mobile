@@ -16,15 +16,14 @@ function InitialLayout() {
   const router = useRouter();
   const { addNotification } = useNotification();
   const [hasCheckedCompletion, setHasCheckedCompletion] = useState(false);
-  const [shouldShowCompletion, setShouldShowCompletion] = useState(false);
 
   // Check if newly approved NGOs/Vets need to see the completion screen
   useEffect(() => {
     if (user && (user.role === "ngo" || user.role === "vet") && user.profileStatus === "Verified") {
       SecureStore.getItemAsync(`seenCompletion_${user._id}`).then((seen) => {
         if (!seen) {
-          setShouldShowCompletion(true);
           SecureStore.setItemAsync(`seenCompletion_${user._id}`, "true");
+          router.replace("/auth/CompletedProfileSetup");
         }
         setHasCheckedCompletion(true);
       });
@@ -86,13 +85,6 @@ function InitialLayout() {
             }
           }
         } else {
-          // User is fully approved / unrestricted
-          // Check if they need to see the completion screen once
-          if (shouldShowCompletion && segments[1] !== "CompletedProfileSetup") {
-            router.replace("/auth/CompletedProfileSetup");
-            return;
-          }
-
           // Redirect to home if they are sitting on guest/pending/setup routes or index
           if (inAuthGroup || onWelcomeScreen) {
             const onCompletedProfileSetup = segments[1] === "CompletedProfileSetup";
@@ -111,7 +103,7 @@ function InitialLayout() {
         }
       }
     }
-  }, [user, isLoading, segments, token, hasCheckedCompletion, shouldShowCompletion]);
+  }, [user, isLoading, segments, token, hasCheckedCompletion]);
 
   // ─── Push Notifications Setup (Optional - only on native build) ───
   useEffect(() => {
