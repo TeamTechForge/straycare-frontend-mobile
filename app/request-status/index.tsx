@@ -463,8 +463,8 @@ export default function RequestStatusScreen() {
   // ─── Derived: status image source ─────────────────────────────────────────
   const getStatusImage = () => {
     if (status === "pending")  return require("../../assets/images/pending.gif");
-    if (status === "accepted" || status === "completed") return require("../../assets/images/accepted.png");
-    if (status === "rejected") return require("../../assets/images/rejected.png");
+    if (status === "accepted" || status === "completed") return require("../../assets/images/accepted.jpg");
+    if (status === "rejected") return require("../../assets/images/rejected.jpg");
     return require("../../assets/images/pending.gif");
   };
 
@@ -532,7 +532,7 @@ export default function RequestStatusScreen() {
             {/* Cancelled card */}
             <View style={styles.statusCard}>
               <Image
-                source={require("../../assets/images/rejected.png")}
+                source={require("../../assets/images/rejected.jpg")}
                 style={styles.statusImage}
               />
               <Text style={[styles.statusCardTitle, { color: "#C62828" }]}>
@@ -653,7 +653,7 @@ export default function RequestStatusScreen() {
                     <Image source={{ uri: rescuer.avatar }} style={styles.avatar} />
                   ) : (
                     <Image
-                      source={require("../../assets/images/default-avatar.png")}
+                      source={require("../../assets/images/default-avatar.jpg")}
                       style={styles.avatar}
                     />
                   )}

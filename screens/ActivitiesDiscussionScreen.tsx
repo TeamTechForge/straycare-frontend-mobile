@@ -59,7 +59,7 @@ export default function ActivitiesDiscussionScreen() {
               </Text>
             </View>
             <Image
-              source={require("../assets/images/hero_pets.png")}
+              source={require("../assets/images/hero_pets.jpg")}
               style={styles.heroImage}
               resizeMode="contain"
             />
@@ -98,7 +98,7 @@ export default function ActivitiesDiscussionScreen() {
             {/* ── My Rescue stat card ── */}
             <View style={styles.statCard}>
               <Image
-                source={require("../assets/images/my_rescue_illus.png")}
+                source={require("../assets/images/my_rescue_illus.jpg")}
                 style={styles.statImage}
                 resizeMode="contain"
               />
@@ -118,7 +118,7 @@ export default function ActivitiesDiscussionScreen() {
             {/* ── Full Rescue History stat card ── */}
             <View style={styles.statCard}>
               <Image
-                source={require("../assets/images/history_illus.png")}
+                source={require("../assets/images/history_illus.jpg")}
                 style={styles.statImage}
                 resizeMode="contain"
               />
@@ -154,7 +154,7 @@ export default function ActivitiesDiscussionScreen() {
               </Text>
             </View>
             <Image
-              source={require("../assets/images/forum_illus.png")}
+              source={require("../assets/images/forum_illus.jpg")}
               style={styles.forumImage}
               resizeMode="contain"
             />
@@ -187,7 +187,7 @@ export default function ActivitiesDiscussionScreen() {
             </View>
           </View>
           <Image
-            source={require("../assets/images/footer_hands.png")}
+            source={require("../assets/images/footer_hands.jpg")}
             style={styles.footerHandsImage}
             resizeMode="contain"
           />

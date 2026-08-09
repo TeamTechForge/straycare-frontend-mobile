@@ -47,7 +47,7 @@ export default function DonationSuccess() {
 
           <TouchableOpacity
             style={styles.button}
-            onPress={() => router.replace("/donate")}
+            onPress={() => router.replace("/donate" as any)}
           >
             <Text style={styles.buttonText}>Back to Donate</Text>
           </TouchableOpacity>

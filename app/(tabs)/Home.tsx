@@ -225,7 +225,7 @@ export default function HomeScreen() {
             <ActionCard
               icon={<MaterialCommunityIcons name="hand-heart" size={24} color="#F5A623" />}
               label="Donate"
-              onPress={() => router.push("/donate")}
+              onPress={() => router.push("/donate" as any)}
             />
 
             <ActionCard

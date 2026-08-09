@@ -126,7 +126,7 @@ export default function MapViewWrapper({
   return (
     <MapContext.Provider value={{ minLat, maxLat, minLng, maxLng }}>
       <ImageBackground
-        source={require("../assets/images/mock-map.png")}
+        source={require("../assets/images/mock-map.jpg")}
         style={[styles.container, style]}
         imageStyle={styles.backgroundImage}
       >
