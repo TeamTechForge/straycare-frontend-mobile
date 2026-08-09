@@ -9,6 +9,7 @@ import { CallProvider } from "../contexts/CallContext";
 import { NotificationProvider, useNotification } from "../contexts/NotificationContext";
 import { useFonts } from "expo-font";
 import { AlertProvider } from "../components/GlobalAlert";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 function InitialLayout() {
   const { user, token, isLoading } = useAuth();
@@ -215,16 +216,18 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <SocketProvider>
-        <NotificationProvider>
-          <CallProvider>
-            <AlertProvider>
-              <InitialLayout />
-            </AlertProvider>
-          </CallProvider>
-        </NotificationProvider>
-      </SocketProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <SocketProvider>
+          <NotificationProvider>
+            <CallProvider>
+              <AlertProvider>
+                <InitialLayout />
+              </AlertProvider>
+            </CallProvider>
+          </NotificationProvider>
+        </SocketProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
