@@ -19,8 +19,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: BRAND_COLOR,
         tabBarInactiveTintColor: '#000000ff',
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 65 + insets.bottom : 70,
-          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 18,
+          height: Platform.OS === 'ios' ? 65 + insets.bottom : 70 + insets.bottom,
+          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 18 + insets.bottom,
           paddingTop: 10,
           backgroundColor: TAB_BAR_BG,
           borderTopWidth: 1,
@@ -68,7 +68,7 @@ export default function TabLayout() {
           tabBarIcon: () => (
             <View style={styles.centerTabContainer}>
               <View style={styles.centerTab}>
-                <Ionicons name="map" size={28} color="#fff" />
+                <Ionicons name="map" size={34} color="#fff" />
               </View>
             </View>
           ),
@@ -114,15 +114,15 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   centerTabContainer: {
-    top: -18,
+    top: -10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   centerTab: {
     backgroundColor: BRAND_COLOR,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: "#000",

@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getCommunityFeed } from "../../api/apiService"; // API call to fetch posts
 
 
@@ -161,6 +162,7 @@ function PostCard({ post }: { post: any }) {
 
 export default function CommunityFeed() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   // Controls whether the category filter pill row is shown
   const [filterVisible, setFilterVisible] = useState(false);
@@ -391,7 +393,7 @@ export default function CommunityFeed() {
 
       {/* Floating AI Discussion Button */}
       <TouchableOpacity
-        style={styles.floatingButton}
+        style={[styles.floatingButton, { bottom: 100 + insets.bottom }]}
         activeOpacity={0.85}
         onPress={() => router.push("/forum" as any)}
       >
