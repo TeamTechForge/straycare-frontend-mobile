@@ -343,6 +343,13 @@ export const rescueDetailsStyles = StyleSheet.create({
     borderWidth: 2,
     borderColor: colors.primary,
   },
+  avatarImage: {
+    width: 50,
+    height: 50,
+    borderRadius: 25,
+    borderWidth: 2,
+    borderColor: colors.primary,
+  },
   avatarInitials: {
     width: 50,
     height: 50,
@@ -590,5 +597,31 @@ export const rescueDetailsStyles = StyleSheet.create({
   commentLoading: {
     paddingVertical: spacing.md,
     alignItems: "center",
+  },
+  
+  // ── Rescuer Action Bar ──
+  actionBar: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+    paddingBottom: Platform.OS === "ios" ? 30 : spacing.sm,
+    borderTopWidth: 1,
+    borderTopColor: "#E5E7EB",
+    gap: spacing.sm,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 4,
+  },
+  actionBtn: {
+    flex: 1,
+    borderRadius: 12,
   },
 });

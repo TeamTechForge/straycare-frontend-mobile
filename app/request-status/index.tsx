@@ -38,6 +38,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import axios from "axios"; // axios v1 — uses AbortController, NOT CancelToken
+import { useCall } from "../../contexts/CallContext";
 
 // Shared API response types
 import type {
@@ -53,15 +54,9 @@ import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
 
 // ─── API base URL ──────────────────────────────────────────────────────────────
-const getApiBaseUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/$/, "");
-  if (envUrl) return envUrl;
-  // 10.0.2.2 routes to the host machine from inside the Android emulator
-  if (Platform.OS === "android") return "http://10.0.2.2:5000";
-  return "http://localhost:5000"; // iOS simulator and web
-};
+import { BASE_URL } from "../../constants/config.constants";
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = BASE_URL;
 
 // ─── Navigation params ─────────────────────────────────────────────────────────
 type RequestStatusParams = {
@@ -114,6 +109,7 @@ export default function RequestStatusScreen() {
   const { rescuerId, caseId, animalType, animalPhoto, description, excludeIds, lat, lng, requestId: paramRequestId } = params;
   const rescuerIdValue = getFirstParam(rescuerId) ?? "";
   const initialRequestId = getFirstParam(paramRequestId) ?? null;
+  const { startCall } = useCall();
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [status,     setStatus]     = useState<RescueStatus>("pending");
@@ -668,7 +664,13 @@ export default function RequestStatusScreen() {
                 {/* Phone button — only shown when accepted */}
                 {status === "accepted" && rescuer.phone ? (
                   <TouchableOpacity
-                    onPress={() => { void Linking.openURL(`tel:${rescuer.phone}`); }}
+                    onPress={() => {
+                      if (!rescuer.userId && !rescuer._id) {
+                        Alert.alert("Contact Unavailable", "Contact details are not available.");
+                        return;
+                      }
+                      startCall(String(rescuer.userId || rescuer._id), rescuer.name, rescuer.avatar);
+                    }}
                     activeOpacity={0.7}
                     style={styles.phoneButton}
                   >

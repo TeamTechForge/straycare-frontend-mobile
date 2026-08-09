@@ -1,39 +1,17 @@
-// This file is used on iOS and Android devices (loaded automatically by Metro).
-//
-// In Expo Go, native map packages often require a development build.
-// To provide a seamless, high-fidelity experience without requiring native compilations,
-// this wrapper displays a premium mock city street map as background,
-// and projects GPS coordinates dynamically onto the screen using a linear scale.
-//
-// If you want a real MapView, build the app natively:
-//   npx expo run:android
-// Then you can replace this file's contents with:
-//   import MapView, { Marker } from "react-native-maps";
-//   export { Marker };
-//   export default function MapViewWrapper(props) {
-//     return <MapView {...props}>{props.children}</MapView>;
-//   }
+// This file is loaded automatically by Metro on iOS and Android devices.
+// It renders the real native MapView from react-native-maps.
 
-import * as React from "react";
-import { ImageBackground, StyleSheet, Text, View } from "react-native";
+import React from "react";
+import MapView, { Marker, PROVIDER_GOOGLE, Callout, Polyline, Circle } from "react-native-maps";
 
-import { colors } from "../constants/colors.constants";
-import { typography } from "../constants/typography.constants";
+export { Marker, PROVIDER_GOOGLE, Callout, Polyline, Circle };
 
-// ── Map Bounding Box Context ───────────────────────────────────────────────
-// Used to pass projection parameters from the map wrapper down to the markers.
-interface MapContextType {
-  minLat: number;
-  maxLat: number;
-  minLng: number;
-  maxLng: number;
-}
-
-const MapContext = React.createContext<MapContextType>({
-  minLat: 6.9121,
-  maxLat: 6.9421,
-  minLng: 79.8462,
-  maxLng: 79.8762,
+const MapViewWrapper = React.forwardRef<MapView, any>((props, ref) => {
+  return (
+    <MapView ref={ref} {...props}>
+      {props.children}
+    </MapView>
+  );
 });
 
 // ── Map Marker Component ────────────────────────────────────────────────────
@@ -256,3 +234,5 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 });
+
+export default MapViewWrapper;

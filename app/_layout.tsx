@@ -1,7 +1,7 @@
 // Root layout for the app, defining the navigation stack and global providers.
 import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect, useState } from "react";
-import { ActivityIndicator, View, Platform } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { ActivityIndicator, View, Platform, Alert } from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
@@ -9,6 +9,7 @@ import { CallProvider } from "../contexts/CallContext";
 import { NotificationProvider, useNotification } from "../contexts/NotificationContext";
 import { useFonts } from "expo-font";
 import { AlertProvider } from "../components/GlobalAlert";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 
 function InitialLayout() {
   const { user, token, isLoading } = useAuth();
@@ -16,15 +17,14 @@ function InitialLayout() {
   const router = useRouter();
   const { addNotification } = useNotification();
   const [hasCheckedCompletion, setHasCheckedCompletion] = useState(false);
-  const [shouldShowCompletion, setShouldShowCompletion] = useState(false);
 
   // Check if newly approved NGOs/Vets need to see the completion screen
   useEffect(() => {
     if (user && (user.role === "ngo" || user.role === "vet") && user.profileStatus === "Verified") {
       SecureStore.getItemAsync(`seenCompletion_${user._id}`).then((seen) => {
         if (!seen) {
-          setShouldShowCompletion(true);
           SecureStore.setItemAsync(`seenCompletion_${user._id}`, "true");
+          router.replace("/auth/CompletedProfileSetup");
         }
         setHasCheckedCompletion(true);
       });
@@ -86,13 +86,6 @@ function InitialLayout() {
             }
           }
         } else {
-          // User is fully approved / unrestricted
-          // Check if they need to see the completion screen once
-          if (shouldShowCompletion && segments[1] !== "CompletedProfileSetup") {
-            router.replace("/auth/CompletedProfileSetup");
-            return;
-          }
-
           // Redirect to home if they are sitting on guest/pending/setup routes or index
           if (inAuthGroup || onWelcomeScreen) {
             const onCompletedProfileSetup = segments[1] === "CompletedProfileSetup";
@@ -111,7 +104,7 @@ function InitialLayout() {
         }
       }
     }
-  }, [user, isLoading, segments, token, hasCheckedCompletion, shouldShowCompletion]);
+  }, [user, isLoading, segments, token, hasCheckedCompletion]);
 
   // ─── Push Notifications Setup (Optional - only on native build) ───
   useEffect(() => {
@@ -147,17 +140,14 @@ function InitialLayout() {
   }, [token, user, addNotification]);
 
   // ─── Global Rescue Request Listener ───
+  const seenRequestIdsRef = useRef<Set<string>>(new Set());
+
   useEffect(() => {
     if (!token || !user) return;
-    const isRescuer = user.role === "volunteer" || user.role === "ngo" || user.role === "vet";
+    const isRescuer = user.role === "volunteer" || user.role === "ngo" || user.role === "vet" || user.role === "rescuer";
     if (!isRescuer) return;
 
-    let activeAlertId: string | null = null;
-    let isAlertActive = false;
-
     const checkActiveRequest = async () => {
-      if (isAlertActive) return;
-
       try {
         const { API_URL } = require("../constants/config.constants");
         const response = await fetch(`${API_URL}/rescue/active-request`, {
@@ -166,54 +156,34 @@ function InitialLayout() {
         if (!response.ok) return;
 
         const data: any = await response.json();
-        if (data.request && data.request._id !== activeAlertId) {
-          isAlertActive = true;
-          activeAlertId = data.request._id;
+        const reqId = data.request?.rescueRequestId || data.request?._id;
+        if (reqId && !seenRequestIdsRef.current.has(String(reqId))) {
+          seenRequestIdsRef.current.add(String(reqId));
 
-          const respondToRequest = async (action: "accept" | "reject") => {
-            try {
-              const respondRes = await fetch(`${API_URL}/rescue/request/${data.request._id}/respond`, {
-                method: "PATCH",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${token}`,
-                },
-                body: JSON.stringify({ action }),
-              });
-              if (respondRes.ok && action === "accept") {
-                router.push(`/rescue-details/${data.request._id}`);
-              }
-            } catch (err) {
-              console.error("Error responding to request:", err);
-            } finally {
-              isAlertActive = false;
-            }
-          };
+          const reporterName = data.request?.reporterName || data.request?.reporter?.name || "A reporter";
+          const animalType = data.request?.animalType || "stray animal";
 
-          const { Alert } = require("react-native");
+          // In-App Alert prompting rescuer to view complete case details first
           Alert.alert(
-            "New Rescue Request",
-            `A new case of ${data.request.animalType || "stray animal"} has been assigned to you. Do you accept?`,
+            "🚨 NEW RESCUE REQUEST!",
+            `${reporterName} reported a ${animalType} needing rescue near your location. Review full details before accepting or rejecting.`,
             [
               {
-                text: "Reject",
-                onPress: () => respondToRequest("reject"),
-                style: "cancel",
+                text: "View Case Details",
+                onPress: () => router.push(`/rescue-details/${reqId}`),
               },
-              {
-                text: "Accept",
-                onPress: () => respondToRequest("accept"),
-              },
-            ],
-            { cancelable: false }
+            ]
           );
+
+          // Automatically push to complete rescue details screen so rescuer reviews all info first
+          router.push(`/rescue-details/${reqId}`);
         }
       } catch (err) {
         console.error("Global active request check failed:", err);
       }
     };
 
-    const interval = setInterval(checkActiveRequest, 4000);
+    const interval = setInterval(checkActiveRequest, 5000);
     return () => clearInterval(interval);
   }, [token, user]);
 
@@ -246,16 +216,18 @@ export default function RootLayout() {
   }
 
   return (
-    <AuthProvider>
-      <SocketProvider>
-        <NotificationProvider>
-          <CallProvider>
-            <AlertProvider>
-              <InitialLayout />
-            </AlertProvider>
-          </CallProvider>
-        </NotificationProvider>
-      </SocketProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <SocketProvider>
+          <NotificationProvider>
+            <CallProvider>
+              <AlertProvider>
+                <InitialLayout />
+              </AlertProvider>
+            </CallProvider>
+          </NotificationProvider>
+        </SocketProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }

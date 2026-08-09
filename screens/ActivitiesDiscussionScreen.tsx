@@ -17,10 +17,10 @@ import { useRouter, type Href } from "expo-router";
 /* ──────────────────────────────────────────────
  * Route constants – typed once, used everywhere
  * ────────────────────────────────────────────── */
-const nearbyRescuersRoute = "/NearbyRescuers" as Href;
-const rescueHistoryRoute = "/RescueHistory" as Href;
-const myRescuesRoute = "/MyRescues" as Href;
-const discussionForumRoute = "/DiscussionForum" as Href;
+const nearbyRescuersRoute = "/nearby-rescuers" as Href;
+const rescueHistoryRoute = "/rescues/history" as Href;
+const myRescuesRoute = "/rescues/my-rescues" as Href;
+const discussionForumRoute = "/forum" as Href;
 
 export default function ActivitiesDiscussionScreen() {
   const router = useRouter();

@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Linking,
   SafeAreaView,
   ScrollView,
   Text,
@@ -17,6 +16,8 @@ import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import AppButton from "../../components/ui/AppButton";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
+import { useAuth } from "../../contexts/AuthContext";
+import { useCall } from "../../contexts/CallContext";
 import {
   fetchComments,
   fetchRescueById,
@@ -168,6 +169,10 @@ export default function RescueDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const idValue = id ?? "";
+  const { user, token } = useAuth();
+  const { startCall } = useCall();
+  
+  const [responding, setResponding] = useState(false);
 
   // ── Rescue Details State ──
   const [details, setDetails] = useState<any>(null);
@@ -177,6 +182,7 @@ export default function RescueDetailsScreen() {
   // ── Image State ──
   const [imageLoading, setImageLoading] = useState(true);
   const [imageError, setImageError] = useState(false);
+  const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
 
   // ── Comments State ──
   const [comments, setComments] = useState<RescueComment[]>([]);
@@ -244,36 +250,60 @@ export default function RescueDetailsScreen() {
   }, [loadCommentsList]);
 
   /* ─────────────────────────────────────────────────────────────
-   * Call Dialer Trigger
+   * Respond to Request (Accept / Reject)
    * ───────────────────────────────────────────────────────────── */
-  const handleCall = useCallback((phone: string | undefined, name: string) => {
-    if (!phone || phone.trim().length === 0) {
+  const respondToRequest = async (action: "accept" | "reject") => {
+    if (!token) return;
+    setResponding(true);
+    try {
+      const baseUrl = getApiBaseUrl();
+      const respondRes = await fetch(`${baseUrl}/api/rescue/request/${idValue}/respond`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ action }),
+      });
+      if (respondRes.ok) {
+        if (action === "accept") {
+          Alert.alert("Request Accepted! 🚑", "Case has been added to your profile under Rescue Cases.", [
+            {
+              text: "Go to Home",
+              onPress: () => router.replace("/(tabs)/Home"),
+            },
+          ]);
+        } else {
+          Alert.alert("Request Declined", "The rescue request was declined.", [
+            { text: "OK", onPress: () => router.replace("/(tabs)/Home") }
+          ]);
+        }
+      } else {
+        const errData = await respondRes.json();
+        Alert.alert("Error", errData.error || "Failed to respond to request.");
+      }
+    } catch (err) {
+      console.error("Error responding to request:", err);
+      Alert.alert("Error", "Network error occurred.");
+    } finally {
+      setResponding(false);
+    }
+  };
+
+  /* ─────────────────────────────────────────────────────────────
+   * In-App Call Trigger
+   * ───────────────────────────────────────────────────────────── */
+  const handleCall = useCallback((userId: string | undefined, name: string, avatar?: string) => {
+    if (!userId || userId.trim().length === 0) {
       Alert.alert(
-        "Phone Number Unavailable",
-        `The phone number for ${name} is not available right now.`,
+        "Contact Unavailable",
+        `Contact details for ${name} are not available right now.`,
         [{ text: "OK" }]
       );
       return;
     }
-
-    const cleanedPhone = phone.replace(/[\s-]/g, "");
-    const url = `tel:${cleanedPhone}`;
-
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert("Cannot Make Call", "Your device does not support phone calls.", [
-            { text: "OK" },
-          ]);
-        }
-      })
-      .catch((err) => {
-        Alert.alert("Error", "An error occurred while trying to place the call.", [{ text: "OK" }]);
-        console.error("[RescueDetails] Phone call error:", err);
-      });
-  }, []);
+    startCall(userId, name, avatar);
+  }, [startCall]);
 
   /* ─────────────────────────────────────────────────────────────
    * Post Comment / Reply Handlers
@@ -282,7 +312,9 @@ export default function RescueDetailsScreen() {
     if (!newComment.trim() || !idValue) return;
     setSubmittingComment(true);
     try {
-      const created = await postComment(idValue, newComment.trim());
+      const currentUserId = (user as any)?._id || (user as any)?.id || "guest-user";
+      const currentUserName = (user as any)?.name || "User";
+      const created = await postComment(idValue, newComment.trim(), currentUserName, currentUserId);
       setComments((prev) => [...prev, { ...created, replies: created.replies || [] }]);
       setNewComment("");
     } catch (err) {
@@ -291,14 +323,16 @@ export default function RescueDetailsScreen() {
     } finally {
       setSubmittingComment(false);
     }
-  }, [newComment, idValue]);
+  }, [newComment, idValue, user]);
 
   const handlePostReply = useCallback(
     async (parentId: string) => {
       if (!replyText.trim() || !idValue) return;
       setSubmittingReply(true);
       try {
-        const created = await postReply(idValue, parentId, replyText.trim());
+        const currentUserId = (user as any)?._id || (user as any)?.id || "guest-user";
+        const currentUserName = (user as any)?.name || "User";
+        const created = await postReply(idValue, parentId, replyText.trim(), currentUserName, currentUserId);
         setComments((prev) =>
           prev.map((c) =>
             c._id === parentId ? { ...c, replies: [...(c.replies || []), created] } : c
@@ -313,7 +347,7 @@ export default function RescueDetailsScreen() {
         setSubmittingReply(false);
       }
     },
-    [replyText, idValue]
+    [replyText, idValue, user]
   );
 
   /* ─────────────────────────────────────────────────────────────
@@ -327,23 +361,51 @@ export default function RescueDetailsScreen() {
   };
 
   // ── Memoized Resolved Values ──
-  const photoUrl = useMemo(() => resolvePhotoUrl(details?.photoUrl || details?.photos?.[0]), [
-    details,
-  ]);
+  const photosList = useMemo(() => {
+    if (Array.isArray(details?.photos) && details.photos.length > 0) {
+      return details.photos.map((p: string) => resolvePhotoUrl(p));
+    }
+    if (details?.photoUrl) {
+      return [resolvePhotoUrl(details.photoUrl)];
+    }
+    return [DEFAULT_FALLBACK_IMAGE];
+  }, [details]);
+
+  const photoUrl = useMemo(() => {
+    return photosList[selectedPhotoIndex] || photosList[0] || DEFAULT_FALLBACK_IMAGE;
+  }, [photosList, selectedPhotoIndex]);
+
   const statusStyle = useMemo(
     () => STATUS_COLORS[details?.status] ?? STATUS_COLORS.pending,
     [details]
   );
 
+  // ── Access Control: who is the current user? ──
+  const currentUserId = user ? String((user as any)._id || (user as any).id || "") : "";
+  const isAssignedRescuer = useMemo(() => {
+    if (!user || !details?.rescuer) return false;
+    const rescuerUserId = details.rescuer.userId ? String(details.rescuer.userId) : "";
+    const rescuerId = details.rescuer.id ? String(details.rescuer.id) : "";
+    return (
+      (rescuerUserId && rescuerUserId === currentUserId) ||
+      (rescuerId && rescuerId === currentUserId)
+    );
+  }, [user, details, currentUserId]);
+
+  const isReporter = useMemo(() => {
+    if (!user || !details?.reporter) return false;
+    const reporterId = details.reporter.id ? String(details.reporter.id) : "";
+    return reporterId && reporterId === currentUserId;
+  }, [user, details, currentUserId]);
+
   // ── Timeline status indices ──
-  const timelineSteps = ["Request Sent", "Rescuer Assigned", "Rescuer On The Way", "Completed"];
-  const currentStatusIndex = useMemo(() => {
-    if (!details) return 0;
-    const status = details.status;
-    if (status === "pending") return 0;
-    if (status === "accepted") return 2; // Assigned and On The Way
-    if (status === "completed") return 3; // Fully completed
-    return 0; // default / rejected
+  const timelineData = useMemo(() => {
+    if (!details || !details.timeline || !Array.isArray(details.timeline) || details.timeline.length === 0) {
+      return [
+        { status: "Needs Help", message: "Your request was published on the network", timestamp: details?.createdAt || new Date().toISOString() }
+      ];
+    }
+    return details.timeline;
   }, [details]);
 
   if (loading) {
@@ -431,73 +493,67 @@ export default function RescueDetailsScreen() {
               <Text style={styles.animalTypeText}>{details.animalType || "Rescue Animal"}</Text>
             </View>
           </View>
+
+          {/* Photos Thumbnail Gallery for all case images */}
+          {photosList.length > 1 && (
+            <View style={{ paddingHorizontal: 12, paddingVertical: 10, backgroundColor: "#FFF8EA", borderTopWidth: 1, borderColor: "rgba(254,185,75,0.2)" }}>
+              <Text style={{ fontSize: 11, fontFamily: "Inter-SemiBold", color: "#B8860B", marginBottom: 6 }}>
+                Case Photos ({photosList.length}):
+              </Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                {photosList.map((url: string, idx: number) => (
+                  <TouchableOpacity
+                    key={idx}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedPhotoIndex(idx)}
+                    style={{
+                      marginRight: 8,
+                      borderRadius: 10,
+                      borderWidth: selectedPhotoIndex === idx ? 2.5 : 1,
+                      borderColor: selectedPhotoIndex === idx ? colors.primary : "#E5E7EB",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <Image source={{ uri: url }} style={{ width: 64, height: 64, borderRadius: 8 }} resizeMode="cover" />
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+          )}
         </View>
 
         {/* ── 2. Timeline Tracker Card ── */}
         <View style={styles.card}>
           <Text style={styles.cardTitle}>⏱ Rescue Journey Timeline</Text>
           <View style={styles.timelineContainer}>
-            {timelineSteps.map((step, index) => {
-              const isCompleted = index <= currentStatusIndex;
-              const isLast = index === timelineSteps.length - 1;
+            {timelineData.map((step: any, index: number) => {
+              const isLast = index === timelineData.length - 1;
 
               return (
-                <View key={step} style={styles.timelineStep}>
+                <View key={index} style={styles.timelineStep}>
                   {/* Circle + Line */}
                   <View style={styles.timelineLeft}>
-                    <View
-                      style={[
-                        styles.timelineIndicator,
-                        isCompleted
-                          ? styles.timelineIndicatorActive
-                          : styles.timelineIndicatorInactive,
-                      ]}
-                    >
-                      {isCompleted ? (
-                        <Text style={styles.timelineIcon}>✓</Text>
-                      ) : (
-                        <Text style={[styles.timelineIcon, { color: "#9CA3AF" }]}>
-                          {index + 1}
-                        </Text>
-                      )}
+                    <View style={styles.timelineIndicatorActive}>
+                      <Text style={styles.timelineIcon}>✓</Text>
                     </View>
                     {!isLast && (
-                      <View
-                        style={[
-                          styles.timelineLine,
-                          isCompleted && index < currentStatusIndex
-                            ? styles.timelineLineActive
-                            : null,
-                        ]}
-                      />
+                      <View style={[styles.timelineLine, styles.timelineLineActive]} />
                     )}
                   </View>
 
                   {/* Step Description */}
                   <View style={styles.timelineContent}>
-                    <Text
-                      style={[
-                        styles.timelineStepTitle,
-                        isCompleted ? styles.timelineStepTitleActive : null,
-                      ]}
-                    >
-                      {step}
+                    <Text style={styles.timelineStepTitleActive}>
+                      {step.status}
                     </Text>
                     <Text style={styles.timelineStepSub}>
-                      {index === 0 && "Your request was published on the network"}
-                      {index === 1 &&
-                        (details.rescuer
-                          ? `Assigned to ${details.rescuer.name}`
-                          : "Awaiting rescue team acceptance")}
-                      {index === 2 &&
-                        (details.status === "accepted" || details.status === "completed"
-                          ? "Rescue worker is traveling to the location"
-                          : "Pending journey start")}
-                      {index === 3 &&
-                        (details.status === "completed"
-                          ? "Case successfully resolved!"
-                          : "Pending final resolution")}
+                      {step.message || "Status updated"}
                     </Text>
+                    {step.timestamp && (
+                      <Text style={{ fontSize: 10, color: "#9CA3AF", marginTop: 2 }}>
+                        {new Date(step.timestamp).toLocaleString()}
+                      </Text>
+                    )}
                   </View>
                 </View>
               );
@@ -589,21 +645,28 @@ export default function RescueDetailsScreen() {
 
           {/* Reporter row */}
           <View style={styles.profileSection}>
-            <View style={styles.avatarInitials}>
-              <Text style={styles.avatarInitialsText}>{getInitial(details.reporter?.name)}</Text>
-            </View>
+            {(details.reporter?.avatar || details.reporterAvatar) ? (
+              <Image
+                source={{ uri: resolvePhotoUrl(details.reporter?.avatar || details.reporterAvatar) }}
+                style={styles.avatarImage}
+              />
+            ) : (
+              <View style={styles.avatarInitials}>
+                <Text style={styles.avatarInitialsText}>{getInitial(details.reporterName || details.reporter?.name)}</Text>
+              </View>
+            )}
             <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{details.reporter?.name || "Reporter"}</Text>
+              <Text style={styles.profileName}>{details.reporterName || details.reporter?.name || "Reporter"}</Text>
               <Text style={styles.profileRole}>Case Reporter</Text>
-              {details.reporter?.phone ? (
-                <Text style={styles.profilePhone}>{details.reporter.phone}</Text>
+              {(details.reporter?.phone || details.reporterPhone) ? (
+                <Text style={styles.profilePhone}>{details.reporter?.phone || details.reporterPhone}</Text>
               ) : null}
             </View>
-            {details.reporter?.phone ? (
+            {(details.reporter?.phone || details.reporterPhone) ? (
               <TouchableOpacity
                 style={styles.callIconBtn}
                 activeOpacity={0.8}
-                onPress={() => handleCall(details.reporter?.phone, details.reporter?.name)}
+                onPress={() => handleCall(details.reporter?.phone || details.reporterPhone, details.reporterName || details.reporter?.name)}
               >
                 <Text style={styles.callIconText}>📞</Text>
               </TouchableOpacity>
@@ -614,9 +677,16 @@ export default function RescueDetailsScreen() {
           <View style={[styles.profileSection, styles.profileSectionLast]}>
             {details.rescuer ? (
               <>
-                <View style={styles.avatarInitials}>
-                  <Text style={styles.avatarInitialsText}>{getInitial(details.rescuer.name)}</Text>
-                </View>
+                {details.rescuer.avatar ? (
+                  <Image
+                    source={{ uri: resolvePhotoUrl(details.rescuer.avatar) }}
+                    style={styles.avatarImage}
+                  />
+                ) : (
+                  <View style={styles.avatarInitials}>
+                    <Text style={styles.avatarInitialsText}>{getInitial(details.rescuer.name)}</Text>
+                  </View>
+                )}
                 <View style={styles.profileInfo}>
                   <Text style={styles.profileName}>{details.rescuer.name}</Text>
                   <Text style={styles.profileRole}>Assigned Rescuer</Text>
@@ -624,15 +694,6 @@ export default function RescueDetailsScreen() {
                     <Text style={styles.profilePhone}>{details.rescuer.phone}</Text>
                   ) : null}
                 </View>
-                {details.rescuer.phone ? (
-                  <TouchableOpacity
-                    style={styles.callIconBtn}
-                    activeOpacity={0.8}
-                    onPress={() => handleCall(details.rescuer?.phone, details.rescuer?.name)}
-                  >
-                    <Text style={styles.callIconText}>📞</Text>
-                  </TouchableOpacity>
-                ) : null}
               </>
             ) : (
               <View style={{ flex: 1, paddingVertical: spacing.sm, alignItems: "center" }}>
@@ -640,6 +701,29 @@ export default function RescueDetailsScreen() {
               </View>
             )}
           </View>
+
+          {/* Accept / Reject Action Buttons for received rescue requests */}
+          {details?.status === "pending" && (user?.role === "volunteer" || user?.role === "ngo" || user?.role === "vet" || user?.role === "rescuer") && (
+            <View style={{ flexDirection: "row", gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: "#E5E7EB" }}>
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 12, backgroundColor: "#EF4444", borderRadius: 10, alignItems: "center" }}
+                onPress={() => respondToRequest("reject")}
+                disabled={responding}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 14 }}>Reject Request</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={{ flex: 1, paddingVertical: 12, backgroundColor: "#10B981", borderRadius: 10, alignItems: "center" }}
+                onPress={() => respondToRequest("accept")}
+                disabled={responding}
+                activeOpacity={0.85}
+              >
+                <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 14 }}>Accept Request</Text>
+              </TouchableOpacity>
+            </View>
+          )}
         </View>
 
         {/* ── 6. Threaded Comments Section ── */}
@@ -655,33 +739,39 @@ export default function RescueDetailsScreen() {
           </View>
 
           {/* New comment composition */}
-          <View style={styles.commentInputRow}>
-            <TextInput
-              style={styles.commentInput}
-              placeholder="Post a new update/comment..."
-              placeholderTextColor="#9CA3AF"
-              value={newComment}
-              onChangeText={setNewComment}
-              multiline
-              maxLength={500}
-              editable={!submittingComment}
-            />
-            <TouchableOpacity
-              style={[
-                styles.commentSendBtn,
-                (!newComment.trim() || submittingComment) && styles.commentSendBtnDisabled,
-              ]}
-              activeOpacity={0.8}
-              onPress={handlePostComment}
-              disabled={!newComment.trim() || submittingComment}
-            >
-              {submittingComment ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.commentSendIcon}>➤</Text>
-              )}
-            </TouchableOpacity>
-          </View>
+          {isAssignedRescuer || isReporter ? (
+            <View style={styles.commentInputRow}>
+              <TextInput
+                style={styles.commentInput}
+                placeholder="Post a new update/comment..."
+                placeholderTextColor="#9CA3AF"
+                value={newComment}
+                onChangeText={setNewComment}
+                multiline
+                maxLength={500}
+                editable={!submittingComment}
+              />
+              <TouchableOpacity
+                style={[
+                  styles.commentSendBtn,
+                  (!newComment.trim() || submittingComment) && styles.commentSendBtnDisabled,
+                ]}
+                activeOpacity={0.8}
+                onPress={handlePostComment}
+                disabled={!newComment.trim() || submittingComment}
+              >
+                {submittingComment ? (
+                  <ActivityIndicator size="small" color="#FFFFFF" />
+                ) : (
+                  <Text style={styles.commentSendIcon}>➤</Text>
+                )}
+              </TouchableOpacity>
+            </View>
+          ) : (
+            <View style={{ padding: spacing.sm, alignItems: "center", backgroundColor: "#F9FAFB", borderRadius: 8, marginVertical: 8 }}>
+              <Text style={[styles.helperText, { textAlign: "center" }]}>View Only — Only the assigned rescuer or reporter can post updates.</Text>
+            </View>
+          )}
 
           {/* Loader */}
           {commentsLoading && comments.length === 0 ? (
@@ -703,9 +793,9 @@ export default function RescueDetailsScreen() {
               <View style={styles.commentBubble}>
                 <View style={styles.commentBubbleHeader}>
                   <View style={styles.commentAvatar}>
-                    <Text style={styles.commentAvatarText}>{getInitial(comment.userName)}</Text>
+                    <Text style={styles.commentAvatarText}>{getInitial(comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName)}</Text>
                   </View>
-                  <Text style={styles.commentUserName}>{comment.userName}</Text>
+                  <Text style={styles.commentUserName}>{comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName}</Text>
                   <Text style={styles.commentTime}>{timeAgo(comment.createdAt)}</Text>
                 </View>
                 <Text style={styles.commentText}>{comment.text}</Text>
@@ -740,10 +830,10 @@ export default function RescueDetailsScreen() {
                       <View style={styles.commentBubbleHeader}>
                         <View style={styles.commentAvatar}>
                           <Text style={styles.commentAvatarText}>
-                            {getInitial(reply.userName)}
+                            {getInitial(reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName)}
                           </Text>
                         </View>
-                        <Text style={styles.commentUserName}>{reply.userName}</Text>
+                        <Text style={styles.commentUserName}>{reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName}</Text>
                         <Text style={styles.commentTime}>{timeAgo(reply.createdAt)}</Text>
                       </View>
                       <Text style={styles.commentText}>{reply.text}</Text>
@@ -787,9 +877,35 @@ export default function RescueDetailsScreen() {
           ))}
         </View>
 
-        {/* ── Done Button ── */}
-        <AppButton title="Exit Details" onPress={() => router.back()} style={{ marginTop: spacing.md }} />
+        {/* Removed Exit Details button */}
       </ScrollView>
+
+      {/* ── Fixed Bottom Action Bar at bottom of page to Accept or Reject ── */}
+      {(!details?.status || details?.status === "pending" || details?.status === "Needs Help") && (
+        <View style={styles.actionBar}>
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: "#EF4444", paddingVertical: 14, borderRadius: 12, alignItems: "center" }, responding && { opacity: 0.6 }]}
+            onPress={() => respondToRequest("reject")}
+            disabled={responding}
+            activeOpacity={0.85}
+          >
+            <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 16 }}>Reject Request</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.actionBtn, { backgroundColor: "#10B981", paddingVertical: 14, borderRadius: 12, alignItems: "center" }, responding && { opacity: 0.6 }]}
+            onPress={() => respondToRequest("accept")}
+            disabled={responding}
+            activeOpacity={0.85}
+          >
+            {responding ? (
+              <ActivityIndicator color="#FFFFFF" size="small" />
+            ) : (
+              <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 16 }}>Accept Request</Text>
+            )}
+          </TouchableOpacity>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
