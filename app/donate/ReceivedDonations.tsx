@@ -6,6 +6,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useAuth } from "../../contexts/AuthContext";
 import { useChatApi } from "../../hooks/useChatApi";
+import { BASE_URL } from "../../constants/config.constants";
 
 type Donation = {
   id: string;
@@ -25,8 +26,6 @@ export default function ReceivedDonations() {
   const [loading, setLoading] = useState(true);
   const [messagingId, setMessagingId] = useState<string | null>(null);
 
-  const BACKEND_URL = "http://192.168.8.160:5000";
-
   useEffect(() => {
     fetchReceivedDonations();
   }, []);
@@ -36,7 +35,7 @@ export default function ReceivedDonations() {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) return;
 
-      const donRes: any = await axios.get(`${BACKEND_URL}/api/donations/received`, {
+      const donRes: any = await axios.get(`${BASE_URL}/api/donations/received`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

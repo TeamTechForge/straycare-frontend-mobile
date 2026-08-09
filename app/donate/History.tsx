@@ -3,6 +3,7 @@ import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BASE_URL } from "../../constants/config.constants";
 
 type Donation = {
   _id: string;
@@ -20,8 +21,6 @@ export default function DonationHistory() {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const BACKEND_URL = "http://192.168.8.160:5000";
-
   useEffect(() => {
     fetchDonations();
   }, []);
@@ -30,7 +29,7 @@ export default function DonationHistory() {
     try {
       const token = await SecureStore.getItemAsync("authToken");
 
-      const res = await axios.get(`${BACKEND_URL}/api/donations/history`, {
+      const res = await axios.get(`${BASE_URL}/api/donations/history`, {
         headers: { Authorization: `Bearer ${token}` },
       });
 

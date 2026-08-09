@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { WebView } from "react-native-webview";
+import { BASE_URL } from "../../constants/config.constants";
 
 const INJECTED_JS = `
   (function() {
@@ -39,8 +40,6 @@ const PayHereCheckout = () => {
   const [orderData, setOrderData] = useState<any>(null);
   const paymentHandledRef = useRef(false); // prevent double save — ref updates instantly, unlike state
 
-  const BACKEND_URL = "http://192.168.8.160:5000";
-
   // organization = _id, organizationName = display name
   const { amount, category, organization, organizationName, frequency, plan } = useLocalSearchParams();
 
@@ -62,7 +61,7 @@ const PayHereCheckout = () => {
       const config = await getAuthHeaders();
 
       const res = await axios.post(
-        `${BACKEND_URL}/api/donations/initiate`,
+        `${BASE_URL}/api/donations/initiate`,
         {
           amount: parseFloat(amount as string) || 1000,
           organizationId: organization,   // _id for merchant ID lookup
@@ -79,7 +78,7 @@ const PayHereCheckout = () => {
       setOrderData(data);
 
       const url =
-        `${BACKEND_URL}/api/donations/pay?` +
+        `${BASE_URL}/api/donations/pay?` +
         `merchant_id=${data.merchant_id}&` +
         `order_id=${data.order_id}&` +
         `items=${encodeURIComponent(data.items)}&` +
@@ -111,7 +110,7 @@ const PayHereCheckout = () => {
       const config = await getAuthHeaders();
 
       await axios.post(
-        `${BACKEND_URL}/api/donations/save`,
+        `${BASE_URL}/api/donations/save`,
         {
           orderId: orderData?.order_id,
           amount: orderData?.amount,
