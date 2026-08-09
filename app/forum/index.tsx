@@ -10,13 +10,14 @@ import {
 } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
-import { forumStyles as styles } from "../styles/forum.styles";
-import ForumTabs from "../components/forum/ForumTabs";
-import ForumPostCard from "../components/forum/ForumPostCard";
-import ForumBottomActions from "../components/forum/ForumBottomActions";
-import { getAllPosts, likePost } from "../services/forumService";
-import type { ForumPost } from "../types/Forum";
+import { forumStyles as styles } from "../../styles/forum.styles";
+import ForumTabs from "../../components/forum/ForumTabs";
+import ForumPostCard from "../../components/forum/ForumPostCard";
+import ForumBottomActions from "../../components/forum/ForumBottomActions";
+import { getAllPosts, likePost } from "../../services/forumService";
+import type { ForumPost } from "../../types/Forum";
 
 type TabKey = "Newest" | "Active" | "Unanswered";
 
@@ -67,6 +68,14 @@ export default function DiscussionForumScreen() {
   );
 
   /* ── Filtered & sorted posts ────────────────────────────────────────── */
+  const myActivePosts = useMemo(() => {
+    return posts.filter((p) => p.isMine).sort((a, b) => b.commentCount - a.commentCount);
+  }, [posts]);
+
+  const otherActivePosts = useMemo(() => {
+    return posts.filter((p) => !p.isMine).sort((a, b) => b.commentCount - a.commentCount);
+  }, [posts]);
+
   const filtered = useMemo(() => {
     if (tab === "Newest") return posts;
     if (tab === "Active") {
@@ -89,6 +98,21 @@ export default function DiscussionForumScreen() {
           ? likeError.message
           : "Failed to update like";
       console.error("[DiscussionForum] ERROR toggling like:", message);
+      setError(message);
+    }
+  }
+
+  /* ── Delete handler ─────────────────────────────────────────────────── */
+  async function handleDeletePost(id: string) {
+    try {
+      console.log("[DiscussionForum] Deleting post", id);
+      const { deletePost } = await import("../../services/forumService");
+      await deletePost(id);
+      setPosts((prev) => prev.filter((p) => p.id !== id));
+      console.log("[DiscussionForum] Post deleted successfully");
+    } catch (deleteError) {
+      const message = deleteError instanceof Error ? deleteError.message : "Failed to delete post";
+      console.error("[DiscussionForum] ERROR deleting post:", message);
       setError(message);
     }
   }
@@ -119,7 +143,7 @@ export default function DiscussionForumScreen() {
         ) : error ? (
           /* ── Error state ────────────────────────────────────────── */
           <View style={styles.centeredState}>
-            <Text style={styles.stateEmoji}>⚠️</Text>
+            <Ionicons name="alert-circle-outline" size={48} color="#999" />
             <Text style={styles.stateTitle}>Something went wrong</Text>
             <Text style={styles.stateMessage}>{error}</Text>
             <Pressable
@@ -135,7 +159,7 @@ export default function DiscussionForumScreen() {
         ) : posts.length === 0 ? (
           /* ── Empty state ────────────────────────────────────────── */
           <View style={styles.centeredState}>
-            <Text style={styles.stateEmoji}>💬</Text>
+            <Ionicons name="chatbubbles-outline" size={48} color="#999" />
             <Text style={styles.stateTitle}>No posts yet</Text>
             <Text style={styles.stateMessage}>
               Be the first to start a discussion!
@@ -145,6 +169,7 @@ export default function DiscussionForumScreen() {
           /* ── Post list ──────────────────────────────────────────── */
           <ScrollView
             style={styles.list}
+            contentContainerStyle={{ paddingBottom: 16 }}
             showsVerticalScrollIndicator={false}
             refreshControl={
               <RefreshControl
@@ -157,13 +182,48 @@ export default function DiscussionForumScreen() {
               />
             }
           >
-            {filtered.map((post) => (
-              <ForumPostCard
-                key={post.id}
-                post={post}
-                onToggleLike={() => void toggleLike(post.id)}
-              />
-            ))}
+            {tab === "Active" ? (
+              <>
+                {/* 📌 MY ACTIVE THREADS */}
+                <Text style={styles.sectionHeaderTitle}>📌 My Active Threads</Text>
+                {myActivePosts.length > 0 ? (
+                  myActivePosts.map((post) => (
+                    <ForumPostCard
+                      key={post.id}
+                      post={post}
+                      onToggleLike={() => void toggleLike(post.id)}
+                      onDeletePost={handleDeletePost}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.emptySectionText}>You have no active discussion threads yet.</Text>
+                )}
+
+                {/* 💬 OTHER ACTIVE DISCUSSIONS */}
+                <Text style={[styles.sectionHeaderTitle, { marginTop: 14 }]}>💬 Other Active Discussions</Text>
+                {otherActivePosts.length > 0 ? (
+                  otherActivePosts.map((post) => (
+                    <ForumPostCard
+                      key={post.id}
+                      post={post}
+                      onToggleLike={() => void toggleLike(post.id)}
+                      onDeletePost={handleDeletePost}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.emptySectionText}>No other active discussions found.</Text>
+                )}
+              </>
+            ) : (
+              filtered.map((post) => (
+                <ForumPostCard
+                  key={post.id}
+                  post={post}
+                  onToggleLike={() => void toggleLike(post.id)}
+                  onDeletePost={handleDeletePost}
+                />
+              ))
+            )}
           </ScrollView>
         )}
 

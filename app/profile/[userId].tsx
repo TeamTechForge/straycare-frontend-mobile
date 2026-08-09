@@ -351,7 +351,7 @@ export default function PublicProfileScreen() {
     if (userData.role === "general_user") {
       return [{ id: "reports", label: "Reports" }, { id: "posts", label: "Posts" }];
     } else {
-      return [{ id: "posts", label: "Posts" }, { id: "rescues", label: "Rescues" }];
+      return [{ id: "posts", label: "Posts" }, { id: "rescues", label: "Rescues" }, { id: "reports", label: "Reports" }];
     }
   };
 
@@ -464,12 +464,13 @@ export default function PublicProfileScreen() {
         <ProfileStatsRow stats={
           userData.role === "general_user"
             ? [
-              { value: statsData.reportsCount || 0, label: "REPORTS" },
-              { value: statsData.postsCount || 0, label: "POSTS" },
+              { value: reports.length || statsData.reportsCount || 0, label: "REPORTS" },
+              { value: posts.length || statsData.postsCount || 0, label: "POSTS" },
             ]
             : [
-              { value: statsData.postsCount || 0, label: "POSTS" },
-              { value: statsData.rescuesCompleted || 0, label: "RESCUES" },
+              { value: posts.length || statsData.postsCount || 0, label: "POSTS" },
+              { value: rescues.length || statsData.rescuesCompleted || 0, label: "RESCUES" },
+              { value: reports.length || statsData.reportsCount || 0, label: "REPORTS" },
             ]
         } />
 

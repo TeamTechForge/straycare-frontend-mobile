@@ -10,13 +10,13 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, SafeAreaView, Text, View } from "react-native";
 import { useRouter } from "expo-router";
 
-import RescueCaseCard from "../components/rescue-history/RescueCaseCard";
-import AppButton from "../components/ui/AppButton";
-import { colors } from "../constants/colors.constants";
-import { spacing } from "../constants/spacing.constants";
-import { fetchUserRescues } from "../services/rescueService";
-import { rescueHistoryStyles as styles } from "../styles/rescue-history.styles";
-import type { RescueCaseRecord } from "../types/Api";
+import RescueCaseCard from "../../components/rescue-history/RescueCaseCard";
+import AppButton from "../../components/ui/AppButton";
+import { colors } from "../../constants/colors.constants";
+import { spacing } from "../../constants/spacing.constants";
+import { fetchUserRescues } from "../../services/rescueService";
+import { rescueHistoryStyles as styles } from "../../styles/rescue-history.styles";
+import type { RescueCaseRecord } from "../../types/Api";
 
 export default function MyRescuesScreen() {
   const router = useRouter();

@@ -12,11 +12,11 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import CustomAlertModal from "../../components/CustomAlertModal";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
-import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthService";
 import { useAuth } from "../../contexts/AuthContext";
-import CustomAlertModal from "../../components/CustomAlertModal";
+import { handleGoogleSignIn, useGoogleAuth } from "../../services/googleAuthService";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -105,6 +105,9 @@ export default function LoginScreen() {
         if (response.status === 404 || json.message === "Account not found") {
           console.log("[Login] Showing account not found popup");
           setIsAccountNotFoundVisible(true);
+        } else if (response.status === 403) {
+          // Suspended account — block login with a clear message
+          Alert.alert("Account Suspended", json.message || "Your account has been suspended.");
         } else {
           Alert.alert("Login Failed", json.message || "Invalid credentials.");
         }
@@ -117,7 +120,14 @@ export default function LoginScreen() {
       // Refresh AuthContext so token + user are available app-wide
       await refreshUser();
 
-      router.replace("/(tabs)/Home");
+      // Warned account — let login proceed, but show the warning first
+      if (json.warning) {
+        Alert.alert("Account Warning", json.warning, [
+          { text: "OK", onPress: () => router.replace("/(tabs)/Home") },
+        ]);
+      } else {
+        router.replace("/(tabs)/Home");
+      }
     } catch (error: any) {
       clearTimeout(timeoutId);
       console.error("Login error:", error);

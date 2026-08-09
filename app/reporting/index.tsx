@@ -3,13 +3,14 @@ import { useRouter } from "expo-router";
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Animated,
   BackHandler,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { getAllReports } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 
@@ -47,9 +48,79 @@ const getMarkerColor = (status: string) => {
   }
 };
 
+const RadarMarker = ({ 
+  coordinate, 
+  status, 
+  onPress 
+}: { 
+  coordinate: { latitude: number; longitude: number }; 
+  status: string; 
+  onPress: () => void; 
+}) => {
+  const isSearching = status === "Pending" || status === "Request Sent";
+  const radarAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (isSearching) {
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(radarAnim, {
+            toValue: 1,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(radarAnim, {
+            toValue: 0,
+            duration: 0,
+            useNativeDriver: true,
+          })
+        ])
+      ).start();
+    } else {
+      radarAnim.stopAnimation();
+    }
+  }, [isSearching, radarAnim]);
+
+  if (isSearching) {
+    return (
+      <Marker coordinate={coordinate} onPress={onPress} anchor={{ x: 0.5, y: 0.5 }}>
+        <View style={styles.radarContainer}>
+          <Animated.View
+            style={[
+              styles.radarCircle,
+              {
+                opacity: radarAnim.interpolate({
+                  inputRange: [0, 0.8, 1],
+                  outputRange: [0.8, 0.2, 0],
+                }),
+                transform: [
+                  {
+                    scale: radarAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [0.5, 3],
+                    }),
+                  },
+                ],
+              },
+            ]}
+          />
+        </View>
+      </Marker>
+    );
+  }
+
+  return (
+    <Marker 
+      coordinate={coordinate} 
+      pinColor={getMarkerColor(status)} 
+      onPress={onPress} 
+    />
+  );
+};
+
 export default function ReportingMapScreen() {
   const router = useRouter();
-  const mapRef = useRef<MapView>(null);
+  const mapRef = useRef<any>(null);
 
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -129,7 +200,7 @@ export default function ReportingMapScreen() {
       </View>
 
       {/* Map View */}
-      <MapView
+      <MapViewWrapper
         ref={mapRef}
         provider="google"
         style={styles.map}
@@ -151,13 +222,13 @@ export default function ReportingMapScreen() {
           }
 
           return (
-            <Marker
+            <RadarMarker
               key={report.caseId}
               coordinate={{
                 latitude: report.location.lat,
                 longitude: report.location.lng,
               }}
-              pinColor={getMarkerColor(report.status)}
+              status={report.status}
               onPress={() => {
                 // Delay navigation slightly to prevent Android ViewManager crash
                 // when unmounting/navigating during map gesture handling
@@ -171,7 +242,7 @@ export default function ReportingMapScreen() {
             />
           );
         })}
-      </MapView>
+      </MapViewWrapper>
 
       {/* Add Case Button */}
       <View style={styles.bottomButtonWrapper}>
@@ -209,5 +280,20 @@ const styles = StyleSheet.create({
     bottom: 90,
     left: 20,
     right: 20,
+  },
+  radarContainer: {
+    width: 100,
+    height: 100,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  radarCircle: {
+    position: "absolute",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: "rgba(229, 57, 53, 0.4)", // Red radar
+    borderWidth: 1,
+    borderColor: "rgba(229, 57, 53, 0.8)",
   },
 });

@@ -8,7 +8,7 @@ import {
   Text,
   View,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";
 
 type MapRegion = {
@@ -161,9 +161,9 @@ export default function LocationPicker() {
 
   return (
     <View style={styles.container}>
-      <MapView style={styles.map} region={region}>
+      <MapViewWrapper style={styles.map} region={region}>
         <Marker coordinate={region} draggable onDragEnd={onMarkerDragEnd} />
-      </MapView>
+      </MapViewWrapper>
 
       {/* ADDRESS BOX */}
       <View style={styles.addressBox}>

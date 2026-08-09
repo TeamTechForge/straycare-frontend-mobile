@@ -1,10 +1,10 @@
-import { Ionicons } from "@expo/vector-icons";
 import axios from "axios";
 import { useRouter } from "expo-router";
+import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { BASE_URL } from "../../constants/config.constants";
 
-// Defines the structure of a donation object from MongoDB
 type Donation = {
   _id: string;
   organization: string;
@@ -19,45 +19,37 @@ export default function DonationHistory() {
   const router = useRouter();
 
   const [donations, setDonations] = useState<Donation[]>([]);
-
   const [loading, setLoading] = useState(true);
 
-  const BACKEND_URL="http://192.168.8.160:5000";
-
-  // Runs once when screen loads
   useEffect(() => {
     fetchDonations();
   }, []);
 
-  // Fetches all donations from MongoDB
   const fetchDonations = async () => {
     try {
-      const res = await axios.get(`${BACKEND_URL}/api/donations/history`);
-      setDonations(res.data as any[]); // stores donations in state
+      const token = await SecureStore.getItemAsync("authToken");
+
+      const res = await axios.get(`${BASE_URL}/api/donations/history`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+
+      setDonations(res.data as any[]);
     } catch (err) {
       console.error("Error fetching donations:", err);
     } finally {
-      setLoading(false); 
+      setLoading(false);
     }
   };
 
-  //each donation card 
   const renderItem = ({ item }: { item: Donation }) => (
     <View style={styles.card}>
-      
       <Text style={styles.org}>{item.organization || "StrayCare"}</Text>
-
       <Text style={styles.category}>{item.category || "General"}</Text>
-
       <Text style={styles.amount}>Rs. {item.amount.toFixed(2)}</Text>
-
       <Text style={styles.date}>{new Date(item.timestamp).toLocaleDateString()}</Text>
-
-      {/* Unique order ID from PayHere */}
       <Text style={styles.orderId}>Order: {item.orderId}</Text>
 
       <View style={styles.row}>
-        
         <View
           style={[
             styles.statusPill,
@@ -74,12 +66,9 @@ export default function DonationHistory() {
           </Text>
         </View>
 
-        {}
-        
         {item.status === "SUCCESS" && (
           <TouchableOpacity
             style={styles.receiptBtn}
-            // Passes donation object as string to receipt screen
             onPress={() => router.push({ pathname: "/donate/Receipt", params: { donation: JSON.stringify(item) } })}
           >
             <Text style={styles.receiptText}>Receipt</Text>
@@ -89,7 +78,6 @@ export default function DonationHistory() {
     </View>
   );
 
-  // Show spinner while donations are loading
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
@@ -100,22 +88,16 @@ export default function DonationHistory() {
 
   return (
     <View style={styles.container}>
-
-
-    
       {donations.length === 0 ? (
         <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations yet</Text>
       ) : (
-        
         <FlatList
-          data={donations}                              // donations array from MongoDB
-          keyExtractor={(donation) => donation._id}     
-          renderItem={renderItem}                       
+          data={donations}
+          keyExtractor={(donation) => donation._id}
+          renderItem={renderItem}
           contentContainerStyle={{ paddingBottom: 80 }}
         />
       )}
-
-
     </View>
   );
 }
@@ -133,5 +115,4 @@ const styles = StyleSheet.create({
   statusText: { fontWeight: "bold", fontSize: 12 },
   receiptBtn: { marginLeft: 10, paddingVertical: 4, paddingHorizontal: 10, backgroundColor: "#FFB700", borderRadius: 6 },
   receiptText: { fontSize: 12, fontWeight: "600", color: "#fff" },
-  bottomBar: { flexDirection: "row", justifyContent: "space-around", padding: 15, borderTopWidth: 1, borderColor: "#ddd", marginTop: "auto", backgroundColor: "#FFF9E6" },
 });

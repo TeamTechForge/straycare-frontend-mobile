@@ -2,25 +2,15 @@ import { Platform } from "react-native";
 
 import type { LiveTrackingResponse, RescueByIdResponse, RescueCaseRecord, RescueComment } from "../types/Api";
 
-const getApiBaseUrls = (): string[] => {
-  const explicitUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+import { BASE_URL } from "../constants/config.constants";
 
-  if (explicitUrl) {
-    return [explicitUrl.replace(/\/$/, "")];
-  }
-
-  if (Platform.OS === "android") {
-    return ["http://10.0.2.2:5001", "http://10.0.2.2:5000"];
-  }
-
-  return ["http://localhost:5001", "http://localhost:5000"];
-};
+const getApiBaseUrls = (): string[] => [BASE_URL];
 
 /**
  * Returns the primary API base URL for building image/upload URLs.
  * Components use this to prefix relative photo paths like /uploads/photo.jpg
  */
-export const getApiBaseUrl = (): string => getApiBaseUrls()[0];
+export const getApiBaseUrl = (): string => BASE_URL;
 
 const buildUrl = (baseUrl: string, path: string) => `${baseUrl}${path}`;
 
@@ -29,11 +19,17 @@ const requestJson = async <T>(path: string): Promise<T> => {
 
   for (const baseUrl of getApiBaseUrls()) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
+
       const response = await fetch(buildUrl(baseUrl, path), {
         headers: {
           "Content-Type": "application/json",
         },
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const text = await response.text();
       const body = text ? (JSON.parse(text) as T) : (null as T);
@@ -50,7 +46,14 @@ const requestJson = async <T>(path: string): Promise<T> => {
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
-      if (!message.includes("fetch") && !message.includes("Network request failed") && !message.includes("Failed to fetch")) {
+      if (
+        !message.includes("fetch") &&
+        !message.includes("Network request failed") &&
+        !message.includes("Failed to fetch") &&
+        !message.includes("timed out") &&
+        !message.includes("CanceledError") &&
+        !message.includes("AbortError")
+      ) {
         throw error;
       }
     }
@@ -67,11 +70,17 @@ const postJson = async <T>(path: string, body: Record<string, unknown>): Promise
 
   for (const baseUrl of getApiBaseUrls()) {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 12000);
+
       const response = await fetch(buildUrl(baseUrl, path), {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(body),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
 
       const text = await response.text();
       const parsed = text ? (JSON.parse(text) as T) : (null as T);
@@ -88,7 +97,14 @@ const postJson = async <T>(path: string, body: Record<string, unknown>): Promise
     } catch (error) {
       lastError = error;
       const message = error instanceof Error ? error.message : String(error);
-      if (!message.includes("fetch") && !message.includes("Network request failed") && !message.includes("Failed to fetch")) {
+      if (
+        !message.includes("fetch") &&
+        !message.includes("Network request failed") &&
+        !message.includes("Failed to fetch") &&
+        !message.includes("timed out") &&
+        !message.includes("CanceledError") &&
+        !message.includes("AbortError")
+      ) {
         throw error;
       }
     }

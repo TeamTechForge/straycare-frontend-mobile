@@ -1,6 +1,6 @@
-import { Tabs } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { View, StyleSheet, Platform } from 'react-native';
+import { Tabs } from 'expo-router';
+import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useSocket } from '../../contexts/SocketContext';
 
@@ -19,8 +19,8 @@ export default function TabLayout() {
         tabBarActiveTintColor: BRAND_COLOR,
         tabBarInactiveTintColor: '#000000ff',
         tabBarStyle: {
-          height: Platform.OS === 'ios' ? 65 + insets.bottom : 70,
-          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 18,
+          height: Platform.OS === 'ios' ? 65 + insets.bottom : 70 + insets.bottom,
+          paddingBottom: Platform.OS === 'ios' ? insets.bottom : 18 + insets.bottom,
           paddingTop: 10,
           backgroundColor: TAB_BAR_BG,
           borderTopWidth: 1,
@@ -68,7 +68,7 @@ export default function TabLayout() {
           tabBarIcon: () => (
             <View style={styles.centerTabContainer}>
               <View style={styles.centerTab}>
-                <Ionicons name="map" size={28} color="#fff" />
+                <Ionicons name="map" size={34} color="#fff" />
               </View>
             </View>
           ),
@@ -99,22 +99,30 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      {/* Donate Flow (Hidden from Tab Bar) */}
+      <Tabs.Screen
+        name="Donate"
+        options={{
+          href: null,
+          headerShown: false,
+        }}
+      />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
   centerTabContainer: {
-    // Positioned slightly higher the new tab bar height
-    top: -18,
+    top: -10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   centerTab: {
     backgroundColor: BRAND_COLOR,
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     justifyContent: 'center',
     alignItems: 'center',
     shadowColor: "#000",
@@ -132,7 +140,7 @@ const styles = StyleSheet.create({
     width: 10,
     height: 10,
     borderRadius: 5,
-    backgroundColor: '#EF4444', // Minimalistic red dot
+    backgroundColor: '#EF4444',
     borderWidth: 1.5,
     borderColor: '#FFF7E6',
   },
