@@ -43,7 +43,9 @@ export default function ChatHeader({ name, isOnline, profileImage, canCall, onCa
           <Text style={styles.name} numberOfLines={1}>
             {name}
           </Text>
-          <Text style={styles.status}>{isOnline ? "Online" : "Offline"}</Text>
+          <Text style={[styles.status, !isOnline && { color: "#6B7280" }]}>
+            {isOnline ? "Online" : "Offline"}
+          </Text>
         </View>
       </TouchableOpacity>
 

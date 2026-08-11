@@ -21,6 +21,7 @@ import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
 import AppButton from "../../components/ui/AppButton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const uploadToCloudinary = async (imageUri: string) => {
   const data = new FormData();
@@ -59,6 +60,7 @@ export default function AddContent() {
   const [content, setContent] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -189,7 +191,7 @@ export default function AddContent() {
         </ScrollView>
 
         {/* Fixed Bottom Publish Button — never covered by keyboard */}
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <AppButton
             title="Publish"
             onPress={onPublish}

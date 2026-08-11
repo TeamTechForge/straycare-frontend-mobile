@@ -13,6 +13,7 @@ import {
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { getAllReports } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Report = {
   caseId: string;
@@ -119,9 +120,9 @@ const RadarMarker = ({
 };
 
 export default function ReportingMapScreen() {
-  const router = useRouter();
   const mapRef = useRef<any>(null);
-
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
@@ -245,7 +246,7 @@ export default function ReportingMapScreen() {
       </MapViewWrapper>
 
       {/* Add Case Button */}
-      <View style={styles.bottomButtonWrapper}>
+      <View style={[styles.bottomButtonWrapper, { bottom: insets.bottom + 80 }]}>
         <PrimaryButton
           title="Report a Case +"
           onPress={() => router.push("/reporting/AnimalDetails")}
@@ -277,7 +278,6 @@ const styles = StyleSheet.create({
   subtext: { fontSize: 14, color: "#666", textAlign: "center" },
   bottomButtonWrapper: {
     position: "absolute",
-    bottom: 90,
     left: 20,
     right: 20,
   },
