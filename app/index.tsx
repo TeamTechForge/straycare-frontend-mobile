@@ -47,15 +47,8 @@ export default function HomePage() {
           variant="outline"
           onPress={() => router.push("/auth/Login")}
         />
-
-        <View style={styles.tempButtonSpacer} />
-        <PrimaryButton
-          title="🐾 Explore Adoption Corner"
-          onPress={() => router.push("/adoption-corner")
-
-          }
-        />
       </View>
+
     </View>
   );
 }
@@ -124,9 +117,5 @@ const styles = StyleSheet.create({
   //  NEW button container
   buttonContainer: {
     width: "100%",
-    gap: 10,
-  },
-  tempButtonSpacer: {
-    height: 6,
   },
 });
