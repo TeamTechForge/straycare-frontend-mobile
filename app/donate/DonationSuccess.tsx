@@ -61,9 +61,9 @@ export default function DonationSuccess() {
             title={canReceiveDonations ? "View Donation Hub" : "View Donation History"}
             onPress={handleViewHistory}
           />
-        </View>
-      </View>
-    </View>
+        </View >
+      </View >
+    </View >
   );
 }
 

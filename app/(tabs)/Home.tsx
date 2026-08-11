@@ -167,7 +167,7 @@ export default function HomeScreen() {
                       source={
                         item.profileImage
                           ? { uri: item.profileImage }
-                          : require("../../assets/images/straycarelogo.png")
+                          : require("../../assets/images/default-avatar.jpg")
                       }
                       style={styles.searchItemImage}
                     />
@@ -180,10 +180,25 @@ export default function HomeScreen() {
                         <Ionicons name="checkmark-circle" size={14} color="#4A90E2" style={{ marginLeft: 4 }} />
                       </View>
 
-                      {item.clinicName && (
-                        <Text style={styles.searchItemClinic} numberOfLines={1}>
-                          🏢 {item.clinicName}
-                        </Text>
+                      {(item.clinicName || item.specialization) && (
+                        <View style={styles.tagsContainer}>
+                          {item.clinicName && (
+                            <View style={styles.tagBadge}>
+                              <Ionicons name="business-outline" size={12} color="#4B5563" />
+                              <Text style={styles.tagText} numberOfLines={1}>
+                                {item.clinicName}
+                              </Text>
+                            </View>
+                          )}
+                          {item.specialization && (
+                            <View style={[styles.tagBadge, { backgroundColor: "#F3E8FF" }]}>
+                              <Ionicons name="medkit-outline" size={12} color="#7E22CE" />
+                              <Text style={[styles.tagText, { color: "#7E22CE" }]} numberOfLines={1}>
+                                {item.specialization}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
                       )}
 
                       <Text style={styles.searchItemLocation} numberOfLines={1}>
@@ -222,11 +237,11 @@ export default function HomeScreen() {
           <Text style={styles.sectionTitle}>Quick Actions</Text>
 
           <View style={styles.grid}>
-        <ActionCard
-          icon={<MaterialCommunityIcons name="hand-heart" size={24} color="#F5A623" />}
-          label="Donate"
-          onPress={() => router.push("/Donate")}
-        />
+            <ActionCard
+              icon={<MaterialCommunityIcons name="hand-heart" size={24} color="#F5A623" />}
+              label="Donate"
+              onPress={() => router.push("/Donate")}
+            />
 
         <ActionCard
           icon={<MaterialCommunityIcons name="dog" size={24} color="#F5A623" />}
@@ -377,6 +392,28 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: "#4B5563",
     marginTop: 2,
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginTop: 4,
+  },
+  tagBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 6,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
+    maxWidth: "100%",
+  },
+  tagText: {
+    fontSize: 10,
+    fontWeight: "500",
+    color: "#4B5563",
+    flexShrink: 1,
   },
   searchItemLocation: {
     fontSize: 11,
