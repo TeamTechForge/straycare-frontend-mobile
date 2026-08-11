@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { WebView } from "react-native-webview";
+import { BASE_URL } from "../../constants/config.constants";
 
 const INJECTED_JS = ` 
 (function() { 
@@ -25,8 +26,7 @@ const PayHereCheckout = () => {
   const [orderData, setOrderData] = useState<any>(null); 
   const paymentHandledRef = useRef(false); 
 
-  // Fallback to exactly match your active cloud server instance
-  const BACKEND_URL = process.env.EXPO_PUBLIC_API_URL || "https://straycare-backend-69nd.onrender.com"; 
+  // organization = _id, organizationName = display name
   const { amount, category, organization, organizationName, frequency, plan } = useLocalSearchParams(); 
 
   useEffect(() => { 
@@ -45,11 +45,11 @@ const PayHereCheckout = () => {
       const config = await getAuthHeaders(); 
       
       const res = await axios.post( 
-        `${BACKEND_URL}/api/donations/initiate`, 
+        `${BASE_URL}/api/donations/initiate`, 
         { 
           amount: parseFloat(amount as string) || 1000, 
-          organizationId: organization, 
-          organization: organizationName, 
+          organizationId: organization,   // _id for merchant ID lookup
+          organization: organizationName, // display name for donation record
           category, 
           frequency, 
           plan, 
@@ -61,9 +61,8 @@ const PayHereCheckout = () => {
       const data: any = res.data; 
       setOrderData(data); 
 
-      const checkoutEndpoint = `${BACKEND_URL}/api/donations/pay`;
-
-      const url = `${checkoutEndpoint}?` + 
+      const url = 
+        `${BASE_URL}/api/donations/pay?` + 
         `merchant_id=${encodeURIComponent(data.merchant_id)}&` + 
         `order_id=${encodeURIComponent(data.order_id)}&` + 
         `items=${encodeURIComponent(data.items)}&` + 
@@ -94,7 +93,7 @@ const PayHereCheckout = () => {
     try { 
       const config = await getAuthHeaders(); 
       await axios.post( 
-        `${BACKEND_URL}/api/donations/save`, 
+        `${BASE_URL}/api/donations/save`, 
         { 
           orderId: orderData?.order_id, 
           amount: orderData?.amount, 

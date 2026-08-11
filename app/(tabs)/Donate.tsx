@@ -5,7 +5,7 @@ import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 import SelectField from '../../components/SelectField';
 
-const BACKEND_URL = "http://192.168.8.160:5000";
+import { BASE_URL } from '../../constants/config.constants';
 
 type FormErrors = {
   category?: string;
@@ -50,8 +50,8 @@ export default function DonateScreen() {
     const fetchData = async () => {
       try {
         const url = category
-          ? `${BACKEND_URL}/api/organizations/category/${encodeURIComponent(category)}`
-          : `${BACKEND_URL}/api/organizations`;
+          ? `${BASE_URL}/api/organizations/category/${encodeURIComponent(category)}`
+          : `${BASE_URL}/api/organizations`;
 
         const res = await fetch(url);
         const data = await res.json();
