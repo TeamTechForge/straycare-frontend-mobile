@@ -200,7 +200,7 @@ export default function ProfileScreen() {
     location: location,
     bio: bio,
     memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : "2026",
-    avatar: profile?.profileImage || user?.avatar || "https://via.placeholder.com/150",
+    avatar: profile?.profileImage || user?.avatar ? (profile?.profileImage || user?.avatar) : require("../../assets/images/default-avatar.jpg"),
   };
   
   // To handle saved items (all current files had it empty)
@@ -236,6 +236,7 @@ export default function ProfileScreen() {
           memberSince={userData.memberSince}
           avatar={userData.avatar}
           role={user?.role}
+          isVerified={user?.isApproved}
           onEditPress={() => router.push("/profile/EditProfile")}
         />
 
