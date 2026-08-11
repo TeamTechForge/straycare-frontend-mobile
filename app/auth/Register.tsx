@@ -19,6 +19,7 @@ import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import CustomAlertModal from "../../components/CustomAlertModal";
+import { setStoredItem } from "../../utils/storage";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -53,7 +54,7 @@ export default function RegisterScreen() {
       setIsGoogleLoading(true);
       try {
         const result = await handleGoogleSignIn(googleResponse);
-        await SecureStore.setItemAsync("authToken", result.token);
+        await setStoredItem("authToken", result.token);
         await refreshUser();
 
         if (result.isNewUser) {
@@ -170,7 +171,7 @@ export default function RegisterScreen() {
 
       if (response.ok) {
         // Store JWT securely
-        await SecureStore.setItemAsync("authToken", data.token);
+        await setStoredItem("authToken", data.token);
 
         // Refresh AuthContext so token + user are available app-wide
         await refreshUser();

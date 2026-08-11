@@ -1,10 +1,10 @@
 // contexts/AuthContext.tsx
 // Global auth state — avoids repeated SecureStore reads across screens.
 
-import * as SecureStore from "expo-secure-store";
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { API_URL } from "../constants/config.constants";
 import { clearGoogleSession } from "../services/googleAuthService";
+import { getStoredItem, removeStoredItem } from "../utils/storage";
 
 type UserData = {
   _id: string;
@@ -43,7 +43,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const fetchUser = async () => {
     try {
-      const storedToken = await SecureStore.getItemAsync("authToken");
+      const storedToken = await getStoredItem("authToken");
       if (!storedToken) {
         setUser(null);
         setToken(null);
@@ -79,7 +79,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Token invalid/expired
         setUser(null);
         setToken(null);
-        await SecureStore.deleteItemAsync("authToken");
+        await removeStoredItem("authToken");
       }
     } catch (error) {
       console.error("[AuthContext] Error fetching user:", error);
@@ -93,7 +93,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await SecureStore.deleteItemAsync("authToken");
+    await removeStoredItem("authToken");
     await clearGoogleSession();
     setUser(null);
     setToken(null);

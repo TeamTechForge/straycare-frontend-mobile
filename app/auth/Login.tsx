@@ -17,6 +17,7 @@ import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { handleGoogleSignIn, useGoogleAuth } from "../../services/googleAuthService";
+import { setStoredItem } from "../../utils/storage";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -114,8 +115,8 @@ export default function LoginScreen() {
         return;
       }
 
-      // Store JWT securely — never in AsyncStorage
-      await SecureStore.setItemAsync("authToken", json.token);
+      // Store JWT securely (SecureStore on native, AsyncStorage on web)
+      await setStoredItem("authToken", json.token);
 
       // Refresh AuthContext so token + user are available app-wide
       await refreshUser();
