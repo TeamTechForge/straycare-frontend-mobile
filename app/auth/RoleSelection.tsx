@@ -15,6 +15,7 @@ import {
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
+import { getStoredItem } from "../../utils/storage";
 
 const BRAND_COLOR = "#f59e0b";
 
@@ -37,7 +38,7 @@ export default function SelectRoleScreen() {
     }
 
     // Retrieve the token stored after registration
-    const token = await SecureStore.getItemAsync("authToken");
+    const token = await getStoredItem("authToken");
 
     if (!token) {
       Alert.alert(

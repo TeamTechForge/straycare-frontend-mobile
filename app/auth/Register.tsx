@@ -225,7 +225,9 @@ export default function RegisterScreen() {
           Join our community and help save lives
         </Text>
 
-        <Text style={styles.label}>Name</Text>
+        <Text style={styles.label}>
+          Name <Text style={{ color: "red" }}>*</Text>
+        </Text>
         <InputField
           placeholder="John Doe"
           value={name}
@@ -234,7 +236,9 @@ export default function RegisterScreen() {
         />
         {errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
-        <Text style={styles.label}>Email Address</Text>
+        <Text style={styles.label}>
+          Email Address <Text style={{ color: "red" }}>*</Text>
+        </Text>
         <InputField
           placeholder="Johndoe@gmail.com"
           value={email}
@@ -243,7 +247,9 @@ export default function RegisterScreen() {
         />
         {errors.email && <Text style={styles.error}>{errors.email}</Text>}
 
-        <Text style={styles.label}>Phone Number</Text>
+        <Text style={styles.label}>
+          Phone Number <Text style={{ color: "red" }}>*</Text>
+        </Text>
         <InputField
           placeholder="+94 77 555 5555"
           value={phone}
@@ -252,7 +258,9 @@ export default function RegisterScreen() {
         />
         {errors.phone && <Text style={styles.error}>{errors.phone}</Text>}
 
-        <Text style={styles.label}>Password</Text>
+        <Text style={styles.label}>
+          Password <Text style={{ color: "red" }}>*</Text>
+        </Text>
         <InputField
           placeholder="********"
           value={password}
@@ -262,7 +270,9 @@ export default function RegisterScreen() {
         />
         {errors.password && <Text style={styles.error}>{errors.password}</Text>}
 
-        <Text style={styles.label}>Confirm Password</Text>
+        <Text style={styles.label}>
+          Confirm Password <Text style={{ color: "red" }}>*</Text>
+        </Text>
         <InputField
           placeholder="********"
           value={confirmPassword}
