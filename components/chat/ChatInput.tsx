@@ -7,6 +7,7 @@ import * as Location from "expo-location";
 import React, { useState } from "react";
 import { Alert, StyleSheet, TextInput, TouchableOpacity, View, Modal, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import ChatLocationPicker from "./ChatLocationPicker";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -29,6 +30,7 @@ export default function ChatInput({
 }: Props) {
   const [text, setText] = useState("");
   const [isLocationSheetVisible, setIsLocationSheetVisible] = useState(false);
+  const [isMapPickerVisible, setIsMapPickerVisible] = useState(false);
   const insets = useSafeAreaInsets();
 
   const handleSend = () => {
@@ -158,6 +160,16 @@ export default function ChatInput({
               </TouchableOpacity>
 
               <TouchableOpacity 
+                style={[styles.modalButton, styles.modalSecondaryButton]} 
+                onPress={() => {
+                  setIsLocationSheetVisible(false);
+                  setIsMapPickerVisible(true);
+                }}
+              >
+                <Text style={styles.modalButtonTextPrimary}>Choose on Map</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity 
                 style={[styles.modalButton, styles.modalCancelButton]} 
                 onPress={() => setIsLocationSheetVisible(false)}
               >
@@ -167,6 +179,15 @@ export default function ChatInput({
           </View>
         </TouchableOpacity>
       </Modal>
+
+      <ChatLocationPicker 
+        visible={isMapPickerVisible}
+        onCancel={() => setIsMapPickerVisible(false)}
+        onSelect={(loc) => {
+          setIsMapPickerVisible(false);
+          onSendLocation(loc);
+        }}
+      />
     </View>
   );
 }
@@ -261,6 +282,9 @@ const styles = StyleSheet.create({
   },
   modalPrimaryButton: {
     backgroundColor: BRAND_COLOR,
+  },
+  modalSecondaryButton: {
+    backgroundColor: "#10B981", // Emerald green for map action
   },
   modalCancelButton: {
     backgroundColor: "#F3F4F6",

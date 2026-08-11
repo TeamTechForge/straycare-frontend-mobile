@@ -400,7 +400,9 @@ export default function PublicProfileScreen() {
           </View>
 
           <View style={styles.nameRow}>
-            <Text style={styles.name}>{userData.name}</Text>
+            <Text style={styles.name}>
+              {userData.role === "ngo" && profileData?.orgName ? profileData.orgName : userData.name}
+            </Text>
             {userData.isApproved && (
               <Ionicons name="checkmark-circle" size={20} color="#1DA1F2" style={{ marginLeft: 4 }} />
             )}
@@ -435,9 +437,7 @@ export default function PublicProfileScreen() {
               </View>
             </View>
           ) : null}
-          {userData.role === "ngo" && profileData?.orgName ? (
-            <Text style={styles.metaInfo}>Org: {profileData.orgName}</Text>
-          ) : null}
+
 
           <Text style={styles.bio}>{profileData?.bio || "No bio available."}</Text>
 
@@ -486,6 +486,9 @@ export default function PublicProfileScreen() {
               { value: posts.length || statsData.postsCount || 0, label: "POSTS" },
               { value: rescues.length || statsData.rescuesCompleted || 0, label: "RESCUES" },
               { value: reports.length || statsData.reportsCount || 0, label: "REPORTS" },
+              ...((userData.role === "ngo" || userData.role === "vet") && statsData.totalDonations !== undefined 
+                ? [{ value: `$${statsData.totalDonations}`, label: "DONATIONS" }] 
+                : [])
             ]
         } />
 
