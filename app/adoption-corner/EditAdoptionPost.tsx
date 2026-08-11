@@ -260,7 +260,6 @@ export default function EditAdoptionPost() {
           posterName,
           contact,
           notes: notes.trim() || undefined,
-          images: existingImages, // existing Cloudinary URLs kept
         },
         newImages // new local URIs to upload
       );

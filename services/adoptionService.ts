@@ -3,21 +3,29 @@
 
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
+import { API_URL } from "@/constants/config.constants";
 
 // ─── Config (all values come from .env) ──────────────────────────────────────
 
-const BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL!;
 const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME!;
 const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
 
-const api = axios.create({ baseURL: BASE_URL });
+const api = axios.create({ baseURL: `${API_URL}/adoption` });
 
 // Attach JWT token to every request automatically
-api.interceptors.request.use(async (config) => {
-  const token = await AsyncStorage.getItem("token");
-  if (token) config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(async (config: any) => {
+  const token =
+    (await SecureStore.getItemAsync("authToken")) ??
+    (await AsyncStorage.getItem("token"));
+
+  if (token) {
+    config.headers = config.headers ?? {};
+    config.headers.Authorization = `Bearer ${token}`;
+  }
+
   return config;
 });
 
@@ -62,6 +70,7 @@ export interface CreatePostPayload {
   healthStatus: string;
   description: string;
   traits: string[];
+  images?: string[];
   location: string;
   posterName: string;
   contact: string;
@@ -108,13 +117,13 @@ const uploadImages = async (localUris: string[]): Promise<string[]> => {
 
 // GET all posts — used in AdoptionCorner
 export const getAllPosts = async (): Promise<Post[]> => {
-  const { data } = await api.get<Post[]>("/posts");
+  const { data } = await api.get<Post[]>("/");
   return data;
 };
 
 // GET single post by ID — used in PetDetailView
 export const getPostById = async (postId: string): Promise<Post> => {
-  const { data } = await api.get<Post>(`/posts/${postId}`);
+  const { data } = await api.get<Post>(`/${postId}`);
   return data;
 };
 
@@ -128,7 +137,7 @@ export const createPost = async (
   const imageUrls = await uploadImages(localImageUris);
 
   // Step 2: send post + image URLs to backend
-  const { data } = await api.post<Post>("/posts", {
+  const { data } = await api.post<Post>("/", {
     ...payload,
     images: imageUrls,
   });
@@ -148,7 +157,7 @@ export const updatePost = async (
     images = await uploadImages(newLocalImageUris);
   }
 
-  const { data } = await api.put<Post>(`/posts/${postId}`, {
+  const { data } = await api.put<Post>(`/${postId}`, {
     ...payload,
     ...(images ? { images } : {}),
   });
@@ -158,11 +167,11 @@ export const updatePost = async (
 
 // DELETE post — used by owner or admin
 export const deletePost = async (postId: string): Promise<void> => {
-  await api.delete(`/posts/${postId}`);
+  await api.delete(`/${postId}`);
 };
 
 // GET current user's own posts — used in My Posts screen
 export const getMyPosts = async (): Promise<Post[]> => {
-  const { data } = await api.get<Post[]>("/posts/my");
+  const { data } = await api.get<Post[]>("/my");
   return data;
 };
