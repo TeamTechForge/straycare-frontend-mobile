@@ -417,10 +417,22 @@ export default function PublicProfileScreen() {
           {userData.role === "volunteer" && profileData?.serviceArea ? (
             <Text style={styles.metaInfo}>Service Area: {profileData.serviceArea}</Text>
           ) : null}
-          {userData.role === "vet" && profileData?.clinicName ? (
-            <View style={{ alignItems: "center" }}>
-              <Text style={styles.metaInfo}>Clinic: {profileData.clinicName}</Text>
-              <Text style={styles.metaInfo}>Specialization: {profileData.specialization || "General"}</Text>
+          {userData.role === "vet" && (profileData?.clinicName || profileData?.specialization) ? (
+            <View style={styles.tagsContainer}>
+              {profileData?.clinicName && (
+                <View style={styles.tagBadge}>
+                  <Ionicons name="business-outline" size={12} color="#4B5563" />
+                  <Text style={styles.tagText} numberOfLines={1}>
+                    {profileData.clinicName}
+                  </Text>
+                </View>
+              )}
+              <View style={[styles.tagBadge, { backgroundColor: "#F3E8FF" }]}>
+                <Ionicons name="medkit-outline" size={12} color="#7E22CE" />
+                <Text style={[styles.tagText, { color: "#7E22CE" }]} numberOfLines={1}>
+                  {profileData?.specialization || "General"}
+                </Text>
+              </View>
             </View>
           ) : null}
           {userData.role === "ngo" && profileData?.orgName ? (
@@ -724,6 +736,29 @@ const styles = StyleSheet.create({
     color: "#4B5563",
     fontWeight: "500",
     marginTop: 2,
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+    paddingHorizontal: 20,
+  },
+  tagBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#4B5563",
+    flexShrink: 1,
   },
   bio: {
     fontSize: 14,

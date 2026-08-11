@@ -267,35 +267,71 @@ export default function ProfileScreen() {
           )}
 
           {activeTab === "rescues" && !isGeneralUser && (
-            rescues.filter((r: any) => !r.status || ["accepted", "under rescue", "completed", "in progress"].includes(r.status.toLowerCase())).length > 0 ? (
-              rescues
-                .filter((r: any) => !r.status || ["accepted", "under rescue", "completed", "in progress"].includes(r.status.toLowerCase()))
-                .map((rescue: any, index: number) => (
-                  <ReportPreviewCard
-                    key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-${index}`}
-                    title={`${rescue.animalType} (${rescue.caseId})`}
-                    date={new Date(rescue.createdAt).toLocaleDateString()}
-                    status={rescue.status}
-                    image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
-                    summary={rescue.summary}
-                    actionText="Update Status"
-                    onActionPress={rescue.status !== "Completed" && rescue.status !== "completed" ? () => handleUpdateDetails(rescue.caseId) : undefined}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/rescuer-response/[requestId]" as any,
-                        params: {
-                          requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
-                          caseId: rescue.caseId,
-                        },
-                      })
-                    }
-                  />
-                ))
+            rescues.length > 0 ? (
+              <View>
+                {/* 📌 CURRENT RESCUES */}
+                <Text style={styles.subSectionTitle}>Current Rescues</Text>
+                {rescues.filter((r: any) => ["accepted", "under rescue", "in progress"].includes((r.status || "").toLowerCase())).length > 0 ? (
+                  rescues
+                    .filter((r: any) => ["accepted", "under rescue", "in progress"].includes((r.status || "").toLowerCase()))
+                    .map((rescue: any, index: number) => (
+                      <ReportPreviewCard
+                        key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-curr-${index}`}
+                        title={`${rescue.animalType} (${rescue.caseId})`}
+                        date={new Date(rescue.createdAt).toLocaleDateString()}
+                        status={rescue.status}
+                        image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                        summary={rescue.summary}
+                        actionText="Update Status"
+                        onActionPress={() => handleUpdateDetails(rescue.caseId)}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/rescuer-response/[requestId]" as any,
+                            params: {
+                              requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                              caseId: rescue.caseId,
+                            },
+                          })
+                        }
+                      />
+                    ))
+                ) : (
+                  <Text style={styles.noActiveText}>No active rescue cases right now.</Text>
+                )}
+
+                {/* 📜 RESCUE HISTORY */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Rescue History</Text>
+                {rescues.filter((r: any) => !["accepted", "under rescue", "in progress"].includes((r.status || "").toLowerCase())).length > 0 ? (
+                  rescues
+                    .filter((r: any) => !["accepted", "under rescue", "in progress"].includes((r.status || "").toLowerCase()))
+                    .map((rescue: any, index: number) => (
+                      <ReportPreviewCard
+                        key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-hist-${index}`}
+                        title={`${rescue.animalType} (${rescue.caseId})`}
+                        date={new Date(rescue.createdAt).toLocaleDateString()}
+                        status={rescue.status}
+                        image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                        summary={rescue.summary}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/rescuer-response/[requestId]" as any,
+                            params: {
+                              requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                              caseId: rescue.caseId,
+                            },
+                          })
+                        }
+                      />
+                    ))
+                ) : (
+                  <Text style={styles.noActiveText}>No past rescue history.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="medkit-outline"
-                title="No active cases yet."
-                subtitle={isVolunteer ? "Your accepted rescue requests will appear here." : "Current treatments and medical cases will appear here."}
+                title="No rescues yet."
+                subtitle={isVolunteer ? "Your accepted rescue requests will appear here." : "Treatments and medical cases will appear here."}
               />
             )
           )}
@@ -491,7 +527,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingBottom: 100,
   },
   header: {
     paddingTop: 16,
