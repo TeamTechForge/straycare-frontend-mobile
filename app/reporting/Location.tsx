@@ -1,13 +1,7 @@
 import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import {
-  ActivityIndicator,
-  Alert,
-  StyleSheet,
-  Text,
-  View,
-} from "react-native";
+import { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import MapView, { Marker } from "react-native-maps";
 import PrimaryButton from "../../components/PrimaryButton";
 
@@ -18,143 +12,170 @@ type MapRegion = {
   longitudeDelta: number;
 };
 
+const safe = (value: string | string[] | undefined): string =>
+  Array.isArray(value) ? value[0] : value || "";
+
+const DEFAULT_SRI_LANKA_REGION = {
+  latitude: 7.8731,
+  longitude: 80.7718,
+  latitudeDelta: 3.2,
+  longitudeDelta: 3.2,
+};
+
 export default function LocationPicker() {
   const router = useRouter();
   const params = useLocalSearchParams();
-
-  // ---------------------------------------------------------
-  // SAFE PARAM FIX
-  // ---------------------------------------------------------
-  const safe = (v: string | string[] | undefined): string =>
-    Array.isArray(v) ? v[0] : v || "";
-
-
-  // ---------------------------------------------------------
-  // EDIT MODE
-  // ---------------------------------------------------------
   const isEditing = safe(params.mode) === "edit";
-
   const [region, setRegion] = useState<MapRegion | null>(null);
   const [address, setAddress] = useState(safe(params.locationAddress));
   const [loading, setLoading] = useState(true);
+  const [locationError, setLocationError] = useState<string | null>(null);
 
-  // ---------------------------------------------------------
-  // LOAD INITIAL LOCATION
-  // ---------------------------------------------------------
-  useEffect(() => {
-    (async () => {
-      // If editing → use existing location
-      if (isEditing && params.locationLat && params.locationLng) {
-        const lat = Number(safe(params.locationLat));
-        const lng = Number(safe(params.locationLng));
-
-        setRegion({
-          latitude: lat,
-          longitude: lng,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
-        });
-
-        fetchAddress(lat, lng);
-        setLoading(false);
-        return;
+  const fetchAddress = useCallback(async (latitude: number, longitude: number) => {
+    try {
+      const result = await Location.reverseGeocodeAsync({ latitude, longitude });
+      if (result.length > 0) {
+        const item = result[0];
+        const formatted = [item.name, item.street, item.city, item.region]
+          .filter(Boolean)
+          .join(", ");
+        setAddress(formatted || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+      } else {
+        setAddress(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
       }
-
-      // Normal flow → get current location
-      let { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== "granted") {
-        Alert.alert("Location permission denied");
-        return;
-      }
-
-      const loc = await Location.getCurrentPositionAsync({});
-      const { latitude, longitude } = loc.coords;
-
-      setRegion({
-        latitude,
-        longitude,
-        latitudeDelta: 0.01,
-        longitudeDelta: 0.01,
-      });
-
-      fetchAddress(latitude, longitude);
-      setLoading(false);
-    })();
+    } catch (error) {
+      console.error("[ReportLocation] Reverse geocoding failed:", error);
+      setAddress(`${latitude.toFixed(6)}, ${longitude.toFixed(6)}`);
+    }
   }, []);
 
-  // ---------------------------------------------------------
-  // REVERSE GEOCODE
-  // ---------------------------------------------------------
-  const fetchAddress = async (lat: number, lng: number) => {
-    const result = await Location.reverseGeocodeAsync({ latitude: lat, longitude: lng });
+  const requestCurrentLocation = useCallback(async () => {
+    setLoading(true);
+    setLocationError(null);
 
-    if (result.length > 0) {
-      const item = result[0];
-      const formatted = `${item.name || ""}, ${item.street || ""}, ${item.city || ""}, ${item.region || ""}`;
-      setAddress(formatted || "Unknown location");
-    } else {
-      setAddress("Unknown location");
+    try {
+      const permission = await Location.requestForegroundPermissionsAsync();
+      if (permission.status !== Location.PermissionStatus.GRANTED) {
+        setRegion(DEFAULT_SRI_LANKA_REGION);
+        setAddress("Move the pin to the incident location");
+        setLocationError(
+          "Location permission is off. You can still drag the pin to choose the incident location."
+        );
+        return;
+      }
+
+      const current = await Location.getCurrentPositionAsync({
+        accuracy: Location.Accuracy.Balanced,
+      });
+      const nextRegion = {
+        latitude: current.coords.latitude,
+        longitude: current.coords.longitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setRegion(nextRegion);
+      await fetchAddress(nextRegion.latitude, nextRegion.longitude);
+    } catch (error) {
+      console.error("[ReportLocation] Current location failed:", error);
+      setRegion(DEFAULT_SRI_LANKA_REGION);
+      setAddress("Move the pin to the incident location");
+      setLocationError(
+        "Your location could not be retrieved. Drag the pin to choose the incident location, or try GPS again."
+      );
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [fetchAddress]);
 
-  // ---------------------------------------------------------
-  // MARKER DRAG
-  // ---------------------------------------------------------
-  const onMarkerDragEnd = (e: any) => {
+  useEffect(() => {
+    const savedLatitude = Number(safe(params.locationLat));
+    const savedLongitude = Number(safe(params.locationLng));
+    const hasSavedLocation =
+      isEditing &&
+      Number.isFinite(savedLatitude) &&
+      Number.isFinite(savedLongitude) &&
+      savedLatitude >= -90 &&
+      savedLatitude <= 90 &&
+      savedLongitude >= -180 &&
+      savedLongitude <= 180;
+
+    if (hasSavedLocation) {
+      const savedRegion = {
+        latitude: savedLatitude,
+        longitude: savedLongitude,
+        latitudeDelta: 0.01,
+        longitudeDelta: 0.01,
+      };
+      setRegion(savedRegion);
+      setLoading(false);
+      if (!safe(params.locationAddress)) {
+        void fetchAddress(savedLatitude, savedLongitude);
+      }
+      return;
+    }
+
+    void requestCurrentLocation();
+  }, [fetchAddress, isEditing, params.locationAddress, params.locationLat, params.locationLng, requestCurrentLocation]);
+
+  const onMarkerDragEnd = (event: {
+    nativeEvent: { coordinate: { latitude: number; longitude: number } };
+  }) => {
     if (!region) return;
-
-    const { latitude, longitude } = e.nativeEvent.coordinate;
-
-    setRegion({
-      ...region,
-      latitude,
-      longitude,
-    });
-
-    fetchAddress(latitude, longitude);
+    const { latitude, longitude } = event.nativeEvent.coordinate;
+    setRegion({ ...region, latitude, longitude });
+    setLocationError(null);
+    void fetchAddress(latitude, longitude);
   };
 
-  // ---------------------------------------------------------
-  // NEXT / SAVE CHANGES
-  // ---------------------------------------------------------
   const handleNext = () => {
-    if (!region) return;
+    if (!region) {
+      setLocationError("Select a valid incident location before continuing.");
+      return;
+    }
 
-    // 🔥 EDIT MODE → return to Review
+    const nextParams = {
+      ...params,
+      locationLat: region.latitude.toString(),
+      locationLng: region.longitude.toString(),
+      locationAddress: address,
+    };
+
     if (isEditing) {
       router.push({
         pathname: "/reporting/Review",
-        params: {
-          ...params,
-          mode: "edit",
-          locationLat: region.latitude.toString(),
-          locationLng: region.longitude.toString(),
-          locationAddress: address,
-        },
+        params: { ...nextParams, mode: "edit" },
       });
       return;
     }
 
-    // 🔥 NORMAL FLOW → go to Upload Photos
-    router.push({
-      pathname: "/reporting/UploadPhotos",
-      params: {
-        ...params,
-        locationLat: region.latitude.toString(),
-        locationLng: region.longitude.toString(),
-        locationAddress: address,
-      },
-    });
+    router.push({ pathname: "/reporting/UploadPhotos", params: nextParams });
   };
 
-  // ---------------------------------------------------------
-  // LOADING SCREEN
-  // ---------------------------------------------------------
-  if (loading || !region) {
+  if (loading) {
     return (
       <View style={styles.center}>
         <ActivityIndicator size="large" color="#F5A623" />
         <Text style={styles.loadingText}>Getting your location...</Text>
+      </View>
+    );
+  }
+
+  if (!region) {
+    return (
+      <View style={styles.errorScreen}>
+        <View style={styles.errorCard}>
+          <Text style={styles.errorTitle}>
+            Incident Location <Text style={styles.requiredMark}>*</Text>
+          </Text>
+          <Text style={styles.errorMessage}>{locationError}</Text>
+          <TouchableOpacity
+            accessibilityRole="button"
+            style={styles.retryButton}
+            onPress={() => void requestCurrentLocation()}
+          >
+            <Text style={styles.retryButtonText}>Try Again</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     );
   }
@@ -165,13 +186,24 @@ export default function LocationPicker() {
         <Marker coordinate={region} draggable onDragEnd={onMarkerDragEnd} />
       </MapView>
 
-      {/* ADDRESS BOX */}
-      <View style={styles.addressBox}>
-        <Text style={styles.label}>Incident Location</Text>
-        <Text style={styles.address}>{address}</Text>
+      <View style={[styles.addressBox, locationError && styles.errorBorder]}>
+        <Text style={styles.label}>
+          Incident Location <Text style={styles.requiredMark}>*</Text>
+        </Text>
+        <Text style={styles.address}>{address || "Resolving address..."}</Text>
+        <Text style={styles.helperText}>Drag the marker to adjust the rescue location.</Text>
+        {locationError ? <Text style={styles.inlineError}>{locationError}</Text> : null}
+        {locationError ? (
+          <TouchableOpacity
+            accessibilityRole="button"
+            style={styles.inlineRetryButton}
+            onPress={() => void requestCurrentLocation()}
+          >
+            <Text style={styles.inlineRetryText}>Use current location again</Text>
+          </TouchableOpacity>
+        ) : null}
       </View>
 
-      {/* BUTTON */}
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
           title={isEditing ? "Save Changes →" : "Continue Report →"}
@@ -183,46 +215,57 @@ export default function LocationPicker() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fafafa" },
+  container: { flex: 1, backgroundColor: "#FAFAFA" },
   map: { flex: 1 },
-
-  center: {
+  center: { flex: 1, justifyContent: "center", alignItems: "center" },
+  loadingText: { marginTop: 10, fontSize: 15, color: "#333333" },
+  errorScreen: {
     flex: 1,
     justifyContent: "center",
+    padding: 24,
+    backgroundColor: "#FAFAFA",
+  },
+  errorCard: {
+    padding: 22,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1,
+    borderColor: "#F3D2D2",
+    elevation: 2,
+  },
+  errorTitle: { color: "#333333", fontSize: 18, fontWeight: "700", marginBottom: 8 },
+  errorMessage: { color: "#B42318", fontSize: 14, lineHeight: 20 },
+  retryButton: {
+    marginTop: 18,
+    minHeight: 46,
+    borderRadius: 12,
     alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#F5A623",
   },
-
-  loadingText: {
-    marginTop: 10,
-    fontSize: 15,
-    color: "#333",
-  },
-
+  retryButtonText: { color: "#FFFFFF", fontSize: 15, fontWeight: "700" },
   addressBox: {
     padding: 16,
-    backgroundColor: "white",
+    paddingBottom: 88,
+    backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
-    borderColor: "#ddd",
+    borderColor: "#DDDDDD",
   },
-
-  label: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: 4,
+  label: { fontSize: 14, fontWeight: "600", color: "#333333", marginBottom: 4 },
+  requiredMark: { color: "#D32F2F", fontWeight: "700" },
+  address: { fontSize: 16, color: "#333333" },
+  helperText: { marginTop: 5, color: "#6B7280", fontSize: 12 },
+  inlineError: { marginTop: 5, color: "#D32F2F", fontSize: 12 },
+  inlineRetryButton: {
+    alignSelf: "flex-start",
+    marginTop: 10,
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 8,
+    borderWidth: 1,
+    borderColor: "#F5A623",
   },
-
-  address: {
-    fontSize: 16,
-    color: "#333",
-    paddingBottom: 70,
-  },
-
-  bottomButtonWrapper: {
-    position: "absolute",
-    bottom: 25,
-    left: 20,
-    right: 20,
-  },
+  inlineRetryText: { color: "#8A4B08", fontSize: 13, fontWeight: "700" },
+  errorBorder: { borderColor: "#D32F2F", borderWidth: 1.5 },
+  bottomButtonWrapper: { position: "absolute", bottom: 25, left: 20, right: 20 },
 });
-` `

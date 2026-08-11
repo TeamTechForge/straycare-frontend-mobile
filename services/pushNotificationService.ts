@@ -127,7 +127,7 @@ export const pushNotificationService = {
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         console.log("[PUSH] Notification tapped:", response.notification);
-        onNotification(response.notification);
+      onNotification(response.notification);
       }
     );
 
@@ -173,5 +173,19 @@ export const pushNotificationService = {
     } catch (error) {
       console.error("[PUSH] Failed to initialize push notifications:", error);
     }
+  },
+
+  async ensureAuthenticatedTokenRegistered(): Promise<void> {
+    const pushToken = await this.setupPushNotifications();
+    if (pushToken) await this.sendTokenToBackend(pushToken);
+  },
+
+  listenForNotificationResponses(
+    onResponse: (notification: Notifications.Notification) => void
+  ): () => void {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      onResponse(response.notification);
+    });
+    return () => subscription.remove();
   },
 };

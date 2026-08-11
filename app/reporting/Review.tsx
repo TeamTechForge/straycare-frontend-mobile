@@ -13,30 +13,79 @@ import {
 import { submitReport } from "../../api/stray-api.service";
 import PrimaryButton from "../../components/PrimaryButton";
 
+type Category = "Injured" | "Abandoned" | "Aggressive";
+const ALLOWED_CATEGORIES: Category[] = ["Injured", "Abandoned", "Aggressive"];
+
+const safe = (value: string | string[] | undefined): string =>
+  Array.isArray(value) ? value[0] : value || "";
+
+const parseStringArray = (value: string | string[] | undefined): string[] => {
+  try {
+    const parsed = JSON.parse(safe(value));
+    return Array.isArray(parsed)
+      ? parsed.filter((item) => typeof item === "string")
+      : [];
+  } catch {
+    return [];
+  }
+};
+
+const parseCategories = (
+  categoriesValue: string | string[] | undefined,
+  legacyCategoryValue: string | string[] | undefined
+): Category[] => {
+  const parsed = parseStringArray(categoriesValue);
+  const values = parsed.length > 0 ? parsed : safe(legacyCategoryValue).split(",");
+  return [...new Set(values.map((value) => value.trim()))].filter(
+    (value): value is Category => ALLOWED_CATEGORIES.includes(value as Category)
+  );
+};
+
+const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dljp2yzpb/image/upload";
+const CLOUDINARY_UPLOAD_PRESET = "straycare_report_images";
+
+const uploadToCloudinary = async (imageUri: string): Promise<string | null> => {
+  if (imageUri.startsWith("http")) return imageUri;
+
+  const data = new FormData();
+  data.append("file", {
+    uri: imageUri,
+    type: "image/jpeg",
+    name: "stray_report.jpg",
+  } as any);
+  data.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+
+  try {
+    const response = await fetch(CLOUDINARY_URL, {
+      method: "POST",
+      body: data as any,
+      headers: {
+        Accept: "application/json",
+        "Content-Type": "multipart/form-data",
+      },
+    });
+    const result: any = await response.json();
+    return response.ok && result.secure_url ? result.secure_url : null;
+  } catch (error) {
+    console.error("Cloudinary upload failed:", error);
+    return null;
+  }
+};
+
 export default function Review() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // ---------------------------------------------------------
-  // SAFE PARAM FIX
-  // ---------------------------------------------------------
-  const safe = (v: string | string[] | undefined): string =>
-    Array.isArray(v) ? v[0] : v || "";
-
-  // ---------------------------------------------------------
-  // CASE ID (preserve if editing)
-  // ---------------------------------------------------------
-  const caseId =
-    safe(params.caseId) ||
-    "STRAY-" + Math.floor(10000 + Math.random() * 90000);
+  const [caseId] = useState(
+    () => safe(params.caseId) || "STRAY-" + Math.floor(10000 + Math.random() * 90000)
+  );
 
   // ---------------------------------------------------------
   // PHOTOS
   // ---------------------------------------------------------
-  const photos: string[] = params.photos
-    ? JSON.parse(safe(params.photos))
-    : [];
+  const photos = parseStringArray(params.photos);
+  const categories = parseCategories(params.categories, params.category);
 
   // ---------------------------------------------------------
   // SUBMIT REPORT
@@ -45,22 +94,70 @@ export default function Review() {
     // Prevent double-submit
     if (isSubmitting) return;
 
+    const animalType = safe(params.animalType).trim();
+    const breed = safe(params.breed).trim();
+    const notes = safe(params.notes).trim();
+    const latitude = Number(safe(params.locationLat));
+    const longitude = Number(safe(params.locationLng));
+    const validationMessages: string[] = [];
+
+    if (!animalType || animalType.toLowerCase() === "other") {
+      validationMessages.push("Enter a specific animal type.");
+    } else if (animalType.length > 50) {
+      validationMessages.push("Animal type must be 50 characters or fewer.");
+    }
+    if (breed.length > 60) validationMessages.push("Breed must be 60 characters or fewer.");
+    if (categories.length === 0) validationMessages.push("Select at least one category.");
+    if (notes.length > 500) validationMessages.push("Condition notes must be 500 characters or fewer.");
+    if (photos.length < 1 || photos.length > 5) {
+      validationMessages.push("Add between 1 and 5 photos.");
+    }
+    if (
+      !Number.isFinite(latitude) ||
+      latitude < -90 ||
+      latitude > 90 ||
+      !Number.isFinite(longitude) ||
+      longitude < -180 ||
+      longitude > 180
+    ) {
+      validationMessages.push("Select a valid incident location.");
+    }
+
+    if (validationMessages.length > 0) {
+      Alert.alert("Report Incomplete", validationMessages.join("\n"));
+      return;
+    }
+
     setIsSubmitting(true);
     try {
+      const uploadedPhotos = await Promise.all(photos.map(uploadToCloudinary));
+      const validPhotoUrls = uploadedPhotos.filter(
+        (url): url is string => typeof url === "string" && url.length > 0
+      );
+
+      if (validPhotoUrls.length !== photos.length) {
+        Alert.alert(
+          "Upload Failed",
+          "One or more photos could not be uploaded. Please try again."
+        );
+        return;
+      }
+
       const reportData = {
         caseId,
-        animalType: safe(params.animalType),
-        breed: safe(params.breed) || "Unknown",
-        category: safe(params.category),
+        animalType,
+        breed,
+        categories,
+        category: categories.join(", "),
         status: "Needs Help",
-        notes: safe(params.notes),
+        notes,
         anonymous: safe(params.anonymous) === "true",
         location: {
-          lat: Number(safe(params.locationLat)),
-          lng: Number(safe(params.locationLng)),
-          address: safe(params.locationAddress),
+          lat: latitude,
+          lng: longitude,
+          address: safe(params.locationAddress).trim(),
         },
-        photos,
+        photos: validPhotoUrls,
         preventAutoMatch: true,
       };
 
@@ -99,7 +196,7 @@ export default function Review() {
       console.error("Error submitting report:", error);
 
       // Handle duplicate key error
-      if (error?.response?.status === 409) {
+      if (error?.status === 409 || error?.response?.status === 409) {
         Alert.alert(
           "Report Already Exists",
           "This report ID already exists. Please go back and try again.",
@@ -205,7 +302,7 @@ export default function Review() {
         <Text style={styles.value}>{safe(params.breed) || "Not specified"}</Text>
 
         <Text style={styles.label}>Category</Text>
-        <Text style={styles.value}>{safe(params.category)}</Text>
+        <Text style={styles.value}>{categories.join(", ")}</Text>
 
         <Text style={styles.label}>Notes</Text>
         <Text style={styles.value}>{safe(params.notes) || "No notes"}</Text>

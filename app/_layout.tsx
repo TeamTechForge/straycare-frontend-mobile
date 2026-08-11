@@ -105,6 +105,13 @@ function InitialLayout() {
             });
           }
         });
+        await pushNotificationService.ensureAuthenticatedTokenRegistered();
+        pushNotificationService.listenForNotificationResponses((notification) => {
+          const data = notification.request.content.data as { caseId?: string };
+          if (data.caseId) {
+            router.push({ pathname: "/reporting/CaseDetails", params: { caseId: data.caseId } } as never);
+          }
+        });
       } catch (error) {
         // Push notifications not available (normal in Expo Go)
         console.log("[PUSH] Push notifications not available:", (error as any)?.message);
