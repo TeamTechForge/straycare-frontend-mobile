@@ -166,7 +166,7 @@ export default function ChatInput({
                   setIsMapPickerVisible(true);
                 }}
               >
-                <Text style={styles.modalButtonTextPrimary}>Choose on Map</Text>
+                <Text style={styles.modalButtonTextSecondary}>Choose on Map</Text>
               </TouchableOpacity>
 
               <TouchableOpacity 
@@ -284,7 +284,7 @@ const styles = StyleSheet.create({
     backgroundColor: BRAND_COLOR,
   },
   modalSecondaryButton: {
-    backgroundColor: "#10B981", // Emerald green for map action
+    backgroundColor: "#FEF3C7", // Lighter brand color
   },
   modalCancelButton: {
     backgroundColor: "#F3F4F6",
@@ -293,6 +293,11 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "700",
     color: "#FFF",
+  },
+  modalButtonTextSecondary: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: BRAND_COLOR,
   },
   modalButtonText: {
     fontSize: 16,
