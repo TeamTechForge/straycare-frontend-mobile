@@ -51,7 +51,9 @@ export default function HomePage() {
         <View style={styles.tempButtonSpacer} />
         <PrimaryButton
           title="🐾 Explore Adoption Corner"
-          onPress={() => router.push("/adoption-corner")}
+          onPress={() => router.push("/adoption-corner")
+
+          }
         />
       </View>
     </View>

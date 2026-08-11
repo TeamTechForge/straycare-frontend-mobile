@@ -4,12 +4,13 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
+import { Platform } from "react-native";
 import { API_URL } from "@/constants/config.constants";
 
 // ─── Config (all values come from .env) ──────────────────────────────────────
 
-const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME!;
-const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET!;
+const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
+const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
 
@@ -17,9 +18,20 @@ const api = axios.create({ baseURL: `${API_URL}/adoption` });
 
 // Attach JWT token to every request automatically
 api.interceptors.request.use(async (config: any) => {
-  const token =
-    (await SecureStore.getItemAsync("authToken")) ??
-    (await AsyncStorage.getItem("token"));
+  let token: string | null = null;
+  try {
+    token = await SecureStore.getItemAsync("authToken");
+  } catch (_err) {
+    // SecureStore unsupported or failed on web
+  }
+
+  if (!token) {
+    try {
+      token = (await AsyncStorage.getItem("authToken")) ?? (await AsyncStorage.getItem("token"));
+    } catch (_err) {
+      // AsyncStorage fallback check
+    }
+  }
 
   if (token) {
     config.headers = config.headers ?? {};
@@ -84,13 +96,29 @@ const uploadSingleImage = async (
   localUri: string,
   index: number
 ): Promise<string> => {
+  // If image is already a remote HTTP/HTTPS URL, don't re-upload
+  if (localUri.startsWith("http://") || localUri.startsWith("https://")) {
+    return localUri;
+  }
+
+  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
+    console.warn("[Cloudinary] Credentials missing. EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME or EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET not set.");
+    throw new Error("Image upload service not configured. Set Cloudinary keys in environment.");
+  }
+
   const formData = new FormData();
 
-  formData.append("file", {
-    uri: localUri,
-    name: `pet_photo_${index}.jpg`,
-    type: "image/jpeg",
-  } as any);
+  if (Platform.OS === 'web') {
+    const res = await fetch(localUri);
+    const blob = await res.blob();
+    formData.append("file", blob, `pet_photo_${index}.jpg`);
+  } else {
+    formData.append("file", {
+      uri: localUri,
+      name: `pet_photo_${index}.jpg`,
+      type: "image/jpeg",
+    } as any);
+  }
 
   formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
   formData.append("folder", "adoption_posts");
@@ -149,17 +177,20 @@ export const createPost = async (
 export const updatePost = async (
   postId: string,
   payload: Partial<CreatePostPayload>,
-  newLocalImageUris?: string[] // pass only if user selected new images
+  newLocalImageUris?: string[],
+  existingImages?: string[]
 ): Promise<Post> => {
-  let images: string[] | undefined = undefined;
+  let uploadedUrls: string[] = [];
 
   if (newLocalImageUris && newLocalImageUris.length > 0) {
-    images = await uploadImages(newLocalImageUris);
+    uploadedUrls = await uploadImages(newLocalImageUris);
   }
+
+  const combinedImages = [...(existingImages || []), ...uploadedUrls];
 
   const { data } = await api.put<Post>(`/${postId}`, {
     ...payload,
-    ...(images ? { images } : {}),
+    images: combinedImages,
   });
 
   return data;

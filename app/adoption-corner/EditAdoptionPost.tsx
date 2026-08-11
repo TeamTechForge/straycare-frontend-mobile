@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { getPostById, updatePost } from "@/services/adoptionService";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -40,6 +41,7 @@ type Errors = {
   customCategory?: string;
   posterName?: string;
   contact?: string;
+  location?: string;
 };
 
 // ─── InlinePicker ─────────────────────────────────────────────────────────────
@@ -118,13 +120,40 @@ export default function EditAdoptionPost() {
   const [posterName, setPosterName] = useState("");
   const [contact, setContact] = useState("");
   const [notes, setNotes] = useState("");
-  const [location] = useState("Central Park South-East, Manhattan, NY");
+  const [location, setLocation] = useState("");
 
   // ── Images — mix of existing Cloudinary URLs + new local URIs ────────────
   const [existingImages, setExistingImages] = useState<string[]>([]); // already on Cloudinary
   const [newImages, setNewImages] = useState<string[]>([]);           // newly picked local URIs
 
   const [errors, setErrors] = useState<Errors>({});
+
+  const handleGetLocation = async () => {
+    try {
+      const { status: permStatus } = await Location.requestForegroundPermissionsAsync();
+      if (permStatus !== "granted") {
+        Alert.alert("Permission Denied", "Location permission is required to detect your location.");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+      if (geocode && geocode.length > 0) {
+        const item = geocode[0];
+        const addr = [item.name, item.street, item.city, item.region].filter(Boolean).join(", ");
+        const finalAddr = addr || `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
+        setLocation(finalAddr);
+        setErrors((prev) => ({ ...prev, location: undefined }));
+      } else {
+        setLocation(`${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`);
+        setErrors((prev) => ({ ...prev, location: undefined }));
+      }
+    } catch (e) {
+      Alert.alert("Location Error", "Could not detect location. Please type manually.");
+    }
+  };
 
   // ── Fetch existing post and pre-fill form ─────────────────────────────────
   useEffect(() => {
@@ -145,6 +174,7 @@ export default function EditAdoptionPost() {
         setPosterName(post.posterName);
         setContact(post.contact);
         setNotes(post.notes ?? "");
+        setLocation(post.location ?? "");
         setExistingImages(post.images ?? []);
       })
       .catch(() => setFetchError("Could not load post for editing."))
@@ -226,6 +256,7 @@ export default function EditAdoptionPost() {
     } else if (!/^\+?[\d\s\-().]{7,}$/.test(contact.trim())) {
       newErrors.contact = "Enter a valid phone number.";
     }
+    if (!location.trim()) newErrors.location = "Location is required.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -261,7 +292,8 @@ export default function EditAdoptionPost() {
           contact,
           notes: notes.trim() || undefined,
         },
-        newImages // new local URIs to upload
+        newImages, // new local URIs to upload
+        existingImages // retained Cloudinary URLs
       );
 
       Alert.alert("Updated!", "Your post has been updated successfully.", [
@@ -643,6 +675,52 @@ export default function EditAdoptionPost() {
           </View>
         </View>
 
+        {/* ── Location Card ── */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>LOCATION <Text style={styles.required}>*</Text></Text>
+          <View style={styles.mapBox}>
+            <Image
+              source={{
+                uri: "https://lh3.googleusercontent.com/aida-public/AB6AXuCu3cfeFn7G_kQsexvytUehje9uLtUEo8kKEu-w0C2RRNEIXI0pWRSp9IN9NQFpi4K3T-9n13UfE-vhuyL0X0Tz3pbO7ozRKvFJBMP0UlGrsjmIXtSlmcFlk4nTDG6FUPpgbOdxuYpcd370ZdiHJqO4nHCYNf-eNGYyYfKVYAiBEjnDocVjGUwGeHbYIaJxE_f6OB-nbVWBi-mBKC5s6ra9dwI1AKYxEWpLBJllOTLpuT39afingzPUylG-ZgbUzvZfMAVUVzvsKZjM",
+              }}
+              style={styles.mapImage}
+              resizeMode="cover"
+            />
+            <TouchableOpacity style={styles.mapLocationBtn} onPress={handleGetLocation} activeOpacity={0.8}>
+              <MaterialIcons name="my-location" size={22} color="#785a00" />
+            </TouchableOpacity>
+          </View>
+          <View style={styles.inputBlock}>
+            <Text style={styles.inputLabel}>
+              Location <Text style={styles.required}>*</Text>
+            </Text>
+            <View style={styles.iconInputWrapper}>
+              <MaterialIcons
+                name="location-on"
+                size={18}
+                color="#785a00"
+                style={styles.inputIcon}
+              />
+              <TextInput
+                style={[
+                  styles.textInput,
+                  styles.iconInput,
+                  errors.location ? styles.inputError : null,
+                ]}
+                value={location}
+                onChangeText={(v) => {
+                  setLocation(v);
+                  if (v.trim()) setErrors((prev) => ({ ...prev, location: undefined }));
+                }}
+                editable={true}
+                placeholder="Enter or detect location..."
+                placeholderTextColor="#b0a895"
+              />
+            </View>
+            {errors.location && <Text style={styles.errorText}>{errors.location}</Text>}
+          </View>
+        </View>
+
         <View style={{ height: 100 }} />
       </ScrollView>
 
@@ -779,6 +857,18 @@ const styles = StyleSheet.create({
   traitChipActive: { backgroundColor: "#f9c74f", borderColor: "#785a00" },
   traitText: { fontSize: 13, fontWeight: "600", color: "#586062" },
   traitTextActive: { color: "#785a00" },
+
+  mapBox: {
+    height: 180, borderRadius: 12, overflow: "hidden",
+    borderWidth: 1, borderColor: "#d2c5af", position: "relative",
+  },
+  mapImage: { width: "100%", height: "100%" },
+  mapLocationBtn: {
+    position: "absolute", bottom: 10, right: 10,
+    backgroundColor: "#fff", padding: 8, borderRadius: 10,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15, shadowRadius: 4, elevation: 3,
+  },
 
   footer: {
     flexDirection: "row", gap: 12, paddingHorizontal: 16, paddingVertical: 14,

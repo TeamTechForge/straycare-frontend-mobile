@@ -124,14 +124,17 @@ export default function AdoptionPostMain() {
 
     const matchesFilter =
       activeFilter === "All" ||
-      (activeFilter === "Dogs" && post.category === "Dog") ||
-      (activeFilter === "Cats" && post.category === "Cat") ||
+      (activeFilter === "Dogs" && (post.category === "Dog" || post.category === "Dogs")) ||
+      (activeFilter === "Cats" && (post.category === "Cat" || post.category === "Cats")) ||
       (activeFilter === "Rabbits" &&
         (post.category === "Other" &&
-          post.breed.toLowerCase().includes("rabbit"))) ||
+          (post.breed.toLowerCase().includes("rabbit") ||
+           (post.customCategory && post.customCategory.toLowerCase().includes("rabbit"))))) ||
       (activeFilter === "Birds" &&
         (post.category === "Other" &&
-          post.breed.toLowerCase().includes("parrot")));
+          (post.breed.toLowerCase().includes("parrot") ||
+           post.breed.toLowerCase().includes("bird") ||
+           (post.customCategory && (post.customCategory.toLowerCase().includes("bird") || post.customCategory.toLowerCase().includes("parrot"))))));
 
     return matchesSearch && matchesFilter;
   });

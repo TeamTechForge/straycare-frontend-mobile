@@ -13,6 +13,7 @@ import {
   View,
 } from "react-native";
 import * as ImagePicker from "expo-image-picker";
+import * as Location from "expo-location";
 import { createPost } from "@/services/adoptionService";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
@@ -44,6 +45,7 @@ type Errors = {
   customCategory?: string;
   posterName?: string;
   contact?: string;
+  location?: string;
   images?: string;
 };
 
@@ -121,7 +123,7 @@ export default function CreateAdoptionPost() {
   const [posterName, setPosterName] = useState("");
   const [contact, setContact] = useState("");
   const [notes, setNotes] = useState("");
-  const [location] = useState("Central Park South-East, Manhattan, NY");
+  const [location, setLocation] = useState("");
 
   // ── Image state — stores local URIs from expo-image-picker ────────────────
   const [images, setImages] = useState<string[]>([]);
@@ -129,6 +131,33 @@ export default function CreateAdoptionPost() {
   // ── UI state ──────────────────────────────────────────────────────────────
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+
+  const handleGetLocation = async () => {
+    try {
+      const { status: permStatus } = await Location.requestForegroundPermissionsAsync();
+      if (permStatus !== "granted") {
+        Alert.alert("Permission Denied", "Location permission is required to detect your location.");
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({});
+      const geocode = await Location.reverseGeocodeAsync({
+        latitude: loc.coords.latitude,
+        longitude: loc.coords.longitude,
+      });
+      if (geocode && geocode.length > 0) {
+        const item = geocode[0];
+        const addr = [item.name, item.street, item.city, item.region].filter(Boolean).join(", ");
+        const finalAddr = addr || `${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`;
+        setLocation(finalAddr);
+        setErrors((prev) => ({ ...prev, location: undefined }));
+      } else {
+        setLocation(`${loc.coords.latitude.toFixed(4)}, ${loc.coords.longitude.toFixed(4)}`);
+        setErrors((prev) => ({ ...prev, location: undefined }));
+      }
+    } catch (e) {
+      Alert.alert("Location Error", "Could not detect location. Please type manually.");
+    }
+  };
 
   // ── Category change ───────────────────────────────────────────────────────
   const handleCategoryChange = (cat: Category) => {
@@ -207,6 +236,8 @@ export default function CreateAdoptionPost() {
     } else if (!/^\+?[\d\s\-().]{7,}$/.test(contact.trim())) {
       newErrors.contact = "Enter a valid phone number.";
     }
+
+    if (!location.trim()) newErrors.location = "Location is required.";
 
     if (images.length === 0) newErrors.images = "Please add at least one photo.";
 
@@ -624,7 +655,7 @@ export default function CreateAdoptionPost() {
 
         {/* ── Location Card ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>LOCATION</Text>
+          <Text style={styles.cardTitle}>LOCATION <Text style={styles.required}>*</Text></Text>
           <View style={styles.mapBox}>
             <Image
               source={{
@@ -633,12 +664,14 @@ export default function CreateAdoptionPost() {
               style={styles.mapImage}
               resizeMode="cover"
             />
-            <TouchableOpacity style={styles.mapLocationBtn}>
+            <TouchableOpacity style={styles.mapLocationBtn} onPress={handleGetLocation} activeOpacity={0.8}>
               <MaterialIcons name="my-location" size={22} color="#785a00" />
             </TouchableOpacity>
           </View>
           <View style={styles.inputBlock}>
-            <Text style={styles.inputLabel}>Selected Location</Text>
+            <Text style={styles.inputLabel}>
+              Location <Text style={styles.required}>*</Text>
+            </Text>
             <View style={styles.iconInputWrapper}>
               <MaterialIcons
                 name="location-on"
@@ -647,12 +680,22 @@ export default function CreateAdoptionPost() {
                 style={styles.inputIcon}
               />
               <TextInput
-                style={[styles.textInput, styles.iconInput]}
+                style={[
+                  styles.textInput,
+                  styles.iconInput,
+                  errors.location ? styles.inputError : null,
+                ]}
                 value={location}
-                editable={false}
+                onChangeText={(v) => {
+                  setLocation(v);
+                  if (v.trim()) setErrors((prev) => ({ ...prev, location: undefined }));
+                }}
+                editable={true}
+                placeholder="Enter or detect location..."
                 placeholderTextColor="#b0a895"
               />
             </View>
+            {errors.location && <Text style={styles.errorText}>{errors.location}</Text>}
           </View>
         </View>
 

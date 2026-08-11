@@ -30,7 +30,7 @@ export default function DeleteConfirmScreen() {
       setDeleting(true);
       await deletePost(postId!);
       // Go back to listing after delete
-      router.replace("/adoption-corner/ViewAdoptionPost");
+      router.replace("/adoption-corner");
     } catch {
       setDeleting(false);
       // Show inline error — no Alert so the screen stays visible
