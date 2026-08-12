@@ -4,13 +4,20 @@
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
+import Constants from "expo-constants";
 import { Platform } from "react-native";
 import { API_URL } from "@/constants/config.constants";
 
 // ─── Config (all values come from .env) ──────────────────────────────────────
 
-const CLOUDINARY_CLOUD_NAME = process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME || "";
-const CLOUDINARY_UPLOAD_PRESET = process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET || "";
+const CLOUDINARY_CLOUD_NAME =
+  process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME ||
+  "";
+const CLOUDINARY_UPLOAD_PRESET =
+  process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ||
+  Constants.expoConfig?.extra?.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ||
+  "";
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
 
@@ -101,11 +108,6 @@ const uploadSingleImage = async (
     return localUri;
   }
 
-  if (!CLOUDINARY_CLOUD_NAME || !CLOUDINARY_UPLOAD_PRESET) {
-    console.warn("[Cloudinary] Credentials missing. EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME or EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET not set.");
-    throw new Error("Image upload service not configured. Set Cloudinary keys in environment.");
-  }
-
   const formData = new FormData();
 
   if (Platform.OS === 'web') {
@@ -120,13 +122,45 @@ const uploadSingleImage = async (
     } as any);
   }
 
-  formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
-  formData.append("folder", "adoption_posts");
+  if (CLOUDINARY_CLOUD_NAME && CLOUDINARY_UPLOAD_PRESET) {
+    formData.append("upload_preset", CLOUDINARY_UPLOAD_PRESET);
+    formData.append("folder", "adoption_posts");
 
-  const response = await fetch(
-    `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-    { method: "POST", body: formData }
-  );
+    const response = await fetch(
+      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
+      { method: "POST", body: formData }
+    );
+
+    if (!response.ok) {
+      throw new Error(`Image ${index + 1} upload failed`);
+    }
+
+    const data = await response.json();
+    return data.secure_url;
+  }
+
+  // Fallback: upload through backend /api/upload/cloudinary when client-side Cloudinary is not configured.
+  const response = await fetch(`${API_URL}/upload/cloudinary`, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!response.ok) {
+    let errorText = `Image ${index + 1} upload failed`;
+    try {
+      const json = await response.json();
+      if (json?.message) {
+        errorText = json.message;
+      }
+    } catch (_e) {
+      // ignore JSON parse errors
+    }
+    throw new Error(errorText);
+  }
+
+  const json: any = await response.json();
+  return json.url;
+
 
   if (!response.ok) {
     throw new Error(`Image ${index + 1} upload failed`);

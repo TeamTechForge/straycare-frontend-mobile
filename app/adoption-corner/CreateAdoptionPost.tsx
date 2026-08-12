@@ -279,11 +279,12 @@ export default function CreateAdoptionPost() {
 
       // Navigate to success screen with the real postId from backend
       router.push(`/adoption-corner/AdoptionSubmitSuccess?postId=${post._id}`);
-    } catch (err) {
-      Alert.alert(
-        "Submission Failed",
-        "Could not submit your post. Please check your connection and try again."
-      );
+    } catch (err: any) {
+      const errorMessage =
+        err?.message ||
+        err?.response?.data?.message ||
+        "Could not submit your post. Please check your connection and try again.";
+      Alert.alert("Submission Failed", errorMessage);
     } finally {
       setSubmitting(false);
     }
