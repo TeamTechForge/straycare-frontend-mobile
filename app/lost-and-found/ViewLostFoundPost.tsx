@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { getAnimalPostById, reportAnimalPost } from '../../api/apiService';
+import { AnimalPost } from '../../services/lostAndFoundService';
 import { useCall } from '../../contexts/CallContext';
 import { BASE_URL } from '../../constants/config.constants';
 
@@ -42,28 +43,12 @@ const { width: SCREEN_W } = Dimensions.get('window');
 const IMAGE_HEIGHT = 280;
 // BASE_URL is imported from constants
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface AnimalPost {
-  _id: string;
-  status: 'lost' | 'found';
-  type: 'dog' | 'cat' | 'other';
-  customType?: string;
-  breed?: string;
-  name?: string;
-  description: string;
-  location: string;
-  date: string;
-  contactName: string;
-  contactNumber: string;
-  imageUrl?: string; // URL returned by backend after upload
-  images?: string[]; // Legacy images array
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getAnimalLabel = (post: AnimalPost) => {
-  if (post.type === 'other') return post.customType || 'Animal';
+  if (!post.type || post.type === 'other') return post.customType || 'Animal';
   return post.type.charAt(0).toUpperCase() + post.type.slice(1);
 };
+
 
 const statusConfig = {
   lost: { bg: '#F5A623', text: '#FFFFFF', label: 'Lost' },
@@ -254,7 +239,8 @@ const ViewAnimalPost = () => {
   // ─── Call handler ───────────────────────────────────────────────────────────
   const handleCall = () => {
     if (!post) return;
-    const ownerId = (post as any).userId || (post as any).ownerId || (post as any).postedBy;
+    const rawUserId = (post as any).userId;
+    const ownerId = typeof rawUserId === 'object' && rawUserId !== null ? rawUserId._id : (rawUserId || (post as any).ownerId || (post as any).postedBy);
     if (!ownerId) {
       Alert.alert(
         'Contact Unavailable',
