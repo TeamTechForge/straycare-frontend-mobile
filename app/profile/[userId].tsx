@@ -636,7 +636,7 @@ export default function PublicProfileScreen() {
                       summary={rescue.summary}
                       onPress={() => {
                         router.push({
-                          pathname: "/reporting/RescueDetails",
+                          pathname: "/reporting/RescueDetails" as any,
                           params: { caseId: rescue.caseId || rescue._id },
                         });
                       }}
