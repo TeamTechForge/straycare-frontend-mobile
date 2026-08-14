@@ -249,7 +249,7 @@ const CreatePost = () => {
       router.push('/lost-and-found/PostSubmittedSuccessView'); // Navigate to success screen
     } catch (error: any) {
       // Show backend error message or a generic fallback
-      const message = error?.response?.data?.message || 'Failed to create post. Please try again.';
+      const message = error?.response?.data?.error || error?.response?.data?.message || 'Failed to create post. Please try again.';
       showValidationError(message);
     } finally {
       setIsSubmitting(false); // Re-enable submit button regardless of outcome

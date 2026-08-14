@@ -226,12 +226,12 @@ export const updateAnimalPost = async (
         }
     }
 
-    const { data } = await api.put<AnimalPost>(`/animals/${id}`, {
+    const { data } = await api.put<any>(`/animals/${id}`, {
         ...payload,
         imageUrl,
     });
 
-    return data;
+    return data?.data ?? data;
 };
 
 // DELETE animal post
