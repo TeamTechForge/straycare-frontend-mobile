@@ -49,6 +49,7 @@ interface Report {
   breed?: string;
   status: string;
   notes?: string;
+  description?: string;
   location?: { address?: string };
   photos?: string[];
   createdAt: string;
@@ -134,15 +135,13 @@ export default function PublicProfileScreen() {
         setPosts(postsData);
       }
 
-      // 3. Fetch reports (if general user)
-      if (data.user.role === "general_user") {
-        const reportsRes = await fetch(`${API_URL}/users/${userId}/reports`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (reportsRes.ok) {
-          const reportsData = (await reportsRes.json()) as any;
-          setReports(reportsData);
-        }
+      // 3. Fetch reports
+      const reportsRes = await fetch(`${API_URL}/users/${userId}/reports`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (reportsRes.ok) {
+        const reportsData = (await reportsRes.json()) as any;
+        setReports(reportsData);
       }
 
       // 4. Fetch rescues (if volunteer/vet/ngo)
@@ -543,12 +542,26 @@ export default function PublicProfileScreen() {
               reports.map((report) => (
                 <ReportPreviewCard
                   key={report._id}
-                  title={`${report.animalType} (${report.breed || "Mixed"})`}
+                  title={`${report.animalType} (${report.caseId || report.breed || "Case"})`}
                   date={new Date(report.createdAt).toLocaleDateString()}
                   status={report.status}
                   image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
-                  summary={report.summary}
+                  summary={report.summary || report.description || report.notes}
+                  caseId={report.caseId}
                   onPress={() => {
+                    if (report.caseId) {
+                      router.push({
+                        pathname: "/reporting/CaseDetails",
+                        params: { caseId: report.caseId },
+                      });
+                    } else {
+                      router.push({
+                        pathname: "/live-tracking/[requestId]",
+                        params: { requestId: report._id },
+                      });
+                    }
+                  }}
+                  onTrackPress={() => {
                     router.push({
                       pathname: "/live-tracking/[requestId]",
                       params: { requestId: report.caseId || report._id },
