@@ -43,9 +43,13 @@ export default function ForumPostCard({ post, onToggleLike, onDeletePost }: Prop
 
       {/* Author row */}
       <View style={styles.authorRow}>
-        <View style={styles.avatarCircle}>
-          <Text style={styles.avatarText}>{initial}</Text>
-        </View>
+        {post.authorAvatar ? (
+          <Image source={{ uri: post.authorAvatar }} style={{ width: 32, height: 32, borderRadius: 16, marginRight: 8 }} />
+        ) : (
+          <View style={styles.avatarCircle}>
+            <Text style={styles.avatarText}>{initial}</Text>
+          </View>
+        )}
         <Text style={styles.authorName}>{authorDisplayName}</Text>
         {timeAgo ? <Text style={styles.timeText}>• {timeAgo}</Text> : null}
       </View>

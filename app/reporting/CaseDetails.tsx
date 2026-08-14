@@ -79,7 +79,7 @@ const getNextStatus = (current: string) => {
 };
 
 export default function CaseDetailsScreen() {
-  const { caseId } = useLocalSearchParams();
+  const { caseId, fromProfile } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
 
@@ -264,10 +264,10 @@ export default function CaseDetailsScreen() {
                     {report.reporter.role.replace(/_/g, " ").toUpperCase()}
                   </Text>
                 )}
-                {report.reporter.phone && (
+                {report.reporter.phone && fromProfile !== "true" && (
                   <Text style={styles.reporterContact}>📞 {report.reporter.phone}</Text>
                 )}
-                {report.reporter.email && (
+                {report.reporter.email && fromProfile !== "true" && (
                   <Text style={styles.reporterContact}>✉️ {report.reporter.email}</Text>
                 )}
               </View>
@@ -311,8 +311,8 @@ export default function CaseDetailsScreen() {
         />
       )}
 
-      {/* 🚑 Accept Rescue Button — Rescuers Only, when case Needs Help (NOT allowed on own reported cases) */}
-      {isRescuer && report.status === "Needs Help" && !isMyReport && (
+      {/* 🚑 Accept Rescue Button — Rescuers Only, when case Needs Help (NOT allowed on own reported cases or from another user profile) */}
+      {isRescuer && report.status === "Needs Help" && !isMyReport && fromProfile !== "true" && (
         <PrimaryButton
           title={acceptingRescue ? "Accepting..." : "🚑  Accept Rescue"}
           onPress={async () => {

@@ -50,6 +50,7 @@ interface Report {
   status: string;
   notes?: string;
   description?: string;
+  anonymous?: boolean;
   location?: { address?: string };
   photos?: string[];
   createdAt: string;
@@ -539,36 +540,77 @@ export default function PublicProfileScreen() {
 
           {activeTab === "reports" && (
             reports.length > 0 ? (
-              reports.map((report) => (
-                <ReportPreviewCard
-                  key={report._id}
-                  title={`${report.animalType} (${report.caseId || report.breed || "Case"})`}
-                  date={new Date(report.createdAt).toLocaleDateString()}
-                  status={report.status}
-                  image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
-                  summary={report.summary || report.description || report.notes}
-                  caseId={report.caseId}
-                  onPress={() => {
-                    if (report.caseId) {
-                      router.push({
-                        pathname: "/reporting/CaseDetails",
-                        params: { caseId: report.caseId },
-                      });
-                    } else {
-                      router.push({
-                        pathname: "/live-tracking/[requestId]",
-                        params: { requestId: report._id },
-                      });
-                    }
-                  }}
-                  onTrackPress={() => {
-                    router.push({
-                      pathname: "/live-tracking/[requestId]",
-                      params: { requestId: report.caseId || report._id },
-                    });
-                  }}
-                />
-              ))
+              <View>
+                {/* 📌 ACTIVE CASES */}
+                <Text style={styles.subSectionTitle}>Active Cases</Text>
+                {reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((report) => {
+                    const isAnon = Boolean(report.anonymous || report.animalType === "Anonymous Report");
+                    return (
+                      <ReportPreviewCard
+                        key={report._id}
+                        title={isAnon ? `Anonymous Report (${report.caseId})` : `${report.animalType} (${report.caseId || report.breed || "Case"})`}
+                        date={new Date(report.createdAt).toLocaleDateString()}
+                        status={report.status}
+                        image={!isAnon && report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                        summary={isAnon ? "Details hidden for anonymous report" : (report.summary || report.description || report.notes)}
+                        caseId={report.caseId}
+                        onPress={() => {
+                          if (!isAnon && report.caseId) {
+                            router.push({
+                              pathname: "/reporting/CaseDetails",
+                              params: { caseId: report.caseId, fromProfile: "true" },
+                            });
+                          }
+                        }}
+                        onTrackPress={!isAnon ? () => {
+                          router.push({
+                            pathname: "/live-tracking/[requestId]",
+                            params: { requestId: report.caseId || report._id },
+                          });
+                        } : undefined}
+                      />
+                    );
+                  })
+                ) : (
+                  <Text style={styles.noActiveText}>No active cases right now.</Text>
+                )}
+
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").map((report) => {
+                    const isAnon = Boolean(report.anonymous || report.animalType === "Anonymous Report");
+                    return (
+                      <ReportPreviewCard
+                        key={report._id}
+                        title={isAnon ? `Anonymous Report (${report.caseId})` : `${report.animalType} (${report.caseId || report.breed || "Case"})`}
+                        date={new Date(report.createdAt).toLocaleDateString()}
+                        status={report.status}
+                        image={!isAnon && report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                        summary={isAnon ? "Details hidden for anonymous report" : (report.summary || report.description || report.notes)}
+                        caseId={report.caseId}
+                        onPress={() => {
+                          if (!isAnon && report.caseId) {
+                            router.push({
+                              pathname: "/reporting/CaseDetails",
+                              params: { caseId: report.caseId, fromProfile: "true" },
+                            });
+                          }
+                        }}
+                        onTrackPress={!isAnon ? () => {
+                          router.push({
+                            pathname: "/live-tracking/[requestId]",
+                            params: { requestId: report.caseId || report._id },
+                          });
+                        } : undefined}
+                      />
+                    );
+                  })
+                ) : (
+                  <Text style={styles.noActiveText}>No completed cases yet.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="document-text-outline"
@@ -580,22 +622,53 @@ export default function PublicProfileScreen() {
 
           {activeTab === "rescues" && (
             rescues.length > 0 ? (
-              rescues.map((rescue: any) => (
-                <ReportPreviewCard
-                  key={rescue._id || rescue.caseId}
-                  title={`${rescue.animalType} (${rescue.caseId})`}
-                  date={new Date(rescue.createdAt).toLocaleDateString()}
-                  status={rescue.status.toUpperCase()}
-                  image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
-                  summary={rescue.summary}
-                  onPress={() => {
-                    router.push({
-                      pathname: "/live-tracking/[requestId]",
-                      params: { requestId: rescue.caseId || rescue._id },
-                    });
-                  }}
-                />
-              ))
+              <View>
+                {/* 📌 ACTIVE RESCUES */}
+                <Text style={styles.subSectionTitle}>Active Rescues</Text>
+                {rescues.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  rescues.filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((rescue: any) => (
+                    <ReportPreviewCard
+                      key={rescue._id || rescue.caseId}
+                      title={`${rescue.animalType} (${rescue.caseId})`}
+                      date={new Date(rescue.createdAt).toLocaleDateString()}
+                      status={rescue.status.toUpperCase()}
+                      image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                      summary={rescue.summary}
+                      onPress={() => {
+                        router.push({
+                          pathname: "/reporting/RescueDetails",
+                          params: { caseId: rescue.caseId || rescue._id },
+                        });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No active rescue operations right now.</Text>
+                )}
+
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").map((rescue: any) => (
+                    <ReportPreviewCard
+                      key={rescue._id || rescue.caseId}
+                      title={`${rescue.animalType} (${rescue.caseId})`}
+                      date={new Date(rescue.createdAt).toLocaleDateString()}
+                      status={rescue.status.toUpperCase()}
+                      image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                      summary={rescue.summary}
+                      onPress={() => {
+                        router.push({
+                          pathname: "/reporting/RescueDetails",
+                          params: { caseId: rescue.caseId || rescue._id },
+                        });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No completed rescue operations yet.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="checkmark-done-circle-outline"
@@ -863,5 +936,19 @@ const styles = StyleSheet.create({
   tabContentContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
+  },
+  subSectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#444",
+    marginBottom: 10,
+    marginLeft: 4,
+  },
+  noActiveText: {
+    fontSize: 13,
+    color: "#888",
+    fontStyle: "italic",
+    marginLeft: 4,
+    marginBottom: 10,
   },
 });
