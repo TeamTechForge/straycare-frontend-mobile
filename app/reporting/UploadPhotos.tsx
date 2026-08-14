@@ -3,7 +3,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -14,42 +13,6 @@ import {
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 
-// ☁️ CLOUDINARY UPLOAD HELPER
-const uploadToCloudinary = async (imageUri: string) => {
-  const data = new FormData();
-
-  // Appending the file in the format React Native requires
-  data.append('file', {
-    uri: imageUri,
-    type: 'image/jpeg',
-    name: 'stray_report.jpg',
-  } as any); // "as any" bypasses strict TypeScript checking for this specific RN quirk
-
-
-  data.append('upload_preset', 'straycare_report_images');
-
-  // REPLACE YOUR_CLOUD_NAME with your actual Cloudinary cloud name
-  const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dljp2yzpb/image/upload";
-
-  try {
-    const response = await fetch(CLOUDINARY_URL, {
-      method: 'POST',
-      body: data as any,
-      headers: {
-        'Accept': 'application/json',
-        'Content-Type': 'multipart/form-data',
-      },
-    });
-
-    const result: any = await response.json();
-    return result.secure_url; // Returns the permanent public URL
-
-  } catch (error) {
-    console.error("Cloudinary Upload Error:", error);
-    return null;
-  }
-};
-
 export default function UploadPhotos() {
   const router = useRouter();
   const params = useLocalSearchParams();
@@ -59,17 +22,27 @@ export default function UploadPhotos() {
 
   const isEditing = safe(params.mode) === "edit";
 
-  const initialPhotos: string[] = params.photos
-    ? JSON.parse(safe(params.photos))
-    : [];
+  const initialPhotos: string[] = (() => {
+    if (!params.photos) return [];
+    try {
+      const parsed = JSON.parse(safe(params.photos));
+      return Array.isArray(parsed)
+        ? parsed.filter((value) => typeof value === "string")
+        : [];
+    } catch {
+      return [];
+    }
+  })();
 
   const [images, setImages] = useState<string[]>(initialPhotos);
-  const [uploading, setUploading] = useState(false);
+  const [photoError, setPhotoError] = useState<string | null>(null);
 
   const canAddMore = () => images.length < 5;
 
   const removeImage = (index: number) => {
-    setImages((prev) => prev.filter((_, i) => i !== index));
+    const nextImages = images.filter((_, i) => i !== index);
+    setImages(nextImages);
+    if (nextImages.length > 0) setPhotoError(null);
   };
 
   const pickImages = async () => {
@@ -85,24 +58,22 @@ export default function UploadPhotos() {
     }
 
     const result = await ImagePicker.launchImageLibraryAsync({
-      mediaTypes: ['images'],
+      mediaTypes: ["images"],
       allowsMultipleSelection: true,
       quality: 0.7,
     });
 
     if (!result.canceled) {
-      const uris = result.assets.map((a) => a.uri);
+      const uris = result.assets.map((asset) => asset.uri);
       const remainingSlots = 5 - images.length;
       const toAdd = uris.slice(0, remainingSlots);
 
       if (uris.length > remainingSlots) {
-        Alert.alert(
-          "Limit reached",
-          `Only ${remainingSlots} more photo(s) can be added.`
-        );
+        Alert.alert("Limit reached", `Only ${remainingSlots} more photo(s) can be added.`);
       }
 
       setImages((prev) => [...prev, ...toAdd]);
+      if (toAdd.length > 0) setPhotoError(null);
     }
   };
 
@@ -121,153 +92,135 @@ export default function UploadPhotos() {
     const result = await ImagePicker.launchCameraAsync({ quality: 0.7 });
 
     if (!result.canceled) {
-      const uri = result.assets[0].uri;
-      setImages((prev) => [...prev, uri]);
+      setImages((prev) => [...prev, result.assets[0].uri]);
+      setPhotoError(null);
     }
   };
 
-  // 🚀 UPDATED HANDLE NEXT: Uploads to cloud first, then navigates
-  const handleNext = async () => {
+  const handleNext = () => {
     if (images.length === 0) {
-      Alert.alert("No images", "Please select at least one photo.");
+      setPhotoError("Add at least one photo before continuing.");
       return;
     }
 
-    setUploading(true);
-
-    try {
-      // 1. Upload all local images to Cloudinary at the same time
-      const uploadPromises = images.map(uri => {
-        // If it's already a cloud URL (e.g., while editing), don't re-upload
-        if (uri.startsWith('http')) return uri;
-        return uploadToCloudinary(uri);
-      });
-
-      const uploadedUrls = await Promise.all(uploadPromises);
-
-      // 2. Filter out any uploads that failed
-      const validUrls = uploadedUrls.filter((url: any) => url !== null);
-
-      if (validUrls.length === 0) {
-        Alert.alert("Upload Failed", "Could not upload images to the server.");
-        setUploading(false);
-        return;
-      }
-
-      // 3. Pass the valid Cloudinary URLs to the next screen
-      router.push({
-        pathname: "/reporting/Review",
-        params: {
-          ...params,
-          mode: isEditing ? "edit" : undefined,
-          photos: JSON.stringify(validUrls),
-        },
-      });
-
-    } catch (error) {
-      Alert.alert("Upload Failed", "Something went wrong uploading your photos.");
-    } finally {
-      setUploading(false);
-    }
+    router.push({
+      pathname: "/reporting/Review",
+      params: {
+        ...params,
+        mode: isEditing ? "edit" : undefined,
+        photos: JSON.stringify(images),
+      },
+    });
   };
 
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-
-        {/* HEADER */}
         <Text style={styles.header}>Upload Photos</Text>
-        <Text style={styles.subtext}>Add up to 5 photos.</Text>
+        <Text style={styles.photoLabel}>
+          Report Photos <Text style={styles.requiredMark}>*</Text>
+        </Text>
+        <Text style={styles.subtext}>
+          Add between 1 and 5 clear photos. Photos upload when you submit the report.
+        </Text>
 
-        {/* MAIN PHOTO */}
-        <View style={styles.sectionCard}>
+        <View style={[styles.sectionCard, photoError && styles.errorBorder]}>
           {images.length > 0 ? (
             <Image source={{ uri: images[0] }} style={styles.mainPhoto} />
           ) : (
-            <MaterialCommunityIcons name="image-outline" size={60} color="#bbb" />
+            <MaterialCommunityIcons name="image-outline" size={60} color="#BBBBBB" />
           )}
         </View>
+        {photoError ? <Text style={styles.errorText}>{photoError}</Text> : null}
 
-        {/* GRID */}
         <View style={styles.sectionCard}>
           <View style={styles.grid}>
-            {images.map((uri: string, index: number) => (
-              <View key={index} style={styles.imageWrapper}>
+            {images.map((uri, index) => (
+              <View key={`${uri}-${index}`} style={styles.imageWrapper}>
                 <Image source={{ uri }} style={styles.smallPhotoBox} />
                 <TouchableOpacity
+                  accessibilityLabel="Remove photo"
                   style={styles.deleteBadge}
                   onPress={() => removeImage(index)}
                 >
-                  <MaterialCommunityIcons name="close" size={16} color="white" />
+                  <MaterialCommunityIcons name="close" size={16} color="#FFFFFF" />
                 </TouchableOpacity>
               </View>
             ))}
 
-            {canAddMore() && (
-              <TouchableOpacity style={styles.addBox} onPress={pickImages}>
-                <MaterialCommunityIcons name="plus" size={35} color="#777" />
+            {canAddMore() ? (
+              <TouchableOpacity
+                accessibilityLabel="Add photos from gallery"
+                style={styles.addBox}
+                onPress={pickImages}
+              >
+                <MaterialCommunityIcons name="plus" size={35} color="#777777" />
               </TouchableOpacity>
-            )}
+            ) : null}
           </View>
         </View>
 
-        {/* CAMERA BUTTON */}
-        <TouchableOpacity style={styles.cameraButton} onPress={openCamera}>
-          <MaterialCommunityIcons name="camera" size={25} color="white" />
+        <TouchableOpacity
+          accessibilityLabel="Take a photo"
+          style={styles.cameraButton}
+          onPress={openCamera}
+        >
+          <MaterialCommunityIcons name="camera" size={24} color="#FFFFFF" />
+          <Text style={styles.cameraButtonText}>Take</Text>
         </TouchableOpacity>
       </ScrollView>
 
-      {/* NEXT BUTTON */}
       <View style={styles.bottomButtonWrapper}>
-        {uploading ? (
-          <ActivityIndicator size="large" color="#F5A623" />
-        ) : (
-          <PrimaryButton
-            title={isEditing ? "Save Changes →" : "Next Step →"}
-            onPress={handleNext}
-          />
-        )}
+        <PrimaryButton
+          title={isEditing ? "Save Changes ->" : "Next Step ->"}
+          onPress={handleNext}
+        />
       </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fafafa" },
+  container: { flex: 1, backgroundColor: "#FAFAFA" },
   scrollContent: { padding: 20, paddingBottom: 160 },
-
   header: {
     fontSize: 22,
     fontWeight: "700",
-    color: "#333",
+    color: "#333333",
     marginBottom: 8,
     textAlign: "center",
     paddingTop: 22,
   },
   subtext: {
     fontSize: 14,
-    color: "#666",
+    color: "#666666",
     marginBottom: 16,
   },
-
+  photoLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#333333",
+    marginBottom: 3,
+  },
+  requiredMark: { color: "#D32F2F", fontWeight: "700" },
+  errorText: { color: "#D32F2F", fontSize: 12, marginTop: -2, marginBottom: 6 },
+  errorBorder: { borderColor: "#D32F2F", borderWidth: 1.5 },
   sectionCard: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     padding: 14,
     marginVertical: 8,
-    shadowColor: "#000",
+    shadowColor: "#000000",
     shadowOpacity: 0.05,
     shadowRadius: 3,
     elevation: 1,
     alignItems: "center",
   },
-
   mainPhoto: {
     width: "100%",
     height: 220,
     borderRadius: 12,
   },
-
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
@@ -295,12 +248,11 @@ const styles = StyleSheet.create({
     height: 90,
     borderRadius: 12,
     borderWidth: 1.5,
-    borderColor: "#ddd",
+    borderColor: "#DDDDDD",
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#F9F9F9",
   },
-
   cameraButton: {
     position: "absolute",
     bottom: 140,
@@ -308,15 +260,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#F5A623",
     width: 60,
     height: 60,
-    borderRadius: 35,
+    borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
+    shadowColor: "#000000",
     shadowOpacity: 0.2,
     shadowRadius: 6,
     elevation: 6,
   },
-
+  cameraButtonText: {
+    color: "#FFFFFF",
+    fontSize: 10,
+    fontWeight: "700",
+    marginTop: 1,
+  },
   bottomButtonWrapper: {
     position: "absolute",
     bottom: 30,

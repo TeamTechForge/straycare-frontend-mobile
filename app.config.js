@@ -6,11 +6,14 @@ const appJson = fs.existsSync(appJsonPath) ? require(appJsonPath) : {};
 
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
+const easProjectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || appJson.expo?.extra?.eas?.projectId;
+
 module.exports = {
   expo: {
     ...(appJson.expo || {}),
     extra: {
       ...(appJson.expo?.extra || {}),
+      ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),
       EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
       // Cloudinary
       EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME,
