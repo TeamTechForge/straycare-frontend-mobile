@@ -8,7 +8,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { getReportByCaseId } from "../../api/stray-api.service";
+import { getReportByCaseId } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 
 type Report = {

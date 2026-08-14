@@ -38,6 +38,7 @@ import {
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
 import axios from "axios"; // axios v1 — uses AbortController, NOT CancelToken
+import { useCall } from "../../contexts/CallContext";
 
 // Shared API response types
 import type {
@@ -53,15 +54,9 @@ import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
 
 // ─── API base URL ──────────────────────────────────────────────────────────────
-const getApiBaseUrl = (): string => {
-  const envUrl = process.env.EXPO_PUBLIC_API_URL?.trim().replace(/\/$/, "");
-  if (envUrl) return envUrl;
-  // 10.0.2.2 routes to the host machine from inside the Android emulator
-  if (Platform.OS === "android") return "http://10.0.2.2:5000";
-  return "http://localhost:5000"; // iOS simulator and web
-};
+import { BASE_URL } from "../../constants/config.constants";
 
-const API_BASE_URL = getApiBaseUrl();
+const API_BASE_URL = BASE_URL;
 
 // ─── Navigation params ─────────────────────────────────────────────────────────
 type RequestStatusParams = {
@@ -114,6 +109,7 @@ export default function RequestStatusScreen() {
   const { rescuerId, caseId, animalType, animalPhoto, description, excludeIds, lat, lng, requestId: paramRequestId } = params;
   const rescuerIdValue = getFirstParam(rescuerId) ?? "";
   const initialRequestId = getFirstParam(paramRequestId) ?? null;
+  const { startCall } = useCall();
 
   // ── UI state ──────────────────────────────────────────────────────────────
   const [status,     setStatus]     = useState<RescueStatus>("pending");
@@ -463,8 +459,8 @@ export default function RequestStatusScreen() {
   // ─── Derived: status image source ─────────────────────────────────────────
   const getStatusImage = () => {
     if (status === "pending")  return require("../../assets/images/pending.gif");
-    if (status === "accepted" || status === "completed") return require("../../assets/images/accepted.png");
-    if (status === "rejected") return require("../../assets/images/rejected.png");
+    if (status === "accepted" || status === "completed") return require("../../assets/images/accepted.jpg");
+    if (status === "rejected") return require("../../assets/images/rejected.jpg");
     return require("../../assets/images/pending.gif");
   };
 
@@ -532,7 +528,7 @@ export default function RequestStatusScreen() {
             {/* Cancelled card */}
             <View style={styles.statusCard}>
               <Image
-                source={require("../../assets/images/rejected.png")}
+                source={require("../../assets/images/rejected.jpg")}
                 style={styles.statusImage}
               />
               <Text style={[styles.statusCardTitle, { color: "#C62828" }]}>
@@ -653,7 +649,7 @@ export default function RequestStatusScreen() {
                     <Image source={{ uri: rescuer.avatar }} style={styles.avatar} />
                   ) : (
                     <Image
-                      source={require("../../assets/images/default-avatar.png")}
+                      source={require("../../assets/images/default-avatar.jpg")}
                       style={styles.avatar}
                     />
                   )}
@@ -668,7 +664,13 @@ export default function RequestStatusScreen() {
                 {/* Phone button — only shown when accepted */}
                 {status === "accepted" && rescuer.phone ? (
                   <TouchableOpacity
-                    onPress={() => { void Linking.openURL(`tel:${rescuer.phone}`); }}
+                    onPress={() => {
+                      if (!rescuer.userId && !rescuer._id) {
+                        Alert.alert("Contact Unavailable", "Contact details are not available.");
+                        return;
+                      }
+                      startCall(String(rescuer.userId || rescuer._id), rescuer.name, rescuer.avatar);
+                    }}
                     activeOpacity={0.7}
                     style={styles.phoneButton}
                   >

@@ -3,7 +3,8 @@ import * as FileSystem from "expo-file-system";
 import * as Print from "expo-print";
 import { useLocalSearchParams } from "expo-router";
 import * as Sharing from "expo-sharing";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import PrimaryButton from "../../components/PrimaryButton";
 
 export default function Receipt() {
   const { donation } = useLocalSearchParams();
@@ -148,15 +149,13 @@ export default function Receipt() {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={downloadReceipt}>
-        <Text style={styles.buttonText}>📄 Download Receipt (PDF)</Text>
-      </TouchableOpacity>
+      <PrimaryButton title="Download Receipt (PDF)" onPress={downloadReceipt} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
+  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 60 },
   title: { fontSize: 22, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
   card: {
     backgroundColor: "#f9f9f9",
@@ -170,6 +169,4 @@ const styles = StyleSheet.create({
   label: { fontSize: 14, fontWeight: "600", color: "#666" },
   value: { fontSize: 14, color: "#333", flex: 1, textAlign: "right" },
   error: { fontSize: 16, color: "red", textAlign: "center" },
-  button: { backgroundColor: "#F5A623", padding: 15, borderRadius: 8, alignItems: "center" },
-  buttonText: { fontSize: 16, fontWeight: "bold", color: "#000" },
 });

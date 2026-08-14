@@ -19,6 +19,16 @@ export const pushNotificationService = {
   // Request notification permissions and setup push notifications
   async setupPushNotifications(): Promise<string | null> {
     try {
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("rescue-alerts", {
+          name: "Rescue Alerts",
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#F5A623",
+          sound: "default",
+        });
+      }
+
       // Get current permissions
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
@@ -39,17 +49,20 @@ export const pushNotificationService = {
         Constants?.easConfig?.projectId;
 
       if (!projectId) {
-        console.warn("[PUSH] No EAS projectId found in app.json. Skipping push token registration.");
+        console.log("[PUSH] Remote push token generation skipped (No EAS projectId configured)");
         return null;
       }
 
-      // Get the push token
-      const token = await Notifications.getExpoPushTokenAsync({ projectId });
-      console.log("[PUSH] Expo push token:", token.data);
-
-      return token.data;
+      try {
+        const token = await Notifications.getExpoPushTokenAsync({ projectId });
+        console.log("[PUSH] Expo push token:", token.data);
+        return token.data;
+      } catch (tokenErr: any) {
+        console.warn("[PUSH] Could not generate Expo push token:", tokenErr?.message || tokenErr);
+        return null;
+      }
     } catch (error) {
-      console.error("[PUSH] Failed to setup push notifications:", error);
+      console.warn("[PUSH] Push notification setup warning:", (error as any)?.message || error);
       return null;
     }
   },

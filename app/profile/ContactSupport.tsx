@@ -125,7 +125,7 @@ export default function ContactSupportScreen() {
         }),
       });
 
-      const data = await response.json();
+      const data: any = await response.json();
 
       if (response.ok) {
         setSubject("");

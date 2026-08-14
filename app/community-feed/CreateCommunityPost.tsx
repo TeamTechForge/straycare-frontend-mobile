@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { createCommunityPost } from "../../api/api.service";
+import { createCommunityPost } from "../../api/apiService";
 
 // ── Category options ─────────────────────────────────────────────────────────
 const CATEGORIES = [

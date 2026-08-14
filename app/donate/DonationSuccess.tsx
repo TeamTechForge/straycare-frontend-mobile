@@ -1,10 +1,13 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React from "react";
-import { StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { StyleSheet, Text, View } from "react-native";
+import PrimaryButton from "../../components/PrimaryButton";
+import { useAuth } from "../../contexts/AuthContext";
 
 export default function DonationSuccess() {
   const router = useRouter();
+  const { user } = useAuth();
   const { transactionId, amount, organization } = useLocalSearchParams();
 
   const displayTransactionId = transactionId
@@ -14,12 +17,20 @@ export default function DonationSuccess() {
   const displayAmount = amount ? `Rs. ${parseFloat(amount as string).toFixed(2)}` : "";
   const displayOrganization = organization ? String(organization) : "";
 
+  const canReceiveDonations = user?.role === "vet" || user?.role === "ngo";
+
+  const handleViewHistory = () => {
+    if (canReceiveDonations) {
+      router.push("/donate/DonationHub");
+    } else {
+      router.push("/donate/History");
+    }
+  };
+
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Donate & Support♡</Text>
-
       <View style={styles.middle}>
-        <View style={styles.box}>
+        <View style={styles.contentContainer}>
           <Ionicons
             name="checkmark-circle"
             size={90}
@@ -45,63 +56,60 @@ export default function DonationSuccess() {
             Transaction ID: {displayTransactionId}
           </Text>
 
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.replace("/donate")}
-          >
-            <Text style={styles.buttonText}>Back to Donate</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={styles.button}
-            onPress={() => router.push("/donate/History")}
-          >
-            <Text style={styles.buttonText}>View Donation History</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.bottomNav}>
-        <Ionicons name="home-outline" size={24} />
-        <Ionicons name="people-outline" size={24} />
-        <Ionicons name="location-outline" size={24} />
-        <Ionicons name="chatbubble-outline" size={24} />
-        <Ionicons name="person-outline" size={24} />
-      </View>
-    </View>
+          <PrimaryButton title="Back to Donate" onPress={() => router.replace("/Donate")} />
+          <PrimaryButton
+            title={canReceiveDonations ? "View Donation Hub" : "View Donation History"}
+            onPress={handleViewHistory}
+          />
+        </View >
+      </View >
+    </View >
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", padding: 20 },
-  title: { fontSize: 22, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
-  middle: { flex: 1, justifyContent: "center", alignItems: "center" },
-  box: {
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
-    padding: 25,
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingHorizontal: 20,
+    paddingTop: 10,
+  },
+  middle: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  contentContainer: {
     alignItems: "center",
     justifyContent: "center",
-    width: "90%",
+    width: "100%",
   },
-  icon: { marginBottom: 15 },
-  message: { fontSize: 24, fontWeight: "bold", marginBottom: 5, color: "#222" },
-  subMessage: { fontSize: 16, marginBottom: 10, color: "#555", textAlign: "center" },
-  detail: { fontSize: 14, marginBottom: 5, color: "#444", textAlign: "center" },
-  transaction: { fontSize: 13, marginBottom: 25, color: "#777", textAlign: "center" },
-  button: {
-    backgroundColor: "#F5A623",
-    padding: 12,
-    borderRadius: 8,
-    marginVertical: 6,
-    width: 220,
+  icon: {
+    marginBottom: 20,
   },
-  buttonText: { textAlign: "center", fontSize: 16, fontWeight: "bold", color: "#000" },
-  bottomNav: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-    padding: 15,
-    borderTopWidth: 1,
-    borderColor: "#ddd",
+  message: {
+    fontSize: 26,
+    fontWeight: "bold",
+    marginBottom: 8,
+    color: "#222",
+  },
+  subMessage: {
+    fontSize: 16,
+    marginBottom: 30,
+    color: "#555",
+    textAlign: "center",
+  },
+  detail: {
+    fontSize: 15,
+    marginBottom: 8,
+    color: "#444",
+    textAlign: "center",
+  },
+  transaction: {
+    fontSize: 13,
+    marginTop: 15,
+    marginBottom: 35,
+    color: "#777",
+    textAlign: "center",
   },
 });

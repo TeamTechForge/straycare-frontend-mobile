@@ -25,6 +25,7 @@ import { useLocalSearchParams, router } from "expo-router";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
+import { useCall } from "../../contexts/CallContext";
 
 // ─── Params from /searching-help ───────────────────────────────────────────────
 type RescuerFoundParams = {
@@ -54,6 +55,7 @@ const FALLBACK_ANIMAL_PHOTO =
 export default function RescuerFoundScreen() {
   // Read all rescuer + rescue info from URL params
   const params = useLocalSearchParams<RescuerFoundParams>();
+  const { startCall } = useCall();
 
   const rescuerName = getFirstParam(params.name) ?? "Nearby Rescuer";
   const rescuerDistance = getFirstParam(params.distance) ?? "0";
@@ -70,10 +72,8 @@ export default function RescuerFoundScreen() {
   const [animalImgError, setAnimalImgError] = useState(false);
 
   // Resolved image URIs with fallback logic
-  const avatarUri =
-    !avatarError && rescuerAvatar && rescuerAvatar.length > 0
-      ? rescuerAvatar
-      : FALLBACK_RESCUER_AVATAR;
+  const hasAvatar = !avatarError && Boolean(rescuerAvatar && rescuerAvatar.trim().length > 0);
+  const avatarUri = hasAvatar ? (rescuerAvatar as string) : "";
   const animalUri =
     !animalImgError && animalPhoto && animalPhoto.length > 0
       ? animalPhoto
@@ -81,27 +81,15 @@ export default function RescuerFoundScreen() {
 
   // ── Call rescuer ──
   const handleCall = () => {
-    if (!rescuerPhone || rescuerPhone.trim().length === 0) {
+    if (!rescuerIdValue) {
       Alert.alert(
-        "Phone Unavailable",
-        "The rescuer's phone number is not available.",
+        "Contact Unavailable",
+        "The rescuer's contact details are not available.",
         [{ text: "OK" }]
       );
       return;
     }
-    const cleanedPhone = rescuerPhone.replace(/[\s-]/g, "");
-    const url = `tel:${cleanedPhone}`;
-    Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert("Cannot Make Call", "Your device does not support phone calls.");
-        }
-      })
-      .catch(() => {
-        Alert.alert("Error", "An error occurred while trying to make the call.");
-      });
+    startCall(rescuerIdValue, rescuerName, avatarUri || undefined);
   };
 
   // ── Navigate to request-status ──
@@ -169,11 +157,17 @@ export default function RescuerFoundScreen() {
         <View style={styles.card}>
           {/* ── Rescuer Avatar ── */}
           <View style={styles.avatarWrapper}>
-            <Image
-              source={{ uri: avatarUri }}
-              style={styles.avatar}
-              onError={() => setAvatarError(true)}
-            />
+            {hasAvatar ? (
+              <Image
+                source={{ uri: avatarUri }}
+                style={styles.avatar}
+                onError={() => setAvatarError(true)}
+              />
+            ) : (
+              <View style={[styles.avatar, styles.emptyAvatar]}>
+                <Text style={styles.emptyAvatarText}>👤</Text>
+              </View>
+            )}
             <View style={styles.avatarBadge}>
               <Text style={styles.avatarBadgeIcon}>🐾</Text>
             </View>
@@ -432,6 +426,13 @@ const styles = StyleSheet.create({
     backgroundColor: "#F3F4F6",
     borderWidth: 3,
     borderColor: colors.primary,
+  },
+  emptyAvatar: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyAvatarText: {
+    fontSize: 40,
   },
   avatarBadge: {
     position: "absolute",

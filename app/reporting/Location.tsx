@@ -2,7 +2,7 @@ import * as Location from "expo-location";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
-import MapView, { Marker } from "react-native-maps";
+import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";
 
 type MapRegion = {
@@ -182,9 +182,9 @@ export default function LocationPicker() {
 
   return (
     <View style={styles.container}>
-      <MapView style={styles.map} region={region}>
+      <MapViewWrapper style={styles.map} region={region}>
         <Marker coordinate={region} draggable onDragEnd={onMarkerDragEnd} />
-      </MapView>
+      </MapViewWrapper>
 
       <View style={[styles.addressBox, locationError && styles.errorBorder]}>
         <Text style={styles.label}>

@@ -1,9 +1,9 @@
-export type Role = "Vet" | "NGO";
+export type Role = "Vet" | "NGO" | "";
 
 export type ThreadMessage = {
   id: string;
   name: string;
-  role: Role;
+  role?: Role;
   subtitle: string;
   time: string;
   text: string;

@@ -18,33 +18,9 @@ const CLIENT_USER_ID = "forum-guest";
 //   Set EXPO_PUBLIC_API_URL=http://<your-pc-lan-ip>:5000 in frontend-mobile/.env
 //   Find your LAN IP with: ipconfig (Windows) or ifconfig (Mac/Linux)
 //
-const getApiBaseUrl = (): string => {
-  const explicitUrl = process.env.EXPO_PUBLIC_API_URL?.trim();
+import { BASE_URL } from "../constants/config.constants";
 
-  console.log(`[forum.service] Platform: ${Platform.OS}`);
-  console.log(`[forum.service] EXPO_PUBLIC_API_URL env: ${explicitUrl || "(not set)"}`);
-
-  if (explicitUrl) {
-    const cleanUrl = explicitUrl.replace(/\/$/, "");
-    console.log(`[forum.service] Using EXPO_PUBLIC_API_URL: ${cleanUrl}`);
-    return cleanUrl;
-  }
-
-  // Fallback defaults — only reliable on emulators/simulators
-  let baseUrl: string;
-  if (Platform.OS === "android") {
-    baseUrl = "http://10.0.2.2:5000"; // Android emulator → host machine
-  } else {
-    baseUrl = "http://localhost:5000"; // iOS simulator / web
-  }
-
-  console.log(`[forum.service] Using platform default URL: ${baseUrl}`);
-  console.warn(
-    `[forum.service] WARNING: Using default URL "${baseUrl}". ` +
-    `If on a physical device, set EXPO_PUBLIC_API_URL in frontend-mobile/.env`
-  );
-  return baseUrl;
-};
+const getApiBaseUrl = (): string => BASE_URL;
 
 const buildUrl = (path: string) => {
   const baseUrl = getApiBaseUrl();
@@ -66,8 +42,14 @@ const requestJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
 
   let response;
   try {
-    const SecureStore = require("expo-secure-store");
-    const token = await SecureStore.getItemAsync("authToken");
+    let token: string | null = null;
+    try {
+      const SecureStore = require("expo-secure-store");
+      token = await SecureStore.getItemAsync("authToken");
+    } catch (storeErr) {
+      console.warn("[forum.service] SecureStore reading skipped or unsupported:", storeErr);
+    }
+
     const headers: any = {
       "Content-Type": "application/json",
       ...(init?.headers || {}),
@@ -130,6 +112,8 @@ const mapThread = (response: ForumThreadResponse): ForumThread => ({
   comments: (response.comments || []).map((comment: ForumThreadComment) => ({
     id: comment.id,
     userId: comment.userId,
+    userName: comment.userName,
+    isMine: comment.isMine,
     text: comment.text,
     timestamp: comment.timestamp,
   })),
@@ -174,6 +158,15 @@ export async function likePost(postId: string) {
     {
       method: "POST",
       body: JSON.stringify({ userId: CLIENT_USER_ID }),
+    }
+  );
+}
+
+export async function deletePost(postId: string) {
+  return requestJson<{ message: string }>(
+    `/api/forum/${encodeURIComponent(postId)}`,
+    {
+      method: "DELETE",
     }
   );
 }

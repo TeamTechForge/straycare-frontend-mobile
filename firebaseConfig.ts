@@ -1,17 +1,19 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { initializeApp, getApps } from "firebase/app";
+import { FirebaseApp, initializeApp, getApps } from "firebase/app";
 import {
+  Auth,
   initializeAuth,
   getAuth,
-  getReactNativePersistence,
 } from "firebase/auth";
+// @ts-ignore - Known issue in Firebase SDK types missing getReactNativePersistence
+import { getReactNativePersistence } from "firebase/auth";
 
 const hasFirebaseConfig =
   process.env.EXPO_PUBLIC_FIREBASE_API_KEY &&
   process.env.EXPO_PUBLIC_FIREBASE_API_KEY.trim() !== "";
 
-let app;
-let auth;
+let app: FirebaseApp;
+let auth: Auth;
 
 if (hasFirebaseConfig) {
   const firebaseConfig = {
@@ -32,19 +34,21 @@ if (hasFirebaseConfig) {
 
   // Initialize Auth with AsyncStorage persistence for React Native
   try {
-    auth = initializeAuth(app, {
+    auth = initializeAuth(app!, {
       persistence: getReactNativePersistence(AsyncStorage),
     });
-  } catch (error) {
+  } catch {
     // If auth is already initialized (hot reload), retrieve existing instance
-    auth = getAuth(app);
+    auth = getAuth(app!);
   }
 } else {
   console.warn(
     "[Firebase] WARNING: EXPO_PUBLIC_FIREBASE_API_KEY is not set or empty. Firebase services will be disabled."
   );
-  app = {};
-  auth = {};
+  // These will be undefined at runtime when Firebase is disabled.
+  // Callers should guard against this if Firebase may not be configured.
+  app = {} as FirebaseApp;
+  auth = {} as Auth;
 }
 
 export { app, auth };

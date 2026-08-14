@@ -169,7 +169,7 @@ export default function NewChatScreen() {
           <Ionicons name="arrow-back" size={24} color="#111" />
         </TouchableOpacity>
         <Text style={styles.title}>New Chat</Text>
-        <View style={{ width: 40 }} /> {/* balance layout */}
+        <View style={{ width: 40 }} />
       </View>
 
       {/* SEARCH BAR */}

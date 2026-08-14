@@ -10,7 +10,7 @@ import {
   View,
   ActivityIndicator,
 } from "react-native";
-import { submitReport } from "../../api/stray-api.service";
+import { submitReport } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 
 type Category = "Injured" | "Abandoned" | "Aggressive";
@@ -164,34 +164,19 @@ export default function Review() {
       const result = await submitReport(reportData);
       console.log("Report submitted:", result);
 
-      if (result.rescueRequest) {
-        // Automatically matched! Go straight to request-status tracking
-        router.push({
-          pathname: "/request-status",
-          params: {
-            rescuerId: result.rescueRequest.rescuerId,
-            caseId: caseId,
-            animalType: reportData.animalType,
-            animalPhoto: reportData.photos[0] || "",
-            description: reportData.notes || "",
-            lat: String(reportData.location.lat),
-            lng: String(reportData.location.lng),
-            requestId: String(result.rescueRequest._id),
-          },
-        } as never);
-      } else {
-        router.push({
-          pathname: "/reporting/Success",
-          params: {
-            caseId,
-            animalType: reportData.animalType,
-            animalPhoto: reportData.photos[0] || "",
-            description: reportData.notes || "",
-            lat: String(reportData.location.lat),
-            lng: String(reportData.location.lng),
-          },
-        });
-      }
+      router.push({
+        pathname: "/reporting/Success",
+        params: {
+          caseId,
+          animalType: reportData.animalType,
+          animalPhoto: reportData.photos[0] || "",
+          description: reportData.notes || "",
+          lat: String(reportData.location.lat),
+          lng: String(reportData.location.lng),
+          requestId: result?.rescueRequest?._id ? String(result.rescueRequest._id) : "",
+          rescuerId: result?.rescueRequest?.rescuerId ? String(result.rescueRequest.rescuerId) : "",
+        },
+      });
     } catch (error: any) {
       console.error("Error submitting report:", error);
 

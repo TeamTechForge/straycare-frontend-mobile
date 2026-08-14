@@ -11,8 +11,8 @@ import {
   View,
   Alert,
 } from "react-native";
-import MapView, { Marker } from "react-native-maps";
-import { getReportByCaseId, updateCaseStatus } from "../../api/stray-api.service";
+import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
+import { getReportByCaseId, updateCaseStatus } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { API_URL } from "../../constants/config.constants";
@@ -267,7 +267,7 @@ export default function CaseDetailsScreen() {
       </View>
 
       {report.location?.lat != null && report.location?.lng != null && (
-        <MapView
+        <MapViewWrapper
           provider="google"
           style={styles.map}
           initialRegion={{
@@ -283,7 +283,7 @@ export default function CaseDetailsScreen() {
               longitude: report.location.lng,
             }}
           />
-        </MapView>
+        </MapViewWrapper>
       )}
 
       {/* Notes */}

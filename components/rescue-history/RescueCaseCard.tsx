@@ -21,7 +21,7 @@ import {
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
-import { getApiBaseUrl } from "../../services/rescue.service";
+import { getApiBaseUrl } from "../../services/rescueService";
 import type { RescueCaseRecord } from "../../types/Api";
 
 // ─── Props ───────────────────────────────────────────────────────────────────
@@ -179,8 +179,8 @@ export default function RescueCaseCard({
             <Text style={styles.metaIcon}>👤</Text>
             <Text style={styles.metaLabel}>Reporter:</Text>
             <Text style={styles.metaValue} numberOfLines={1}>
-              {item.reporter?.name ?? "Reporter"}
-              {item.reporter?.phone ? ` • ${item.reporter.phone}` : ""}
+              {item.reporter?.name || item.reporterName || "Reporter"}
+              {(item.reporter?.phone || item.reporterPhone) ? ` • ${item.reporter?.phone || item.reporterPhone}` : ""}
             </Text>
           </View>
 
@@ -188,8 +188,8 @@ export default function RescueCaseCard({
             <Text style={styles.metaIcon}>🚑</Text>
             <Text style={styles.metaLabel}>Rescuer:</Text>
             <Text style={styles.metaValue} numberOfLines={1}>
-              {item.rescuer?.name ?? "Awaiting assignment"}
-              {item.rescuer?.phone ? ` • ${item.rescuer.phone}` : ""}
+              {item.rescuer?.name || item.rescuerName || "Awaiting assignment"}
+              {(item.rescuer?.phone || item.rescuerPhone) ? ` • ${item.rescuer?.phone || item.rescuerPhone}` : ""}
             </Text>
           </View>
 

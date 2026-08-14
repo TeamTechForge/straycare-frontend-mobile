@@ -140,7 +140,7 @@ export default function VerificationPendingScreen() {
       </TouchableOpacity>
 
       {/* Logout */}
-      <TouchableOpacity style={[styles.supportRow, { marginTop: 12 }]} onPress={handleLogout}>
+      <TouchableOpacity style={[styles.supportRow, { marginTop: 30 }]} onPress={handleLogout}>
         <Ionicons name="log-out-outline" size={14} color="#EF4444" />
         <Text style={[styles.supportText, { color: "#EF4444" }]}>Sign Out</Text>
       </TouchableOpacity>
@@ -242,7 +242,7 @@ const styles = StyleSheet.create({
     marginTop: 34,
   },
   supportRow: {
-    marginTop: 16,
+    marginTop: 30,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",

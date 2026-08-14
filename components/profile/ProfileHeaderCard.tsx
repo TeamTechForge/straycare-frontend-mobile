@@ -1,5 +1,7 @@
+import React, { useState } from "react";
 import { Ionicons } from "@expo/vector-icons";
 import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import ImageViewer from "../ui/ImageViewer";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -8,9 +10,10 @@ type Props = {
   location: string;
   bio: string;
   memberSince: string;
-  avatar: string;
+  avatar: any;
   onEditPress?: () => void;
   role?: string;
+  isVerified?: boolean;
 };
 
 export default function ProfileHeaderCard({
@@ -21,7 +24,10 @@ export default function ProfileHeaderCard({
   avatar,
   onEditPress,
   role,
+  isVerified,
 }: Props) {
+  const [isViewerVisible, setIsViewerVisible] = useState(false);
+
   const getRoleLabel = (role?: string) => {
     switch (role) {
       case "general_user":
@@ -38,9 +44,12 @@ export default function ProfileHeaderCard({
   };
   return (
     <View style={styles.profileTop}>
-      <View style={styles.avatarOuter}>
-        <Image source={{ uri: avatar }} style={styles.avatar} />
-      </View>
+      <TouchableOpacity onPress={() => setIsViewerVisible(true)} style={styles.avatarOuter}>
+        <Image 
+          source={typeof avatar === 'string' ? { uri: avatar } : avatar} 
+          style={styles.avatar} 
+        />
+      </TouchableOpacity>
 
       <View style={styles.badgeContainer}>
         {role && (
@@ -50,7 +59,12 @@ export default function ProfileHeaderCard({
         )}
       </View>
 
-      <Text style={styles.userName}>{name}</Text>
+      <View style={styles.nameRow}>
+        <Text style={styles.userName}>{name}</Text>
+        {isVerified && (
+          <Ionicons name="checkmark-circle" size={18} color="#1DA1F2" style={{ marginLeft: 4 }} />
+        )}
+      </View>
 
       <View style={styles.locationRow}>
         <Ionicons name="location-outline" size={12} color="#888" />
@@ -64,6 +78,12 @@ export default function ProfileHeaderCard({
       <TouchableOpacity style={styles.editButton} onPress={onEditPress}>
         <Text style={styles.editButtonText}>Edit Profile</Text>
       </TouchableOpacity>
+
+      <ImageViewer 
+        imageUrl={avatar} 
+        visible={isViewerVisible} 
+        onClose={() => setIsViewerVisible(false)} 
+      />
     </View>
   );
 }
@@ -105,8 +125,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
   },
-  userName: {
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 8,
+  },
+  userName: {
     fontSize: 22,
     fontWeight: "700",
     color: "#222",

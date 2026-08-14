@@ -4,11 +4,14 @@ import { Image, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 
 import PrimaryButton from "../../components/PrimaryButton";
 
+import { useAuth } from "../../contexts/AuthContext";
+
 export default function AccountDeletedScreen() {
   const router = useRouter();
+  const { logout } = useAuth();
 
-  const handleReturnWelcome = () => {
-    // TODO: later clear all auth state/tokens before redirect
+  const handleReturnWelcome = async () => {
+    await logout();
     router.replace("/auth/Welcome");
   };
 
@@ -16,7 +19,7 @@ export default function AccountDeletedScreen() {
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace("/auth/Welcome")}>
+        <TouchableOpacity onPress={handleReturnWelcome}>
           <Ionicons name="arrow-back" size={22} color="#222" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Settings</Text>
@@ -39,9 +42,6 @@ export default function AccountDeletedScreen() {
           }}
           style={styles.catImage}
         />
-        <View style={styles.checkCircle}>
-          <Ionicons name="checkmark-circle-outline" size={48} color="#F5A623" />
-        </View>
       </View>
 
       <Text style={styles.title}>Account Deleted</Text>
@@ -110,14 +110,6 @@ const styles = StyleSheet.create({
   catImage: {
     width: "100%",
     height: "100%",
-  },
-  checkCircle: {
-    position: "absolute",
-    alignSelf: "center",
-    top: 76,
-    backgroundColor: "#fff",
-    borderRadius: 35,
-    padding: 8,
   },
   title: {
     textAlign: "center",

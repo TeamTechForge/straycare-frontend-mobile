@@ -1,4 +1,5 @@
 import { createAudioPlayer, setAudioModeAsync, AudioPlayer } from "expo-audio";
+import { Asset } from "expo-asset";
 
 class CallAudioService {
   private incomingRingtone: AudioPlayer | null = null;
@@ -29,9 +30,10 @@ class CallAudioService {
       await this.initAudioMode();
       await this.stopAll(); // Ensure nothing else is playing
 
-      this.incomingRingtone = createAudioPlayer(
-        require("../assets/sounds/ringtone.wav")
-      );
+      const asset = Asset.fromModule(require("../assets/sounds/ringtone.wav"));
+      await asset.downloadAsync();
+
+      this.incomingRingtone = createAudioPlayer(asset.localUri || asset.uri);
       this.incomingRingtone.loop = true;
       this.incomingRingtone.play();
     } catch (error) {
@@ -47,9 +49,10 @@ class CallAudioService {
       await this.initAudioMode();
       await this.stopAll(); // Ensure nothing else is playing
 
-      this.outgoingRingback = createAudioPlayer(
-        require("../assets/sounds/ringback.wav")
-      );
+      const asset = Asset.fromModule(require("../assets/sounds/ringback.wav"));
+      await asset.downloadAsync();
+
+      this.outgoingRingback = createAudioPlayer(asset.localUri || asset.uri);
       this.outgoingRingback.loop = true;
       this.outgoingRingback.play();
     } catch (error) {

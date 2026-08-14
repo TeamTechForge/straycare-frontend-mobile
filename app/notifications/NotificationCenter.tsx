@@ -71,6 +71,25 @@ export default function NotificationCenter() {
     // Mark as read
     await markAsRead(item._id);
 
+    // If notification is for a discussion thread reply or new discussion
+    if (
+      (item.title && (item.title.includes("Discussion") || item.title.includes("Reply"))) ||
+      (item.message && (item.message.includes("replied to your thread") || item.message.includes("started a new discussion")))
+    ) {
+      const threadId = item.caseId || item.rescueRequestId;
+      if (threadId) {
+        router.push({
+          pathname: "/discussion-thread/[id]",
+          params: {
+            id: threadId,
+            commentId: item.rescueRequestId || "",
+            scrollToComments: "true",
+          },
+        } as any);
+        return;
+      }
+    }
+
     // If this is a rescue request notification, show accept/reject actions
     if (item.title === "New Rescue Request" && item.rescueRequestId) {
       Alert.alert(
@@ -152,6 +171,11 @@ export default function NotificationCenter() {
         ],
         { cancelable: true }
       );
+    } else if (item.caseId) {
+      router.push({
+        pathname: "/live-tracking/[requestId]",
+        params: { requestId: item.caseId },
+      } as any);
     }
   };
 

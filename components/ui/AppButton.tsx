@@ -5,6 +5,7 @@ import {
   TouchableOpacity,
   ViewStyle,
   TextStyle,
+  StyleProp,
 } from "react-native";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
@@ -14,8 +15,8 @@ type Props = {
   title: string;
   onPress: () => void;
   variant?: "filled" | "outline";
-  style?: ViewStyle;
-  textStyle?: TextStyle;
+  style?: StyleProp<ViewStyle>;
+  textStyle?: StyleProp<TextStyle>;
   disabled?: boolean;
 };
 

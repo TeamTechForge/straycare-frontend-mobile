@@ -4,6 +4,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Image, StyleSheet, Text, View, Linking, TouchableOpacity } from "react-native";
+import MapViewWrapper, { Marker } from "../MapViewWrapper";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -65,7 +66,22 @@ export default function MessageBubble({
             activeOpacity={0.8}
           >
             <View style={[styles.locationMapPlaceholder, isMine ? styles.mapPlaceholderMine : styles.mapPlaceholderTheirs]}>
-              <Ionicons name="map" size={40} color={isMine ? "rgba(255,255,255,0.4)" : "#ccc"} />
+              <MapViewWrapper
+                style={styles.previewMap}
+                liteMode={true}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                pitchEnabled={false}
+                rotateEnabled={false}
+                initialRegion={{
+                  latitude: location.latitude,
+                  longitude: location.longitude,
+                  latitudeDelta: 0.005,
+                  longitudeDelta: 0.005,
+                }}
+              >
+                <Marker coordinate={location} />
+              </MapViewWrapper>
             </View>
             <View style={styles.locationInfo}>
               <Text style={[styles.locationTitle, isMine && styles.textMine]} numberOfLines={1}>
@@ -198,6 +214,10 @@ const styles = StyleSheet.create({
   },
   mapPlaceholderTheirs: {
     backgroundColor: "#E5E7EB",
+  },
+  previewMap: {
+    width: "100%",
+    height: "100%",
   },
   locationInfo: {
     padding: 10,
