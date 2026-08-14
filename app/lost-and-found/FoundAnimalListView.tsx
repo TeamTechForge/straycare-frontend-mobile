@@ -8,7 +8,8 @@ export default function FoundAnimalScreen() {
       mode="found"
       fetchPostsFn={getFoundPosts}
       badgeLabel="FOUND"
-      badgeTextColor="#9b9800"
+      badgeTextColor="#F5A623"
+      badgeBgColor="#FFF7E6"
     />
   );
 }

@@ -1,38 +1,40 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { StyleSheet, Text, View, SafeAreaView } from 'react-native';
+import PrimaryButton from '../../components/PrimaryButton';
 
 const LostPostSubmittedView = () => {
     const router = useRouter();
 
     return (
-        <View style={styles.container}>
-            {/* Content */}
+        <SafeAreaView style={styles.container}>
             <View style={styles.content}>
-                <Ionicons name="checkmark-circle" size={100} color="#ffb700" />
+                {/* Icon wrapper for a premium feel */}
+                <View style={styles.iconWrapper}>
+                    <Ionicons name="checkmark-circle" size={90} color="#F5A623" />
+                </View>
+                
                 <Text style={styles.title}>Thank You!</Text>
+                
                 <Text style={styles.message}>
-                    Your lost pet report has been submitted successfully. We will notify you if there's any update.
+                    Your post has been submitted successfully. We will notify you if there's any update.
                 </Text>
 
-                {/* Back to list button */}
-                <TouchableOpacity
-                    style={styles.button}
-                    onPress={() => router.push('/lost-and-found/LostAnimalListView')}
-                >
-                    <Text style={styles.buttonText}>Back to Lost & Found</Text>
-                </TouchableOpacity>
+                <View style={styles.buttonContainer}>
+                    <PrimaryButton 
+                        title="Back to Lost & Found" 
+                        onPress={() => router.push('/lost-and-found')}
+                    />
 
-                {/* View My Posts button */}
-                <TouchableOpacity
-                    style={[styles.button, styles.secondaryButton]}
-                    onPress={() => router.push('/lost-and-found/ViewLostFoundPost?id')}
-                >
-                    <Text style={styles.secondaryButtonText}>View My Post</Text>
-                </TouchableOpacity>
+                    <PrimaryButton 
+                        title="View My Posts" 
+                        variant="outline"
+                        onPress={() => router.push('/lost-and-found/MyPosts')}
+                    />
+                </View>
             </View>
-        </View>
+        </SafeAreaView>
     );
 };
 
@@ -41,54 +43,39 @@ export default LostPostSubmittedView;
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: '#f9f5e9',
-        paddingHorizontal: 16,
-        paddingVertical: 16,
+        backgroundColor: '#FFFFFF',
     },
     content: {
         flex: 1,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 20,
+        paddingHorizontal: 32,
+    },
+    iconWrapper: {
+        width: 140,
+        height: 140,
+        borderRadius: 70,
+        backgroundColor: '#FFF7E6', // Light amber background
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 32,
     },
     title: {
-        fontSize: 28,
-        fontWeight: 'bold',
-        color: '#000',
-        marginTop: 20,
-        marginBottom: 10,
+        fontSize: 32,
+        fontWeight: '800',
+        color: '#062425',
+        marginBottom: 12,
+        letterSpacing: -0.5,
     },
     message: {
         fontSize: 16,
-        color: '#666',
+        color: '#717878',
         textAlign: 'center',
-        marginBottom: 30,
+        marginBottom: 40,
         lineHeight: 24,
     },
-    button: {
-        backgroundColor: '#ffb700',
-        paddingVertical: 15,
-        paddingHorizontal: 30,
-        borderRadius: 8,
-        alignItems: 'center',
+    buttonContainer: {
         width: '100%',
-        marginBottom: 15,
-    },
-    buttonText: {
-        color: '#fff',
-        fontWeight: '600',
-        fontSize: 16,
-    },
-
-    // Second button style
-    secondaryButton: {
-        backgroundColor: '#fff',
-        borderWidth: 1,
-        borderColor: '#ffb700',
-    },
-    secondaryButtonText: {
-        color: '#ffb700',
-        fontWeight: '600',
-        fontSize: 16,
+        gap: 8,
     },
 });

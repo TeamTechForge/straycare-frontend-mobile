@@ -8,7 +8,8 @@ export default function LostAnimalScreen() {
       mode="lost"
       fetchPostsFn={getLostPosts}
       badgeLabel="LOST"
-      badgeTextColor="#9b4500"
+      badgeTextColor="#F5A623"
+      badgeBgColor="#FFF7E6"
     />
   );
 }

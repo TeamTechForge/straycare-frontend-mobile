@@ -17,11 +17,12 @@ import {
   View,
 } from 'react-native';
 import { getAnimalPostById, reportAnimalPost } from '../../api/apiService';
-import { AnimalPost } from '../../services/lostAndFoundService';
+import { AnimalPost, deleteAnimalPost } from '../../services/lostAndFoundService';
 import { useCall } from '../../contexts/CallContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChatApi } from '../../hooks/useChatApi';
 import { BASE_URL } from '../../constants/config.constants';
+import OwnerActionButtons from '../../components/OwnerActionButtons';
 
 // ─── Colour changes were made ────────────────────────────────────────────────────────────
 const C = {
@@ -29,12 +30,12 @@ const C = {
   surface: '#FFFFFF',
   surfaceLow: '#F0F3FF',
   surfaceHighest: '#DCE2F3',
-  primary: '#994700',
-  primaryContainer: '#F5A623',
+  primary: '#F5A623',
+  primaryContainer: '#FFF7E6',
   onPrimary: '#FFFFFF',
-  outlineVariant: '#E0C0AF',
+  outlineVariant: '#F5A623',
   textMain: '#151C27',
-  textSub: '#584235',
+  textSub: '#717878',
   textSecondary: '#5B5F63',
   orange50: '#FFF7F0',
   orangeBorder: '#FFE5D0',
@@ -290,6 +291,31 @@ const ViewAnimalPost = () => {
     }
   };
 
+  // ─── Delete handler ─────────────────────────────────────────────────────────
+  const handleDelete = () => {
+    if (!post) return;
+    Alert.alert(
+      "Delete Post",
+      "Are you sure you want to delete this post? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAnimalPost(post._id);
+              Alert.alert('Deleted', 'Your post has been deleted.');
+              router.back();
+            } catch (err) {
+              Alert.alert("Error", "Failed to delete the post.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   // ─── Report handler ─────────────────────────────────────────────────────────
   const handleReport = () => {
     if (!post) return;
@@ -436,38 +462,51 @@ const ViewAnimalPost = () => {
           </View>
 
           {/* Contact card */}
-          <View style={s.contactCard}>
-            <TouchableOpacity 
-              style={s.contactInfo}
-              onPress={() => {
-                const rawUserId = (post as any).userId;
-                const ownerId = typeof rawUserId === 'object' && rawUserId !== null ? rawUserId._id : (rawUserId || (post as any).ownerId || (post as any).postedBy);
-                if (ownerId) router.push(`/profile/${ownerId}`);
-              }}
-              activeOpacity={0.8}
-            >
-              {typeof (post as any).userId === 'object' && (post as any).userId.avatar ? (
-                <Image source={{ uri: (post as any).userId.avatar }} style={s.contactAvatar} />
-              ) : (
-                <View style={s.contactAvatarPlaceholder}>
-                  <Ionicons name="person" size={24} color="#A0A0A0" />
+          {(!user?._id || user._id !== ((post as any).userId?._id || (post as any).userId || (post as any).ownerId)) && (
+            <View style={s.contactCard}>
+              <TouchableOpacity 
+                style={s.contactInfo}
+                onPress={() => {
+                  const rawUserId = (post as any).userId;
+                  const ownerId = typeof rawUserId === 'object' && rawUserId !== null ? rawUserId._id : (rawUserId || (post as any).ownerId || (post as any).postedBy);
+                  if (ownerId) router.push(`/profile/${ownerId}`);
+                }}
+                activeOpacity={0.8}
+              >
+                {typeof (post as any).userId === 'object' && (post as any).userId.avatar ? (
+                  <Image source={{ uri: (post as any).userId.avatar }} style={s.contactAvatar} />
+                ) : (
+                  <View style={s.contactAvatarPlaceholder}>
+                    <Ionicons name="person" size={24} color="#A0A0A0" />
+                  </View>
+                )}
+                <View>
+                  <Text style={s.contactLabel}>Contact Owner</Text>
+                  <Text style={s.contactName}>{post.contactName}</Text>
                 </View>
-              )}
-              <View>
-                <Text style={s.contactLabel}>Contact Owner</Text>
-                <Text style={s.contactName}>{post.contactName}</Text>
+              </TouchableOpacity>
+              
+              <View style={s.contactActions}>
+                <TouchableOpacity style={s.actionBtn} onPress={handleMessage} activeOpacity={0.85}>
+                  <Ionicons name="chatbubble" size={20} color={C.onPrimary} />
+                </TouchableOpacity>
+                <TouchableOpacity style={s.actionBtn} onPress={handleCall} activeOpacity={0.85}>
+                  <Ionicons name="call" size={20} color={C.onPrimary} />
+                </TouchableOpacity>
               </View>
-            </TouchableOpacity>
-            
-            <View style={s.contactActions}>
-              <TouchableOpacity style={[s.actionBtn, { backgroundColor: C.surfaceLow }]} onPress={handleMessage} activeOpacity={0.85}>
-                <Ionicons name="chatbubble" size={20} color={C.primary} />
-              </TouchableOpacity>
-              <TouchableOpacity style={s.actionBtn} onPress={handleCall} activeOpacity={0.85}>
-                <Ionicons name="call" size={20} color={C.onPrimary} />
-              </TouchableOpacity>
             </View>
-          </View>
+          )}
+
+          {/* Action buttons if owner */}
+          {user?._id && (
+            user._id === ((post as any).userId?._id || (post as any).userId || (post as any).ownerId)
+          ) && (
+            <OwnerActionButtons 
+              onEdit={() => router.push(`/lost-and-found/CreateLostFoundPost?postId=${post._id}`)}
+              onDelete={handleDelete}
+              editLabel="Edit Post"
+            />
+          )}
         </Animated.View>
 
         <View style={{ height: 40 }} />
@@ -679,16 +718,12 @@ const s = StyleSheet.create({
     gap: 8,
   },
   actionBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: C.primaryContainer,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.primary,
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
   },
 });
 

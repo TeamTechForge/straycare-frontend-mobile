@@ -18,12 +18,14 @@ interface BaseAnimalListViewProps {
   fetchPostsFn: () => Promise<AnimalPost[]>;
   badgeLabel: string;
   badgeTextColor: string;
+  badgeBgColor: string;
 }
 
 export default function BaseAnimalListView({
   fetchPostsFn,
   badgeLabel,
   badgeTextColor,
+  badgeBgColor,
 }: BaseAnimalListViewProps) {
   const router = useRouter();
 
@@ -99,7 +101,7 @@ export default function BaseAnimalListView({
 
         <View style={styles.cardBody}>
           <View style={styles.badgeRow}>
-            <View style={styles.badge}>
+            <View style={[styles.badge, { backgroundColor: badgeBgColor }]}>
               <Text style={[styles.badgeText, { color: badgeTextColor }]}>
                 {badgeLabel}
               </Text>
@@ -332,13 +334,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 999,
-    backgroundColor: "#e9e8e7",
+    backgroundColor: "#FFF7E6",
   },
   chipActive: {
-    backgroundColor: "#062425",
+    backgroundColor: "#F5A623",
   },
   chipText: {
-    color: "#414848",
+    color: "#D48806",
     fontWeight: "600",
     fontSize: 13,
   },

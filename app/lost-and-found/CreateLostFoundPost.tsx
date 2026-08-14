@@ -2,8 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
-import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useRouter, useLocalSearchParams } from 'expo-router';
+import React, { useState, useEffect } from 'react';
 import {
   Alert,
   Image,
@@ -15,7 +15,7 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { createAnimalPost } from '../../services/lostAndFoundService';
+import { createAnimalPost, updateAnimalPost, getAnimalPostById } from '../../services/lostAndFoundService';
 import { useAuth } from '../../contexts/AuthContext';
 import ChatLocationPicker from '../../components/chat/ChatLocationPicker';
 import PrimaryButton from '../../components/PrimaryButton';
@@ -26,12 +26,12 @@ const C = {
   bg: '#F8F9FA',
   surface: '#FFFFFF',
   surfaceLow: '#F3F4F5',
-  primary: '#FFD700',
-  primaryContainer: '#FFF3C4',
-  onPrimaryContainer: '#705E00',
+  primary: '#F5A623',
+  primaryContainer: '#FFF7E6',
+  onPrimaryContainer: '#D48806',
   outline: '#E2E0D6',
   textMain: '#191C1D',
-  textSub: '#6B6652',
+  textSub: '#717878',
   textPlaceholder: '#A8A497',
   error: '#B00020',
   errorBg: '#FFF0F0',
@@ -41,6 +41,8 @@ const C = {
 
 const CreatePost = () => {
   const router = useRouter();
+  const { postId } = useLocalSearchParams<{ postId: string }>();
+  const isEditMode = !!postId;
 
   // All form field values stored in a single state object
   const [form, setForm] = useState({
@@ -59,12 +61,40 @@ const CreatePost = () => {
   const [breedDropdownOpen, setBreedDropdownOpen] = useState(false); // Controls breed dropdown visibility
   const [showDatePicker, setShowDatePicker] = useState(false);       // Controls date picker visibility
   const [showLocationPicker, setShowLocationPicker] = useState(false); // Controls location picker modal
-  const [selectedRegion, setSelectedRegion] = useState<{latitude: number, longitude: number} | null>(null); // For map preview
+  const [selectedRegion, setSelectedRegion] = useState<{ latitude: number, longitude: number } | null>(null); // For map preview
   const [dateObj, setDateObj] = useState(new Date());                // Date object used by DateTimePicker
   const [errors, setErrors] = useState<Record<string, string>>({});  // Per-field validation error messages
   const [errorMessage, setErrorMessage] = useState('');              // Global error banner message
   const [isSubmitting, setIsSubmitting] = useState(false);           // Disables submit button while API call is in progress
   const { user } = useAuth();                                        // Authenticated user
+
+  useEffect(() => {
+    if (isEditMode) {
+      loadPost();
+    }
+  }, [postId]);
+
+  const loadPost = async () => {
+    try {
+      const post = await getAnimalPostById(postId as string);
+      setForm({
+        status: post.status,
+        type: post.type || 'other',
+        customType: post.customType || '',
+        breed: post.breed || '',
+        otherBreed: '',
+        name: post.name || '',
+        description: post.description || '',
+        location: post.location || '',
+        date: post.date || '',
+        images: post.imageUrl ? [post.imageUrl] : (post.images || []),
+      });
+    } catch (err) {
+      console.error(err);
+      Alert.alert("Error", "Could not load post");
+      router.back();
+    }
+  };
 
   // Updates a single form field and clears its error and the global banner
   const updateForm = (key: string, value: any) => {
@@ -224,23 +254,30 @@ const CreatePost = () => {
         contactNumber: user?.phone || '',
         userId: user?._id || '',
       };
-      await createAnimalPost(submitPayload as any);
 
-      // Reset all form fields after a successful submission
-      setForm({
-        status: 'lost',
-        type: 'dog',
-        customType: '',
-        breed: '',
-        otherBreed: '',
-        name: '',
-        description: '',
-        location: '',
-        date: '',
-        images: [],
-      });
+      if (isEditMode) {
+        await updateAnimalPost(postId as string, submitPayload as any);
+        Alert.alert('Success', 'Your post has been updated!');
+        router.back();
+      } else {
+        await createAnimalPost(submitPayload as any);
 
-      router.push('/lost-and-found/PostSubmittedSuccessView'); // Navigate to success screen
+        // Reset all form fields after a successful submission
+        setForm({
+          status: 'lost',
+          type: 'dog',
+          customType: '',
+          breed: '',
+          otherBreed: '',
+          name: '',
+          description: '',
+          location: '',
+          date: '',
+          images: [],
+        });
+
+        router.push('/lost-and-found/PostSubmittedSuccessView'); // Navigate to success screen
+      }
     } catch (error: any) {
       // Show backend error message or a generic fallback
       const message = error?.response?.data?.message || 'Failed to create post. Please try again.';
@@ -288,9 +325,11 @@ const CreatePost = () => {
 
       {/* Page title and subtitle */}
       <View style={s.titleBlock}>
-        <Text style={s.headerTitle}>Lost or Found a Pet?</Text>
+        <Text style={s.headerTitle}>{isEditMode ? 'Edit Post' : 'Lost or Found a Pet?'}</Text>
         <Text style={s.headerSub}>
-          Fill in the details below to post a report and help reunite animals with their families.
+          {isEditMode
+            ? 'Update the details of your reported post.'
+            : 'Fill in the details below to post a report and help reunite animals with their families.'}
         </Text>
       </View>
 
@@ -569,14 +608,14 @@ const CreatePost = () => {
       <View style={[s.actions, { alignItems: 'center' }]}>
         <View style={{ flex: 1 }}>
           <PrimaryButton
-            title="Back"
+            title="Cancel"
             variant="outline"
             onPress={() => router.back()}
           />
         </View>
         <View style={{ flex: 2, marginLeft: 12 }}>
           <PrimaryButton
-            title={isSubmitting ? 'Submitting…' : 'Submit Report'}
+            title={isSubmitting ? 'Saving…' : (isEditMode ? 'Save Changes' : 'Submit Report')}
             onPress={handleSubmit}
             disabled={isSubmitting}
           />
@@ -699,7 +738,7 @@ const s = StyleSheet.create({
   },
   // Amber highlight applied to the active toggle button
   toggleBtnActive: {
-    backgroundColor: '#fac165ff',
+    backgroundColor: '#f8b138ff',
     shadowColor: '#000',
     shadowOpacity: 0.06,
     shadowRadius: 4,
@@ -733,7 +772,7 @@ const s = StyleSheet.create({
   },
   // Gold border and light yellow background for the active type chip
   typeBtnActive: {
-    backgroundColor: C.primaryContainer,
+    backgroundColor: '#FFF0D4',
     borderColor: C.primary,
   },
   typeBtnText: {

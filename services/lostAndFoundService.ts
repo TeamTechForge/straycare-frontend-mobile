@@ -202,6 +202,12 @@ export const getFoundPosts = async (): Promise<AnimalPost[]> => {
     return data;
 };
 
+// GET user's reported posts
+export const getMyAnimalPosts = async (userId: string): Promise<AnimalPost[]> => {
+    const { data } = await api.get<AnimalPost[]>(`/animals?userId=${userId}`);
+    return data;
+};
+
 // GET single animal post by ID
 export const getAnimalPostById = async (id: string): Promise<AnimalPost> => {
     const { data } = await api.get<AnimalPost>(`/animals/${id}`);
