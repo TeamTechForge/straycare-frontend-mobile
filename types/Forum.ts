@@ -5,6 +5,7 @@ export type ForumPost = {
   title: string;
   tag: ForumPostTag;
   author: string;
+  authorAvatar?: string;
   likes: number;
   likedByMe: boolean;
   isMine?: boolean;
@@ -17,6 +18,7 @@ export type ForumThreadComment = {
   id: string;
   userId: string;
   userName?: string;
+  userAvatar?: string;
   isMine?: boolean;
   text: string;
   timestamp: string;

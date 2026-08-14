@@ -489,48 +489,6 @@ export default function RescuerResponseScreen() {
           </View>
         ) : (
           <View style={styles.actionSection}>
-            <Text style={styles.sectionHeader}>Quick Progress Updates</Text>
-            <View style={styles.progressChipsWrap}>
-              {[
-                { label: "Under Rescue", note: "Rescuer is actively managing the rescue." },
-                { label: "Treated", note: "Animal has received preliminary treatment." },
-                { label: "Ready for Adoption", note: "Animal is healthy and ready for a new home." },
-                { label: "Completed", note: "Rescue case has been successfully concluded." },
-              ].map((step, idx) => {
-                const isActive = status === step.label;
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[
-                      styles.progressChipBtn,
-                      isActive && { backgroundColor: "#F59E0B", borderColor: "#F59E0B" }
-                    ]}
-                    onPress={async () => {
-                      setSubmittingProgress(true);
-                      try {
-                        const token = await SecureStore.getItemAsync("authToken");
-                        await axios.patch(
-                          `${API_URL}/rescue/request/${requestId}/details`,
-                          { summary: step.note, status: step.label },
-                          { headers: { Authorization: `Bearer ${token}` } }
-                        );
-                        Alert.alert("Progress Updated", `Status updated: ${step.label}`);
-                        fetchDetails();
-                      } catch (err: any) {
-                        Alert.alert("Error", err?.response?.data?.error || "Failed to update progress.");
-                      } finally {
-                        setSubmittingProgress(false);
-                      }
-                    }}
-                  >
-                    <Text style={[styles.progressChipText, isActive && { color: "#FFFFFF" }]}>
-                      {step.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
             <PrimaryButton
               title="📝  Custom Progress Note"
               onPress={() => setProgressModalVisible(true)}

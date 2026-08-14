@@ -95,10 +95,14 @@ const requestJson = async <T>(path: string, init?: RequestInit): Promise<T> => {
   console.log(`[forum.service] Response OK: ${response.ok}`);
   
   if (!response.ok) {
-    const message =
-      typeof body === "object" && body !== null && "message" in body
-        ? String((body as { message?: unknown }).message)
-        : `Request failed with status ${response.status}`;
+    let message = `Request failed with status ${response.status}`;
+    if (typeof body === "object" && body !== null) {
+      if ("message" in body && (body as any).message) {
+        message = String((body as any).message);
+      } else if ("error" in body && (body as any).error) {
+        message = String((body as any).error);
+      }
+    }
     console.error(`[forum.service] Request failed: ${message}`);
     throw new Error(message);
   }
@@ -113,6 +117,7 @@ const mapThread = (response: ForumThreadResponse): ForumThread => ({
     id: comment.id,
     userId: comment.userId,
     userName: comment.userName,
+    userAvatar: comment.userAvatar,
     isMine: comment.isMine,
     text: comment.text,
     timestamp: comment.timestamp,
@@ -124,12 +129,24 @@ export async function getAllPosts(): Promise<ForumPost[]> {
 }
 
 export async function createPost(data: { title: string; tag?: ForumPost["tag"]; author?: string; imageUrl?: string }) {
+  let authorName = data.author;
+  if (!authorName || authorName === "You" || authorName === "User") {
+    try {
+      const SecureStore = require("expo-secure-store");
+      const userJson = await SecureStore.getItemAsync("userProfile");
+      if (userJson) {
+        const parsed = JSON.parse(userJson);
+        if (parsed?.name) authorName = parsed.name;
+      }
+    } catch (e) {}
+  }
+
   return requestJson<{ message: string; post: ForumPost }>("/api/forum", {
     method: "POST",
     body: JSON.stringify({
       title: data.title,
       tag: data.tag ?? "GENERAL",
-      author: data.author ?? "You",
+      author: authorName || undefined,
       imageUrl: data.imageUrl ?? "",
     }),
   });
@@ -141,11 +158,21 @@ export async function getThread(rescueId: string): Promise<ForumThread> {
 }
 
 export async function addComment(rescueId: string, text: string): Promise<ForumThread> {
+  let userName: string | undefined = undefined;
+  try {
+    const SecureStore = require("expo-secure-store");
+    const userJson = await SecureStore.getItemAsync("userProfile");
+    if (userJson) {
+      const parsed = JSON.parse(userJson);
+      if (parsed?.name) userName = parsed.name;
+    }
+  } catch (e) {}
+
   const response = await requestJson<{ message: string; thread: ForumThreadResponse }>(
     `/api/forum/${encodeURIComponent(rescueId)}/comment`,
     {
       method: "POST",
-      body: JSON.stringify({ text, userId: CLIENT_USER_ID }),
+      body: JSON.stringify({ text, userId: CLIENT_USER_ID, userName }),
     }
   );
 
@@ -165,6 +192,15 @@ export async function likePost(postId: string) {
 export async function deletePost(postId: string) {
   return requestJson<{ message: string }>(
     `/api/forum/${encodeURIComponent(postId)}`,
+    {
+      method: "DELETE",
+    }
+  );
+}
+
+export async function deleteComment(rescueId: string, commentId: string) {
+  return requestJson<{ message: string }>(
+    `/api/forum/${encodeURIComponent(rescueId)}/comment/${encodeURIComponent(commentId)}`,
     {
       method: "DELETE",
     }
