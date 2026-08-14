@@ -15,6 +15,8 @@ Notifications.setNotificationHandler({
   }),
 });
 
+let tokenRegistrationPromise: Promise<void> | null = null;
+
 export const pushNotificationService = {
   // Request notification permissions and setup push notifications
   async setupPushNotifications(): Promise<string | null> {
@@ -189,8 +191,28 @@ export const pushNotificationService = {
   },
 
   async ensureAuthenticatedTokenRegistered(): Promise<void> {
-    const pushToken = await this.setupPushNotifications();
-    if (pushToken) await this.sendTokenToBackend(pushToken);
+    // The root layout can rerender while authentication and navigation settle.
+    // Share one in-flight registration so those renders cannot post the same
+    // Expo token to the backend repeatedly.
+    if (tokenRegistrationPromise) {
+      return tokenRegistrationPromise;
+    }
+
+    tokenRegistrationPromise = (async () => {
+      const pushToken = await this.setupPushNotifications();
+      if (!pushToken) return;
+
+      const savedToken = await SecureStore.getItemAsync("pushToken");
+      if (savedToken === pushToken) {
+        return;
+      }
+
+      await this.sendTokenToBackend(pushToken);
+    })().finally(() => {
+      tokenRegistrationPromise = null;
+    });
+
+    return tokenRegistrationPromise;
   },
 
   listenForNotificationResponses(
