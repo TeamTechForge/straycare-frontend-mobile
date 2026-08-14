@@ -16,6 +16,10 @@ import {
   View,
 } from 'react-native';
 import { createAnimalPost } from '../../services/lostAndFoundService';
+import { useAuth } from '../../contexts/AuthContext';
+import ChatLocationPicker from '../../components/chat/ChatLocationPicker';
+import PrimaryButton from '../../components/PrimaryButton';
+import MapViewWrapper, { Marker } from '../../components/MapViewWrapper';
 
 // Centralized color tokens used across all components and styles
 const C = {
@@ -44,21 +48,23 @@ const CreatePost = () => {
     type: 'dog' as 'dog' | 'cat' | 'other', // Animal type selection
     customType: '',     // Used when type is "other"
     breed: '',          // Selected breed for dog or cat
+    otherBreed: '',     // Manually typed breed when 'Other' is selected
     name: '',           // Pet's name (optional)
     description: '',    // Description of the animal
     location: '',       // Last seen / found location
     date: '',           // Date of incident as a string
-    contactName: '',    // Reporter's full name
-    contactNumber: '',  // Reporter's phone number
     images: [] as string[], // Array holding the picked image URI (max 1)
   });
 
   const [breedDropdownOpen, setBreedDropdownOpen] = useState(false); // Controls breed dropdown visibility
   const [showDatePicker, setShowDatePicker] = useState(false);       // Controls date picker visibility
+  const [showLocationPicker, setShowLocationPicker] = useState(false); // Controls location picker modal
+  const [selectedRegion, setSelectedRegion] = useState<{latitude: number, longitude: number} | null>(null); // For map preview
   const [dateObj, setDateObj] = useState(new Date());                // Date object used by DateTimePicker
   const [errors, setErrors] = useState<Record<string, string>>({});  // Per-field validation error messages
   const [errorMessage, setErrorMessage] = useState('');              // Global error banner message
   const [isSubmitting, setIsSubmitting] = useState(false);           // Disables submit button while API call is in progress
+  const { user } = useAuth();                                        // Authenticated user
 
   // Updates a single form field and clears its error and the global banner
   const updateForm = (key: string, value: any) => {
@@ -137,6 +143,8 @@ const CreatePost = () => {
         // Required only for dogs and cats
         if ((form.type === 'dog' || form.type === 'cat') && !form.breed)
           message = 'Please select a breed.';
+        else if (form.breed === 'Other' && !form.otherBreed.trim())
+          message = 'Please specify the breed.';
         break;
       case 'description':
         if (!form.description.trim()) message = 'Please enter a description.';
@@ -158,18 +166,6 @@ const CreatePost = () => {
           if (selected > today) message = 'Date cannot be in the future.';
         }
         break;
-      case 'contactName':
-        if (!form.contactName.trim()) message = 'Please enter your name.';
-        else if (form.contactName.trim().length < 2)
-          message = 'Name must be at least 2 characters.';
-        break;
-      case 'contactNumber':
-        if (!form.contactNumber.trim())
-          message = 'Please enter your contact number.';
-        else if (!/^07\d{8}$/.test(form.contactNumber.trim()))
-          // Validates Sri Lankan mobile number format: 07XXXXXXXX
-          message = 'Enter a valid Sri Lankan phone number (07XXXXXXXX).';
-        break;
     }
     setErrors(prev => ({ ...prev, [field]: message }));
     return !message; // Returns true if field is valid
@@ -183,8 +179,10 @@ const CreatePost = () => {
     if (form.type === 'other' && !form.customType.trim())
       validationErrors.customType = 'Please enter the animal type.';
 
-    if ((form.type === 'dog' || form.type === 'cat') && !form.breed)
-      validationErrors.breed = 'Please select a breed.';
+    if (form.type === 'dog' || form.type === 'cat') {
+      if (!form.breed) validationErrors.breed = 'Please select a breed.';
+      else if (form.breed === 'Other' && !form.otherBreed.trim()) validationErrors.breed = 'Please specify the breed.';
+    }
 
     if (!form.description.trim())
       validationErrors.description = 'Please enter a description.';
@@ -208,16 +206,6 @@ const CreatePost = () => {
       if (selected > today) validationErrors.date = 'Date cannot be in the future.';
     }
 
-    if (!form.contactName.trim())
-      validationErrors.contactName = 'Please enter your name.';
-    else if (form.contactName.trim().length < 2)
-      validationErrors.contactName = 'Name must be at least 2 characters.';
-
-    if (!form.contactNumber.trim())
-      validationErrors.contactNumber = 'Please enter your contact number.';
-    else if (!/^07\d{8}$/.test(form.contactNumber.trim()))
-      validationErrors.contactNumber = 'Enter a valid Sri Lankan phone number (07XXXXXXXX).';
-
     setErrors(validationErrors);
     const firstError = Object.values(validationErrors).find(Boolean); // Get first error message
     if (firstError) { showValidationError(firstError); return false; }
@@ -229,7 +217,14 @@ const CreatePost = () => {
     if (!validateForm()) return; // Stop if any validation fails
     setIsSubmitting(true);
     try {
-      await createAnimalPost(form);
+      const submitPayload = {
+        ...form,
+        breed: form.breed === 'Other' ? form.otherBreed : form.breed,
+        contactName: user?.name || '',
+        contactNumber: user?.phone || '',
+        userId: user?._id || '',
+      };
+      await createAnimalPost(submitPayload as any);
 
       // Reset all form fields after a successful submission
       setForm({
@@ -237,12 +232,11 @@ const CreatePost = () => {
         type: 'dog',
         customType: '',
         breed: '',
+        otherBreed: '',
         name: '',
         description: '',
         location: '',
         date: '',
-        contactName: '',
-        contactNumber: '',
         images: [],
       });
 
@@ -258,19 +252,27 @@ const CreatePost = () => {
 
   // Predefined breed options for dogs
   const dogBreeds = [
-    'Labrador Retriever', 'German Shepherd', 'Golden Retriever', 'French Bulldog',
-    'Poodle', 'Beagle', 'Bulldog', 'Rottweiler', 'Yorkshire Terrier', 'Doberman', 'Unknown',
+    'Unknown', 'Labrador Retriever', 'German Shepherd', 'Golden Retriever', 'French Bulldog',
+    'Poodle', 'Beagle', 'Bulldog', 'Rottweiler', 'Yorkshire Terrier', 'Doberman', 'Other'
   ];
   // Predefined breed options for cats
   const catBreeds = [
-    'Persian', 'Siamese', 'Bengal', 'Maine Coon', 'Ragdoll', 'Sphynx',
-    'British Shorthair', 'Scottish Fold', 'American Shorthair', 'Abyssinian', 'Unknown',
+    'Unknown', 'Persian', 'Siamese', 'Bengal', 'Maine Coon', 'Ragdoll', 'Sphynx',
+    'British Shorthair', 'Scottish Fold', 'American Shorthair', 'Abyssinian', 'Other'
   ];
 
   // Renders an uppercase spaced label above each form field
-  const FieldLabel = ({ text }: { text: string }) => (
-    <Text style={s.fieldLabel}>{text.toUpperCase()}</Text>
-  );
+  const FieldLabel = ({ text }: { text: string }) => {
+    if (text.endsWith(' *')) {
+      const baseText = text.slice(0, -2);
+      return (
+        <Text style={s.fieldLabel}>
+          {baseText.toUpperCase()} <Text style={{ color: C.error }}>*</Text>
+        </Text>
+      );
+    }
+    return <Text style={s.fieldLabel}>{text.toUpperCase()}</Text>;
+  };
 
   // Renders a red error message below a field only if that field has an error
   const FieldError = ({ field }: { field: string }) =>
@@ -323,7 +325,7 @@ const CreatePost = () => {
         <Text style={s.sectionTitle}>Animal Details</Text>
 
         {/* Animal type chips: Dog / Cat / Other */}
-        <FieldLabel text="Animal Type" />
+        <FieldLabel text="Animal Type *" />
         <View style={s.typeRow}>
           {(['dog', 'cat', 'other'] as const).map(t => (
             <TouchableOpacity
@@ -346,7 +348,7 @@ const CreatePost = () => {
         {/* Custom type text input — only shown when "Other" is selected */}
         {form.type === 'other' && (
           <View style={s.fieldGroup}>
-            <FieldLabel text="Specify Animal Type" />
+            <FieldLabel text="Specify Animal Type *" />
             <TextInput
               style={[s.input, errors.customType && s.inputError]}
               placeholder="e.g. Rabbit, Parrot…"
@@ -362,7 +364,7 @@ const CreatePost = () => {
         {/* Breed dropdown — only shown for dog or cat */}
         {(form.type === 'dog' || form.type === 'cat') && (
           <View style={s.fieldGroup}>
-            <FieldLabel text="Breed" />
+            <FieldLabel text="Breed *" />
             {/* Tapping the trigger toggles the dropdown list open/closed */}
             <TouchableOpacity
               style={[s.input, s.dropdownTrigger, errors.breed && s.inputError]}
@@ -381,7 +383,7 @@ const CreatePost = () => {
 
             {/* Scrollable list of breed options — visible only when dropdown is open */}
             {breedDropdownOpen && (
-              <View style={s.dropdownList}>
+              <ScrollView style={s.dropdownList} nestedScrollEnabled={true}>
                 {(form.type === 'dog' ? dogBreeds : catBreeds).map(b => (
                   <TouchableOpacity
                     key={b}
@@ -401,9 +403,24 @@ const CreatePost = () => {
                     )}
                   </TouchableOpacity>
                 ))}
-              </View>
+              </ScrollView>
             )}
             <FieldError field="breed" />
+          </View>
+        )}
+
+        {/* Specify Other Breed — only shown when breed is "Other" */}
+        {form.breed === 'Other' && (
+          <View style={s.fieldGroup}>
+            <FieldLabel text="Specify Breed *" />
+            <TextInput
+              style={[s.input, errors.breed && s.inputError]}
+              placeholder="e.g. Local Mixed Breed"
+              placeholderTextColor={C.textPlaceholder}
+              onChangeText={t => updateForm('otherBreed', t)}
+              onBlur={() => validateField('breed')}
+              value={form.otherBreed}
+            />
           </View>
         )}
 
@@ -421,7 +438,7 @@ const CreatePost = () => {
 
         {/* Description — multiline, minimum 10 characters */}
         <View style={s.fieldGroup}>
-          <FieldLabel text="Description" />
+          <FieldLabel text="Description *" />
           <TextInput
             style={[s.input, s.textArea, errors.description && s.inputError]}
             placeholder="Identifying marks, collar colour, personality…"
@@ -432,12 +449,13 @@ const CreatePost = () => {
             onBlur={() => validateField('description')}
             value={form.description}
           />
+          <Text style={{ fontSize: 11, color: C.textSub, marginTop: 4 }}>Minimum 10 characters required</Text>
           <FieldError field="description" />
         </View>
 
         {/* Photo upload — shows upload box if no image, preview with remove/change if image exists */}
         <View style={s.fieldGroup}>
-          <FieldLabel text="Photo" />
+          <FieldLabel text="Photo *" />
           {form.images.length === 0 ? (
             // Empty state: dashed upload box with camera icon
             <TouchableOpacity style={s.uploadBox} onPress={pickImage}>
@@ -469,7 +487,7 @@ const CreatePost = () => {
         <Text style={s.sectionTitle}>Location</Text>
 
         <View style={s.fieldGroup}>
-          <FieldLabel text="Last Seen Location" />
+          <FieldLabel text="Last Seen Location *" />
           {/* Location icon overlaid on the left side of the input */}
           <View style={s.inputIconWrapper}>
             <Ionicons name="location-outline" size={18} color={C.textSub} style={s.inputIcon} />
@@ -485,15 +503,41 @@ const CreatePost = () => {
           <FieldError field="location" />
         </View>
 
-        {/* Static map placeholder — no live map integration yet */}
-        <View style={s.mapBox}>
-          <Ionicons name="map-outline" size={32} color={C.textPlaceholder} />
-          <Text style={s.mapText}>Google Map Preview</Text>
-        </View>
+        {/* Map integration using ChatLocationPicker */}
+        <TouchableOpacity style={s.mapBox} onPress={() => setShowLocationPicker(true)}>
+          {selectedRegion ? (
+            <View style={{ width: '100%', height: 120, borderRadius: 10, overflow: 'hidden' }}>
+              <MapViewWrapper
+                style={{ width: '100%', height: '100%' }}
+                region={{ ...selectedRegion, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
+                scrollEnabled={false}
+                zoomEnabled={false}
+                pitchEnabled={false}
+                rotateEnabled={false}
+              >
+                <Marker coordinate={selectedRegion} />
+              </MapViewWrapper>
+            </View>
+          ) : (
+            <>
+              <Ionicons name="map-outline" size={32} color={C.textPlaceholder} />
+              <Text style={s.mapText}>Tap to choose on map</Text>
+            </>
+          )}
+        </TouchableOpacity>
+        <ChatLocationPicker
+          visible={showLocationPicker}
+          onCancel={() => setShowLocationPicker(false)}
+          onSelect={({ address, latitude, longitude }) => {
+            if (address) updateForm('location', address);
+            setSelectedRegion({ latitude, longitude });
+            setShowLocationPicker(false);
+          }}
+        />
 
         {/* Date picker trigger — tapping opens the native date picker */}
         <View style={s.fieldGroup}>
-          <FieldLabel text="Date" />
+          <FieldLabel text="Date *" />
           <TouchableOpacity
             style={[s.input, s.dropdownTrigger, errors.date && s.inputError]}
             onPress={() => setShowDatePicker(true)}
@@ -521,54 +565,22 @@ const CreatePost = () => {
         )}
       </View>
 
-      {/* SECTION 4 — Reporter contact details */}
-      <View style={s.card}>
-        <Text style={s.sectionTitle}>Reporter Details</Text>
-
-        {/* Reporter's full name — minimum 2 characters */}
-        <View style={s.fieldGroup}>
-          <FieldLabel text="Your Name" />
-          <TextInput
-            style={[s.input, errors.contactName && s.inputError]}
-            placeholder="Full name"
-            placeholderTextColor={C.textPlaceholder}
-            onChangeText={t => updateForm('contactName', t)}
-            onBlur={() => validateField('contactName')}
-            value={form.contactName}
-          />
-          <FieldError field="contactName" />
-        </View>
-
-        {/* Sri Lankan phone number — must match 07XXXXXXXX format */}
-        <View style={s.fieldGroup}>
-          <FieldLabel text="Contact Number" />
-          <TextInput
-            style={[s.input, errors.contactNumber && s.inputError]}
-            placeholder="07XXXXXXXX"
-            placeholderTextColor={C.textPlaceholder}
-            keyboardType="phone-pad" // Opens numeric keyboard
-            onChangeText={t => updateForm('contactNumber', t)}
-            onBlur={() => validateField('contactNumber')}
-            value={form.contactNumber}
-          />
-          <FieldError field="contactNumber" />
-        </View>
-      </View>
-
       {/* Bottom action row — Back button (left) and Submit button (right) */}
-      <View style={s.actions}>
-        <TouchableOpacity style={s.backBtn} onPress={() => router.back()}>
-          <Text style={s.backBtnText}>Back</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[s.submitBtn, isSubmitting && s.submitBtnDisabled]} // Grey out while submitting
-          onPress={handleSubmit}
-          disabled={isSubmitting} // Prevents double submission
-        >
-          <Text style={s.submitBtnText}>
-            {isSubmitting ? 'Submitting…' : 'Submit Report'}
-          </Text>
-        </TouchableOpacity>
+      <View style={[s.actions, { alignItems: 'center' }]}>
+        <View style={{ flex: 1 }}>
+          <PrimaryButton
+            title="Back"
+            variant="outline"
+            onPress={() => router.back()}
+          />
+        </View>
+        <View style={{ flex: 2, marginLeft: 12 }}>
+          <PrimaryButton
+            title={isSubmitting ? 'Submitting…' : 'Submit Report'}
+            onPress={handleSubmit}
+            disabled={isSubmitting}
+          />
+        </View>
       </View>
 
       <View style={{ height: 40 }} />

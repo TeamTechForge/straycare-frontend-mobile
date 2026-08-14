@@ -171,7 +171,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   heroHighlight: {
-    color: "#f97316",
+    color: "#F5A623",
   },
   heroSubtitle: {
     fontSize: 16,

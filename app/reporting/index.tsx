@@ -49,14 +49,14 @@ const getMarkerColor = (status: string) => {
   }
 };
 
-const RadarMarker = ({ 
-  coordinate, 
-  status, 
-  onPress 
-}: { 
-  coordinate: { latitude: number; longitude: number }; 
-  status: string; 
-  onPress: () => void; 
+const RadarMarker = ({
+  coordinate,
+  status,
+  onPress
+}: {
+  coordinate: { latitude: number; longitude: number };
+  status: string;
+  onPress: () => void;
 }) => {
   const isSearching = status === "Pending" || status === "Request Sent";
   const radarAnim = useRef(new Animated.Value(0)).current;
@@ -111,10 +111,10 @@ const RadarMarker = ({
   }
 
   return (
-    <Marker 
-      coordinate={coordinate} 
-      pinColor={getMarkerColor(status)} 
-      onPress={onPress} 
+    <Marker
+      coordinate={coordinate}
+      pinColor={getMarkerColor(status)}
+      onPress={onPress}
     />
   );
 };
@@ -246,7 +246,7 @@ export default function ReportingMapScreen() {
       </MapViewWrapper>
 
       {/* Add Case Button */}
-      <View style={[styles.bottomButtonWrapper, { bottom: insets.bottom + 80 }]}>
+      <View style={[styles.bottomButtonWrapper, { bottom: insets.bottom + 115 }]}>
         <PrimaryButton
           title="Report a Case +"
           onPress={() => router.push("/reporting/AnimalDetails")}

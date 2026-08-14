@@ -71,8 +71,8 @@ const isCaseStatus = (status: string): status is CaseStatus =>
 const hasValidLocation = (report: Report): boolean =>
   Boolean(
     report.location &&
-      Number.isFinite(Number(report.location.lat)) &&
-      Number.isFinite(Number(report.location.lng))
+    Number.isFinite(Number(report.location.lat)) &&
+    Number.isFinite(Number(report.location.lng))
   );
 
 const createSessionToken = (): string =>
@@ -661,7 +661,7 @@ const styles = StyleSheet.create({
     position: "absolute",
     left: 16,
     right: 16,
-    bottom: 154,
+    bottom: 184,
     borderRadius: 9,
     backgroundColor: "#3F3F46E6",
     paddingHorizontal: 12,
@@ -679,7 +679,7 @@ const styles = StyleSheet.create({
   locationButton: {
     position: "absolute",
     right: 16,
-    bottom: 156,
+    bottom: 195,
     width: 48,
     height: 48,
     borderRadius: 24,
@@ -695,7 +695,7 @@ const styles = StyleSheet.create({
   },
   bottomButtonWrapper: {
     position: "absolute",
-    bottom: 90,
+    bottom: 130,
     left: 20,
     right: 20,
   },
