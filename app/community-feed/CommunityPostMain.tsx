@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getCommunityFeed } from "../../api/apiService"; // API call to fetch posts
+import { BASE_URL } from "../../constants/config.constants";
 
 
 const C = {
@@ -102,7 +103,7 @@ function PostCard({ post }: { post: any }) {
         {/*  POST IMAGE*/}
         {post.imageUrl ? (
           <Image
-            source={{ uri: `http://10.87.129.94:5000${post.imageUrl}` }}
+            source={{ uri: `${BASE_URL}${post.imageUrl}` }}
             style={styles.postImage}
             resizeMode="cover"
           />
