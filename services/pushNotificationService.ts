@@ -15,6 +15,8 @@ Notifications.setNotificationHandler({
   }),
 });
 
+let tokenRegistrationPromise: Promise<void> | null = null;
+
 export const pushNotificationService = {
   // Request notification permissions and setup push notifications
   async setupPushNotifications(): Promise<string | null> {
@@ -140,7 +142,7 @@ export const pushNotificationService = {
     const responseSubscription = Notifications.addNotificationResponseReceivedListener(
       (response) => {
         console.log("[PUSH] Notification tapped:", response.notification);
-        onNotification(response.notification);
+      onNotification(response.notification);
       }
     );
 
@@ -186,5 +188,39 @@ export const pushNotificationService = {
     } catch (error) {
       console.error("[PUSH] Failed to initialize push notifications:", error);
     }
+  },
+
+  async ensureAuthenticatedTokenRegistered(): Promise<void> {
+    // The root layout can rerender while authentication and navigation settle.
+    // Share one in-flight registration so those renders cannot post the same
+    // Expo token to the backend repeatedly.
+    if (tokenRegistrationPromise) {
+      return tokenRegistrationPromise;
+    }
+
+    tokenRegistrationPromise = (async () => {
+      const pushToken = await this.setupPushNotifications();
+      if (!pushToken) return;
+
+      const savedToken = await SecureStore.getItemAsync("pushToken");
+      if (savedToken === pushToken) {
+        return;
+      }
+
+      await this.sendTokenToBackend(pushToken);
+    })().finally(() => {
+      tokenRegistrationPromise = null;
+    });
+
+    return tokenRegistrationPromise;
+  },
+
+  listenForNotificationResponses(
+    onResponse: (notification: Notifications.Notification) => void
+  ): () => void {
+    const subscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      onResponse(response.notification);
+    });
+    return () => subscription.remove();
   },
 };
