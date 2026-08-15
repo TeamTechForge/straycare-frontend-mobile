@@ -12,7 +12,7 @@ import { Platform } from 'react-native';
 
 // ✅ CHANGE THIS to your machine's current LAN IP whenever your network changes.
 //    Run `ipconfig` (Windows) or `ifconfig` (Mac/Linux) to find it.
-const FALLBACK_IP = '192.168.8.173';
+const FALLBACK_IP = '10.52.115.94';
 const BACKEND_PORT = 5000;
 
 function resolveBaseUrl(): string {
