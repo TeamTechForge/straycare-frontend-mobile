@@ -27,7 +27,7 @@ const PayHereCheckout = () => {
   const paymentHandledRef = useRef(false); 
 
   // organization = _id, organizationName = display name
-  const { amount, category, organization, organizationName, frequency, plan } = useLocalSearchParams(); 
+  const { amount, category, organization, organizationName, frequency, plan, paymentMethod } = useLocalSearchParams();
 
   useEffect(() => { 
     initiatePayment(); 
@@ -53,6 +53,7 @@ const PayHereCheckout = () => {
           category, 
           frequency, 
           plan, 
+          paymentMethod,
           items: "Donation", 
         }, 
         { ...config, timeout: 15000 } 
@@ -76,6 +77,7 @@ const PayHereCheckout = () => {
         `address=${encodeURIComponent(data.address)}&` + 
         `city=${encodeURIComponent(data.city)}&` + 
         `country=${encodeURIComponent(data.country)}&` + 
+        `payment_method=${encodeURIComponent(data.payment_method)}&` +
         `return_url=${encodeURIComponent(data.return_url)}&` + 
         `cancel_url=${encodeURIComponent(data.cancel_url)}&` + 
         `notify_url=${encodeURIComponent(data.notify_url)}`; 

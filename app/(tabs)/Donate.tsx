@@ -27,9 +27,9 @@ const PLAN_OPTIONS = [
 ];
 
 const PAYMENT_OPTIONS = [
-  { label: 'Card Payment', value: 'Card Payment' },
-  { label: 'Bank Transfer', value: 'Bank Transfer' },
-  { label: 'eZ cash/mCash/FriMi', value: 'eZ cash/mCash/FriMi' },
+  { label: 'Visa', value: 'VISA' },
+  { label: 'Mastercard', value: 'MASTER' },
+  { label: 'American Express', value: 'AMEX' },
 ];
 
 export default function DonateScreen() {
