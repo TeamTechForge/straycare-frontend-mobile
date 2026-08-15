@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 import SelectField from '../../components/SelectField';
@@ -27,9 +27,9 @@ const PLAN_OPTIONS = [
 ];
 
 const PAYMENT_OPTIONS = [
-  { label: 'Card Payment', value: 'Card Payment' },
-  { label: 'Bank Transfer', value: 'Bank Transfer' },
-  { label: 'eZ cash/mCash/FriMi', value: 'eZ cash/mCash/FriMi' },
+  { label: 'Visa', value: 'VISA' },
+  { label: 'Mastercard', value: 'MASTER' },
+  { label: 'American Express', value: 'AMEX' },
 ];
 
 export default function DonateScreen() {
@@ -106,9 +106,7 @@ export default function DonateScreen() {
     return Object.keys(nextErrors).length === 0;
   };
 
-  const handleDonate = () => {
-    if (!validate()) return;
-
+  const openSummary = () => {
     router.push({
       pathname: '/donate/DonationSummary',
       params: {
@@ -122,6 +120,30 @@ export default function DonateScreen() {
       },
     });
   };
+
+  const handleDonate = () => {
+    if (!validate()) return;
+
+    if (frequency === 'Recurring') {
+      Alert.alert(
+        'Confirm recurring donation',
+        `Rs. ${parseFloat(amount).toFixed(2)} will be charged ${plan === 'Yearly' ? 'every year' : 'every month'} until the subscription is cancelled.`,
+        [
+          { text: 'Go Back', style: 'cancel' },
+          { text: 'Continue to PayHere', onPress: openSummary },
+        ]
+      );
+      return;
+    }
+
+    openSummary();
+  };
+
+  useEffect(() => {
+    if (frequency === 'Recurring' && paymentMethod === 'AMEX') {
+      setPaymentMethod('');
+    }
+  }, [frequency, paymentMethod]);
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -178,14 +200,19 @@ export default function DonateScreen() {
       </View>
 
       {frequency === 'Recurring' && (
-        <SelectField
-          label="Recurring Plan"
-          placeholder="Select a plan"
-          selectedValue={plan}
-          onValueChange={(val: string) => { setPlan(val); clearError('plan'); }}
-          options={PLAN_OPTIONS}
-          error={errors.plan}
-        />
+        <>
+          <SelectField
+            label="Recurring Plan"
+            placeholder="Select a plan"
+            selectedValue={plan}
+            onValueChange={(val: string) => { setPlan(val); clearError('plan'); }}
+            options={PLAN_OPTIONS}
+            error={errors.plan}
+          />
+          <Text style={styles.recurringNotice}>
+            Recurring donations renew automatically until cancelled.
+          </Text>
+        </>
       )}
 
       <InputField
@@ -202,7 +229,9 @@ export default function DonateScreen() {
         placeholder="Select payment method"
         selectedValue={paymentMethod}
         onValueChange={(val: string) => { setPaymentMethod(val); clearError('paymentMethod'); }}
-        options={PAYMENT_OPTIONS}
+        options={frequency === 'Recurring'
+          ? PAYMENT_OPTIONS.filter((option) => option.value !== 'AMEX')
+          : PAYMENT_OPTIONS}
         error={errors.paymentMethod}
       />
 
@@ -219,6 +248,7 @@ const styles = StyleSheet.create({
   fieldGroup: { marginVertical: 8 },
   label: { fontSize: 13, marginBottom: 6, fontWeight: '500', color: '#333' },
   errorText: { color: 'red', fontSize: 12, marginTop: 4 },
+  recurringNotice: { color: '#7A5A17', fontSize: 12, marginTop: -2, marginBottom: 8 },
   toggleTrack: {
     flexDirection: 'row',
     backgroundColor: '#f2f2f2',

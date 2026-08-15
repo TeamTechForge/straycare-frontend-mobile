@@ -20,6 +20,7 @@ type Props = {
   onLogoutPress: () => void;
   onNearbyReportsPress?: () => void;
   onMapViewPress?: () => void;
+  onMyLostFoundPress: () => void;
 };
 
 export default function ProfileMenuDrawer({
@@ -33,6 +34,7 @@ export default function ProfileMenuDrawer({
   onLogoutPress,
   onNearbyReportsPress,
   onMapViewPress,
+  onMyLostFoundPress,
 }: Props) {
   const isNGOorVet = user.role === 'ngo' || user.role === 'vet';
   const isUnapproved = isNGOorVet && user.status !== 'verified';
@@ -46,6 +48,7 @@ export default function ProfileMenuDrawer({
             <View style={{ height: 20 }} />
             <ProfileMenuItem icon="person-outline" label="My Profile" onPress={onProfilePress} />
             <ProfileMenuItem icon="paw-outline" label="Adoption Corner" onPress={onAdoptionPress} />
+            <ProfileMenuItem icon="search-outline" label="My Lost & Found Posts" onPress={onMyLostFoundPress} />
             <ProfileMenuItem icon="card-outline" label="Donations" onPress={onDonationsPress} />
             <ProfileMenuItem icon="settings-outline" label="Settings" onPress={onSettingsPress} />
 

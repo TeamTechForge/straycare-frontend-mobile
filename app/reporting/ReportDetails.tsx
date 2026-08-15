@@ -16,6 +16,8 @@ import { API_URL } from "../../constants/config.constants";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
+import { useAuth } from "../../contexts/AuthContext";
+import { getStoredItem } from "../../utils/storage";
 
 const DEFAULT_PHOTO = "https://images.unsplash.com/photo-1535930749574-1399327ce78f?w=400&h=300&fit=crop&q=80";
 
@@ -32,6 +34,7 @@ export default function ReportDetailsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const caseId = Array.isArray(params.caseId) ? params.caseId[0] : params.caseId;
+  const { token } = useAuth();
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -47,7 +50,10 @@ export default function ReportDetailsScreen() {
 
       try {
         console.log("[ReportDetails] Fetching details for caseId:", caseId);
-        const res = await axios.get(`${API_URL}/strays/report/${caseId}`);
+        const authToken = token || (await getStoredItem("authToken"));
+        const res = await axios.get(`${API_URL}/strays/report/${caseId}`, {
+          headers: authToken ? { Authorization: `Bearer ${authToken}` } : {},
+        });
         setReport(res.data);
       } catch (err: any) {
         console.error("[ReportDetails] Error loading report:", err);
@@ -58,7 +64,7 @@ export default function ReportDetailsScreen() {
     };
 
     fetchReportDetails();
-  }, [caseId]);
+  }, [caseId, token]);
 
   if (loading) {
     return (
