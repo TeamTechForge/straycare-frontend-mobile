@@ -16,7 +16,16 @@ const FALLBACK_IP = '192.168.8.173';
 const BACKEND_PORT = 5000;
 
 function resolveBaseUrl(): string {
-  // 1. Dynamic auto-detection from Expo Metro bundler in __DEV__
+  // 1. Explicit env override (Highest Priority)
+  const envUrl =
+    process.env.EXPO_PUBLIC_API_URL ||
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL;
+  if (envUrl) {
+    console.log('[Config] Using EXPO_PUBLIC_API_URL:', envUrl);
+    return envUrl;
+  }
+
+  // 2. Dynamic auto-detection from Expo Metro bundler in __DEV__
   const expoHostUri = Constants.expoConfig?.hostUri || (Constants as any).developerManifest?.hostUri;
   if (__DEV__ && expoHostUri) {
     const host = expoHostUri.split(':')[0];
@@ -36,15 +45,6 @@ function resolveBaseUrl(): string {
       }
       return `http://localhost:${BACKEND_PORT}`;
     }
-  }
-
-  // 2. Explicit env override (used when not in dev mode or hostUri isn't available)
-  const envUrl =
-    process.env.EXPO_PUBLIC_API_URL ||
-    Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL;
-  if (envUrl) {
-    console.log('[Config] Using EXPO_PUBLIC_API_URL:', envUrl);
-    return envUrl;
   }
 
   // 3. Fallback to current LAN IP
