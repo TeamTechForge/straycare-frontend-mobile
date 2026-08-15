@@ -101,34 +101,27 @@ const CommunityPostCard: React.FC<
         activeOpacity={0.85}
         onPress={handlePress}
       >
-        {/* ── Image ── */}
-        {post.imageUrl ? (
-          <Image
-            source={{ uri: post.imageUrl }}
-            style={styles.image}
-            resizeMode="cover"
-          />
-        ) : null}
-
         {/* ── Body ── */}
         <View style={styles.body}>
-          {/* Category badge + overflow */}
+          {/* Author + overflow */}
           <View style={styles.topRow}>
-            {post.category ? (
-              <View
-                style={styles.categoryBadge}
-              >
-                <Text
-                  style={
-                    styles.categoryBadgeText
-                  }
-                >
-                  {post.category}
+            <View style={styles.authorRow}>
+              {post.profileImage ? (
+                <Image source={{ uri: post.profileImage }} style={styles.avatar} />
+              ) : (
+                <View style={styles.avatarFallback}>
+                  <Ionicons name="person" size={18} color={C.outline} />
+                </View>
+              )}
+              <View style={styles.authorMeta}>
+                <Text style={styles.authorText} numberOfLines={1}>
+                  {post.username || post.authorName || "Community User"}
+                </Text>
+                <Text style={styles.dateText}>
+                  {formatDate(post.date || post.submittedAt || post.createdAt)}
                 </Text>
               </View>
-            ) : (
-              <View />
-            )}
+            </View>
 
             {/* ⋮ Overflow */}
             <TouchableOpacity
@@ -138,11 +131,10 @@ const CommunityPostCard: React.FC<
                 left: 10,
                 right: 10,
               }}
-              onPress={() =>
-                setMenuVisible(
-                  (prev) => !prev
-                )
-              }
+              onPress={(event) => {
+                event.stopPropagation();
+                if (!post.isOwner) setMenuVisible((prev) => !prev);
+              }}
             >
               <Ionicons
                 name="ellipsis-vertical"
@@ -180,6 +172,12 @@ const CommunityPostCard: React.FC<
             </View>
           )}
 
+          {post.category ? (
+            <View style={styles.categoryBadge}>
+              <Text style={styles.categoryBadgeText}>{post.category}</Text>
+            </View>
+          ) : null}
+
           {/* Title */}
           <Text
             style={styles.title}
@@ -196,29 +194,25 @@ const CommunityPostCard: React.FC<
             {post.content || ""}
           </Text>
 
-          {/* Footer: author + date */}
-          <View style={styles.footer}>
-            <View
-              style={styles.authorRow}
-            >
-              <Ionicons
-                name="person-circle-outline"
-                size={16}
-                color={C.outline}
-              />
-              <Text
-                style={styles.authorText}
-              >
-                {post.authorName || "Anonymous"}
-              </Text>
-            </View>
+          {post.imageUrl ? (
+            <Image
+              source={{ uri: post.imageUrl }}
+              style={styles.image}
+              resizeMode="cover"
+            />
+          ) : null}
 
-            <Text style={styles.dateText}>
-              {formatDate(
-                post.submittedAt ||
-                  post.createdAt
-              )}
-            </Text>
+          <View style={styles.actionRow}>
+            <View style={styles.actionItem}>
+              <Ionicons name={post.isLiked ? "heart" : "heart-outline"} size={20} color={post.isLiked ? "#E53935" : C.outline} />
+              <Text style={styles.actionCount}>{post.likeCount || 0}</Text>
+            </View>
+            <View style={styles.actionItem}>
+              <Ionicons name="chatbubble-outline" size={19} color={C.outline} />
+              <Text style={styles.actionCount}>{post.commentCount || 0}</Text>
+            </View>
+            <View style={styles.actionSpacer} />
+            <Ionicons name={post.isSaved ? "bookmark" : "bookmark-outline"} size={21} color={post.isSaved ? C.primary : C.outline} />
           </View>
         </View>
       </TouchableOpacity>
@@ -266,6 +260,8 @@ const styles = StyleSheet.create({
   image: {
     width: "100%",
     height: 180,
+    borderRadius: 12,
+    marginTop: 4,
   },
 
   body: {
@@ -279,11 +275,32 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
 
+  avatar: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+  },
+
+  avatarFallback: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: C.primaryContainer,
+  },
+
+  authorMeta: {
+    flex: 1,
+    gap: 2,
+  },
+
   categoryBadge: {
     backgroundColor: C.primaryContainer,
     paddingHorizontal: 12,
     paddingVertical: 4,
     borderRadius: 999,
+    alignSelf: "flex-start",
   },
 
   categoryBadgeText: {
@@ -346,12 +363,11 @@ const styles = StyleSheet.create({
     lineHeight: 19,
   },
 
-  footer: {
+  actionRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-
-    marginTop: 4,
+    gap: 18,
+    marginTop: 6,
     paddingTop: 10,
 
     borderTopWidth: 1,
@@ -361,13 +377,14 @@ const styles = StyleSheet.create({
   authorRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
+    gap: 10,
+    flex: 1,
   },
 
   authorText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: C.outline,
+    fontSize: 14,
+    fontWeight: "700",
+    color: C.onSurface,
   },
 
   dateText: {
@@ -375,5 +392,21 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: C.outlineVariant,
     letterSpacing: 0.3,
+  },
+
+  actionItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+
+  actionCount: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: C.onSurfaceVariant,
+  },
+
+  actionSpacer: {
+    flex: 1,
   },
 });

@@ -45,15 +45,24 @@ api.interceptors.request.use(async (config: any) => {
 
 export interface CommunityPost {
     _id: string;
-    userId?: any;
+    authorUserId?: string | null;
+    authorId?: string | null;
+    username?: string;
+    profileImage?: string;
+    authorName?: string;
     title?: string;
-    description?: string;
-    images?: string[];
-    location?: string;
+    category?: string;
+    content?: string;
+    imageUrl?: string | null;
+    submittedAt?: string;
+    date?: string;
+    likeCount: number;
+    commentCount: number;
+    isLiked: boolean;
+    isSaved: boolean;
+    isOwner: boolean;
     createdAt?: string;
     updatedAt?: string;
-
-    [key: string]: any;
 }
 
 // ─── Create Community Post ────────────────────────────────────────────────────

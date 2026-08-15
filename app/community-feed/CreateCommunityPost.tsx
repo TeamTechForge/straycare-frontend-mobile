@@ -29,8 +29,7 @@ const CATEGORIES = [
 // ── Validation ───────────────────────────────────────────────────────────────
 function validateForm(
   title: string,
-  content: string,
-  authorName: string
+  content: string
 ): Record<string, string> {
   const errors: Record<string, string> = {};
 
@@ -46,14 +45,8 @@ function validateForm(
     errors.content = "Content must be at least 20 characters.";
   }
 
-  if (!authorName.trim()) {
-    errors.authorName = "Please fill in your name.";
-  }
-
   return errors;
 }
-
-console.log("createCommunityPost:", createCommunityPost);
 
 export default function CreateCommunityPost() {
   const router = useRouter();
@@ -61,7 +54,6 @@ export default function CreateCommunityPost() {
   // Form state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [authorName, setAuthorName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Pet Care Tips");
 
   // Image state
@@ -102,15 +94,15 @@ export default function CreateCommunityPost() {
   // ── Blur handler ────────────────────────────────────────────────────────────
   const handleBlur = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
-    setErrors(validateForm(title, content, authorName));
+    setErrors(validateForm(title, content));
   };
 
   // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     // Mark all fields touched so all errors become visible
-    setTouched({ title: true, content: true, authorName: true });
+    setTouched({ title: true, content: true });
 
-    const newErrors = validateForm(title, content, authorName);
+    const newErrors = validateForm(title, content);
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -122,8 +114,6 @@ export default function CreateCommunityPost() {
       formData.append("title", title.trim());
       formData.append("category", selectedCategory);
       formData.append("content", content.trim());
-      formData.append("authorName", authorName.trim());
-      formData.append("submittedAt", new Date().toISOString());
 
       // Only attach image if the user picked one
       if (imageUri) {
@@ -192,7 +182,7 @@ export default function CreateCommunityPost() {
             value={title}
             onChangeText={(text) => {
               setTitle(text);
-              if (touched.title) setErrors(validateForm(text, content, authorName));
+              if (touched.title) setErrors(validateForm(text, content));
             }}
             onBlur={() => handleBlur("title")}
           />
@@ -241,11 +231,11 @@ export default function CreateCommunityPost() {
             value={content}
             onChangeText={(text) => {
               setContent(text);
-              if (touched.content) setErrors(validateForm(title, text, authorName));
+              if (touched.content) setErrors(validateForm(title, text));
             }}
             onBlur={() => handleBlur("content")}
             multiline
-            numberOfLines={5}
+            scrollEnabled={false}
             textAlignVertical="top"
           />
           {showError("content") && (
@@ -291,28 +281,6 @@ export default function CreateCommunityPost() {
               <Text style={styles.uploadPrimary}>Tap to upload animal photo</Text>
               <Text style={styles.uploadSecondary}>PNG, JPG up to 10MB</Text>
             </TouchableOpacity>
-          )}
-        </View>
-
-        {/* ── Author Name ── */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Author Name</Text>
-          <TextInput
-            style={[
-              styles.input,
-              showError("authorName") && styles.inputError,
-            ]}
-            placeholder="Enter your name"
-            placeholderTextColor="#94a3b8"
-            value={authorName}
-            onChangeText={(text) => {
-              setAuthorName(text);
-              if (touched.authorName) setErrors(validateForm(title, content, text));
-            }}
-            onBlur={() => handleBlur("authorName")}
-          />
-          {showError("authorName") && (
-            <Text style={styles.errorText}>{errors.authorName}</Text>
           )}
         </View>
 
