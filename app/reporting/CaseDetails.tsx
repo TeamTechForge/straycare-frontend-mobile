@@ -27,6 +27,7 @@ type Report = {
   notes?: string;
   anonymous?: boolean;
   reportedBy?: string;
+  isOwner?: boolean;
   permissions?: { canAccept: boolean; canUpdate: boolean };
   location: {
     lat: number;
@@ -301,8 +302,8 @@ export default function CaseDetailsScreen() {
         />
       )}
 
-      {/* Accept Rescue Button - Rescuers Only, only when case Needs Help */}
-      {report.permissions?.canAccept && (
+      {/* Accept Rescue Button - Rescuers Only, only when case Needs Help, and NOT own report */}
+      {report.permissions?.canAccept && !report.isOwner && (
         <PrimaryButton
           title={acceptingRescue ? "Accepting..." : "Accept This Case"}
           onPress={acceptRescue}
@@ -310,11 +311,11 @@ export default function CaseDetailsScreen() {
         />
       )}
 
-      {/* 🔒 Info Message for Non-Rescuers */}
-      {nextStatus && !report.permissions?.canUpdate && !report.permissions?.canAccept && (
+      {/* 🔒 Info Message for Non-Rescuers / Case Reporter */}
+      {nextStatus && !report.permissions?.canUpdate && (!report.permissions?.canAccept || report.isOwner) && (
         <View style={styles.restrictedMessage}>
           <Text style={styles.restrictedText}>
-            {isReporter
+            {isReporter || report.isOwner
               ? "You can track this case here. Only the assigned rescuer can update the rescue status."
               : "Only the assigned rescuer can change the status of this case."}
           </Text>

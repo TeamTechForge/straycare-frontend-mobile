@@ -9,3 +9,6 @@ export const typography = {
   body: 14,
   small: 12,
 };
+
+export default typography;
+
