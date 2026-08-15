@@ -28,6 +28,7 @@ import { useCall } from "../../contexts/CallContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 import { fetchComments, postComment, postReply } from "../../services/rescueService";
+import { useChatApi } from "../../hooks/useChatApi";
 import type { RescueComment } from "../../types/Api";
 
 const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1535930749574-1399327ce78f?w=200&h=200&fit=crop&q=80";
@@ -66,6 +67,7 @@ export default function RescuerResponseScreen() {
   const { startCall } = useCall();
   const { user } = useAuth();
   const { socket } = useSocket();
+  const { createConversation } = useChatApi();
 
   const requestId = Array.isArray(params.requestId) ? params.requestId[0] : params.requestId;
   const caseId = Array.isArray(params.caseId) ? params.caseId[0] : params.caseId || requestId;
@@ -96,7 +98,7 @@ export default function RescuerResponseScreen() {
     try {
       console.log("[RescuerResponse] Fetching details for request/case:", requestId);
       const token = await SecureStore.getItemAsync("authToken");
-      
+
       const response = await axios.get(`${API_URL}/rescue/status/${requestId}`, {
         headers: token ? { Authorization: `Bearer ${token}` } : {},
       });
@@ -211,15 +213,60 @@ export default function RescuerResponseScreen() {
   };
 
   // ── Action 2: In-App Chat reporter ──────────────────────────────────────────
-  const handleInAppChat = () => {
+  const [startingChat, setStartingChat] = useState(false);
+  const handleInAppChat = async () => {
     const reporterUserId = caseDetails?.reporter?.id || caseDetails?.userId || caseDetails?.reporterUserId;
-    if (reporterUserId) {
+    if (!reporterUserId) {
+      Alert.alert("Contact Unavailable", "Reporter contact details are not available for chat.");
+      return;
+    }
+
+    setStartingChat(true);
+    try {
+      const isAnonymous = caseDetails?.reporterName === "Anonymous Reporter" || caseDetails?.anonymous;
+      const conversationType = isAnonymous ? "rescue" : "direct";
+      const caseMongoId = caseDetails?.rescueRequestId;
+      
+      console.log(`[RescuerResponse] RAW caseId from backend: ${caseDetails?.caseId}`);
+      
+      const relatedEntity = isAnonymous && caseMongoId ? { kind: `StrayReport_${caseDetails?.caseId || ''}`, item: caseMongoId, referenceId: caseDetails?.caseId } : undefined;
+
+      console.log(`[RescuerResponse] createConversation args -> userId: ${reporterUserId}, type: ${conversationType}, entity:`, relatedEntity);
+
+      // Find or create a conversation with the reporter
+      const conversation = (await createConversation(reporterUserId, conversationType, relatedEntity)) as any;
+
+      const otherParticipant = conversation.participants?.find(
+        (p: any) => p._id !== user?._id
+      );
+      
+      let displayCaseId = caseDetails?.caseId || caseMongoId?.toString().slice(-4) || 'Anon';
+      if (displayCaseId.length === 24) {
+          displayCaseId = displayCaseId.slice(-4);
+      }
+
+      const reporterName = isAnonymous 
+        ? `Case Chat (${displayCaseId})` 
+        : (otherParticipant?.name || caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter");
+        
+      const reporterImage = isAnonymous 
+        ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff" 
+        : (otherParticipant?.profileImage || caseDetails?.reporter?.avatar || caseDetails?.reporterAvatar || "");
+
       router.push({
-        pathname: "/chat/[id]",
-        params: { id: reporterUserId },
-      } as never);
-    } else {
-      router.push("/chat" as never);
+        pathname: "/chat/[conversationId]",
+        params: {
+          conversationId: conversation._id,
+          recipientName: reporterName,
+          recipientId: reporterUserId,
+          recipientImage: reporterImage,
+        },
+      } as any);
+    } catch (error: any) {
+      console.error("[RescuerResponse] Failed to start chat:", error);
+      Alert.alert("Chat Error", error.message || "Could not open chat with reporter.");
+    } finally {
+      setStartingChat(false);
     }
   };
 
@@ -367,9 +414,13 @@ export default function RescuerResponseScreen() {
               <Text style={styles.callButtonText}>In-App Call</Text>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.chatButton} onPress={handleInAppChat}>
-              <Text style={styles.commIcon}>💬</Text>
-              <Text style={styles.chatButtonText}>In-App Chat</Text>
+            <TouchableOpacity style={[styles.chatButton, startingChat && { opacity: 0.6 }]} onPress={handleInAppChat} disabled={startingChat}>
+              {startingChat ? (
+                <ActivityIndicator size="small" color="#FFFFFF" />
+              ) : (
+                <Text style={styles.commIcon}>💬</Text>
+              )}
+              <Text style={styles.chatButtonText}>{startingChat ? "Opening..." : "In-App Chat"}</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -506,7 +557,7 @@ export default function RescuerResponseScreen() {
         {/* 💬 REPORTER COMMENTS & CASE DISCUSSION CARD */}
         <View style={styles.card}>
           <Text style={styles.sectionHeader}>💬  Reporter Comments & Case Discussion</Text>
-          
+
           {/* Comment Input Composition */}
           <View style={styles.commentInputRow}>
             <TextInput
