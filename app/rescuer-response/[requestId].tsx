@@ -65,7 +65,7 @@ export default function RescuerResponseScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { startCall } = useCall();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { socket } = useSocket();
 
   const requestId = Array.isArray(params.requestId) ? params.requestId[0] : params.requestId;
@@ -96,10 +96,11 @@ export default function RescuerResponseScreen() {
     if (!requestId) return;
     try {
       console.log("[RescuerResponse] Fetching details for request/case:", requestId);
-      const token = await SecureStore.getItemAsync("authToken");
+      const authToken = token || (await SecureStore.getItemAsync("authToken"));
+      const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
       
       const response = await axios.get(`${API_URL}/rescue/status/${requestId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers,
       });
 
       const data = response.data as any;
@@ -110,7 +111,11 @@ export default function RescuerResponseScreen() {
       // Fallback: try fetching by caseId
       if (caseId && caseId !== requestId) {
         try {
-          const res = await axios.get(`${API_URL}/strays/report/${caseId}`);
+          const authToken = token || (await SecureStore.getItemAsync("authToken"));
+          const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+          const res = await axios.get(`${API_URL}/strays/report/${caseId}`, {
+            headers,
+          });
           setCaseDetails(res.data);
         } catch (e) {
           console.error("[RescuerResponse] Fallback fetch error:", e);
@@ -119,7 +124,7 @@ export default function RescuerResponseScreen() {
     } finally {
       setLoading(false);
     }
-  }, [requestId, caseId]);
+  }, [requestId, caseId, token]);
 
   useEffect(() => {
     fetchDetails();
