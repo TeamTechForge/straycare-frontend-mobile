@@ -447,7 +447,10 @@ export default function ProfileScreen() {
           role: user?.role,
           status: profile?.status
         }}
-        onAdoptionPress={() => setMenuVisible(false)}
+        onAdoptionPress={() => {
+          setMenuVisible(false);
+          router.push("/adoption-corner/MyPosts");
+        }}
         onMyLostFoundPress={() => {
           setMenuVisible(false);
           router.push("/lost-and-found/MyPosts");
