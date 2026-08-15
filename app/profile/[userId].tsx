@@ -49,6 +49,8 @@ interface Report {
   breed?: string;
   status: string;
   notes?: string;
+  description?: string;
+  anonymous?: boolean;
   location?: { address?: string };
   photos?: string[];
   createdAt: string;
@@ -134,15 +136,13 @@ export default function PublicProfileScreen() {
         setPosts(postsData);
       }
 
-      // 3. Fetch reports (if general user)
-      if (data.user.role === "general_user") {
-        const reportsRes = await fetch(`${API_URL}/users/${userId}/reports`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (reportsRes.ok) {
-          const reportsData = (await reportsRes.json()) as any;
-          setReports(reportsData);
-        }
+      // 3. Fetch reports
+      const reportsRes = await fetch(`${API_URL}/users/${userId}/reports`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (reportsRes.ok) {
+        const reportsData = (await reportsRes.json()) as any;
+        setReports(reportsData);
       }
 
       // 4. Fetch rescues (if volunteer/vet/ngo)
@@ -479,14 +479,14 @@ export default function PublicProfileScreen() {
         <ProfileStatsRow stats={
           userData.role === "general_user"
             ? [
-              { value: reports.length || statsData.reportsCount || 0, label: "REPORTS" },
-              { value: posts.length || statsData.postsCount || 0, label: "POSTS" },
+              { value: statsData?.reportsCount !== undefined ? statsData.reportsCount : reports.length, label: "REPORTS" },
+              { value: statsData?.postsCount !== undefined ? statsData.postsCount : posts.length, label: "POSTS" },
             ]
             : [
-              { value: posts.length || statsData.postsCount || 0, label: "POSTS" },
-              { value: rescues.length || statsData.rescuesCompleted || 0, label: "RESCUES" },
-              { value: reports.length || statsData.reportsCount || 0, label: "REPORTS" },
-              ...((userData.role === "ngo" || userData.role === "vet") && statsData.totalDonations !== undefined 
+              { value: statsData?.postsCount !== undefined ? statsData.postsCount : posts.length, label: "POSTS" },
+              { value: statsData?.rescuesCompleted !== undefined ? statsData.rescuesCompleted : rescues.length, label: "RESCUES" },
+              { value: statsData?.reportsCount !== undefined ? statsData.reportsCount : reports.length, label: "REPORTS" },
+              ...((userData.role === "ngo" || userData.role === "vet") && statsData?.totalDonations !== undefined 
                 ? [{ value: `$${statsData.totalDonations}`, label: "DONATIONS" }] 
                 : [])
             ]
@@ -539,23 +539,72 @@ export default function PublicProfileScreen() {
           )}
 
           {activeTab === "reports" && (
-            reports.length > 0 ? (
-              reports.map((report) => (
-                <ReportPreviewCard
-                  key={report._id}
-                  title={`${report.animalType} (${report.breed || "Mixed"})`}
-                  date={new Date(report.createdAt).toLocaleDateString()}
-                  status={report.status}
-                  image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
-                  summary={report.summary}
-                  onPress={() => {
-                    router.push({
-                      pathname: "/live-tracking/[requestId]",
-                      params: { requestId: report.caseId || report._id },
-                    });
-                  }}
-                />
-              ))
+            reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report").length > 0 ? (
+              <View>
+                {/* 📌 ACTIVE CASES */}
+                <Text style={styles.subSectionTitle}>Active Cases</Text>
+                {reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() !== "completed").map((report) => (
+                    <ReportPreviewCard
+                      key={report._id}
+                      title={`${report.animalType} (${report.caseId || report.breed || "Case"})`}
+                      date={new Date(report.createdAt).toLocaleDateString()}
+                      status={report.status}
+                      image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                      summary={report.summary || report.description || report.notes}
+                      caseId={report.caseId}
+                      onPress={() => {
+                        if (report.caseId) {
+                          router.push({
+                            pathname: "/reporting/CaseSummary",
+                            params: { caseId: report.caseId },
+                          });
+                        }
+                      }}
+                      onTrackPress={() => {
+                        router.push({
+                          pathname: "/live-tracking/[requestId]",
+                          params: { requestId: report.caseId || report._id },
+                        });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No active cases right now.</Text>
+                )}
+
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() === "completed").map((report) => (
+                    <ReportPreviewCard
+                      key={report._id}
+                      title={`${report.animalType} (${report.caseId || report.breed || "Case"})`}
+                      date={new Date(report.createdAt).toLocaleDateString()}
+                      status={report.status}
+                      image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                      summary={report.summary || report.description || report.notes}
+                      caseId={report.caseId}
+                      onPress={() => {
+                        if (report.caseId) {
+                          router.push({
+                            pathname: "/reporting/CaseSummary",
+                            params: { caseId: report.caseId },
+                          });
+                        }
+                      }}
+                      onTrackPress={() => {
+                        router.push({
+                          pathname: "/live-tracking/[requestId]",
+                          params: { requestId: report.caseId || report._id },
+                        });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No completed cases yet.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="document-text-outline"
@@ -567,22 +616,53 @@ export default function PublicProfileScreen() {
 
           {activeTab === "rescues" && (
             rescues.length > 0 ? (
-              rescues.map((rescue: any) => (
-                <ReportPreviewCard
-                  key={rescue._id || rescue.caseId}
-                  title={`${rescue.animalType} (${rescue.caseId})`}
-                  date={new Date(rescue.createdAt).toLocaleDateString()}
-                  status={rescue.status.toUpperCase()}
-                  image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
-                  summary={rescue.summary}
-                  onPress={() => {
-                    router.push({
-                      pathname: "/live-tracking/[requestId]",
-                      params: { requestId: rescue.caseId || rescue._id },
-                    });
-                  }}
-                />
-              ))
+              <View>
+                {/* 📌 ACTIVE RESCUES */}
+                <Text style={styles.subSectionTitle}>Active Rescues</Text>
+                {rescues.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  rescues.filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((rescue: any) => (
+                    <ReportPreviewCard
+                      key={rescue._id || rescue.caseId}
+                      title={`${rescue.animalType} (${rescue.caseId})`}
+                      date={new Date(rescue.createdAt).toLocaleDateString()}
+                      status={rescue.status.toUpperCase()}
+                      image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                      summary={rescue.summary}
+                      onPress={() => {
+                        router.push({
+                          pathname: "/reporting/CaseSummary",
+                          params: { caseId: rescue.caseId || rescue._id },
+                        });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No active rescue operations right now.</Text>
+                )}
+
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").map((rescue: any) => (
+                    <ReportPreviewCard
+                      key={rescue._id || rescue.caseId}
+                      title={`${rescue.animalType} (${rescue.caseId})`}
+                      date={new Date(rescue.createdAt).toLocaleDateString()}
+                      status={rescue.status.toUpperCase()}
+                      image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                      summary={rescue.summary}
+                      onPress={() => {
+                        router.push({
+                          pathname: "/reporting/CaseSummary",
+                          params: { caseId: rescue.caseId || rescue._id },
+                        });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No completed rescue operations yet.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="checkmark-done-circle-outline"
@@ -850,5 +930,19 @@ const styles = StyleSheet.create({
   tabContentContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
+  },
+  subSectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#444",
+    marginBottom: 10,
+    marginLeft: 4,
+  },
+  noActiveText: {
+    fontSize: 13,
+    color: "#888",
+    fontStyle: "italic",
+    marginLeft: 4,
+    marginBottom: 10,
   },
 });

@@ -16,15 +16,13 @@ import { useRouter } from "expo-router";
 
 export default function NotificationCenter() {
   const router = useRouter();
-  const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead, loading } =
+  const { notifications, unreadCount, fetchNotifications, markAsRead, loading } =
     useNotification();
   const [refreshing, setRefreshing] = React.useState(false);
 
   useEffect(() => {
-    fetchNotifications().then(() => {
-      markAllAsRead();
-    });
-  }, []);
+    void fetchNotifications();
+  }, [fetchNotifications]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -173,10 +171,31 @@ export default function NotificationCenter() {
       );
     } else if (item.caseId) {
       router.push({
-        pathname: "/live-tracking/[requestId]",
-        params: { requestId: item.caseId },
+        pathname: "/reporting/CaseDetails",
+        params: { caseId: item.caseId },
       } as any);
     }
+  };
+
+  const isReporterCaseNotification = (item: Notification) =>
+    Boolean(
+      item.caseId &&
+      (item.event === "rescue_accepted" ||
+        item.event === "case_status_updated" ||
+        item.title.includes("Case Status") ||
+        item.title.includes("Rescue Request Accepted") ||
+        item.title.startsWith("Case ") ||
+        item.title.startsWith("Treatment Started") ||
+        item.title.startsWith("Ready for Adoption"))
+    );
+
+  const openCaseDetails = async (item: Notification) => {
+    if (!item.caseId) return;
+    await markAsRead(item._id);
+    router.push({
+      pathname: "/reporting/CaseDetails",
+      params: { caseId: item.caseId },
+    } as any);
   };
 
   const renderNotification = ({ item }: { item: Notification }) => (
@@ -197,6 +216,16 @@ export default function NotificationCenter() {
           {item.message}
         </Text>
         <Text style={styles.timestamp}>{formatDate(item.createdAt)}</Text>
+        {isReporterCaseNotification(item) && (
+          <TouchableOpacity
+            accessibilityRole="button"
+            accessibilityLabel={`View case ${item.caseId}`}
+            style={styles.viewCaseButton}
+            onPress={() => void openCaseDetails(item)}
+          >
+            <Text style={styles.viewCaseButtonText}>View Case</Text>
+          </TouchableOpacity>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -215,7 +244,7 @@ export default function NotificationCenter() {
       <View style={styles.centerContainer}>
         <Text style={styles.emptyText}>No notifications yet</Text>
         <Text style={styles.emptySubtext}>
-          You'll receive updates about your case status here
+          You{"'"}ll receive updates about your case status here
         </Text>
       </View>
     );
@@ -334,6 +363,19 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 12,
     color: "#999",
+  },
+  viewCaseButton: {
+    alignSelf: "flex-start",
+    marginTop: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 8,
+    backgroundColor: "#F5A623",
+  },
+  viewCaseButtonText: {
+    color: "#1F2937",
+    fontSize: 13,
+    fontWeight: "700",
   },
   loadingText: {
     marginTop: 12,

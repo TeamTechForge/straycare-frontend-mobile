@@ -18,7 +18,9 @@ const authHeaders = async () => {
 const parseOrThrow = async (response) => {
   const data = await response.json();
   if (!response.ok) {
-    throw new Error(data?.message || `Request failed with status ${response.status}`);
+    const error = new Error(data?.message || `Request failed with status ${response.status}`);
+    error.status = response.status;
+    throw error;
   }
   return data;
 };
@@ -71,7 +73,6 @@ export const getReportByCaseId = async (caseId) => {
     throw error;
   }
 };
-
 
 // 4.Updates the status of a case by sending a PATCH request to the backend. The backend will automatically append a new entry to the case timeline with the status change. Returns the updated report with the new status and timeline.
 export const updateCaseStatus = async (caseId, status) => {

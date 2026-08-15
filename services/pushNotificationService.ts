@@ -25,6 +25,25 @@ if (!isExpoGo) {
   }
 }
 
+let tokenRegistrationPromise: Promise<void> | null = null;
+let registeredSessionAuthToken: string | null = null;
+let foregroundNotificationSubscription: Notifications.EventSubscription | null = null;
+let notificationResponseSubscription: Notifications.EventSubscription | null = null;
+
+export const CASE_UPDATE_CATEGORY_ID = "case_update";
+export const VIEW_CASE_ACTION_ID = "view_case";
+
+export type CaseNotificationData = {
+  event?: "rescue_accepted" | "case_status_updated" | string;
+  caseId?: string;
+  rescueRequestId?: string;
+  status?: string;
+  animalType?: string;
+  assignedRescuerName?: string;
+  action?: "view_case" | string;
+  type?: "info" | "success" | "warning" | "error";
+};
+
 export const pushNotificationService = {
   // Request notification permissions and setup push notifications
   async setupPushNotifications(): Promise<string | null> {
@@ -34,6 +53,14 @@ export const pushNotificationService = {
     }
 
     try {
+      await Notifications.setNotificationCategoryAsync(CASE_UPDATE_CATEGORY_ID, [
+        {
+          identifier: VIEW_CASE_ACTION_ID,
+          buttonTitle: "View Case",
+          options: { opensAppToForeground: true },
+        },
+      ]);
+
       if (Platform.OS === "android") {
         await Notifications.setNotificationChannelAsync("rescue-alerts", {
           name: "Rescue Alerts",
@@ -150,14 +177,17 @@ export const pushNotificationService = {
     }
 
     try {
+      foregroundNotificationSubscription?.remove();
+      notificationResponseSubscription?.remove();
+
       // Listen for notifications when app is in foreground
-      const subscription = Notifications.addNotificationReceivedListener((notification) => {
+      foregroundNotificationSubscription = Notifications.addNotificationReceivedListener((notification) => {
         console.log("[PUSH] Notification received:", notification);
         onNotification(notification);
       });
 
       // Listen for notification taps (when user taps the notification)
-      const responseSubscription = Notifications.addNotificationResponseReceivedListener(
+      notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(
         (response) => {
           console.log("[PUSH] Notification tapped:", response.notification);
           onNotification(response.notification);
@@ -165,8 +195,10 @@ export const pushNotificationService = {
       );
 
       return () => {
-        subscription.remove();
-        responseSubscription.remove();
+        foregroundNotificationSubscription?.remove();
+        notificationResponseSubscription?.remove();
+        foregroundNotificationSubscription = null;
+        notificationResponseSubscription = null;
       };
     } catch (_err) {
       return () => {};
@@ -189,20 +221,7 @@ export const pushNotificationService = {
         return;
       }
 
-      // Setup and get token
-      const pushToken = await this.setupPushNotifications();
-
-      if (!pushToken) {
-        console.warn("[PUSH] Could not get push token");
-        return;
-      }
-
-      // Check if token already sent
-      const savedToken = await SecureStore.getItemAsync("pushToken");
-      if (savedToken !== pushToken) {
-        // Send new token to backend
-        await this.sendTokenToBackend(pushToken);
-      }
+      await this.ensureAuthenticatedTokenRegistered();
 
       // Setup listeners if callback provided
       if (onNotification) {
@@ -213,5 +232,55 @@ export const pushNotificationService = {
     } catch (error) {
       console.error("[PUSH] Failed to initialize push notifications:", error);
     }
+  },
+
+  async ensureAuthenticatedTokenRegistered(): Promise<void> {
+    const authToken = await SecureStore.getItemAsync("authToken");
+    if (!authToken || registeredSessionAuthToken === authToken) {
+      return;
+    }
+
+    // The root layout can rerender while authentication and navigation settle.
+    // Share one in-flight registration so those renders cannot post the same
+    // Expo token to the backend repeatedly.
+    if (tokenRegistrationPromise) {
+      return tokenRegistrationPromise;
+    }
+
+    tokenRegistrationPromise = (async () => {
+      const pushToken = await this.setupPushNotifications();
+      if (!pushToken) return;
+
+      const registered = await this.sendTokenToBackend(pushToken);
+      if (registered) {
+        registeredSessionAuthToken = authToken;
+      }
+    })().finally(() => {
+      tokenRegistrationPromise = null;
+    });
+
+    return tokenRegistrationPromise;
+  },
+
+  listenForNotificationResponses(
+    onResponse: (response: Notifications.NotificationResponse) => void
+  ): () => void {
+    notificationResponseSubscription?.remove();
+    notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener((response) => {
+      console.log("[PUSH] Notification tapped:", response.notification);
+      onResponse(response);
+    });
+    return () => {
+      notificationResponseSubscription?.remove();
+      notificationResponseSubscription = null;
+    };
+  },
+
+  getLastNotificationResponse(): Notifications.NotificationResponse | null {
+    return Notifications.getLastNotificationResponse();
+  },
+
+  clearLastNotificationResponse(): void {
+    Notifications.clearLastNotificationResponse();
   },
 };
