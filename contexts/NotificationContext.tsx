@@ -12,6 +12,8 @@ export interface Notification {
   rescueRequestId?: string;
   caseId?: string;
   event?: "rescue_accepted" | "case_status_updated" | string;
+  postId?: string;
+  commentId?: string;
   status?: string;
   animalType?: string;
   assignedRescuerName?: string;

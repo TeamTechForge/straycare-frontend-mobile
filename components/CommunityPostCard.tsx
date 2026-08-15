@@ -215,10 +215,20 @@ const CommunityPostCard: React.FC<
               <Ionicons name={post.isLiked ? "heart" : "heart-outline"} size={20} color={post.isLiked ? "#E53935" : C.outline} />
               <Text style={styles.actionCount}>{post.likeCount || 0}</Text>
             </TouchableOpacity>
-            <View style={styles.actionItem}>
+            <TouchableOpacity
+              style={styles.actionItem}
+              hitSlop={8}
+              onPress={(event) => {
+                event.stopPropagation();
+                router.push({
+                  pathname: "/community-feed/CommunityPostComments",
+                  params: { id: post._id },
+                });
+              }}
+            >
               <Ionicons name="chatbubble-outline" size={19} color={C.outline} />
               <Text style={styles.actionCount}>{post.commentCount || 0}</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.actionSpacer} />
             <Ionicons name={post.isSaved ? "bookmark" : "bookmark-outline"} size={21} color={post.isSaved ? C.primary : C.outline} />
           </View>

@@ -71,6 +71,22 @@ export interface CommunityLikeState {
     likeCount: number;
 }
 
+export interface CommunityComment {
+    _id: string;
+    postId: string;
+    userId: string;
+    username: string;
+    profileImage: string;
+    content: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+export interface CommunityCommentsResponse {
+    comments: CommunityComment[];
+    commentCount: number;
+}
+
 // ─── Create Community Post ────────────────────────────────────────────────────
 
 export const createCommunityPost = async (
@@ -142,6 +158,25 @@ export const likeCommunityPost = async (id: string): Promise<CommunityLikeState>
 export const unlikeCommunityPost = async (id: string): Promise<CommunityLikeState> => {
     const response = await api.delete<any>(`/api/community/${id}/like`);
     return response.data?.data ?? response.data;
+};
+
+export const getCommunityComments = async (id: string): Promise<CommunityCommentsResponse> => {
+    const response = await api.get<any>(`/api/community/${id}/comments`);
+    return {
+        comments: Array.isArray(response.data?.data) ? response.data.data : [],
+        commentCount: Number(response.data?.commentCount) || 0,
+    };
+};
+
+export const createCommunityComment = async (
+    id: string,
+    content: string
+): Promise<{ comment: CommunityComment; commentCount: number }> => {
+    const response = await api.post<any>(`/api/community/${id}/comments`, { content });
+    return {
+        comment: response.data?.data,
+        commentCount: Number(response.data?.commentCount) || 0,
+    };
 };
 
 // ─── Report Community Post ────────────────────────────────────────────────────
