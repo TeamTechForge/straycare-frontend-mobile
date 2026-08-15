@@ -20,7 +20,7 @@ import {
 
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-import CommunityPostCard from "../../components/ReportPostModal";
+import CommunityPostCard from "../../components/CommunityPostCard";
 
 import {
   CommunityPost,

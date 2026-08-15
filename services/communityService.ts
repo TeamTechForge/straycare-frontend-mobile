@@ -62,11 +62,34 @@ export interface CommunityPost {
 // ─── Create Community Post ────────────────────────────────────────────────────
 
 export const createCommunityPost = async (
-    data: FormData | Record<string, any>
+    data: FormData | Record<string, any>,
+    imageUri?: string
 ): Promise<CommunityPost> => {
+    let payload = data;
+    if (!(data instanceof FormData) && imageUri) {
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                formData.append(key, String(value));
+            }
+        });
+        const filename = imageUri.split("/").pop() ?? "photo.jpg";
+        const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";
+        const mimeType = ext === "png" ? "image/png" : "image/jpeg";
+        formData.append("image", {
+            uri: imageUri,
+            name: filename,
+            type: mimeType,
+        } as any);
+        payload = formData;
+    }
+
     const response = await api.post<any>(
         "/api/community/create",
-        data
+        payload,
+        payload instanceof FormData
+            ? { headers: { "Content-Type": "multipart/form-data" } }
+            : undefined
     );
 
     const body = response.data;
@@ -103,11 +126,12 @@ export const getCommunityPost = async (
 
 export const reportCommunityPost = async (
     id: string,
-    data?: Record<string, any>
+    data?: string | Record<string, any>
 ) => {
+    const payload = typeof data === "string" ? { reason: data } : (data ?? {});
     const response = await api.post<any>(
         `/api/community/${id}/report`,
-        data ?? {}
+        payload
     );
 
     const body = response.data;
