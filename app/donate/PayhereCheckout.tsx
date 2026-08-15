@@ -78,6 +78,8 @@ const PayHereCheckout = () => {
         `city=${encodeURIComponent(data.city)}&` + 
         `country=${encodeURIComponent(data.country)}&` + 
         `payment_method=${encodeURIComponent(data.payment_method)}&` +
+        (data.recurrence ? `recurrence=${encodeURIComponent(data.recurrence)}&` : "") +
+        (data.duration ? `duration=${encodeURIComponent(data.duration)}&` : "") +
         `return_url=${encodeURIComponent(data.return_url)}&` + 
         `cancel_url=${encodeURIComponent(data.cancel_url)}&` + 
         `notify_url=${encodeURIComponent(data.notify_url)}`; 
@@ -124,13 +126,17 @@ const PayHereCheckout = () => {
       const urlParams = new URLSearchParams(url.split("?")[1]); 
       const orderId = urlParams.get("order_id") || orderData?.order_id; 
       
-      await saveDonation("SUCCESS"); 
+      const isRecurring = orderData?.frequency === "Recurring";
+      if (!isRecurring) {
+        await saveDonation("SUCCESS");
+      }
       router.replace({ 
         pathname: "/donate/DonationSuccess", 
         params: { 
           transactionId: orderId, 
           amount: orderData?.amount, 
           organization: orderData?.organization, 
+          recurring: isRecurring ? "true" : "false",
         }, 
       }); 
     } 
@@ -138,7 +144,9 @@ const PayHereCheckout = () => {
     if (url.includes("/payhere/cancel") || url.includes("/cancel")) { 
       if (paymentHandledRef.current) return; 
       paymentHandledRef.current = true; 
-      await saveDonation("FAILED"); 
+      if (orderData?.frequency !== "Recurring") {
+        await saveDonation("FAILED");
+      }
       router.replace("/donate/DonationSummary"); 
     } 
   }; 
