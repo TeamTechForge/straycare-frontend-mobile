@@ -23,7 +23,8 @@ import PrimaryButton from "../../components/PrimaryButton";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
-import { API_URL } from "../../constants/config.constants";
+import { API_URL, BASE_URL } from "../../constants/config.constants";
+import { io as ioClient } from "socket.io-client";
 import { useCall } from "../../contexts/CallContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
@@ -194,6 +195,32 @@ export default function RescuerResponseScreen() {
       socket.emit("leave_rescue", { caseId });
     };
   }, [socket, caseId]);
+
+  // Listen for reporter cancellation on the /rescue namespace.
+  // The backend emits "rescue_cancelled" to the room keyed by the request's _id
+  // (which equals the requestId URL param for this screen).
+  useEffect(() => {
+    if (!requestId) return;
+
+    const rescueSocket = ioClient(`${BASE_URL}/rescue`, {
+      transports: ["websocket"],
+      autoConnect: true,
+      reconnection: true,
+    });
+
+    rescueSocket.on("connect", () => {
+      // Join the room for this specific request so we receive its events
+      rescueSocket.emit("join_rescue", String(requestId));
+    });
+
+    rescueSocket.on("rescue_cancelled", () => {
+      router.replace("/(tabs)/Home");
+    });
+
+    return () => {
+      rescueSocket.disconnect();
+    };
+  }, [requestId, router]);
 
   // ── Action 1: In-App Voice Call reporter ────────────────────────────────────
   const handleInAppCall = () => {
@@ -489,48 +516,6 @@ export default function RescuerResponseScreen() {
           </View>
         ) : (
           <View style={styles.actionSection}>
-            <Text style={styles.sectionHeader}>Quick Progress Updates</Text>
-            <View style={styles.progressChipsWrap}>
-              {[
-                { label: "Under Rescue", note: "Rescuer is actively managing the rescue." },
-                { label: "Treated", note: "Animal has received preliminary treatment." },
-                { label: "Ready for Adoption", note: "Animal is healthy and ready for a new home." },
-                { label: "Completed", note: "Rescue case has been successfully concluded." },
-              ].map((step, idx) => {
-                const isActive = status === step.label;
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={[
-                      styles.progressChipBtn,
-                      isActive && { backgroundColor: "#F59E0B", borderColor: "#F59E0B" }
-                    ]}
-                    onPress={async () => {
-                      setSubmittingProgress(true);
-                      try {
-                        const token = await SecureStore.getItemAsync("authToken");
-                        await axios.patch(
-                          `${API_URL}/rescue/request/${requestId}/details`,
-                          { summary: step.note, status: step.label },
-                          { headers: { Authorization: `Bearer ${token}` } }
-                        );
-                        Alert.alert("Progress Updated", `Status updated: ${step.label}`);
-                        fetchDetails();
-                      } catch (err: any) {
-                        Alert.alert("Error", err?.response?.data?.error || "Failed to update progress.");
-                      } finally {
-                        setSubmittingProgress(false);
-                      }
-                    }}
-                  >
-                    <Text style={[styles.progressChipText, isActive && { color: "#FFFFFF" }]}>
-                      {step.label}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
             <PrimaryButton
               title="📝  Custom Progress Note"
               onPress={() => setProgressModalVisible(true)}

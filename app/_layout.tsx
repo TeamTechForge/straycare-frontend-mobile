@@ -1,7 +1,14 @@
 // Root layout for the app, defining the navigation stack and global providers.
 import { Stack, useRouter, useSegments } from "expo-router";
 import { useEffect, useRef, useState } from "react";
-import { ActivityIndicator, View, Platform, Alert } from "react-native";
+import {
+  ActivityIndicator,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 import * as SecureStore from "expo-secure-store";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
@@ -130,6 +137,13 @@ function InitialLayout() {
             });
           }
         });
+        await pushNotificationService.ensureAuthenticatedTokenRegistered();
+        pushNotificationService.listenForNotificationResponses((notification) => {
+          const data = notification.request.content.data as { caseId?: string };
+          if (data.caseId) {
+            router.push({ pathname: "/reporting/CaseDetails", params: { caseId: data.caseId } } as never);
+          }
+        });
       } catch (error) {
         // Push notifications not available (normal in Expo Go)
         console.log("[PUSH] Push notifications not available:", (error as any)?.message);
@@ -140,8 +154,52 @@ function InitialLayout() {
   }, [token, user, addNotification]);
 
   // ─── Global Rescue Request Listener ───
+  // `seenRequestIdsRef` tracks which request IDs have already been shown to this
+  // rescuer. It is persisted to SecureStore so it survives app restarts — once a
+  // request has been dismissed or cancelled it will never notify again.
   const seenRequestIdsRef = useRef<Set<string>>(new Set());
+  const SEEN_KEY = user ? `seenRescueRequests_${user._id}` : null;
 
+  // ── Dismissible in-app rescue notification (replaces Alert.alert) ──
+  // null = hidden; object = visible overlay.
+  // This can be set to null instantly when rescue_cancelled arrives —
+  // unlike Alert.alert() which cannot be dismissed programmatically.
+  type RescueNotif = { reqId: string; reporterName: string; animalType: string };
+  const [rescueNotif, setRescueNotif] = useState<RescueNotif | null>(null);
+
+  // On mount: seed the in-memory set from SecureStore so previously-seen
+  // (including cancelled) request IDs are never re-shown after reopening.
+  useEffect(() => {
+    if (!SEEN_KEY) return;
+    SecureStore.getItemAsync(SEEN_KEY).then((raw) => {
+      if (!raw) return;
+      try {
+        const ids: string[] = JSON.parse(raw);
+        ids.forEach((id) => seenRequestIdsRef.current.add(id));
+      } catch {
+        // ignore malformed stored value
+      }
+    }).catch(() => {});
+  }, [SEEN_KEY]);
+
+  // Helper: add a request ID to both the in-memory set and SecureStore.
+  const markRequestSeen = (reqId: string) => {
+    seenRequestIdsRef.current.add(reqId);
+    if (!SEEN_KEY) return;
+    // Persist asynchronously — fire and forget, non-blocking
+    SecureStore.getItemAsync(SEEN_KEY).then((raw) => {
+      let ids: string[] = [];
+      try { ids = raw ? JSON.parse(raw) : []; } catch { ids = []; }
+      if (!ids.includes(reqId)) {
+        ids.push(reqId);
+        // Cap to 50 entries to prevent unbounded growth
+        if (ids.length > 50) ids = ids.slice(-50);
+        SecureStore.setItemAsync(SEEN_KEY, JSON.stringify(ids)).catch(() => {});
+      }
+    }).catch(() => {});
+  };
+
+  // Polling: check for new pending rescue requests every 5 s.
   useEffect(() => {
     if (!token || !user) return;
     const isRescuer = user.role === "volunteer" || user.role === "ngo" || user.role === "vet" || user.role === "rescuer";
@@ -158,24 +216,19 @@ function InitialLayout() {
         const data: any = await response.json();
         const reqId = data.request?.rescueRequestId || data.request?._id;
         if (reqId && !seenRequestIdsRef.current.has(String(reqId))) {
-          seenRequestIdsRef.current.add(String(reqId));
+          // Mark as seen immediately (persisted) — prevents re-notification
+          // on the next tick or after an app restart.
+          markRequestSeen(String(reqId));
 
           const reporterName = data.request?.reporterName || data.request?.reporter?.name || "A reporter";
           const animalType = data.request?.animalType || "stray animal";
 
-          // In-App Alert prompting rescuer to view complete case details first
-          Alert.alert(
-            "🚨 NEW RESCUE REQUEST!",
-            `${reporterName} reported a ${animalType} needing rescue near your location. Review full details before accepting or rejecting.`,
-            [
-              {
-                text: "View Case Details",
-                onPress: () => router.push(`/rescue-details/${reqId}`),
-              },
-            ]
-          );
+          // Show the dismissible in-app overlay instead of Alert.alert().
+          // Alert.alert() is a system dialog that cannot be closed by code —
+          // this Modal can be hidden instantly when rescue_cancelled fires.
+          setRescueNotif({ reqId: String(reqId), reporterName, animalType });
 
-          // Automatically push to complete rescue details screen so rescuer reviews all info first
+          // Navigate directly to the full details screen
           router.push(`/rescue-details/${reqId}`);
         }
       } catch (err) {
@@ -187,6 +240,36 @@ function InitialLayout() {
     return () => clearInterval(interval);
   }, [token, user]);
 
+  // Socket: listen for rescue_cancelled so the overlay is hidden the instant
+  // the reporter cancels — no waiting, no user interaction required.
+  useEffect(() => {
+    const reqId = rescueNotif?.reqId;
+    if (!reqId) return;
+
+    const { BASE_URL } = require("../constants/config.constants");
+    const { io: ioClient } = require("socket.io-client");
+
+    const rescueSocket = ioClient(`${BASE_URL}/rescue`, {
+      transports: ["websocket"],
+      autoConnect: true,
+      reconnection: true,
+    });
+
+    rescueSocket.on("connect", () => {
+      rescueSocket.emit("join_rescue", String(reqId));
+    });
+
+    rescueSocket.on("rescue_cancelled", () => {
+      // Instantly hide the notification overlay
+      setRescueNotif(null);
+    });
+
+    return () => {
+      rescueSocket.disconnect();
+    };
+  }, [rescueNotif?.reqId]);
+
+
   if (isLoading) {
     return (
       <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#fff" }}>
@@ -195,8 +278,113 @@ function InitialLayout() {
     );
   }
 
-  return <Stack screenOptions={{ headerShown: false }} />;
+  return (
+    <>
+      <Stack screenOptions={{ headerShown: false }} />
+
+      {/* ── Dismissible rescue request notification overlay ────────────────────
+       *  Replaces Alert.alert() so it can be hidden programmatically when the
+       *  reporter cancels the request (rescue_cancelled socket event).           */}
+      <Modal
+        visible={rescueNotif !== null}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setRescueNotif(null)}
+      >
+        <View style={overlayStyles.backdrop}>
+          <View style={overlayStyles.card}>
+            <Text style={overlayStyles.emoji}>🚨</Text>
+            <Text style={overlayStyles.title}>New Rescue Request!</Text>
+            <Text style={overlayStyles.body}>
+              {rescueNotif?.reporterName ?? "A reporter"} reported a{" "}
+              {rescueNotif?.animalType ?? "stray animal"} needing rescue near your location.
+              {"\n"}Review full details before accepting or rejecting.
+            </Text>
+            <TouchableOpacity
+              style={overlayStyles.btn}
+              activeOpacity={0.8}
+              onPress={() => {
+                const id = rescueNotif?.reqId;
+                setRescueNotif(null);
+                if (id) router.push(`/rescue-details/${id}`);
+              }}
+            >
+              <Text style={overlayStyles.btnText}>View Case Details</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={overlayStyles.dismissBtn}
+              activeOpacity={0.7}
+              onPress={() => setRescueNotif(null)}
+            >
+              <Text style={overlayStyles.dismissText}>Dismiss</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+    </>
+  );
 }
+
+const overlayStyles = StyleSheet.create({
+  backdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.55)",
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 24,
+  },
+  card: {
+    backgroundColor: "#fff",
+    borderRadius: 20,
+    padding: 28,
+    width: "100%",
+    alignItems: "center",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.18,
+    shadowRadius: 16,
+    elevation: 10,
+  },
+  emoji: {
+    fontSize: 40,
+    marginBottom: 10,
+  },
+  title: {
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#1a1a1a",
+    marginBottom: 12,
+    textAlign: "center",
+  },
+  body: {
+    fontSize: 14,
+    color: "#444",
+    textAlign: "center",
+    lineHeight: 22,
+    marginBottom: 24,
+  },
+  btn: {
+    backgroundColor: "#F5A623",
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 32,
+    width: "100%",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  btnText: {
+    color: "#fff",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  dismissBtn: {
+    paddingVertical: 8,
+  },
+  dismissText: {
+    color: "#888",
+    fontSize: 13,
+  },
+});
 
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({

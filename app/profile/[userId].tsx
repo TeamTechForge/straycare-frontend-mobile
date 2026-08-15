@@ -49,6 +49,8 @@ interface Report {
   breed?: string;
   status: string;
   notes?: string;
+  description?: string;
+  anonymous?: boolean;
   location?: { address?: string };
   photos?: string[];
   createdAt: string;
@@ -134,15 +136,13 @@ export default function PublicProfileScreen() {
         setPosts(postsData);
       }
 
-      // 3. Fetch reports (if general user)
-      if (data.user.role === "general_user") {
-        const reportsRes = await fetch(`${API_URL}/users/${userId}/reports`, {
-          headers: token ? { Authorization: `Bearer ${token}` } : {},
-        });
-        if (reportsRes.ok) {
-          const reportsData = (await reportsRes.json()) as any;
-          setReports(reportsData);
-        }
+      // 3. Fetch reports
+      const reportsRes = await fetch(`${API_URL}/users/${userId}/reports`, {
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (reportsRes.ok) {
+        const reportsData = (await reportsRes.json()) as any;
+        setReports(reportsData);
       }
 
       // 4. Fetch rescues (if volunteer/vet/ngo)
@@ -379,29 +379,34 @@ export default function PublicProfileScreen() {
       >
         {/* Profile Details Card */}
         <View style={styles.profileCard}>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.avatarContainer}
             onPress={() => setIsViewerVisible(true)}
           >
             <Image
-              source={{ uri: profileData?.profileImage || userData?.avatar || "https://via.placeholder.com/150" }}
+              source={
+                profileData?.profileImage || userData?.avatar
+                  ? { uri: profileData.profileImage || userData.avatar }
+                  : require("../../assets/images/default-avatar.jpg")
+              }
               style={styles.avatar}
             />
           </TouchableOpacity>
 
           <View style={styles.roleBadgeContainer}>
-            <View style={[styles.roleBadge, { backgroundColor: userData.role === 'general_user' ? '#9CA3AF' : BRAND_COLOR }]}>
+            <View style={[styles.roleBadge, { backgroundColor: userData.role === 'general_user' ? '#888' : BRAND_COLOR }]}>
               <Text style={styles.roleBadgeText}>{getRoleLabel(userData.role)}</Text>
             </View>
-            {userData.isApproved && (
-              <View style={styles.verifiedBadge}>
-                <Ionicons name="checkmark-circle" size={14} color="#10B981" />
-                <Text style={styles.verifiedText}>Verified</Text>
-              </View>
-            )}
           </View>
 
-          <Text style={styles.name}>{userData.name}</Text>
+          <View style={styles.nameRow}>
+            <Text style={styles.name}>
+              {userData.role === "ngo" && profileData?.orgName ? profileData.orgName : userData.name}
+            </Text>
+            {userData.isApproved && (
+              <Ionicons name="checkmark-circle" size={20} color="#1DA1F2" style={{ marginLeft: 4 }} />
+            )}
+          </View>
 
           {profileData?.location ? (
             <View style={styles.locationContainer}>
@@ -414,15 +419,25 @@ export default function PublicProfileScreen() {
           {userData.role === "volunteer" && profileData?.serviceArea ? (
             <Text style={styles.metaInfo}>Service Area: {profileData.serviceArea}</Text>
           ) : null}
-          {userData.role === "vet" && profileData?.clinicName ? (
-            <View style={{ alignItems: "center" }}>
-              <Text style={styles.metaInfo}>Clinic: {profileData.clinicName}</Text>
-              <Text style={styles.metaInfo}>Specialization: {profileData.specialization || "General"}</Text>
+          {userData.role === "vet" && (profileData?.clinicName || profileData?.specialization) ? (
+            <View style={styles.tagsContainer}>
+              {profileData?.clinicName && (
+                <View style={styles.tagBadge}>
+                  <Ionicons name="business-outline" size={12} color="#4B5563" />
+                  <Text style={styles.tagText} numberOfLines={1}>
+                    {profileData.clinicName}
+                  </Text>
+                </View>
+              )}
+              <View style={[styles.tagBadge, { backgroundColor: "#F3E8FF" }]}>
+                <Ionicons name="medkit-outline" size={12} color="#7E22CE" />
+                <Text style={[styles.tagText, { color: "#7E22CE" }]} numberOfLines={1}>
+                  {profileData?.specialization || "General"}
+                </Text>
+              </View>
             </View>
           ) : null}
-          {userData.role === "ngo" && profileData?.orgName ? (
-            <Text style={styles.metaInfo}>Org: {profileData.orgName}</Text>
-          ) : null}
+
 
           <Text style={styles.bio}>{profileData?.bio || "No bio available."}</Text>
 
@@ -471,6 +486,9 @@ export default function PublicProfileScreen() {
               { value: posts.length || statsData.postsCount || 0, label: "POSTS" },
               { value: rescues.length || statsData.rescuesCompleted || 0, label: "RESCUES" },
               { value: reports.length || statsData.reportsCount || 0, label: "REPORTS" },
+              ...((userData.role === "ngo" || userData.role === "vet") && statsData.totalDonations !== undefined 
+                ? [{ value: `$${statsData.totalDonations}`, label: "DONATIONS" }] 
+                : [])
             ]
         } />
 
@@ -522,22 +540,77 @@ export default function PublicProfileScreen() {
 
           {activeTab === "reports" && (
             reports.length > 0 ? (
-              reports.map((report) => (
-                <ReportPreviewCard
-                  key={report._id}
-                  title={`${report.animalType} (${report.breed || "Mixed"})`}
-                  date={new Date(report.createdAt).toLocaleDateString()}
-                  status={report.status}
-                  image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
-                  summary={report.summary}
-                  onPress={() => {
-                    router.push({
-                      pathname: "/live-tracking/[requestId]",
-                      params: { requestId: report.caseId || report._id },
-                    });
-                  }}
-                />
-              ))
+              <View>
+                {/* 📌 ACTIVE CASES */}
+                <Text style={styles.subSectionTitle}>Active Cases</Text>
+                {reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((report) => {
+                    const isAnon = Boolean(report.anonymous || report.animalType === "Anonymous Report");
+                    return (
+                      <ReportPreviewCard
+                        key={report._id}
+                        title={isAnon ? `Anonymous Report (${report.caseId})` : `${report.animalType} (${report.caseId || report.breed || "Case"})`}
+                        date={new Date(report.createdAt).toLocaleDateString()}
+                        status={report.status}
+                        image={!isAnon && report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                        summary={isAnon ? "Details hidden for anonymous report" : (report.summary || report.description || report.notes)}
+                        caseId={report.caseId}
+                        onPress={() => {
+                          if (!isAnon && report.caseId) {
+                            router.push({
+                              pathname: "/reporting/CaseDetails",
+                              params: { caseId: report.caseId, fromProfile: "true" },
+                            });
+                          }
+                        }}
+                        onTrackPress={!isAnon ? () => {
+                          router.push({
+                            pathname: "/live-tracking/[requestId]",
+                            params: { requestId: report.caseId || report._id },
+                          });
+                        } : undefined}
+                      />
+                    );
+                  })
+                ) : (
+                  <Text style={styles.noActiveText}>No active cases right now.</Text>
+                )}
+
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").map((report) => {
+                    const isAnon = Boolean(report.anonymous || report.animalType === "Anonymous Report");
+                    return (
+                      <ReportPreviewCard
+                        key={report._id}
+                        title={isAnon ? `Anonymous Report (${report.caseId})` : `${report.animalType} (${report.caseId || report.breed || "Case"})`}
+                        date={new Date(report.createdAt).toLocaleDateString()}
+                        status={report.status}
+                        image={!isAnon && report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
+                        summary={isAnon ? "Details hidden for anonymous report" : (report.summary || report.description || report.notes)}
+                        caseId={report.caseId}
+                        onPress={() => {
+                          if (!isAnon && report.caseId) {
+                            router.push({
+                              pathname: "/reporting/CaseDetails",
+                              params: { caseId: report.caseId, fromProfile: "true" },
+                            });
+                          }
+                        }}
+                        onTrackPress={!isAnon ? () => {
+                          router.push({
+                            pathname: "/live-tracking/[requestId]",
+                            params: { requestId: report.caseId || report._id },
+                          });
+                        } : undefined}
+                      />
+                    );
+                  })
+                ) : (
+                  <Text style={styles.noActiveText}>No completed cases yet.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="document-text-outline"
@@ -549,22 +622,53 @@ export default function PublicProfileScreen() {
 
           {activeTab === "rescues" && (
             rescues.length > 0 ? (
-              rescues.map((rescue: any) => (
-                <ReportPreviewCard
-                  key={rescue._id || rescue.caseId}
-                  title={`${rescue.animalType} (${rescue.caseId})`}
-                  date={new Date(rescue.createdAt).toLocaleDateString()}
-                  status={rescue.status.toUpperCase()}
-                  image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
-                  summary={rescue.summary}
-                  onPress={() => {
-                    router.push({
-                      pathname: "/live-tracking/[requestId]",
-                      params: { requestId: rescue.caseId || rescue._id },
-                    });
-                  }}
-                />
-              ))
+              <View>
+                {/* 📌 ACTIVE RESCUES */}
+                <Text style={styles.subSectionTitle}>Active Rescues</Text>
+                {rescues.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  rescues.filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((rescue: any) => (
+                    <ReportPreviewCard
+                      key={rescue._id || rescue.caseId}
+                      title={`${rescue.animalType} (${rescue.caseId})`}
+                      date={new Date(rescue.createdAt).toLocaleDateString()}
+                      status={rescue.status.toUpperCase()}
+                      image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                      summary={rescue.summary}
+                      onPress={() => {
+                        router.push({
+                          pathname: "/reporting/RescueDetails" as any,
+                          params: { caseId: rescue.caseId || rescue._id },
+                        });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No active rescue operations right now.</Text>
+                )}
+
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").map((rescue: any) => (
+                    <ReportPreviewCard
+                      key={rescue._id || rescue.caseId}
+                      title={`${rescue.animalType} (${rescue.caseId})`}
+                      date={new Date(rescue.createdAt).toLocaleDateString()}
+                      status={rescue.status.toUpperCase()}
+                      image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                      summary={rescue.summary}
+                      onPress={() => {
+                        router.push({
+                          pathname: "/reporting/RescueDetails",
+                          params: { caseId: rescue.caseId || rescue._id },
+                        });
+                      }}
+                    />
+                  ))
+                ) : (
+                  <Text style={styles.noActiveText}>No completed rescue operations yet.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="checkmark-done-circle-outline"
@@ -613,10 +717,14 @@ export default function PublicProfileScreen() {
         onSubmit={handleReportSubmit}
       />
 
-      <ImageViewer 
-        imageUrl={profileData?.profileImage || userData?.avatar || "https://via.placeholder.com/150"} 
-        visible={isViewerVisible} 
-        onClose={() => setIsViewerVisible(false)} 
+      <ImageViewer
+        imageUrl={
+          profileData?.profileImage || userData?.avatar
+            ? profileData.profileImage || userData.avatar
+            : require("../../assets/images/default-avatar.jpg")
+        }
+        visible={isViewerVisible}
+        onClose={() => setIsViewerVisible(false)}
       />
     </SafeAreaView>
   );
@@ -669,7 +777,6 @@ const styles = StyleSheet.create({
     borderColor: BRAND_COLOR,
     padding: 3,
     backgroundColor: "#FFF4E6",
-    marginBottom: 12,
   },
   avatar: {
     width: "100%",
@@ -678,41 +785,30 @@ const styles = StyleSheet.create({
   },
   roleBadgeContainer: {
     flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
+    marginTop: -10,
     marginBottom: 8,
   },
   roleBadge: {
     paddingHorizontal: 10,
     paddingVertical: 3,
     borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#FFFFFF",
   },
   roleBadgeText: {
     fontSize: 10,
     fontWeight: "700",
     color: "#FFFFFF",
   },
-  verifiedBadge: {
+  nameRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#A7F3D0",
-  },
-  verifiedText: {
-    fontSize: 10,
-    fontWeight: "600",
-    color: "#065F46",
-    marginLeft: 3,
+    marginBottom: 4,
   },
   name: {
     fontSize: 22,
     fontWeight: "700",
     color: "#111827",
-    marginBottom: 4,
   },
   locationContainer: {
     flexDirection: "row",
@@ -729,6 +825,29 @@ const styles = StyleSheet.create({
     color: "#4B5563",
     fontWeight: "500",
     marginTop: 2,
+  },
+  tagsContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+    marginTop: 8,
+    paddingHorizontal: 20,
+  },
+  tagBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F3F4F6",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    gap: 6,
+  },
+  tagText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#4B5563",
+    flexShrink: 1,
   },
   bio: {
     fontSize: 14,
@@ -817,5 +936,19 @@ const styles = StyleSheet.create({
   tabContentContainer: {
     paddingHorizontal: 16,
     paddingTop: 16,
+  },
+  subSectionTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#444",
+    marginBottom: 10,
+    marginLeft: 4,
+  },
+  noActiveText: {
+    fontSize: 13,
+    color: "#888",
+    fontStyle: "italic",
+    marginLeft: 4,
+    marginBottom: 10,
   },
 });

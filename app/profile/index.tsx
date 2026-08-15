@@ -118,10 +118,27 @@ export default function ProfileScreen() {
     fetchData();
   };
 
-  const handleUpdateDetails = (caseId: string) => {
+  const [currentCaseStatus, setCurrentCaseStatus] = useState("");
+
+  const getStatusRank = (st: string | undefined): number => {
+    switch (st?.toLowerCase()) {
+      case "needs help": case "pending": case "accepted": return 0;
+      case "under rescue": case "under_rescue": case "in progress": return 1;
+      case "treated": return 2;
+      case "ready for adoption": return 3;
+      case "completed": return 4;
+      default: return 0;
+    }
+  };
+
+  const handleUpdateDetails = (caseId: string, currentStatus: string = "") => {
     setSelectedCaseId(caseId);
+    setCurrentCaseStatus(currentStatus);
     setUpdateText("");
-    setUpdateStatus("Under Rescue");
+    const options = ["Under Rescue", "Treated", "Ready for Adoption", "Completed"];
+    const currRank = getStatusRank(currentStatus);
+    const nextStatus = options.find((s) => getStatusRank(s) > currRank) || currentStatus;
+    setUpdateStatus(nextStatus);
     setModalVisible(true);
   };
 
@@ -200,7 +217,7 @@ export default function ProfileScreen() {
     location: location,
     bio: bio,
     memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : "2026",
-    avatar: profile?.profileImage || user?.avatar || "https://via.placeholder.com/150",
+    avatar: profile?.profileImage || user?.avatar ? (profile?.profileImage || user?.avatar) : require("../../assets/images/default-avatar.jpg"),
   };
   
   // To handle saved items (all current files had it empty)
@@ -236,6 +253,7 @@ export default function ProfileScreen() {
           memberSince={userData.memberSince}
           avatar={userData.avatar}
           role={user?.role}
+          isVerified={user?.isApproved}
           onEditPress={() => router.push("/profile/EditProfile")}
         />
 
@@ -266,35 +284,71 @@ export default function ProfileScreen() {
           )}
 
           {activeTab === "rescues" && !isGeneralUser && (
-            rescues.filter((r: any) => !r.status || ["accepted", "under rescue", "completed", "in progress"].includes(r.status.toLowerCase())).length > 0 ? (
-              rescues
-                .filter((r: any) => !r.status || ["accepted", "under rescue", "completed", "in progress"].includes(r.status.toLowerCase()))
-                .map((rescue: any, index: number) => (
-                  <ReportPreviewCard
-                    key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-${index}`}
-                    title={`${rescue.animalType} (${rescue.caseId})`}
-                    date={new Date(rescue.createdAt).toLocaleDateString()}
-                    status={rescue.status}
-                    image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
-                    summary={rescue.summary}
-                    actionText="Update Status"
-                    onActionPress={rescue.status !== "Completed" && rescue.status !== "completed" ? () => handleUpdateDetails(rescue.caseId) : undefined}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/rescuer-response/[requestId]" as any,
-                        params: {
-                          requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
-                          caseId: rescue.caseId,
-                        },
-                      })
-                    }
-                  />
-                ))
+            rescues.length > 0 ? (
+              <View>
+                {/* 📌 ACTIVE RESCUES */}
+                <Text style={styles.subSectionTitle}>Active Rescues</Text>
+                {rescues.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  rescues
+                    .filter((r: any) => (r.status || "").toLowerCase() !== "completed")
+                    .map((rescue: any, index: number) => (
+                      <ReportPreviewCard
+                        key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-curr-${index}`}
+                        title={`${rescue.animalType} (${rescue.caseId})`}
+                        date={new Date(rescue.createdAt).toLocaleDateString()}
+                        status={rescue.status}
+                        image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                        summary={rescue.summary}
+                        actionText="Update Status"
+                        onActionPress={() => handleUpdateDetails(rescue.caseId, rescue.status)}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/rescuer-response/[requestId]" as any,
+                            params: {
+                              requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                              caseId: rescue.caseId,
+                            },
+                          })
+                        }
+                      />
+                    ))
+                ) : (
+                  <Text style={styles.noActiveText}>No active rescue cases right now.</Text>
+                )}
+
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  rescues
+                    .filter((r: any) => (r.status || "").toLowerCase() === "completed")
+                    .map((rescue: any, index: number) => (
+                      <ReportPreviewCard
+                        key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-hist-${index}`}
+                        title={`${rescue.animalType} (${rescue.caseId})`}
+                        date={new Date(rescue.createdAt).toLocaleDateString()}
+                        status={rescue.status}
+                        image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                        summary={rescue.summary}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/rescuer-response/[requestId]" as any,
+                            params: {
+                              requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                              caseId: rescue.caseId,
+                            },
+                          })
+                        }
+                      />
+                    ))
+                ) : (
+                  <Text style={styles.noActiveText}>No completed rescue cases yet.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="medkit-outline"
-                title="No active cases yet."
-                subtitle={isVolunteer ? "Your accepted rescue requests will appear here." : "Current treatments and medical cases will appear here."}
+                title="No rescues yet."
+                subtitle={isVolunteer ? "Your accepted rescue requests will appear here." : "Treatments and medical cases will appear here."}
               />
             )
           )}
@@ -302,10 +356,10 @@ export default function ProfileScreen() {
           {activeTab === "reports" && (
             reports.length > 0 ? (
               <View>
-                {/* 📌 CURRENT CASES */}
-                <Text style={styles.subSectionTitle}>Current Cases</Text>
-                {reports.filter((r: any) => ["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).length > 0 ? (
-                  reports.filter((r: any) => ["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).map((report: any, index: number) => (
+                {/* 📌 ACTIVE CASES */}
+                <Text style={styles.subSectionTitle}>Active Cases</Text>
+                {reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((report: any, index: number) => (
                     <ReportPreviewCard
                       key={report._id || report.caseId || `current-${index}`}
                       title={`${report.animalType} (${report.caseId})`}
@@ -340,10 +394,10 @@ export default function ProfileScreen() {
                   <Text style={styles.noActiveText}>No active rescue cases right now.</Text>
                 )}
 
-                {/* 📜 RESCUE HISTORY */}
-                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Rescue History</Text>
-                {reports.filter((r: any) => !["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).length > 0 ? (
-                  reports.filter((r: any) => !["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).map((report: any, index: number) => (
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").map((report: any, index: number) => (
                     <ReportPreviewCard
                       key={report._id || report.caseId || `history-${index}`}
                       title={`${report.animalType} (${report.caseId})`}
@@ -367,7 +421,7 @@ export default function ProfileScreen() {
                     />
                   ))
                 ) : (
-                  <Text style={styles.noActiveText}>No past rescue history.</Text>
+                  <Text style={styles.noActiveText}>No completed cases yet.</Text>
                 )}
               </View>
             ) : (
@@ -411,28 +465,34 @@ export default function ProfileScreen() {
             <Text style={styles.modalTitle}>Update Rescue Status</Text>
             
             <View style={{ marginBottom: 15, width: "100%" }}>
-              {["Under Rescue", "Treated", "Ready for Adoption", "Completed"].map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  style={{
-                    padding: 12,
-                    marginVertical: 4,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: updateStatus === s ? BRAND_COLOR : "#ddd",
-                    backgroundColor: updateStatus === s ? "#FFF7E6" : "#fff",
-                  }}
-                  onPress={() => setUpdateStatus(s)}
-                >
-                  <Text style={{
-                    color: updateStatus === s ? BRAND_COLOR : "#555",
-                    fontWeight: updateStatus === s ? "bold" : "normal",
-                    textAlign: "center"
-                  }}>
-                    {s}
-                  </Text>
-                </TouchableOpacity>
-              ))}
+              {["Under Rescue", "Treated", "Ready for Adoption", "Completed"].map((s) => {
+                const isLocked = getStatusRank(s) <= getStatusRank(currentCaseStatus);
+                const isSelected = updateStatus === s;
+                return (
+                  <TouchableOpacity
+                    key={s}
+                    disabled={isLocked}
+                    style={{
+                      padding: 12,
+                      marginVertical: 4,
+                      borderRadius: 8,
+                      borderWidth: 1,
+                      borderColor: isLocked ? "#E5E7EB" : isSelected ? BRAND_COLOR : "#ddd",
+                      backgroundColor: isLocked ? "#F3F4F6" : isSelected ? "#FFF7E6" : "#fff",
+                      opacity: isLocked ? 0.55 : 1,
+                    }}
+                    onPress={() => !isLocked && setUpdateStatus(s)}
+                  >
+                    <Text style={{
+                      color: isLocked ? "#9CA3AF" : isSelected ? BRAND_COLOR : "#555",
+                      fontWeight: isSelected ? "bold" : "normal",
+                      textAlign: "center"
+                    }}>
+                      {s} {isLocked ? "🔒" : ""}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
             </View>
 
             <TextInput
@@ -464,6 +524,10 @@ export default function ProfileScreen() {
           status: profile?.status
         }}
         onAdoptionPress={() => setMenuVisible(false)}
+        onMyLostFoundPress={() => {
+          setMenuVisible(false);
+          router.push("/lost-and-found/MyPosts");
+        }}
         onProfilePress={() => setMenuVisible(false)}
         onDonationsPress={() => {
           setMenuVisible(false);
@@ -490,7 +554,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingBottom: 100,
   },
   header: {
     paddingTop: 16,

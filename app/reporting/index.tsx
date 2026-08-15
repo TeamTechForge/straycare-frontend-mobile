@@ -13,6 +13,7 @@ import {
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { getAllReports } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Report = {
   caseId: string;
@@ -48,14 +49,14 @@ const getMarkerColor = (status: string) => {
   }
 };
 
-const RadarMarker = ({ 
-  coordinate, 
-  status, 
-  onPress 
-}: { 
-  coordinate: { latitude: number; longitude: number }; 
-  status: string; 
-  onPress: () => void; 
+const RadarMarker = ({
+  coordinate,
+  status,
+  onPress
+}: {
+  coordinate: { latitude: number; longitude: number };
+  status: string;
+  onPress: () => void;
 }) => {
   const isSearching = status === "Pending" || status === "Request Sent";
   const radarAnim = useRef(new Animated.Value(0)).current;
@@ -110,18 +111,18 @@ const RadarMarker = ({
   }
 
   return (
-    <Marker 
-      coordinate={coordinate} 
-      pinColor={getMarkerColor(status)} 
-      onPress={onPress} 
+    <Marker
+      coordinate={coordinate}
+      pinColor={getMarkerColor(status)}
+      onPress={onPress}
     />
   );
 };
 
 export default function ReportingMapScreen() {
-  const router = useRouter();
   const mapRef = useRef<any>(null);
-
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
@@ -245,7 +246,7 @@ export default function ReportingMapScreen() {
       </MapViewWrapper>
 
       {/* Add Case Button */}
-      <View style={styles.bottomButtonWrapper}>
+      <View style={[styles.bottomButtonWrapper, { bottom: insets.bottom + 115 }]}>
         <PrimaryButton
           title="Report a Case +"
           onPress={() => router.push("/reporting/AnimalDetails")}
@@ -277,7 +278,6 @@ const styles = StyleSheet.create({
   subtext: { fontSize: 14, color: "#666", textAlign: "center" },
   bottomButtonWrapper: {
     position: "absolute",
-    bottom: 90,
     left: 20,
     right: 20,
   },

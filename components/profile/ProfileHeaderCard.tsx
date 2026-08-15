@@ -10,9 +10,10 @@ type Props = {
   location: string;
   bio: string;
   memberSince: string;
-  avatar: string;
+  avatar: any;
   onEditPress?: () => void;
   role?: string;
+  isVerified?: boolean;
 };
 
 export default function ProfileHeaderCard({
@@ -23,6 +24,7 @@ export default function ProfileHeaderCard({
   avatar,
   onEditPress,
   role,
+  isVerified,
 }: Props) {
   const [isViewerVisible, setIsViewerVisible] = useState(false);
 
@@ -43,7 +45,10 @@ export default function ProfileHeaderCard({
   return (
     <View style={styles.profileTop}>
       <TouchableOpacity onPress={() => setIsViewerVisible(true)} style={styles.avatarOuter}>
-        <Image source={{ uri: avatar }} style={styles.avatar} />
+        <Image 
+          source={typeof avatar === 'string' ? { uri: avatar } : avatar} 
+          style={styles.avatar} 
+        />
       </TouchableOpacity>
 
       <View style={styles.badgeContainer}>
@@ -54,7 +59,12 @@ export default function ProfileHeaderCard({
         )}
       </View>
 
-      <Text style={styles.userName}>{name}</Text>
+      <View style={styles.nameRow}>
+        <Text style={styles.userName}>{name}</Text>
+        {isVerified && (
+          <Ionicons name="checkmark-circle" size={18} color="#1DA1F2" style={{ marginLeft: 4 }} />
+        )}
+      </View>
 
       <View style={styles.locationRow}>
         <Ionicons name="location-outline" size={12} color="#888" />
@@ -115,8 +125,12 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#fff",
   },
-  userName: {
+  nameRow: {
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 8,
+  },
+  userName: {
     fontSize: 22,
     fontWeight: "700",
     color: "#222",
