@@ -88,6 +88,7 @@ export default function DonationHistory() {
 
   return (
     <View style={styles.container}>
+      <Text style={styles.title}>Donation History</Text>
       {donations.length === 0 ? (
         <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations yet</Text>
       ) : (
@@ -104,6 +105,7 @@ export default function DonationHistory() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 10 },
+  title: { fontSize: 22, fontWeight: "bold", marginBottom: 20 },
   card: { backgroundColor: "#f9f9f9", padding: 15, borderRadius: 10, marginBottom: 15 },
   org: { fontSize: 16, fontWeight: "bold" },
   category: { fontSize: 13, color: "#666", marginTop: 2 },
