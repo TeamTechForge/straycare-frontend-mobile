@@ -9,6 +9,12 @@ export default function DonationSummary() {
 
   const router = useRouter();
   const formattedAmount = parseFloat(amount as string).toFixed(2);
+  const paymentMethodLabel =
+    paymentMethod === "MASTER"
+      ? "Mastercard"
+      : paymentMethod === "AMEX"
+        ? "American Express"
+        : "Visa";
 
   useEffect(() => {
     if (paymentFailed === "true") {
@@ -30,7 +36,7 @@ export default function DonationSummary() {
           <Text style={styles.label}>Donation Plan: {plan}</Text>
         ) : null}
         <Text style={styles.label}>Amount: Rs. {formattedAmount}</Text>
-        <Text style={styles.label}>Payment Method: {paymentMethod}</Text>
+        <Text style={styles.label}>Payment Method: {paymentMethodLabel}</Text>
       </View>
 
       <PrimaryButton
@@ -45,6 +51,7 @@ export default function DonationSummary() {
               organizationName,     // display name for saving in donation record
               frequency,
               plan,
+              paymentMethod,
             },
           })
         }
