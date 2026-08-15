@@ -2,7 +2,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl, Modal, TextInput, Alert } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_URL } from "../../constants/config.constants";
 
@@ -15,6 +15,7 @@ import ProfileTabBar, { TabKey, TabItem } from "../../components/profile/Profile
 import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
 import SavedPreviewCard from "../../components/profile/SavedPreviewCard";
 import { useAuth } from "../../contexts/AuthContext";
+import { getCaseStatusUpdateRoute } from "../../utils/profileRoutes";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -32,15 +33,8 @@ export default function ProfileScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
 
-  // Status update modal state
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
-  const [updateText, setUpdateText] = useState("");
-  const [updateStatus, setUpdateStatus] = useState("Under Rescue");
-
   const [totalReportsCount, setTotalReportsCount] = useState<number | null>(null);
   const [totalPostsCount, setTotalPostsCount] = useState<number | null>(null);
-
   const fetchData = async () => {
     try {
       const token = await SecureStore.getItemAsync("authToken");
@@ -135,54 +129,8 @@ export default function ProfileScreen() {
     fetchData();
   };
 
-  const [currentCaseStatus, setCurrentCaseStatus] = useState("");
-
-  const getStatusRank = (st: string | undefined): number => {
-    switch (st?.toLowerCase()) {
-      case "needs help": case "pending": case "accepted": return 0;
-      case "under rescue": case "under_rescue": case "in progress": return 1;
-      case "treated": return 2;
-      case "ready for adoption": return 3;
-      case "completed": return 4;
-      default: return 0;
-    }
-  };
-
-  const handleUpdateDetails = (caseId: string, currentStatus: string = "") => {
-    setSelectedCaseId(caseId);
-    setCurrentCaseStatus(currentStatus);
-    setUpdateText("");
-    const options = ["Under Rescue", "Treated", "Ready for Adoption", "Completed"];
-    const currRank = getStatusRank(currentStatus);
-    const nextStatus = options.find((s) => getStatusRank(s) > currRank) || currentStatus;
-    setUpdateStatus(nextStatus);
-    setModalVisible(true);
-  };
-
-  const submitDetailsUpdate = async () => {
-    if (!selectedCaseId) return;
-    try {
-      const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch(`${API_URL}/rescue/request/${selectedCaseId}/details`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ summary: updateText.trim(), status: updateStatus }),
-      });
-      if (response.ok) {
-        Alert.alert("Success", "Rescue details updated successfully!");
-        setModalVisible(false);
-        fetchData(); // Reload rescues
-      } else {
-        const errData = (await response.json()) as any;
-        Alert.alert("Error", errData.error || "Failed to update details.");
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Error", "Something went wrong.");
-    }
+  const openCaseStatusUpdate = (caseId: string) => {
+    router.push(getCaseStatusUpdateRoute(caseId));
   };
 
   // Role-based logic
@@ -325,7 +273,17 @@ export default function ProfileScreen() {
                         status={rescue.status}
                         image={rescue.image}
                         summary={rescue.summary}
-                        onPress={() => handleUpdateDetails(rescue.id || rescue._id, rescue.status)}
+                        actionText="Update Status"
+                        onActionPress={() => openCaseStatusUpdate(rescue.caseId)}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/rescuer-response/[requestId]" as any,
+                            params: {
+                              requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                              caseId: rescue.caseId,
+                            },
+                          })
+                        }
                         onTrackPress={() => {
                           const statusLower = (rescue.status || "").toLowerCase();
                           if (["pending", "request sent"].includes(statusLower)) {
@@ -359,11 +317,13 @@ export default function ProfileScreen() {
                         status={rescue.status}
                         image={rescue.image}
                         summary={rescue.summary}
-                        onPress={() => handleUpdateDetails(rescue.id || rescue._id, rescue.status)}
-                        onTrackPress={() =>
+                        onPress={() =>
                           router.push({
-                            pathname: "/rescuer-response/[requestId]",
-                            params: { requestId: rescue.id || rescue._id, caseId: rescue.caseId || rescue.id || rescue._id },
+                            pathname: "/rescuer-response/[requestId]" as any,
+                            params: {
+                              requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                              caseId: rescue.caseId,
+                            },
                           })
                         }
                       />
@@ -485,62 +445,6 @@ export default function ProfileScreen() {
           )}
         </View>
       </ScrollView>
-
-      {/* Cross-platform modal for updating status details */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Update Rescue Status</Text>
-            
-            <View style={{ marginBottom: 15, width: "100%" }}>
-              {["Under Rescue", "Treated", "Ready for Adoption", "Completed"].map((s) => {
-                const isLocked = getStatusRank(s) <= getStatusRank(currentCaseStatus);
-                const isSelected = updateStatus === s;
-                return (
-                  <TouchableOpacity
-                    key={s}
-                    disabled={isLocked}
-                    style={{
-                      padding: 12,
-                      marginVertical: 4,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: isLocked ? "#E5E7EB" : isSelected ? BRAND_COLOR : "#ddd",
-                      backgroundColor: isLocked ? "#F3F4F6" : isSelected ? "#FFF7E6" : "#fff",
-                      opacity: isLocked ? 0.55 : 1,
-                    }}
-                    onPress={() => !isLocked && setUpdateStatus(s)}
-                  >
-                    <Text style={{
-                      color: isLocked ? "#9CA3AF" : isSelected ? BRAND_COLOR : "#555",
-                      fontWeight: isSelected ? "bold" : "normal",
-                      textAlign: "center"
-                    }}>
-                      {s} {isLocked ? "🔒" : ""}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Add optional notes (e.g. On my way, Animal is safe)"
-              value={updateText}
-              onChangeText={setUpdateText}
-              multiline
-            />
-            <View style={styles.modalButtonRow}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelBtn]} onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, styles.submitBtn]} onPress={submitDetailsUpdate}>
-                <Text style={styles.submitBtnText}>Submit</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       <ProfileMenuDrawer
         visible={menuVisible}

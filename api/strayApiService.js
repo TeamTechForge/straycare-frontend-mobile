@@ -74,7 +74,6 @@ export const getReportByCaseId = async (caseId) => {
   }
 };
 
-
 // 4.Updates the status of a case by sending a PATCH request to the backend. The backend will automatically append a new entry to the case timeline with the status change. Returns the updated report with the new status and timeline.
 export const updateCaseStatus = async (caseId, status) => {
   try {

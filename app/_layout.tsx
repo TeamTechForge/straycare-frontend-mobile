@@ -24,6 +24,7 @@ function InitialLayout() {
   const router = useRouter();
   const { addNotification } = useNotification();
   const [hasCheckedCompletion, setHasCheckedCompletion] = useState(false);
+  const handledNotificationIdsRef = useRef<Set<string>>(new Set());
 
   // Check if newly approved NGOs/Vets need to see the completion screen
   useEffect(() => {
@@ -117,15 +118,25 @@ function InitialLayout() {
   useEffect(() => {
     if (!token || !user) return;
 
+    let cancelled = false;
+    let removeForegroundListener: (() => void) | undefined;
+    let removeResponseListener: (() => void) | undefined;
+
     const setupPushNotifications = async () => {
       try {
         // Lazy load push notification service (only available on native builds)
-        const { pushNotificationService } = await import("../services/pushNotificationService");
+        const {
+          pushNotificationService,
+          VIEW_CASE_ACTION_ID,
+        } = await import("../services/pushNotificationService");
 
-        pushNotificationService.initializePushNotifications((notification) => {
+        await pushNotificationService.ensureAuthenticatedTokenRegistered();
+        if (cancelled) return;
+
+        removeForegroundListener = pushNotificationService.listenForNotifications((notification) => {
           // Handle incoming push notification
           if (notification.request.content.data) {
-            const data = notification.request.content.data;
+            const data = notification.request.content.data as Record<string, any>;
             addNotification({
               _id: `push-${Date.now()}`,
               userId: user._id || "",
@@ -133,17 +144,50 @@ function InitialLayout() {
               message: notification.request.content.body || "",
               type: (data.type as any) || "info",
               read: false,
+              caseId: typeof data.caseId === "string" ? data.caseId : undefined,
+              rescueRequestId: typeof data.rescueRequestId === "string" ? data.rescueRequestId : undefined,
+              event: typeof data.event === "string" ? data.event : undefined,
+              status: typeof data.status === "string" ? data.status : undefined,
+              animalType: typeof data.animalType === "string" ? data.animalType : undefined,
+              assignedRescuerName: typeof data.assignedRescuerName === "string" ? data.assignedRescuerName : undefined,
+              action: typeof data.action === "string" ? data.action : undefined,
               createdAt: new Date().toISOString(),
             });
           }
         });
-        await pushNotificationService.ensureAuthenticatedTokenRegistered();
-        pushNotificationService.listenForNotificationResponses((notification) => {
-          const data = notification.request.content.data as { caseId?: string };
-          if (data.caseId) {
-            router.push({ pathname: "/reporting/CaseDetails", params: { caseId: data.caseId } } as never);
+
+        const handleResponse = (response: import("expo-notifications").NotificationResponse) => {
+          const notification = response.notification;
+          const notificationId = notification.request.identifier;
+          if (handledNotificationIdsRef.current.has(notificationId)) return;
+
+          const data = notification.request.content.data as Record<string, any>;
+          const title = notification.request.content.title || "";
+          const caseId = typeof data.caseId === "string" ? data.caseId : "";
+          const requestId = typeof data.rescueRequestId === "string" ? data.rescueRequestId : "";
+          const isCaseUpdate = data.event === "rescue_accepted" || data.event === "case_status_updated";
+          const isViewAction = response.actionIdentifier === VIEW_CASE_ACTION_ID;
+
+          if ((isCaseUpdate || isViewAction) && caseId) {
+            handledNotificationIdsRef.current.add(notificationId);
+            router.push({ pathname: "/reporting/CaseDetails", params: { caseId } } as never);
+          } else if (title === "New Rescue Request" && requestId) {
+            handledNotificationIdsRef.current.add(notificationId);
+            router.push({ pathname: "/rescue-details/[id]", params: { id: requestId } } as never);
+          } else if ((title.includes("Discussion") || title.includes("Reply")) && caseId) {
+            handledNotificationIdsRef.current.add(notificationId);
+            router.push({ pathname: "/discussion-thread/[id]", params: { id: caseId } } as never);
           }
-        });
+
+          pushNotificationService.clearLastNotificationResponse();
+        };
+
+        removeResponseListener = pushNotificationService.listenForNotificationResponses(handleResponse);
+
+        const lastResponse = pushNotificationService.getLastNotificationResponse();
+        if (lastResponse) {
+          handleResponse(lastResponse);
+        }
       } catch (error) {
         // Push notifications not available (normal in Expo Go)
         console.log("[PUSH] Push notifications not available:", (error as any)?.message);
@@ -151,7 +195,12 @@ function InitialLayout() {
     };
 
     setupPushNotifications();
-  }, [token, user, addNotification]);
+    return () => {
+      cancelled = true;
+      removeForegroundListener?.();
+      removeResponseListener?.();
+    };
+  }, [token, user, addNotification, router]);
 
   // ─── Global Rescue Request Listener ───
   // `seenRequestIdsRef` tracks which request IDs have already been shown to this

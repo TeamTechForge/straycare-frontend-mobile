@@ -1,5 +1,5 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import * as SecureStore from "expo-secure-store";
 import {
@@ -76,7 +76,7 @@ const getNextStatus = (current: string) => {
 };
 
 export default function CaseDetailsScreen() {
-  const { caseId } = useLocalSearchParams();
+  const { caseId, focus } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
 
@@ -85,6 +85,8 @@ export default function CaseDetailsScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [acceptingRescue, setAcceptingRescue] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [statusUpdateY, setStatusUpdateY] = useState<number | null>(null);
 
   // 🔔 Notification States
   const [showNotification, setShowNotification] = useState(false);
@@ -113,6 +115,14 @@ export default function CaseDetailsScreen() {
       void loadCase();
     }, [loadCase])
   );
+
+  useEffect(() => {
+    if (focus !== "status-update" || loading || statusUpdateY === null) return;
+    const frame = requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({ y: Math.max(0, statusUpdateY - 20), animated: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focus, loading, statusUpdateY]);
 
   const handleStatusUpdate = async () => {
     if (!report) return;
@@ -170,7 +180,7 @@ export default function CaseDetailsScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.value}>{loadError || "Case not found."}</Text>
-        <PrimaryButton title="Back to Map" onPress={() => router.back()} />
+        <PrimaryButton title="Back to Map" onPress={() => router.replace("/reporting")} />
       </View>
     );
   }
@@ -204,6 +214,7 @@ export default function CaseDetailsScreen() {
               const errorMsg =
                 err?.response?.data?.error ||
                 err?.response?.data?.message ||
+                err?.message ||
                 "Failed to accept rescue. Please try again.";
               Alert.alert("Accept Failed", errorMsg);
             } finally {
@@ -216,7 +227,7 @@ export default function CaseDetailsScreen() {
   };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
+    <ScrollView ref={scrollViewRef} style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
 
       {/* 🔔 Notification Banner */}
       {showNotification && (
@@ -294,16 +305,18 @@ export default function CaseDetailsScreen() {
       </View>
 
       {/* ✅ Status Update Button - Rescuers Only */}
-      {nextStatus && report.permissions?.canUpdate && (
-        <PrimaryButton
-          title={updating ? "Updating..." : `Mark as "${nextStatus}"`}
-          onPress={handleStatusUpdate}
-          disabled={updating}
-        />
-      )}
+      <View onLayout={(event) => setStatusUpdateY(event.nativeEvent.layout.y)}>
+        {nextStatus && report.permissions?.canUpdate && (
+          <PrimaryButton
+            title={updating ? "Updating..." : `Mark as "${nextStatus}"`}
+            onPress={handleStatusUpdate}
+            disabled={updating}
+          />
+        )}
+      </View>
 
-      {/* Accept Rescue Button - Rescuers Only, only when case Needs Help, and NOT own report */}
-      {report.permissions?.canAccept && !report.isOwner && (
+      {/* Accept Rescue Button - controlled by the server-side case permission */}
+      {isRescuer && report.permissions?.canAccept && (
         <PrimaryButton
           title={acceptingRescue ? "Accepting..." : "Accept This Case"}
           onPress={acceptRescue}
@@ -362,8 +375,7 @@ export default function CaseDetailsScreen() {
         <Text style={styles.value}>No timeline updates yet</Text>
       )}
 
-      {/* ✅ Fix applied here: Pops the screen instead of pushing a new map */}
-      <PrimaryButton title="Back to Map" onPress={() => router.back()} />
+      <PrimaryButton title="Back to Map" onPress={() => router.replace("/reporting")} />
     </ScrollView>
   );
 }

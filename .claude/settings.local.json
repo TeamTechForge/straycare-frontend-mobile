@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(grep -v \"^\\\\.\\\\/\\\\.\")",
+      "Bash(curl -s -m 5 http://localhost:5000/api/strays/reports)",
+      "Bash(echo \"---exit:$?---\")"
+    ]
+  }
+}
