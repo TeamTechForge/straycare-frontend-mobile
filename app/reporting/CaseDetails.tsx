@@ -27,6 +27,7 @@ type Report = {
   notes?: string;
   anonymous?: boolean;
   reportedBy?: string;
+  isOwner?: boolean;
   permissions?: { canAccept: boolean; canUpdate: boolean };
   location: {
     lat: number;
@@ -323,11 +324,11 @@ export default function CaseDetailsScreen() {
         />
       )}
 
-      {/* 🔒 Info Message for Non-Rescuers */}
-      {nextStatus && !report.permissions?.canUpdate && !report.permissions?.canAccept && (
+      {/* 🔒 Info Message for Non-Rescuers / Case Reporter */}
+      {nextStatus && !report.permissions?.canUpdate && (!report.permissions?.canAccept || report.isOwner) && (
         <View style={styles.restrictedMessage}>
           <Text style={styles.restrictedText}>
-            {isReporter
+            {isReporter || report.isOwner
               ? "You can track this case here. Only the assigned rescuer can update the rescue status."
               : "Only the assigned rescuer can change the status of this case."}
           </Text>

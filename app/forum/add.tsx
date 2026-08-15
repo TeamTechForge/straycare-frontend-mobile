@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -59,6 +60,7 @@ export default function AddContent() {
   const router = useRouter();
   const [content, setContent] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [anonymous, setAnonymous] = useState(false);
   const [uploading, setUploading] = useState(false);
   const insets = useSafeAreaInsets();
 
@@ -114,7 +116,7 @@ export default function AddContent() {
     try {
       router.push({
         pathname: "/forum/published" as any,
-        params: { content: content.trim(), imageUrl },
+        params: { content: content.trim(), imageUrl, anonymous: anonymous ? "true" : "false" },
       });
     } catch (e) {
       Alert.alert("Error", "Could not publish thread.");
@@ -184,6 +186,20 @@ export default function AddContent() {
               {imageUri ? "Change Image" : "Add Image"}
             </Text>
           </TouchableOpacity>
+
+          {/* Anonymous Toggle Option */}
+          <View style={styles.anonymousRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.anonymousTitle}>Post Anonymously</Text>
+              <Text style={styles.anonymousSubtitle}>Hide your name from the community discussion.</Text>
+            </View>
+            <Switch
+              value={anonymous}
+              onValueChange={setAnonymous}
+              trackColor={{ false: "#E5E7EB", true: colors.primary }}
+              thumbColor={anonymous ? "#FFFFFF" : "#F4F4F5"}
+            />
+          </View>
 
           {uploading ? (
             <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 12 }} />
@@ -305,6 +321,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.semibold,
     color: colors.primary,
+  },
+
+  anonymousRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#ECECEC",
+  },
+  anonymousTitle: {
+    fontSize: 14,
+    fontFamily: typography.semibold,
+    color: "#111827",
+  },
+  anonymousSubtitle: {
+    fontSize: 12,
+    fontFamily: typography.regular,
+    color: "#6B7280",
+    marginTop: 2,
   },
 
   bottomBar: {

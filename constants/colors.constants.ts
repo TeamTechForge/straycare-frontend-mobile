@@ -7,3 +7,6 @@ export const colors = {
   white: "#FFFFFF",
   error: "#FF3B30",
 };
+
+export default colors;
+

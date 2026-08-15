@@ -52,27 +52,6 @@ export default function Success() {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(30)).current;
 
-  // Auto transition to original Rescuer Finding screen (/nearby-rescuers)
-  useEffect(() => {
-    const timer = setTimeout(() => {
-      if (lat && lng) {
-        router.replace({
-          pathname: "/nearby-rescuers",
-          params: {
-            lat,
-            lng,
-            caseId,
-            animalType,
-            animalPhoto,
-            description,
-          },
-        } as never);
-      }
-    }, 2000);
-
-    return () => clearTimeout(timer);
-  }, [lat, lng, caseId, animalType, animalPhoto, description]);
-
   useEffect(() => {
     Animated.sequence([
       // 1. Checkmark pops in
@@ -99,19 +78,17 @@ export default function Success() {
   }, []);
 
   const goToFindingRescuer = () => {
-    if (lat && lng) {
-      router.push({
-        pathname: "/nearby-rescuers",
-        params: {
-          lat,
-          lng,
-          caseId,
-          animalType,
-          animalPhoto,
-          description,
-        },
-      } as never);
-    }
+    router.push({
+      pathname: "/nearby-rescuers",
+      params: {
+        lat,
+        lng,
+        caseId,
+        animalType,
+        animalPhoto,
+        description,
+      },
+    } as never);
   };
 
   return (
@@ -157,13 +134,11 @@ export default function Success() {
 
         {/* BUTTONS */}
         <View style={styles.buttonGroup}>
-          {/* FIND RESCUER — primary action */}
-          {lat && lng ? (
-            <PrimaryButton
-              title="🔍  Finding Rescuer..."
-              onPress={goToFindingRescuer}
-            />
-          ) : null}
+          {/* FIND RESCUER */}
+          <PrimaryButton
+            title="Find Rescuer"
+            onPress={goToFindingRescuer}
+          />
 
           {/* VIEW CASE DETAILS */}
           <PrimaryButton
@@ -177,10 +152,10 @@ export default function Success() {
             variant="outline"
           />
 
-          {/* GO HOME */}
+          {/* BACK TO HOME */}
           <PrimaryButton
-            title="Go Home"
-            onPress={() => router.push("/")}
+            title="Back to Home"
+            onPress={() => router.replace("/(tabs)/Home")}
             variant="outline"
           />
         </View>
