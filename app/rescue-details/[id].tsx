@@ -6,7 +6,6 @@ import {
   SafeAreaView,
   ScrollView,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -19,14 +18,10 @@ import { spacing } from "../../constants/spacing.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { useCall } from "../../contexts/CallContext";
 import {
-  fetchComments,
   fetchRescueById,
   getApiBaseUrl,
-  postComment,
-  postReply,
 } from "../../services/rescueService";
 import { rescueDetailsStyles as styles } from "../../styles/rescue-details.styles";
-import type { RescueComment } from "../../types/Api";
 import { BASE_URL } from "../../constants/config.constants";
 import { io as ioClient } from "socket.io-client";
 
@@ -186,17 +181,6 @@ export default function RescueDetailsScreen() {
   const [imageError, setImageError] = useState(false);
   const [selectedPhotoIndex, setSelectedPhotoIndex] = useState(0);
 
-  // ── Comments State ──
-  const [comments, setComments] = useState<RescueComment[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(false);
-  const [newComment, setNewComment] = useState("");
-  const [submittingComment, setSubmittingComment] = useState(false);
-
-  // ── Replies State ──
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState("");
-  const [submittingReply, setSubmittingReply] = useState(false);
-
   /* ─────────────────────────────────────────────────────────────
    * Fetch Live Rescue Details (and poll)
    * ───────────────────────────────────────────────────────────── */
@@ -225,31 +209,6 @@ export default function RescueDetailsScreen() {
     }, 5000);
     return () => clearInterval(interval);
   }, [loadDetails]);
-
-  /* ─────────────────────────────────────────────────────────────
-   * Fetch Comments (and poll)
-   * ───────────────────────────────────────────────────────────── */
-  const loadCommentsList = useCallback(async () => {
-    if (!idValue) return;
-    setCommentsLoading(true);
-    try {
-      const data = await fetchComments(idValue);
-      setComments(data);
-    } catch (err) {
-      console.warn("[RescueDetails] Failed to load comments:", err);
-    } finally {
-      setCommentsLoading(false);
-    }
-  }, [idValue]);
-
-  useEffect(() => {
-    void loadCommentsList();
-    // Poll comments every 10 seconds
-    const interval = setInterval(() => {
-      void loadCommentsList();
-    }, 10000);
-    return () => clearInterval(interval);
-  }, [loadCommentsList]);
 
   // Listen for reporter cancellation on the /rescue namespace.
   // When the reporter cancels, navigate the rescuer away immediately.
@@ -330,51 +289,6 @@ export default function RescueDetailsScreen() {
     }
     startCall(userId, name, avatar);
   }, [startCall]);
-
-  /* ─────────────────────────────────────────────────────────────
-   * Post Comment / Reply Handlers
-   * ───────────────────────────────────────────────────────────── */
-  const handlePostComment = useCallback(async () => {
-    if (!newComment.trim() || !idValue) return;
-    setSubmittingComment(true);
-    try {
-      const currentUserId = (user as any)?._id || (user as any)?.id || "guest-user";
-      const currentUserName = (user as any)?.name || "User";
-      const created = await postComment(idValue, newComment.trim(), currentUserName, currentUserId);
-      setComments((prev) => [...prev, { ...created, replies: created.replies || [] }]);
-      setNewComment("");
-    } catch (err) {
-      Alert.alert("Error", "Failed to post comment. Please try again.", [{ text: "OK" }]);
-      console.error("[RescueDetails] Post comment failed:", err);
-    } finally {
-      setSubmittingComment(false);
-    }
-  }, [newComment, idValue, user]);
-
-  const handlePostReply = useCallback(
-    async (parentId: string) => {
-      if (!replyText.trim() || !idValue) return;
-      setSubmittingReply(true);
-      try {
-        const currentUserId = (user as any)?._id || (user as any)?.id || "guest-user";
-        const currentUserName = (user as any)?.name || "User";
-        const created = await postReply(idValue, parentId, replyText.trim(), currentUserName, currentUserId);
-        setComments((prev) =>
-          prev.map((c) =>
-            c._id === parentId ? { ...c, replies: [...(c.replies || []), created] } : c
-          )
-        );
-        setReplyText("");
-        setReplyingTo(null);
-      } catch (err) {
-        Alert.alert("Error", "Failed to post reply. Please try again.", [{ text: "OK" }]);
-        console.error("[RescueDetails] Post reply failed:", err);
-      } finally {
-        setSubmittingReply(false);
-      }
-    },
-    [replyText, idValue, user]
-  );
 
   /* ─────────────────────────────────────────────────────────────
    * Navigation to Live Tracking
@@ -750,157 +664,6 @@ export default function RescueDetailsScreen() {
               </TouchableOpacity>
             </View>
           )}
-        </View>
-
-        {/* ── 6. Threaded Comments Section ── */}
-        <View style={[styles.card, { paddingBottom: spacing.sm }]}>
-          <View style={styles.commentHeader}>
-            <View style={styles.commentHeaderIcon}>
-              <Text style={styles.commentHeaderEmoji}>💬</Text>
-            </View>
-            <Text style={styles.commentHeaderTitle}>Discussion Thread</Text>
-            <Text style={styles.commentCount}>
-              {comments.length} {comments.length === 1 ? "comment" : "comments"}
-            </Text>
-          </View>
-
-          {/* New comment composition */}
-          {isAssignedRescuer || isReporter ? (
-            <View style={styles.commentInputRow}>
-              <TextInput
-                style={styles.commentInput}
-                placeholder="Post a new update/comment..."
-                placeholderTextColor="#9CA3AF"
-                value={newComment}
-                onChangeText={setNewComment}
-                multiline
-                maxLength={500}
-                editable={!submittingComment}
-              />
-              <TouchableOpacity
-                style={[
-                  styles.commentSendBtn,
-                  (!newComment.trim() || submittingComment) && styles.commentSendBtnDisabled,
-                ]}
-                activeOpacity={0.8}
-                onPress={handlePostComment}
-                disabled={!newComment.trim() || submittingComment}
-              >
-                {submittingComment ? (
-                  <ActivityIndicator size="small" color="#FFFFFF" />
-                ) : (
-                  <Text style={styles.commentSendIcon}>➤</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          ) : (
-            <View style={{ padding: spacing.sm, alignItems: "center", backgroundColor: "#F9FAFB", borderRadius: 8, marginVertical: 8 }}>
-              <Text style={[styles.helperText, { textAlign: "center" }]}>View Only — Only the assigned rescuer or reporter can post updates.</Text>
-            </View>
-          )}
-
-          {/* Loader */}
-          {commentsLoading && comments.length === 0 ? (
-            <View style={styles.commentLoading}>
-              <ActivityIndicator color={colors.primary} />
-              <Text style={styles.helperText}>Loading discussion...</Text>
-            </View>
-          ) : null}
-
-          {/* Empty State */}
-          {!commentsLoading && comments.length === 0 ? (
-            <Text style={styles.commentEmpty}>No comments yet. Write a message above!</Text>
-          ) : null}
-
-          {/* Comments List */}
-          {comments.map((comment) => (
-            <View key={comment._id}>
-              {/* Comment Bubble */}
-              <View style={styles.commentBubble}>
-                <View style={styles.commentBubbleHeader}>
-                  <View style={styles.commentAvatar}>
-                    <Text style={styles.commentAvatarText}>{getInitial(comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName)}</Text>
-                  </View>
-                  <Text style={styles.commentUserName}>{comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName}</Text>
-                  <Text style={styles.commentTime}>{timeAgo(comment.createdAt)}</Text>
-                </View>
-                <Text style={styles.commentText}>{comment.text}</Text>
-
-                <View style={styles.commentActions}>
-                  <TouchableOpacity
-                    style={styles.replyTrigger}
-                    activeOpacity={0.7}
-                    onPress={() => {
-                      setReplyingTo(replyingTo === comment._id ? null : comment._id);
-                      setReplyText("");
-                    }}
-                  >
-                    <Text style={styles.replyTriggerText}>
-                      {replyingTo === comment._id ? "Cancel" : "↩ Reply"}
-                    </Text>
-                  </TouchableOpacity>
-                  {comment.replies && comment.replies.length > 0 ? (
-                    <Text style={styles.commentCount}>
-                      {comment.replies.length}{" "}
-                      {comment.replies.length === 1 ? "reply" : "replies"}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-
-              {/* Replies list */}
-              {comment.replies && comment.replies.length > 0 ? (
-                <View style={styles.replyContainer}>
-                  {comment.replies.map((reply) => (
-                    <View key={reply._id} style={styles.replyBubble}>
-                      <View style={styles.commentBubbleHeader}>
-                        <View style={styles.commentAvatar}>
-                          <Text style={styles.commentAvatarText}>
-                            {getInitial(reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName)}
-                          </Text>
-                        </View>
-                        <Text style={styles.commentUserName}>{reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName}</Text>
-                        <Text style={styles.commentTime}>{timeAgo(reply.createdAt)}</Text>
-                      </View>
-                      <Text style={styles.commentText}>{reply.text}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              {/* Reply Input Composition */}
-              {replyingTo === comment._id ? (
-                <View style={styles.replyInputRow}>
-                  <TextInput
-                    style={styles.replyInput}
-                    placeholder={`Reply to ${comment.userName}...`}
-                    placeholderTextColor="#9CA3AF"
-                    value={replyText}
-                    onChangeText={setReplyText}
-                    multiline
-                    maxLength={500}
-                    editable={!submittingReply}
-                    autoFocus
-                  />
-                  <TouchableOpacity
-                    style={[
-                      styles.replySendBtn,
-                      (!replyText.trim() || submittingReply) && styles.commentSendBtnDisabled,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={() => handlePostReply(comment._id)}
-                    disabled={!replyText.trim() || submittingReply}
-                  >
-                    {submittingReply ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.commentSendIcon}>➤</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-            </View>
-          ))}
         </View>
 
         {/* Removed Exit Details button */}
