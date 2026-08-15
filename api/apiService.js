@@ -47,44 +47,13 @@ const buildFormData = (data) => {
   return formData;
 };
 
-// Create a new lost/found animal post
-export const createAnimalPost = async (data) => {
-  const hasImageUri =
-    Array.isArray(data?.images) &&
-    data.images.length > 0 &&
-    typeof data.images[0] === "string" &&
-    data.images[0].startsWith("file://");
+import * as lostAndFoundService from "../services/lostAndFoundService";
 
-  if (hasImageUri) {
-    return API.post("/api/animals", buildFormData(data), {
-      headers: { "Content-Type": "multipart/form-data" },
-    });
-  }
+// Delegate lost/found animal functions to lostAndFoundService for auth & upload handling
+export const createAnimalPost = (data) => lostAndFoundService.createAnimalPost(data);
+export const getLostPosts = () => lostAndFoundService.getLostPosts();
+export const getFoundPosts = () => lostAndFoundService.getFoundPosts();
+export const getAnimalPostById = (id) => lostAndFoundService.getAnimalPostById(id);
+export const reportAnimalPost = (id) => lostAndFoundService.reportAnimalPost(id);
 
-  return API.post("/api/animals", data);
-};
-
-// Get lost posts
-export const getLostPosts = async () => {
-  const res = await API.get("/api/animals?status=lost");
-  return res.data;
-};
-
-// Get found posts
-export const getFoundPosts = async () => {
-  const res = await API.get("/api/animals?status=found");
-  return res.data;
-};
-
-export const getAnimalPostById = async (id) => {
-  const res = await API.get(`/api/animals/${id}`);
-  return res.data;
-};
-
-export const reportAnimalPost = async (id) => {
-  const res = await API.post(`/api/animals/${id}/report`);
-  return res.data;
-};
-
-
-export default API;
+export default API;

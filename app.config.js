@@ -15,6 +15,9 @@ module.exports = {
       ...(appJson.expo?.extra || {}),
       ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),
       EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+      // Cloudinary
+      EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME,
+      EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET: process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
       // Firebase
       EXPO_PUBLIC_FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
       EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,

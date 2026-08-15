@@ -243,22 +243,23 @@ export default function HomeScreen() {
               onPress={() => router.push("/Donate")}
             />
 
-        <ActionCard
-          icon={<MaterialCommunityIcons name="dog" size={24} color="#F5A623" />}
-          label="Report a Case"
-          onPress={() => router.push("/reporting/AnimalDetails")}
-        />
+            <ActionCard
+              icon={<MaterialCommunityIcons name="dog" size={24} color="#F5A623" />}
+              label="Report a Case"
+              onPress={() => router.push("/reporting/AnimalDetails")}
+            />
 
-        <ActionCard
-          icon={<MaterialCommunityIcons name="paw" size={24} color="#F5A623" />}
-          label="Adopt a Pet"
-        />
+            <ActionCard
+              icon={<MaterialCommunityIcons name="paw" size={24} color="#F5A623" />}
+              label="Adopt a Pet"
+              onPress={() => router.push("/adoption-corner")}
+            />
 
-        <ActionCard
-          icon={<Feather name="search" size={24} color="#F5A623" />}
-          label="Lost & Found"
-          onPress={() => router.push("/lost-and-found")}
-        />
+            <ActionCard
+              icon={<Feather name="search" size={24} color="#F5A623" />}
+              label="Lost & Found"
+              onPress={() => router.push("/lost-and-found")}
+            />
           </View>
         </>
       )}

@@ -10,14 +10,16 @@ import { Platform } from 'react-native';
  * 3. Hardcoded fallback IP (192.168.8.173)
  */
 
+// ✅ CHANGE THIS to your machine's current LAN IP whenever your network changes.
+//    Run `ipconfig` (Windows) or `ifconfig` (Mac/Linux) to find it.
 const FALLBACK_IP = '192.168.8.173';
 const BACKEND_PORT = 5000;
 
 function resolveBaseUrl(): string {
   // 1. Dynamic auto-detection from Expo Metro bundler in __DEV__
-  const hostUri = Constants.expoConfig?.hostUri || (Constants as any).developerManifest?.hostUri;
-  if (__DEV__ && hostUri) {
-    const host = hostUri.split(':')[0];
+  const expoHostUri = Constants.expoConfig?.hostUri || (Constants as any).developerManifest?.hostUri;
+  if (__DEV__ && expoHostUri) {
+    const host = expoHostUri.split(':')[0];
 
     // Reject tunnel hostnames — they can't reach your backend on port 5000
     const isTunnel = /\.(exp|expo)\.direct$|ngrok|\.ngrok-free\.app/i.test(host);
