@@ -11,7 +11,7 @@ import Constants from 'expo-constants';
 
 // ✅ CHANGE THIS to your machine's current LAN IP whenever your network changes.
 //    Run `ipconfig` (Windows) or `ifconfig` (Mac/Linux) to find it.
-const FALLBACK_IP = '192.168.8.142';
+const FALLBACK_IP = '192.168.1.7';
 const BACKEND_PORT = 5000;
 
 function resolveBaseUrl(): string {

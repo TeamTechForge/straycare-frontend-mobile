@@ -13,7 +13,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { createCommunityPost } from "../../api/apiService";
+import { createCommunityPost } from "../../services/communityService";
 
 // ── Category options ─────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -138,9 +138,11 @@ export default function CreateCommunityPost() {
         } as any);
       }
 
-      const response = await createCommunityPost(formData);
+      const savedPost = await createCommunityPost(formData);
 
-      if (response.data.success) {
+      // createCommunityPost already unwraps the response —
+      // it returns the saved post object directly.
+      if (savedPost && savedPost._id) {
         router.replace("/community-feed/CommunityPostMain");
       } else {
         Alert.alert("Error", "Something went wrong. Please try again.");

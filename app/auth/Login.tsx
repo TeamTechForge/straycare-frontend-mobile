@@ -156,11 +156,11 @@ export default function LoginScreen() {
 
   return (
     <View style={styles.container}>
-      
+
       {/* CURVED IMAGE HEADER */}
       <View style={styles.imageContainer}>
         <Image
-          source={require("../../assets/images/login-dogs.jpg")} 
+          source={require("../../assets/images/login-dogs.jpg")}
           style={styles.image}
         />
         <View style={styles.curveOverlay} />
@@ -174,78 +174,78 @@ export default function LoginScreen() {
         </Text>
 
         {/* EMAIL INPUT */}
-<Controller
-  control={control}
-  name="email"
-  render={({ field: { onChange, value } }) => (
-    <TextInput
-      style={styles.input}
-      placeholder="Email Address"
-      placeholderTextColor="#999"
-      value={value}
-      onChangeText={onChange}
-      keyboardType="email-address"
-      editable={!isLoading}
-    />
-  )}
-/>
-
-{errors.email && (
-  <Text style={{ color: "red", marginBottom: 10 }}>
-    {errors.email.message}
-  </Text>
-)}
-
-{/* PASSWORD INPUT */}
-<Controller
-  control={control}
-  name="password"
-  render={({ field: { onChange, value } }) => (
-    <View style={styles.passwordContainer}>
-      <TextInput
-        style={styles.passwordInput}
-        placeholder="Password"
-        placeholderTextColor="#999"
-        secureTextEntry={!isPasswordVisible}
-        value={value}
-        onChangeText={onChange}
-        editable={!isLoading}
-      />
-      <TouchableOpacity
-        onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-        style={styles.eyeIcon}
-        disabled={isLoading}
-      >
-        <Ionicons
-          name={isPasswordVisible ? "eye-off" : "eye"}
-          size={20}
-          color="#6B7280"
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Email Address"
+              placeholderTextColor="#999"
+              value={value}
+              onChangeText={onChange}
+              keyboardType="email-address"
+              editable={!isLoading}
+            />
+          )}
         />
-      </TouchableOpacity>
-    </View>
-  )}
-/>
 
-{errors.password && (
-  <Text style={{ color: "red", marginBottom: 10 }}>
-    {errors.password.message}
-  </Text>
-)}
+        {errors.email && (
+          <Text style={{ color: "red", marginBottom: 10 }}>
+            {errors.email.message}
+          </Text>
+        )}
+
+        {/* PASSWORD INPUT */}
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                placeholderTextColor="#999"
+                secureTextEntry={!isPasswordVisible}
+                value={value}
+                onChangeText={onChange}
+                editable={!isLoading}
+              />
+              <TouchableOpacity
+                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                style={styles.eyeIcon}
+                disabled={isLoading}
+              >
+                <Ionicons
+                  name={isPasswordVisible ? "eye-off" : "eye"}
+                  size={20}
+                  color="#6B7280"
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+
+        {errors.password && (
+          <Text style={{ color: "red", marginBottom: 10 }}>
+            {errors.password.message}
+          </Text>
+        )}
 
         {/*  FORGOT PASSWORD */}
         <TouchableOpacity
-           style={styles.forgotContainer}
-            onPress={() => router.push("/auth/ForgotPasswordScreen")}
-            disabled={isLoading}
+          style={styles.forgotContainer}
+          onPress={() => router.push("/auth/ForgotPasswordScreen")}
+          disabled={isLoading}
         >
-        <Text style={styles.forgotText}>Forgot Password?</Text>
+          <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
         {/* LOGIN BUTTON */}
         <PrimaryButton
           title={isLoading ? "Logging in..." : "Log in"}
-           onPress={handleSubmit(onSubmit)}
-           disabled={isLoading}
+          onPress={handleSubmit(onSubmit)}
+          disabled={isLoading}
         />
 
         {/* DIVIDER */}
@@ -272,7 +272,7 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
         )}
-        
+
         {/*  SIGNUP LINK */}
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account? </Text>

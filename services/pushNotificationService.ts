@@ -1,23 +1,38 @@
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
 import { Platform } from "react-native";
-import Constants from "expo-constants";
+import Constants, { ExecutionEnvironment } from "expo-constants";
 import { API_URL } from "../constants/config.constants";
 
-// Configure notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: true,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+// Check if app is running inside Expo Go (StoreClient)
+const isExpoGo =
+  Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
+
+// Configure notification handler safely when supported
+if (!isExpoGo) {
+  try {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: true,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch (_err) {
+    // Ignore notification handler setup error in constrained environments
+  }
+}
 
 export const pushNotificationService = {
   // Request notification permissions and setup push notifications
   async setupPushNotifications(): Promise<string | null> {
+    if (isExpoGo) {
+      console.log("[PUSH] Running in Expo Go: Remote push notifications skipped for testing.");
+      return null;
+    }
+
     try {
       if (Platform.OS === "android") {
         await Notifications.setNotificationChannelAsync("rescue-alerts", {
@@ -130,31 +145,43 @@ export const pushNotificationService = {
   listenForNotifications(
     onNotification: (notification: Notifications.Notification) => void
   ): () => void {
-    // Listen for notifications when app is in foreground
-    const subscription = Notifications.addNotificationReceivedListener((notification) => {
-      console.log("[PUSH] Notification received:", notification);
-      onNotification(notification);
-    });
+    if (isExpoGo) {
+      return () => {};
+    }
 
-    // Listen for notification taps (when user taps the notification)
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(
-      (response) => {
-        console.log("[PUSH] Notification tapped:", response.notification);
-        onNotification(response.notification);
-      }
-    );
+    try {
+      // Listen for notifications when app is in foreground
+      const subscription = Notifications.addNotificationReceivedListener((notification) => {
+        console.log("[PUSH] Notification received:", notification);
+        onNotification(notification);
+      });
 
-    // Return cleanup function
-    return () => {
-      subscription.remove();
-      responseSubscription.remove();
-    };
+      // Listen for notification taps (when user taps the notification)
+      const responseSubscription = Notifications.addNotificationResponseReceivedListener(
+        (response) => {
+          console.log("[PUSH] Notification tapped:", response.notification);
+          onNotification(response.notification);
+        }
+      );
+
+      return () => {
+        subscription.remove();
+        responseSubscription.remove();
+      };
+    } catch (_err) {
+      return () => {};
+    }
   },
 
   // Initialize push notifications (call this on app startup)
   async initializePushNotifications(
     onNotification?: (notification: Notifications.Notification) => void
   ): Promise<void> {
+    if (isExpoGo) {
+      console.log("[PUSH] Expo Go environment detected: Skipping remote push notification initialization.");
+      return;
+    }
+
     try {
       const pushPref = await SecureStore.getItemAsync("pushEnabled");
       if (pushPref === "false") {

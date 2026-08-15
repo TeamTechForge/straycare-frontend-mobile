@@ -7,6 +7,11 @@
     "icon": "./assets/images/straycarelogoicon.png",
     "scheme": "straycare",
     "userInterfaceStyle": "automatic",
+    "updates": {
+      "enabled": false,
+      "checkAutomatically": "NEVER",
+      "fallbackToCacheTimeout": 0
+    },
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true

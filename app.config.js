@@ -9,6 +9,11 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 module.exports = {
   expo: {
     ...(appJson.expo || {}),
+    updates: {
+      enabled: false,
+      checkAutomatically: "NEVER",
+      fallbackToCacheTimeout: 0,
+    },
     extra: {
       ...(appJson.expo?.extra || {}),
       EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
