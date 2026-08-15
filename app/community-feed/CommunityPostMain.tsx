@@ -6,11 +6,12 @@ import {
 
 import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
@@ -26,7 +27,9 @@ import CommunityPostCard from "../../components/CommunityPostCard";
 import {
   CommunityPost,
   getCommunityFeed,
+  likeCommunityPost,
   reportCommunityPost,
+  unlikeCommunityPost,
 } from "../../services/communityService";
 
 // ─────────────────────────────────────────────
@@ -88,6 +91,8 @@ export default function CommunityPostMain() {
   const [error, setError] =
     useState(false);
 
+  const pendingLikeIds = useRef(new Set<string>());
+
   // ─────────────────────────────────────────────
   // FETCH POSTS
   // ─────────────────────────────────────────────
@@ -122,6 +127,47 @@ export default function CommunityPostMain() {
       fetchPosts();
     }, [])
   );
+
+  // ─────────────────────────────────────────────
+  // LIKE / UNLIKE POST
+  // ─────────────────────────────────────────────
+
+  const handleLikePost = async (post: CommunityPost) => {
+    if (pendingLikeIds.current.has(post._id)) return;
+
+    const nextIsLiked = !post.isLiked;
+    const previousLikeCount = post.likeCount || 0;
+    const optimisticLikeCount = Math.max(0, previousLikeCount + (nextIsLiked ? 1 : -1));
+
+    pendingLikeIds.current.add(post._id);
+    setPosts((current) => current.map((item) =>
+      item._id === post._id
+        ? { ...item, isLiked: nextIsLiked, likeCount: optimisticLikeCount }
+        : item
+    ));
+
+    try {
+      const state = nextIsLiked
+        ? await likeCommunityPost(post._id)
+        : await unlikeCommunityPost(post._id);
+
+      setPosts((current) => current.map((item) =>
+        item._id === post._id
+          ? { ...item, isLiked: state.isLiked, likeCount: state.likeCount }
+          : item
+      ));
+    } catch (likeError) {
+      setPosts((current) => current.map((item) =>
+        item._id === post._id
+          ? { ...item, isLiked: post.isLiked, likeCount: previousLikeCount }
+          : item
+      ));
+      console.error("Community like error:", likeError);
+      Alert.alert("Unable to update like", "Please try again.");
+    } finally {
+      pendingLikeIds.current.delete(post._id);
+    }
+  };
 
   // ─────────────────────────────────────────────
   // REPORT POST
@@ -504,6 +550,7 @@ export default function CommunityPostMain() {
               <CommunityPostCard
                 key={post._id}
                 post={post}
+                onLike={handleLikePost}
                 onReport={
                   handleReportPost
                 }

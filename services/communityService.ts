@@ -65,6 +65,12 @@ export interface CommunityPost {
     updatedAt?: string;
 }
 
+export interface CommunityLikeState {
+    postId: string;
+    isLiked: boolean;
+    likeCount: number;
+}
+
 // ─── Create Community Post ────────────────────────────────────────────────────
 
 export const createCommunityPost = async (
@@ -126,6 +132,16 @@ export const getCommunityPost = async (
 
     const body = response.data;
     return body && body.data ? body.data : body;
+};
+
+export const likeCommunityPost = async (id: string): Promise<CommunityLikeState> => {
+    const response = await api.post<any>(`/api/community/${id}/like`);
+    return response.data?.data ?? response.data;
+};
+
+export const unlikeCommunityPost = async (id: string): Promise<CommunityLikeState> => {
+    const response = await api.delete<any>(`/api/community/${id}/like`);
+    return response.data?.data ?? response.data;
 };
 
 // ─── Report Community Post ────────────────────────────────────────────────────

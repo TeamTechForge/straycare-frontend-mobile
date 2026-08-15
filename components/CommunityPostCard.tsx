@@ -37,6 +37,7 @@ const C = {
 
 interface CommunityPostCardProps {
   post: CommunityPost;
+  onLike: (post: CommunityPost) => void | Promise<void>;
   onReport: (
     postId: string,
     reason: string
@@ -67,7 +68,7 @@ function formatDate(dateStr?: string): string {
 
 const CommunityPostCard: React.FC<
   CommunityPostCardProps
-> = ({ post, onReport }) => {
+> = ({ post, onLike, onReport }) => {
   const router = useRouter();
 
   // Report modal visibility
@@ -203,10 +204,17 @@ const CommunityPostCard: React.FC<
           ) : null}
 
           <View style={styles.actionRow}>
-            <View style={styles.actionItem}>
+            <TouchableOpacity
+              style={styles.actionItem}
+              hitSlop={8}
+              onPress={(event) => {
+                event.stopPropagation();
+                void onLike(post);
+              }}
+            >
               <Ionicons name={post.isLiked ? "heart" : "heart-outline"} size={20} color={post.isLiked ? "#E53935" : C.outline} />
               <Text style={styles.actionCount}>{post.likeCount || 0}</Text>
-            </View>
+            </TouchableOpacity>
             <View style={styles.actionItem}>
               <Ionicons name="chatbubble-outline" size={19} color={C.outline} />
               <Text style={styles.actionCount}>{post.commentCount || 0}</Text>
