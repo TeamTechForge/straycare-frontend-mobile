@@ -213,6 +213,9 @@ export default function DiscussionThreadScreen() {
               title={headerTitle}
               likes={post?.likes ?? thread.likes}
               isMine={post?.isMine}
+              author={post?.author}
+              authorAvatar={post?.authorAvatar}
+              createdAt={post?.createdAt}
               onDelete={handleDeleteThread}
             />
 
