@@ -27,6 +27,8 @@ import {
 } from "../../services/rescueService";
 import { rescueDetailsStyles as styles } from "../../styles/rescue-details.styles";
 import type { RescueComment } from "../../types/Api";
+import { BASE_URL } from "../../constants/config.constants";
+import { io as ioClient } from "socket.io-client";
 
 /* ─────────────────────────────────────────────────────────────
  * Fallback static details when the backend is down or mock data
@@ -248,6 +250,30 @@ export default function RescueDetailsScreen() {
     }, 10000);
     return () => clearInterval(interval);
   }, [loadCommentsList]);
+
+  // Listen for reporter cancellation on the /rescue namespace.
+  // When the reporter cancels, navigate the rescuer away immediately.
+  useEffect(() => {
+    if (!idValue) return;
+
+    const rescueSocket = ioClient(`${BASE_URL}/rescue`, {
+      transports: ["websocket"],
+      autoConnect: true,
+      reconnection: true,
+    });
+
+    rescueSocket.on("connect", () => {
+      rescueSocket.emit("join_rescue", String(idValue));
+    });
+
+    rescueSocket.on("rescue_cancelled", () => {
+      router.replace("/(tabs)/Home");
+    });
+
+    return () => {
+      rescueSocket.disconnect();
+    };
+  }, [idValue, router]);
 
   /* ─────────────────────────────────────────────────────────────
    * Respond to Request (Accept / Reject)

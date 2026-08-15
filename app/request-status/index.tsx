@@ -116,6 +116,9 @@ export default function RequestStatusScreen() {
   const [rescuer,    setRescuer]    = useState<Rescuer | null>(null);
   const [loading,    setLoading]    = useState<boolean>(!initialRequestId);  // skip POST if initialRequestId exists
   const [requestId,  setRequestId]  = useState<string | null>(initialRequestId);
+
+  // Keep requestIdRef in sync with the state value
+  useEffect(() => { requestIdRef.current = requestId; }, [requestId]);
   const [cancelled,  setCancelled]  = useState<boolean>(false); // true after user cancels
   const [cancelling, setCancelling] = useState<boolean>(false); // true during the brief "stopping" phase
 
@@ -139,6 +142,10 @@ export default function RequestStatusScreen() {
 
   // Holds the "stopping" banner timeout so we can clear it on unmount.
   const cancelTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Mirror of `requestId` state kept in a ref so handleCancel() always reads
+  // the latest value without needing it in the useCallback dependency array.
+  const requestIdRef = useRef<string | null>(initialRequestId);
 
   // ─── Unmount cleanup ──────────────────────────────────────────────────────
   // Abort all in-flight requests and clear all timers when the component unmounts.
@@ -205,7 +212,19 @@ export default function RequestStatusScreen() {
     //         tears down the underlying TCP socket.
     stopEverything();
 
-    // Step 4: After a brief moment (800 ms), switch to the "cancelled" UI
+    // Step 4: If a request was already created on the backend, cancel it so the
+    //         rescuer's DB record is marked "cancelled" immediately. This is
+    //         fire-and-forget — we don't wait for the response to update the UI.
+    const activeRequestId = requestIdRef.current;
+    if (activeRequestId) {
+      axios
+        .patch(`${API_BASE_URL}/api/rescue/request/${activeRequestId}/cancel`)
+        .catch((err: unknown) => {
+          console.warn("[RequestStatus] Background cancel PATCH failed:", err);
+        });
+    }
+
+    // Step 5: After a brief moment (800 ms), switch to the "cancelled" UI
     //         so the user can see the stopping message before the final state.
     cancelTimerRef.current = setTimeout(() => {
       if (!mountedRef.current) return; // guard against unmount during timeout
@@ -215,6 +234,7 @@ export default function RequestStatusScreen() {
       setStatus("pending");  // reset so a future retry starts fresh
       setRescuer(null);
       setRequestId(null);
+      requestIdRef.current = null;
     }, 800); // short enough to feel responsive, long enough to see the message
   }, [stopEverything]);
 
