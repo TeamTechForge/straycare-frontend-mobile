@@ -200,13 +200,26 @@ export default function RescuerResponseScreen() {
   // ── Action 1: In-App Voice Call reporter ────────────────────────────────────
   const handleInAppCall = () => {
     const reporterUserId = caseDetails?.reporter?.id || caseDetails?.userId || caseDetails?.reporterUserId;
-    const reporterName = caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter";
-    const reporterAvatar = caseDetails?.reporter?.avatar || caseDetails?.reporterAvatar || DEFAULT_AVATAR;
 
     if (!reporterUserId) {
       Alert.alert("Contact Error", "Reporter contact profile is not available for direct in-app calling.");
       return;
     }
+
+    const isAnonymous = caseDetails?.reporterName === "Anonymous Reporter" || caseDetails?.anonymous;
+    const caseMongoId = caseDetails?.rescueRequestId;
+    let displayCaseId = caseDetails?.caseId || caseMongoId?.toString().slice(-4) || 'Anon';
+    if (displayCaseId.length === 24) {
+        displayCaseId = displayCaseId.slice(-4);
+    }
+
+    const reporterName = isAnonymous 
+      ? `Case Chat (${displayCaseId})`
+      : (caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter");
+      
+    const reporterAvatar = isAnonymous
+      ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff"
+      : (caseDetails?.reporter?.avatar || caseDetails?.reporterAvatar || DEFAULT_AVATAR);
 
     console.log(`[RescuerResponse] Initiating in-app voice call to reporter: ${reporterName} (${reporterUserId})`);
     startCall(reporterUserId, reporterName, reporterAvatar);

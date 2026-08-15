@@ -240,12 +240,25 @@ export default function LiveTrackingScreen() {
       );
       return;
     }
-    startCall(
-      String(otherParty.id),
-      otherParty.name || (otherParty.role === "rescuer" ? "Rescuer" : "Reporter"),
-      otherParty.avatar || undefined
-    );
-  }, [otherParty, startCall]);
+    const isAnonymous = tracking?.case?.reporterName === "Anonymous Reporter";
+    const caseId = tracking?.case?.caseId;
+    const caseMongoId = tracking?.case?.rescueRequestId;
+
+    let displayCaseId = caseId || caseMongoId?.toString().slice(-4) || 'Anon';
+    if (displayCaseId.length === 24) {
+        displayCaseId = displayCaseId.slice(-4);
+    }
+
+    const calleeName = isAnonymous 
+      ? `Case Chat (${displayCaseId})` 
+      : (otherParty.name || (otherParty.role === "rescuer" ? "Rescuer" : "Reporter"));
+      
+    const calleeAvatar = isAnonymous 
+      ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff" 
+      : (otherParty.avatar || undefined);
+
+    startCall(String(otherParty.id), calleeName, calleeAvatar);
+  }, [otherParty, startCall, tracking]);
 
   /* ── Handle Message Other Party ── */
   const handleMessageOtherParty = useCallback(async () => {
@@ -266,18 +279,32 @@ export default function LiveTrackingScreen() {
 
     setLoading(true);
     try {
-      const conversation = (await createConversation(String(otherParty.id), "direct")) as any;
+      const isAnonymous = tracking?.case?.reporterName === "Anonymous Reporter";
+      const conversationType = isAnonymous ? "rescue" : "direct";
+      const caseId = tracking?.case?.caseId;
+      const caseMongoId = tracking?.case?.rescueRequestId;
+      
+      const relatedEntity = isAnonymous && caseMongoId 
+        ? { kind: `StrayReport_${caseId || ''}`, item: caseMongoId, referenceId: caseId } 
+        : undefined;
+
+      const conversation = (await createConversation(String(otherParty.id), conversationType, relatedEntity)) as any;
       const otherParticipant = conversation.participants?.find(
         (p: any) => p._id !== ((user as any)._id || (user as any).id)
       );
+
+      let displayCaseId = caseId || caseMongoId?.toString().slice(-4) || 'Anon';
+      if (displayCaseId.length === 24) {
+          displayCaseId = displayCaseId.slice(-4);
+      }
 
       router.push({
         pathname: "/chat/[conversationId]",
         params: {
           conversationId: conversation._id,
-          recipientName: otherParticipant?.name || otherParty.name || "Chat",
+          recipientName: isAnonymous ? `Case Chat (${displayCaseId})` : (otherParticipant?.name || otherParty.name || "Chat"),
           recipientId: String(otherParty.id),
-          recipientImage: otherParticipant?.profileImage || otherParty.avatar || "",
+          recipientImage: isAnonymous ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff" : (otherParticipant?.profileImage || otherParty.avatar || ""),
         },
       });
     } catch (chatError: any) {
