@@ -558,8 +558,8 @@ export default function PublicProfileScreen() {
                         onPress={() => {
                           if (!isAnon && report.caseId) {
                             router.push({
-                              pathname: "/reporting/CaseDetails",
-                              params: { caseId: report.caseId, fromProfile: "true" },
+                              pathname: "/reporting/CaseSummary",
+                              params: { caseId: report.caseId },
                             });
                           }
                         }}
@@ -593,8 +593,8 @@ export default function PublicProfileScreen() {
                         onPress={() => {
                           if (!isAnon && report.caseId) {
                             router.push({
-                              pathname: "/reporting/CaseDetails",
-                              params: { caseId: report.caseId, fromProfile: "true" },
+                              pathname: "/reporting/CaseSummary",
+                              params: { caseId: report.caseId },
                             });
                           }
                         }}
@@ -636,7 +636,7 @@ export default function PublicProfileScreen() {
                       summary={rescue.summary}
                       onPress={() => {
                         router.push({
-                          pathname: "/reporting/RescueDetails" as any,
+                          pathname: "/reporting/CaseSummary",
                           params: { caseId: rescue.caseId || rescue._id },
                         });
                       }}
@@ -659,7 +659,7 @@ export default function PublicProfileScreen() {
                       summary={rescue.summary}
                       onPress={() => {
                         router.push({
-                          pathname: "/reporting/RescueDetails",
+                          pathname: "/reporting/CaseSummary",
                           params: { caseId: rescue.caseId || rescue._id },
                         });
                       }}
