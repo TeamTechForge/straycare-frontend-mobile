@@ -26,7 +26,7 @@ export default function LostAndFoundScreen() {
       <View style={styles.header}>
         {/* Back Button */}
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(tabs)/Home')}
           style={({ pressed }) => [
             styles.backButton,
             pressed && styles.backButtonPressed,
@@ -78,7 +78,9 @@ export default function LostAndFoundScreen() {
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>Urgent help needed</Text>
               </View>
-              <Text style={styles.cardTitle}>I Lost a Pet</Text>
+              <Text style={styles.cardTitle}>
+                I <Text style={{ color: "#F5A623" }}>Lost</Text> a Pet
+              </Text>
             </View>
           </View>
           <View style={styles.cardBody}>
@@ -106,7 +108,9 @@ export default function LostAndFoundScreen() {
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>Compassionate care</Text>
               </View>
-              <Text style={styles.cardTitle}>I Found a Pet</Text>
+              <Text style={styles.cardTitle}>
+                I <Text style={{ color: "#F5A623" }}>Found</Text> a Pet
+              </Text>
             </View>
           </View>
           <View style={styles.cardBody}>
@@ -171,7 +175,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   heroHighlight: {
-    color: "#f97316",
+    color: "#F5A623",
   },
   heroSubtitle: {
     fontSize: 16,

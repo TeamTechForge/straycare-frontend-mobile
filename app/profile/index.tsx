@@ -524,6 +524,10 @@ export default function ProfileScreen() {
           status: profile?.status
         }}
         onAdoptionPress={() => setMenuVisible(false)}
+        onMyLostFoundPress={() => {
+          setMenuVisible(false);
+          router.push("/lost-and-found/MyPosts");
+        }}
         onProfilePress={() => setMenuVisible(false)}
         onDonationsPress={() => {
           setMenuVisible(false);
