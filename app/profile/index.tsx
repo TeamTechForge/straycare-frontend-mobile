@@ -2,7 +2,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl, Modal, TextInput, Alert } from "react-native";
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_URL } from "../../constants/config.constants";
 
@@ -11,10 +11,11 @@ import PostPreviewCard from "../../components/profile/PostPreviewCard";
 import ProfileHeaderCard from "../../components/profile/ProfileHeaderCard";
 import ProfileMenuDrawer from "../../components/profile/ProfileMenuDrawer";
 import ProfileStatsRow from "../../components/profile/ProfileStatsRow";
-import ProfileTabBar, { TabKey } from "../../components/profile/ProfileTabBar";
+import ProfileTabBar, { TabKey, TabItem } from "../../components/profile/ProfileTabBar";
 import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
 import SavedPreviewCard from "../../components/profile/SavedPreviewCard";
 import { useAuth } from "../../contexts/AuthContext";
+import { getCaseStatusUpdateRoute } from "../../utils/profileRoutes";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -32,12 +33,8 @@ export default function ProfileScreen() {
 
   const [refreshing, setRefreshing] = useState(false);
 
-  // Status update modal state
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
-  const [updateText, setUpdateText] = useState("");
-  const [updateStatus, setUpdateStatus] = useState("Under Rescue");
-
+  const [totalReportsCount, setTotalReportsCount] = useState<number | null>(null);
+  const [totalPostsCount, setTotalPostsCount] = useState<number | null>(null);
   const fetchData = async () => {
     try {
       const token = await SecureStore.getItemAsync("authToken");
@@ -100,6 +97,20 @@ export default function ProfileScreen() {
           const postsData = (await postsRes.json()) as any;
           setPosts(postsData);
         }
+
+        // Fetch user stats (includes all reports and posts including anonymous)
+        const publicProfRes = await fetch(`${API_URL}/users/${userId}/public-profile`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (publicProfRes.ok) {
+          const publicProfData = (await publicProfRes.json()) as any;
+          if (publicProfData?.stats?.reportsCount !== undefined) {
+            setTotalReportsCount(publicProfData.stats.reportsCount);
+          }
+          if (publicProfData?.stats?.postsCount !== undefined) {
+            setTotalPostsCount(publicProfData.stats.postsCount);
+          }
+        }
       }
     } catch (error) {
       console.error("Fetch profile error:", error);
@@ -118,54 +129,8 @@ export default function ProfileScreen() {
     fetchData();
   };
 
-  const [currentCaseStatus, setCurrentCaseStatus] = useState("");
-
-  const getStatusRank = (st: string | undefined): number => {
-    switch (st?.toLowerCase()) {
-      case "needs help": case "pending": case "accepted": return 0;
-      case "under rescue": case "under_rescue": case "in progress": return 1;
-      case "treated": return 2;
-      case "ready for adoption": return 3;
-      case "completed": return 4;
-      default: return 0;
-    }
-  };
-
-  const handleUpdateDetails = (caseId: string, currentStatus: string = "") => {
-    setSelectedCaseId(caseId);
-    setCurrentCaseStatus(currentStatus);
-    setUpdateText("");
-    const options = ["Under Rescue", "Treated", "Ready for Adoption", "Completed"];
-    const currRank = getStatusRank(currentStatus);
-    const nextStatus = options.find((s) => getStatusRank(s) > currRank) || currentStatus;
-    setUpdateStatus(nextStatus);
-    setModalVisible(true);
-  };
-
-  const submitDetailsUpdate = async () => {
-    if (!selectedCaseId) return;
-    try {
-      const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch(`${API_URL}/rescue/request/${selectedCaseId}/details`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ summary: updateText.trim(), status: updateStatus }),
-      });
-      if (response.ok) {
-        Alert.alert("Success", "Rescue details updated successfully!");
-        setModalVisible(false);
-        fetchData(); // Reload rescues
-      } else {
-        const errData = (await response.json()) as any;
-        Alert.alert("Error", errData.error || "Failed to update details.");
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Error", "Something went wrong.");
-    }
+  const openCaseStatusUpdate = (caseId: string) => {
+    router.push(getCaseStatusUpdateRoute(caseId));
   };
 
   // Role-based logic
@@ -175,9 +140,9 @@ export default function ProfileScreen() {
   const isVet = user?.role === 'vet';
 
   const stats = [
-    { value: posts.length, label: "POSTS" },
+    { value: totalPostsCount !== null ? totalPostsCount : posts.length, label: "POSTS" },
     ...(!isGeneralUser ? [{ value: rescues.length, label: "RESCUES" }] : []),
-    { value: reports.length, label: "REPORTS" },
+    { value: totalReportsCount !== null ? totalReportsCount : reports.length, label: "REPORTS" },
     ...(isNgo || isVet ? [{ value: "$" + totalDonations, label: "DONATIONS" }] : []),
   ];
 
@@ -218,12 +183,21 @@ export default function ProfileScreen() {
     bio: bio,
     memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : "2026",
     avatar: profile?.profileImage || user?.avatar ? (profile?.profileImage || user?.avatar) : require("../../assets/images/default-avatar.jpg"),
+    cover: require("../../assets/images/default-avatar.jpg"),
   };
+
+  const isNgoOrVet = isNgo || isVet;
+  const isRescueRole = !isGeneralUser;
+
+  const tabOptions: TabItem[] = [
+    { key: "posts", label: "Posts" },
+    ...(isRescueRole ? [{ key: "rescues" as TabKey, label: "Rescue Cases" }] : []),
+    { key: "reports", label: "Reports" },
+    { key: "saved", label: "Saved" },
+  ];
   
   // To handle saved items (all current files had it empty)
   const savedItems: any[] = [];
-
-  const tabOptions = isGeneralUser ? ["posts", "reports", "saved"] : ["posts", "rescues", "reports", "saved"];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -259,7 +233,7 @@ export default function ProfileScreen() {
 
         <ProfileStatsRow stats={stats} />
 
-        <ProfileTabBar activeTab={activeTab} onChange={setActiveTab} tabs={tabOptions as any} />
+        <ProfileTabBar activeTab={activeTab} onChange={setActiveTab} tabs={tabOptions} />
 
         <View style={styles.sectionContent}>
           {activeTab === "posts" && (
@@ -276,31 +250,31 @@ export default function ProfileScreen() {
               ))
             ) : (
               <EmptyStateCard
-                icon="paw"
-                title={isVet ? "No posts yet." : "You haven't posted anything yet."}
-                subtitle={isVet ? "Share your medical cases and animal care tips." : "Create posts and share them with the community."}
+                icon="images-outline"
+                title="No posts yet"
+                subtitle="Share photos and stories of rescues with the community."
               />
             )
           )}
 
-          {activeTab === "rescues" && !isGeneralUser && (
+          {activeTab === "rescues" && isRescueRole && (
             rescues.length > 0 ? (
               <View>
-                {/* 📌 ACTIVE RESCUES */}
-                <Text style={styles.subSectionTitle}>Active Rescues</Text>
+                {/* 📌 ACTIVE CASES */}
+                <Text style={styles.subSectionTitle}>Active Cases</Text>
                 {rescues.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
                   rescues
                     .filter((r: any) => (r.status || "").toLowerCase() !== "completed")
                     .map((rescue: any, index: number) => (
                       <ReportPreviewCard
-                        key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-curr-${index}`}
-                        title={`${rescue.animalType} (${rescue.caseId})`}
-                        date={new Date(rescue.createdAt).toLocaleDateString()}
+                        key={rescue.id || rescue._id || `active-${index}`}
+                        title={rescue.title}
+                        date={rescue.date}
                         status={rescue.status}
-                        image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                        image={rescue.image}
                         summary={rescue.summary}
                         actionText="Update Status"
-                        onActionPress={() => handleUpdateDetails(rescue.caseId, rescue.status)}
+                        onActionPress={() => openCaseStatusUpdate(rescue.caseId)}
                         onPress={() =>
                           router.push({
                             pathname: "/rescuer-response/[requestId]" as any,
@@ -310,6 +284,20 @@ export default function ProfileScreen() {
                             },
                           })
                         }
+                        onTrackPress={() => {
+                          const statusLower = (rescue.status || "").toLowerCase();
+                          if (["pending", "request sent"].includes(statusLower)) {
+                            router.push({
+                              pathname: "/request-status",
+                              params: { caseId: rescue.caseId || rescue.id || rescue._id },
+                            });
+                          } else {
+                            router.push({
+                              pathname: "/rescuer-response/[requestId]",
+                              params: { requestId: rescue.id || rescue._id, caseId: rescue.caseId || rescue.id || rescue._id },
+                            });
+                          }
+                        }}
                       />
                     ))
                 ) : (
@@ -323,11 +311,11 @@ export default function ProfileScreen() {
                     .filter((r: any) => (r.status || "").toLowerCase() === "completed")
                     .map((rescue: any, index: number) => (
                       <ReportPreviewCard
-                        key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-hist-${index}`}
-                        title={`${rescue.animalType} (${rescue.caseId})`}
-                        date={new Date(rescue.createdAt).toLocaleDateString()}
+                        key={rescue.id || rescue._id || `completed-${index}`}
+                        title={rescue.title}
+                        date={rescue.date}
                         status={rescue.status}
-                        image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
+                        image={rescue.image}
                         summary={rescue.summary}
                         onPress={() =>
                           router.push({
@@ -354,12 +342,12 @@ export default function ProfileScreen() {
           )}
 
           {activeTab === "reports" && (
-            reports.length > 0 ? (
+            reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report").length > 0 ? (
               <View>
                 {/* 📌 ACTIVE CASES */}
                 <Text style={styles.subSectionTitle}>Active Cases</Text>
-                {reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
-                  reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((report: any, index: number) => (
+                {reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() !== "completed").map((report: any, index: number) => (
                     <ReportPreviewCard
                       key={report._id || report.caseId || `current-${index}`}
                       title={`${report.animalType} (${report.caseId})`}
@@ -396,8 +384,8 @@ export default function ProfileScreen() {
 
                 {/* 📜 COMPLETED CASES */}
                 <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
-                {reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
-                  reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").map((report: any, index: number) => (
+                {reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() === "completed").map((report: any, index: number) => (
                     <ReportPreviewCard
                       key={report._id || report.caseId || `history-${index}`}
                       title={`${report.animalType} (${report.caseId})`}
@@ -457,62 +445,6 @@ export default function ProfileScreen() {
           )}
         </View>
       </ScrollView>
-
-      {/* Cross-platform modal for updating status details */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Update Rescue Status</Text>
-            
-            <View style={{ marginBottom: 15, width: "100%" }}>
-              {["Under Rescue", "Treated", "Ready for Adoption", "Completed"].map((s) => {
-                const isLocked = getStatusRank(s) <= getStatusRank(currentCaseStatus);
-                const isSelected = updateStatus === s;
-                return (
-                  <TouchableOpacity
-                    key={s}
-                    disabled={isLocked}
-                    style={{
-                      padding: 12,
-                      marginVertical: 4,
-                      borderRadius: 8,
-                      borderWidth: 1,
-                      borderColor: isLocked ? "#E5E7EB" : isSelected ? BRAND_COLOR : "#ddd",
-                      backgroundColor: isLocked ? "#F3F4F6" : isSelected ? "#FFF7E6" : "#fff",
-                      opacity: isLocked ? 0.55 : 1,
-                    }}
-                    onPress={() => !isLocked && setUpdateStatus(s)}
-                  >
-                    <Text style={{
-                      color: isLocked ? "#9CA3AF" : isSelected ? BRAND_COLOR : "#555",
-                      fontWeight: isSelected ? "bold" : "normal",
-                      textAlign: "center"
-                    }}>
-                      {s} {isLocked ? "🔒" : ""}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Add optional notes (e.g. On my way, Animal is safe)"
-              value={updateText}
-              onChangeText={setUpdateText}
-              multiline
-            />
-            <View style={styles.modalButtonRow}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelBtn]} onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, styles.submitBtn]} onPress={submitDetailsUpdate}>
-                <Text style={styles.submitBtnText}>Submit</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
 
       <ProfileMenuDrawer
         visible={menuVisible}

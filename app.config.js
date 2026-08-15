@@ -6,11 +6,19 @@ const appJson = fs.existsSync(appJsonPath) ? require(appJsonPath) : {};
 
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
+const existingPlugins = appJson.expo?.plugins || [];
 const easProjectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || appJson.expo?.extra?.eas?.projectId;
 
 module.exports = {
   expo: {
     ...(appJson.expo || {}),
+    plugins: [
+      ...existingPlugins.filter(
+        (p) => p !== '@react-native-community/datetimepicker' &&
+               (Array.isArray(p) ? p[0] !== '@react-native-community/datetimepicker' : true)
+      ),
+      '@react-native-community/datetimepicker',
+    ],
     extra: {
       ...(appJson.expo?.extra || {}),
       ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),

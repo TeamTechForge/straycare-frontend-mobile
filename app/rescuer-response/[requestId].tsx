@@ -23,7 +23,8 @@ import PrimaryButton from "../../components/PrimaryButton";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
-import { API_URL } from "../../constants/config.constants";
+import { API_URL, BASE_URL } from "../../constants/config.constants";
+import { io as ioClient } from "socket.io-client";
 import { useCall } from "../../contexts/CallContext";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
@@ -65,7 +66,7 @@ export default function RescuerResponseScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const { startCall } = useCall();
-  const { user } = useAuth();
+  const { user, token } = useAuth();
   const { socket } = useSocket();
   const { createConversation } = useChatApi();
 
@@ -81,26 +82,16 @@ export default function RescuerResponseScreen() {
   const [progressNote, setProgressNote] = useState("");
   const [submittingProgress, setSubmittingProgress] = useState(false);
 
-  // Comments state
-  const [comments, setComments] = useState<RescueComment[]>([]);
-  const [commentsLoading, setCommentsLoading] = useState(false);
-  const [newComment, setNewComment] = useState("");
-  const [submittingComment, setSubmittingComment] = useState(false);
-
-  // Replies state
-  const [replyingTo, setReplyingTo] = useState<string | null>(null);
-  const [replyText, setReplyText] = useState("");
-  const [submittingReply, setSubmittingReply] = useState(false);
-
   // Fetch full case & request details
   const fetchDetails = useCallback(async () => {
     if (!requestId) return;
     try {
       console.log("[RescuerResponse] Fetching details for request/case:", requestId);
-      const token = await SecureStore.getItemAsync("authToken");
-
+      const authToken = token || (await SecureStore.getItemAsync("authToken"));
+      const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+      
       const response = await axios.get(`${API_URL}/rescue/status/${requestId}`, {
-        headers: token ? { Authorization: `Bearer ${token}` } : {},
+        headers,
       });
 
       const data = response.data as any;
@@ -111,7 +102,11 @@ export default function RescuerResponseScreen() {
       // Fallback: try fetching by caseId
       if (caseId && caseId !== requestId) {
         try {
-          const res = await axios.get(`${API_URL}/strays/report/${caseId}`);
+          const authToken = token || (await SecureStore.getItemAsync("authToken"));
+          const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+          const res = await axios.get(`${API_URL}/strays/report/${caseId}`, {
+            headers,
+          });
           setCaseDetails(res.data);
         } catch (e) {
           console.error("[RescuerResponse] Fallback fetch error:", e);
@@ -120,73 +115,11 @@ export default function RescuerResponseScreen() {
     } finally {
       setLoading(false);
     }
-  }, [requestId, caseId]);
+  }, [requestId, caseId, token]);
 
   useEffect(() => {
     fetchDetails();
   }, [fetchDetails]);
-
-  // ── Fetch Comments & Auto-Poll every 5 seconds ──────────────────────────────
-  const loadCommentsList = useCallback(async () => {
-    const targetId = caseId || requestId;
-    if (!targetId) return;
-    try {
-      const data = await fetchComments(targetId);
-      setComments(data);
-    } catch (err) {
-      console.warn("[RescuerResponse] Failed to load comments:", err);
-    }
-  }, [caseId, requestId]);
-
-  useEffect(() => {
-    void loadCommentsList();
-    const interval = setInterval(() => {
-      void loadCommentsList();
-    }, 5000);
-    return () => clearInterval(interval);
-  }, [loadCommentsList]);
-
-  const handlePostComment = useCallback(async () => {
-    const targetId = caseId || requestId;
-    if (!newComment.trim() || !targetId) return;
-    setSubmittingComment(true);
-    try {
-      const currentUserId = (user as any)?._id || (user as any)?.id || "rescuer";
-      const currentUserName = (user as any)?.name || "Rescuer";
-      const created = await postComment(targetId, newComment.trim(), currentUserName, currentUserId);
-      setComments((prev) => [...prev, { ...created, replies: created.replies || [] }]);
-      setNewComment("");
-    } catch (err) {
-      Alert.alert("Error", "Failed to post comment. Please try again.");
-    } finally {
-      setSubmittingComment(false);
-    }
-  }, [newComment, caseId, requestId, user]);
-
-  const handlePostReply = useCallback(
-    async (parentId: string) => {
-      const targetId = caseId || requestId;
-      if (!replyText.trim() || !targetId) return;
-      setSubmittingReply(true);
-      try {
-        const currentUserId = (user as any)?._id || (user as any)?.id || "rescuer";
-        const currentUserName = (user as any)?.name || "Rescuer";
-        const created = await postReply(targetId, parentId, replyText.trim(), currentUserName, currentUserId);
-        setComments((prev) =>
-          prev.map((c) =>
-            c._id === parentId ? { ...c, replies: [...(c.replies || []), created] } : c
-          )
-        );
-        setReplyText("");
-        setReplyingTo(null);
-      } catch (err) {
-        Alert.alert("Error", "Failed to post reply. Please try again.");
-      } finally {
-        setSubmittingReply(false);
-      }
-    },
-    [replyText, caseId, requestId, user]
-  );
 
   // Join Socket.IO room for real-time updates
   useEffect(() => {
@@ -196,6 +129,32 @@ export default function RescuerResponseScreen() {
       socket.emit("leave_rescue", { caseId });
     };
   }, [socket, caseId]);
+
+  // Listen for reporter cancellation on the /rescue namespace.
+  // The backend emits "rescue_cancelled" to the room keyed by the request's _id
+  // (which equals the requestId URL param for this screen).
+  useEffect(() => {
+    if (!requestId) return;
+
+    const rescueSocket = ioClient(`${BASE_URL}/rescue`, {
+      transports: ["websocket"],
+      autoConnect: true,
+      reconnection: true,
+    });
+
+    rescueSocket.on("connect", () => {
+      // Join the room for this specific request so we receive its events
+      rescueSocket.emit("join_rescue", String(requestId));
+    });
+
+    rescueSocket.on("rescue_cancelled", () => {
+      router.replace("/(tabs)/Home");
+    });
+
+    return () => {
+      rescueSocket.disconnect();
+    };
+  }, [requestId, router]);
 
   // ── Action 1: In-App Voice Call reporter ────────────────────────────────────
   const handleInAppCall = () => {
@@ -566,140 +525,6 @@ export default function RescuerResponseScreen() {
             />
           </View>
         )}
-
-        {/* 💬 REPORTER COMMENTS & CASE DISCUSSION CARD */}
-        <View style={styles.card}>
-          <Text style={styles.sectionHeader}>💬  Reporter Comments & Case Discussion</Text>
-
-          {/* Comment Input Composition */}
-          <View style={styles.commentInputRow}>
-            <TextInput
-              style={styles.commentInput}
-              placeholder="Type a message or note for reporter..."
-              placeholderTextColor="#9CA3AF"
-              value={newComment}
-              onChangeText={setNewComment}
-              multiline
-              maxLength={500}
-              editable={!submittingComment}
-            />
-            <TouchableOpacity
-              style={[
-                styles.commentSendBtn,
-                (!newComment.trim() || submittingComment) && styles.commentSendBtnDisabled,
-              ]}
-              activeOpacity={0.85}
-              onPress={handlePostComment}
-              disabled={!newComment.trim() || submittingComment}
-            >
-              {submittingComment ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
-              ) : (
-                <Text style={styles.commentSendIcon}>➤</Text>
-              )}
-            </TouchableOpacity>
-          </View>
-
-          {/* Empty State */}
-          {comments.length === 0 ? (
-            <Text style={styles.commentEmpty}>No reporter comments yet.</Text>
-          ) : null}
-
-          {/* Comments List */}
-          {comments.map((comment) => (
-            <View key={comment._id} style={{ marginTop: 12 }}>
-              {/* Top Level Comment */}
-              <View style={styles.commentBubble}>
-                <View style={styles.commentBubbleHeader}>
-                  <View style={styles.commentAvatar}>
-                    <Text style={styles.commentAvatarText}>
-                      {getInitial(comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName)}
-                    </Text>
-                  </View>
-                  <Text style={styles.commentUserName}>
-                    {comment.userId === ((user as any)?._id || (user as any)?.id) ? "You" : comment.userName}
-                  </Text>
-                  <Text style={styles.commentTime}>{timeAgo(comment.createdAt)}</Text>
-                </View>
-                <Text style={styles.commentText}>{comment.text}</Text>
-
-                <View style={styles.commentActions}>
-                  <TouchableOpacity
-                    style={styles.replyTrigger}
-                    activeOpacity={0.7}
-                    onPress={() => {
-                      setReplyingTo(replyingTo === comment._id ? null : comment._id);
-                      setReplyText("");
-                    }}
-                  >
-                    <Text style={styles.replyTriggerText}>
-                      {replyingTo === comment._id ? "Cancel" : "↩ Reply"}
-                    </Text>
-                  </TouchableOpacity>
-                  {comment.replies && comment.replies.length > 0 ? (
-                    <Text style={styles.commentCount}>
-                      {comment.replies.length} {comment.replies.length === 1 ? "reply" : "replies"}
-                    </Text>
-                  ) : null}
-                </View>
-              </View>
-
-              {/* Replies List */}
-              {comment.replies && comment.replies.length > 0 ? (
-                <View style={styles.replyContainer}>
-                  {comment.replies.map((reply) => (
-                    <View key={reply._id} style={styles.replyBubble}>
-                      <View style={styles.commentBubbleHeader}>
-                        <View style={styles.commentAvatar}>
-                          <Text style={styles.commentAvatarText}>
-                            {getInitial(reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName)}
-                          </Text>
-                        </View>
-                        <Text style={styles.commentUserName}>
-                          {reply.userId === ((user as any)?._id || (user as any)?.id) ? "You" : reply.userName}
-                        </Text>
-                        <Text style={styles.commentTime}>{timeAgo(reply.createdAt)}</Text>
-                      </View>
-                      <Text style={styles.commentText}>{reply.text}</Text>
-                    </View>
-                  ))}
-                </View>
-              ) : null}
-
-              {/* Reply Input Composition */}
-              {replyingTo === comment._id ? (
-                <View style={styles.replyInputRow}>
-                  <TextInput
-                    style={styles.replyInput}
-                    placeholder={`Reply to ${comment.userName}...`}
-                    placeholderTextColor="#9CA3AF"
-                    value={replyText}
-                    onChangeText={setReplyText}
-                    multiline
-                    maxLength={500}
-                    editable={!submittingReply}
-                    autoFocus
-                  />
-                  <TouchableOpacity
-                    style={[
-                      styles.replySendBtn,
-                      (!replyText.trim() || submittingReply) && styles.commentSendBtnDisabled,
-                    ]}
-                    activeOpacity={0.85}
-                    onPress={() => handlePostReply(comment._id)}
-                    disabled={!replyText.trim() || submittingReply}
-                  >
-                    {submittingReply ? (
-                      <ActivityIndicator size="small" color="#FFFFFF" />
-                    ) : (
-                      <Text style={styles.commentSendIcon}>➤</Text>
-                    )}
-                  </TouchableOpacity>
-                </View>
-              ) : null}
-            </View>
-          ))}
-        </View>
       </ScrollView>
 
       {/* 📝 PROGRESS UPDATE MODAL */}

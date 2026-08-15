@@ -128,9 +128,9 @@ export async function getAllPosts(): Promise<ForumPost[]> {
   return requestJson<ForumPost[]>(`/api/forum?userId=${encodeURIComponent(CLIENT_USER_ID)}`);
 }
 
-export async function createPost(data: { title: string; tag?: ForumPost["tag"]; author?: string; imageUrl?: string }) {
+export async function createPost(data: { title: string; tag?: ForumPost["tag"]; author?: string; imageUrl?: string; anonymous?: boolean }) {
   let authorName = data.author;
-  if (!authorName || authorName === "You" || authorName === "User") {
+  if (!data.anonymous && (!authorName || authorName === "You" || authorName === "User")) {
     try {
       const SecureStore = require("expo-secure-store");
       const userJson = await SecureStore.getItemAsync("userProfile");
@@ -146,8 +146,9 @@ export async function createPost(data: { title: string; tag?: ForumPost["tag"]; 
     body: JSON.stringify({
       title: data.title,
       tag: data.tag ?? "GENERAL",
-      author: authorName || undefined,
+      author: data.anonymous ? "Anonymous" : (authorName || undefined),
       imageUrl: data.imageUrl ?? "",
+      anonymous: Boolean(data.anonymous),
     }),
   });
 }

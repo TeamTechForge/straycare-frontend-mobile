@@ -5,18 +5,17 @@ import { Platform } from 'react-native';
  * Resolves the backend API base URL.
  *
  * Priority order in development (__DEV__):
- * 1. Dynamic Expo dev-server hostUri (automatically gets your PC's active IP from Metro)
- * 2. Explicit env override (EXPO_PUBLIC_API_URL)
- * 3. Hardcoded fallback IP (192.168.8.173)
+ * 1. Explicit env override (EXPO_PUBLIC_API_URL)
+ * 2. Dynamic Expo dev-server hostUri (automatically gets your PC's active IP from Metro)
+ * 3. Hardcoded fallback IP (192.168.8.161)
  */
 
-// ✅ CHANGE THIS to your machine's current LAN IP whenever your network changes.
-//    Run `ipconfig` (Windows) or `ifconfig` (Mac/Linux) to find it.
-const FALLBACK_IP = '192.168.8.173';
+const FALLBACK_IP = '192.168.8.161';
 const BACKEND_PORT = 5000;
 
 function resolveBaseUrl(): string {
-  // 1. Explicit env override (Highest Priority)
+  // 1. Explicit environment override. Native Android development builds use
+  // this to target the deployed backend instead of a USB/LAN-only server.
   const envUrl =
     process.env.EXPO_PUBLIC_API_URL ||
     Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL;
@@ -26,9 +25,9 @@ function resolveBaseUrl(): string {
   }
 
   // 2. Dynamic auto-detection from Expo Metro bundler in __DEV__
-  const expoHostUri = Constants.expoConfig?.hostUri || (Constants as any).developerManifest?.hostUri;
-  if (__DEV__ && expoHostUri) {
-    const host = expoHostUri.split(':')[0];
+  const hostUri = Constants.expoConfig?.hostUri || (Constants as any).developerManifest?.hostUri;
+  if (__DEV__ && hostUri) {
+    const host = hostUri.split(':')[0];
 
     // Reject tunnel hostnames — they can't reach your backend on port 5000
     const isTunnel = /\.(exp|expo)\.direct$|ngrok|\.ngrok-free\.app/i.test(host);

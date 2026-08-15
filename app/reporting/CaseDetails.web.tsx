@@ -1,15 +1,19 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
+import * as SecureStore from "expo-secure-store";
 import {
   ActivityIndicator,
+  Alert,
   ScrollView,
   StyleSheet,
   Text,
-  TouchableOpacity,
   View,
 } from "react-native";
-import { getReportByCaseId } from "../../api/strayApiService";
+import { getReportByCaseId, updateCaseStatus } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
+import { API_URL } from "../../constants/config.constants";
+import { useAuth } from "../../contexts/AuthContext";
+import axios from "axios";
 
 type Report = {
   caseId: string;
@@ -18,11 +22,18 @@ type Report = {
   category: string;
   status: string;
   notes?: string;
+  permissions?: { canAccept: boolean; canUpdate: boolean };
   location: {
     lat: number;
     lng: number;
     address?: string;
   };
+};
+
+const getNextStatus = (status: string) => {
+  if (status === "Under Rescue") return "Treated";
+  if (status === "Treated") return "Ready for Adoption";
+  return null;
 };
 
 const getStatusColor = (status: string) => {
@@ -42,14 +53,22 @@ const getStatusColor = (status: string) => {
 
 export default function CaseDetails() {
   const router = useRouter();
+  const { user } = useAuth();
   const params = useLocalSearchParams();
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
+  const [acceptingRescue, setAcceptingRescue] = useState(false);
+  const [updatingStatus, setUpdatingStatus] = useState(false);
 
   const safe = (v: string | string[] | undefined): string =>
     Array.isArray(v) ? v[0] : v || "";
 
   const caseId = safe(params.caseId);
+  const isProfileStatusUpdate = safe(params.source) === "profile";
+  const isRescuer = Boolean(
+    user && ["volunteer", "ngo", "vet", "rescuer"].includes(user.role)
+  );
+  const nextStatus = report ? getNextStatus(report.status) : null;
 
   useEffect(() => {
     (async () => {
@@ -80,6 +99,40 @@ export default function CaseDetails() {
     );
   }
 
+  const acceptRescue = async () => {
+    setAcceptingRescue(true);
+    try {
+      const token = await SecureStore.getItemAsync("authToken");
+      const response = await axios.post(
+        `${API_URL}/strays/report/${caseId}/accept`,
+        {},
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      const data = response.data as any;
+      router.push({
+        pathname: "/rescuer-response/[requestId]",
+        params: { requestId: data.requestId, caseId },
+      } as never);
+    } catch (err: any) {
+      Alert.alert("Accept Failed", err?.response?.data?.message || "This case could not be accepted.");
+    } finally {
+      setAcceptingRescue(false);
+    }
+  };
+
+  const handleStatusUpdate = async () => {
+    if (!report || !nextStatus || !report.permissions?.canUpdate) return;
+    setUpdatingStatus(true);
+    try {
+      const updated = await updateCaseStatus(report.caseId, nextStatus);
+      setReport(updated);
+    } catch (err: any) {
+      Alert.alert("Update Failed", err?.message || "The case status could not be updated.");
+    } finally {
+      setUpdatingStatus(false);
+    }
+  };
+
   return (
     <ScrollView style={styles.container}>
       <View style={styles.card}>
@@ -93,6 +146,22 @@ export default function CaseDetails() {
         >
           <Text style={styles.statusText}>{report.status}</Text>
         </View>
+
+        {isRescuer && report.permissions?.canAccept && (
+          <PrimaryButton
+            title={acceptingRescue ? "Accepting..." : "Accept This Case"}
+            onPress={acceptRescue}
+            disabled={acceptingRescue}
+          />
+        )}
+
+        {isProfileStatusUpdate && nextStatus && report.permissions?.canUpdate && (
+          <PrimaryButton
+            title={updatingStatus ? "Updating..." : `Mark as "${nextStatus}"`}
+            onPress={handleStatusUpdate}
+            disabled={updatingStatus}
+          />
+        )}
 
         <View style={styles.section}>
           <Text style={styles.label}>Category:</Text>
