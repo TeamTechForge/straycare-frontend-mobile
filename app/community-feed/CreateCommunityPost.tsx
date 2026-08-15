@@ -147,11 +147,12 @@ export default function CreateCommunityPost() {
       } else {
         Alert.alert("Error", "Something went wrong. Please try again.");
       }
-    } catch (error) {
-      console.log("Submit error:", error);
+    } catch (error: any) {
+      console.log("Submit error:", error?.response?.data || error);
+      const serverMessage = error?.response?.data?.message || error?.message;
       Alert.alert(
         "Error",
-        "Failed to submit post. Please check your connection and try again."
+        serverMessage || "Failed to submit post. Please check your connection and try again."
       );
     } finally {
       setIsSubmitting(false);

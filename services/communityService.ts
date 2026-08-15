@@ -10,9 +10,6 @@ import { BASE_URL } from "@/constants/config.constants";
 const api = axios.create({
     baseURL: BASE_URL,
     timeout: 10000,
-    headers: {
-        "Content-Type": "application/json",
-    },
 });
 
 // ─── Attach JWT Token Automatically ──────────────────────────────────────────
@@ -87,7 +84,7 @@ export const createCommunityPost = async (
     const response = await api.post<any>(
         "/api/community/create",
         payload,
-        payload instanceof FormData
+        data instanceof FormData || payload instanceof FormData
             ? { headers: { "Content-Type": "multipart/form-data" } }
             : undefined
     );
