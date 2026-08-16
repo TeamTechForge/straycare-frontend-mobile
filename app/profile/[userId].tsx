@@ -93,6 +93,8 @@ export default function PublicProfileScreen() {
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [isViewerVisible, setIsViewerVisible] = useState(false);
 
+  const isOwner = !!user?._id && (String(user._id) === String(userId) || String((user as any).id) === String(userId));
+
   const fetchProfileAndStats = async () => {
     try {
       if (!userId || typeof userId !== "string" || !/^[0-9a-fA-F]{24}$/.test(userId)) {
@@ -539,15 +541,15 @@ export default function PublicProfileScreen() {
           )}
 
           {activeTab === "reports" && (
-            reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report").length > 0 ? (
+            (isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).length > 0 ? (
               <View>
                 {/* 📌 ACTIVE CASES */}
                 <Text style={styles.subSectionTitle}>Active Cases</Text>
-                {reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() !== "completed").length > 0 ? (
-                  reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() !== "completed").map((report) => (
+                {(isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  (isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((report) => (
                     <ReportPreviewCard
                       key={report._id}
-                      title={`${report.animalType} (${report.caseId || report.breed || "Case"})`}
+                      title={`${report.animalType} (${report.caseId || report.breed || "Case"})${report.anonymous ? " • Anonymous" : ""}`}
                       date={new Date(report.createdAt).toLocaleDateString()}
                       status={report.status}
                       image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
@@ -561,12 +563,16 @@ export default function PublicProfileScreen() {
                           });
                         }
                       }}
-                      onTrackPress={() => {
-                        router.push({
-                          pathname: "/live-tracking/[requestId]",
-                          params: { requestId: report.caseId || report._id },
-                        });
-                      }}
+                      onTrackPress={
+                        isOwner
+                          ? () => {
+                              router.push({
+                                pathname: "/live-tracking/[requestId]",
+                                params: { requestId: report.caseId || report._id },
+                              });
+                            }
+                          : undefined
+                      }
                     />
                   ))
                 ) : (
@@ -575,11 +581,11 @@ export default function PublicProfileScreen() {
 
                 {/* 📜 COMPLETED CASES */}
                 <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
-                {reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() === "completed").length > 0 ? (
-                  reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() === "completed").map((report) => (
+                {(isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  (isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() === "completed").map((report) => (
                     <ReportPreviewCard
                       key={report._id}
-                      title={`${report.animalType} (${report.caseId || report.breed || "Case"})`}
+                      title={`${report.animalType} (${report.caseId || report.breed || "Case"})${report.anonymous ? " • Anonymous" : ""}`}
                       date={new Date(report.createdAt).toLocaleDateString()}
                       status={report.status}
                       image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
@@ -592,12 +598,6 @@ export default function PublicProfileScreen() {
                             params: { caseId: report.caseId },
                           });
                         }
-                      }}
-                      onTrackPress={() => {
-                        router.push({
-                          pathname: "/live-tracking/[requestId]",
-                          params: { requestId: report.caseId || report._id },
-                        });
                       }}
                     />
                   ))

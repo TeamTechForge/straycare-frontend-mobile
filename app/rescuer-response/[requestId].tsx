@@ -89,7 +89,7 @@ export default function RescuerResponseScreen() {
       console.log("[RescuerResponse] Fetching details for request/case:", requestId);
       const authToken = token || (await SecureStore.getItemAsync("authToken"));
       const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
-      
+
       const response = await axios.get(`${API_URL}/rescue/status/${requestId}`, {
         headers,
       });
@@ -169,13 +169,13 @@ export default function RescuerResponseScreen() {
     const caseMongoId = caseDetails?.rescueRequestId;
     let displayCaseId = caseDetails?.caseId || caseMongoId?.toString().slice(-4) || 'Anon';
     if (displayCaseId.length === 24) {
-        displayCaseId = displayCaseId.slice(-4);
+      displayCaseId = displayCaseId.slice(-4);
     }
 
-    const reporterName = isAnonymous 
+    const reporterName = isAnonymous
       ? `Case Chat (${displayCaseId})`
       : (caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter");
-      
+
     const reporterAvatar = isAnonymous
       ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff"
       : (caseDetails?.reporter?.avatar || caseDetails?.reporterAvatar || DEFAULT_AVATAR);
@@ -198,9 +198,9 @@ export default function RescuerResponseScreen() {
       const isAnonymous = caseDetails?.reporterName === "Anonymous Reporter" || caseDetails?.anonymous;
       const conversationType = isAnonymous ? "rescue" : "direct";
       const caseMongoId = caseDetails?.rescueRequestId;
-      
+
       console.log(`[RescuerResponse] RAW caseId from backend: ${caseDetails?.caseId}`);
-      
+
       const relatedEntity = isAnonymous && caseMongoId ? { kind: `StrayReport_${caseDetails?.caseId || ''}`, item: caseMongoId, referenceId: caseDetails?.caseId } : undefined;
 
       console.log(`[RescuerResponse] createConversation args -> userId: ${reporterUserId}, type: ${conversationType}, entity:`, relatedEntity);
@@ -211,18 +211,18 @@ export default function RescuerResponseScreen() {
       const otherParticipant = conversation.participants?.find(
         (p: any) => p._id !== user?._id
       );
-      
+
       let displayCaseId = caseDetails?.caseId || caseMongoId?.toString().slice(-4) || 'Anon';
       if (displayCaseId.length === 24) {
-          displayCaseId = displayCaseId.slice(-4);
+        displayCaseId = displayCaseId.slice(-4);
       }
 
-      const reporterName = isAnonymous 
-        ? `Case Chat (${displayCaseId})` 
+      const reporterName = isAnonymous
+        ? `Case Chat (${displayCaseId})`
         : (otherParticipant?.name || caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter");
-        
-      const reporterImage = isAnonymous 
-        ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff" 
+
+      const reporterImage = isAnonymous
+        ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff"
         : (otherParticipant?.profileImage || caseDetails?.reporter?.avatar || caseDetails?.reporterAvatar || "");
 
       router.push({
@@ -335,6 +335,7 @@ export default function RescuerResponseScreen() {
   const description = caseDetails?.description || caseDetails?.notes || "No notes provided.";
   const photos = caseDetails?.photos || [];
   const status = caseDetails?.status || "Under Rescue";
+  const isCaseCompleted = ["completed", "closed", "adopted"].includes((status || "").toLowerCase().trim());
   const locationLat = caseDetails?.rescueLocation?.latitude || caseDetails?.location?.lat;
   const locationLng = caseDetails?.rescueLocation?.longitude || caseDetails?.location?.lng;
   const address = caseDetails?.rescueLocation?.address || caseDetails?.location?.address || "Location on map";
@@ -491,7 +492,7 @@ export default function RescuerResponseScreen() {
         </View>
 
         {/* 📝 RESCUE ACTION BUTTONS */}
-        {status === "Completed" ? (
+        {isCaseCompleted ? (
           <View style={styles.actionSection}>
             <View style={{
               backgroundColor: "#D1FAE5",

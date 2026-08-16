@@ -195,11 +195,11 @@ export default function ProfileScreen() {
     { key: "reports", label: "Reports" },
     { key: "saved", label: "Saved" },
   ];
-  
+
   // To handle saved items (all current files had it empty)
   const savedItems: any[] = [];
 
-  // Helper to determine if a rescue case is completed (includes completed, ready for adoption, closed)
+  // Helper to determine if a rescue case is in completed/history cases section
   const isRescueCompleted = (status?: string) => {
     const s = (status || "").toLowerCase().trim();
     return ["completed", "ready for adoption", "ready_for_adoption", "closed", "adopted"].includes(s);
@@ -334,15 +334,15 @@ export default function ProfileScreen() {
           )}
 
           {activeTab === "reports" && (
-            reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report").length > 0 ? (
+            reports.length > 0 ? (
               <View>
                 {/* 📌 ACTIVE CASES */}
                 <Text style={styles.subSectionTitle}>Active Cases</Text>
-                {reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() !== "completed").length > 0 ? (
-                  reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() !== "completed").map((report: any, index: number) => (
+                {reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((report: any, index: number) => (
                     <ReportPreviewCard
                       key={report._id || report.caseId || `current-${index}`}
-                      title={`${report.animalType} (${report.caseId})`}
+                      title={`${report.animalType} (${report.caseId})${report.anonymous ? " • Anonymous" : ""}`}
                       date={new Date(report.createdAt).toLocaleDateString()}
                       status={report.status}
                       image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
@@ -376,11 +376,11 @@ export default function ProfileScreen() {
 
                 {/* 📜 COMPLETED CASES */}
                 <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
-                {reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() === "completed").length > 0 ? (
-                  reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() === "completed").map((report: any, index: number) => (
+                {reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").map((report: any, index: number) => (
                     <ReportPreviewCard
                       key={report._id || report.caseId || `history-${index}`}
-                      title={`${report.animalType} (${report.caseId})`}
+                      title={`${report.animalType} (${report.caseId})${report.anonymous ? " • Anonymous" : ""}`}
                       date={new Date(report.createdAt).toLocaleDateString()}
                       status={report.status}
                       image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
@@ -390,12 +390,6 @@ export default function ProfileScreen() {
                         router.push({
                           pathname: "/reporting/CaseDetails",
                           params: { caseId: report.caseId },
-                        });
-                      }}
-                      onTrackPress={() => {
-                        router.push({
-                          pathname: "/live-tracking/[requestId]",
-                          params: { requestId: report.caseId },
                         });
                       }}
                     />
