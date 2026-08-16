@@ -21,6 +21,17 @@ jest.mock("../../contexts/NotificationContext", () => ({
         event: "rescue_accepted",
         createdAt: "2026-08-15T00:00:00.000Z",
       },
+      {
+        _id: "notification-2",
+        userId: "user-1",
+        title: "New post comment",
+        message: "Alex commented on your post: Helpful update",
+        type: "post_comment",
+        read: false,
+        postId: "post-123",
+        event: "post_comment",
+        createdAt: "2026-08-16T00:00:00.000Z",
+      },
     ],
     unreadCount: 1,
     fetchNotifications: mockFetchNotifications,
@@ -43,6 +54,18 @@ describe("NotificationCenter", () => {
     expect(mockPush).toHaveBeenCalledWith({
       pathname: "/reporting/CaseDetails",
       params: { caseId: "SC-100" },
+    });
+  });
+
+  it("routes Community comment notifications to the post comments page", async () => {
+    const screen = render(<NotificationCenter />);
+    fireEvent.press(screen.getByText("New post comment"));
+
+    expect(mockMarkAsRead).toHaveBeenCalledWith("notification-2");
+    await Promise.resolve();
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/community-feed/CommunityPostComments",
+      params: { id: "post-123" },
     });
   });
 });

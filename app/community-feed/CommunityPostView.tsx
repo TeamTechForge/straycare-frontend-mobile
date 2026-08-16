@@ -11,6 +11,7 @@ import {
 } from "expo-router";
 
 import React, {
+  useCallback,
   useEffect,
   useState,
 } from "react";
@@ -97,13 +98,7 @@ export default function CommunityPostView() {
   // FETCH POST
   // ─────────────────────────────────────────────
 
-  useEffect(() => {
-    if (id) {
-      fetchPost();
-    }
-  }, [id]);
-
-  const fetchPost = async () => {
+  const fetchPost = useCallback(async () => {
     if (!id) {
       setError(true);
       setLoading(false);
@@ -129,7 +124,13 @@ export default function CommunityPostView() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      void fetchPost();
+    }
+  }, [id, fetchPost]);
 
   // ─────────────────────────────────────────────
   // IMAGE URL
