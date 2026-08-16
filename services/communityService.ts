@@ -1,230 +1,239 @@
 // services/communityService.ts
 
 import axios from "axios";
-import Constants from "expo-constants";
-import { Platform } from "react-native";
-import { API_URL } from "../constants/config.constants";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import * as SecureStore from "expo-secure-store";
+import { BASE_URL } from "@/constants/config.constants";
 
-// ─────────────────────────────────────────────
-// CLOUDINARY CONFIG
-// ─────────────────────────────────────────────
+// ─── Axios Instance ───────────────────────────────────────────────────────────
 
-const CLOUDINARY_CLOUD_NAME =
-    process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME ||
-    Constants.expoConfig?.extra?.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME ||
-    "";
+const api = axios.create({
+    baseURL: BASE_URL,
+    timeout: 10000,
+});
 
-const CLOUDINARY_UPLOAD_PRESET =
-    process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ||
-    Constants.expoConfig?.extra?.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET ||
-    "";
+// ─── Attach JWT Token Automatically ──────────────────────────────────────────
 
-// ─────────────────────────────────────────────
-// TYPES
-// ─────────────────────────────────────────────
+api.interceptors.request.use(async (config: any) => {
+    let token: string | null = null;
+
+    try {
+        token = await SecureStore.getItemAsync("authToken");
+    } catch (_err) {
+        // SecureStore may not be available on web
+    }
+
+    if (!token) {
+        try {
+            token =
+                (await AsyncStorage.getItem("authToken")) ??
+                (await AsyncStorage.getItem("token"));
+        } catch (_err) {
+            // AsyncStorage fallback
+        }
+    }
+
+    if (token) {
+        config.headers = config.headers ?? {};
+        config.headers.Authorization = `Bearer ${token}`;
+    }
+
+    return config;
+});
+
+// ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface CommunityPost {
     _id: string;
-    title: string;
-    content: string;
-    category: string;
-
+    authorUserId?: string | null;
+    authorId?: string | null;
+    username?: string;
+    profileImage?: string;
     authorName?: string;
-
+    title?: string;
+    category?: string;
+    content?: string;
     imageUrl?: string | null;
-
     submittedAt?: string;
+    date?: string;
+    likeCount: number;
+    commentCount: number;
+    isLiked: boolean;
+    isSaved: boolean;
+    isOwner: boolean;
     createdAt?: string;
     updatedAt?: string;
 }
 
-export interface CreateCommunityPostPayload {
-    title: string;
-    content: string;
-    category: string;
+export interface CommunityLikeState {
+    postId: string;
+    isLiked: boolean;
+    likeCount: number;
 }
 
-// ─────────────────────────────────────────────
-// AXIOS INSTANCE
-// ─────────────────────────────────────────────
+export interface CommunityComment {
+    _id: string;
+    postId: string;
+    userId: string;
+    username: string;
+    profileImage: string;
+    content: string;
+    createdAt: string;
+    updatedAt: string;
+}
 
-const api = axios.create({
-    baseURL: API_URL,
-    timeout: 10000,
-    headers: {
-        "Content-Type": "application/json",
-    },
-});
+export interface CommunityCommentsResponse {
+    comments: CommunityComment[];
+    commentCount: number;
+}
 
-// ─────────────────────────────────────────────
-// CLOUDINARY IMAGE UPLOAD
-// ─────────────────────────────────────────────
+export interface CommunitySaveState {
+    postId: string;
+    isSaved: boolean;
+}
 
-const uploadImageToCloudinary = async (
-    localUri: string
-): Promise<string> => {
-    // If image is already a remote URL,
-    // do not upload it again.
-    if (
-        localUri.startsWith("http://") ||
-        localUri.startsWith("https://")
-    ) {
-        return localUri;
-    }
-
-    if (
-        !CLOUDINARY_CLOUD_NAME ||
-        !CLOUDINARY_UPLOAD_PRESET
-    ) {
-        throw new Error(
-            "Cloudinary configuration is missing. Please check EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME and EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET."
-        );
-    }
-
-    const formData = new FormData();
-
-    // Web
-    if (Platform.OS === "web") {
-        const response = await fetch(localUri);
-
-        if (!response.ok) {
-            throw new Error("Unable to read selected image.");
-        }
-
-        const blob = await response.blob();
-
-        formData.append(
-            "file",
-            blob,
-            "community_post.jpg"
-        );
-    }
-
-    // Android / iOS
-    else {
-        formData.append("file", {
-            uri: localUri,
-            name: "community_post.jpg",
-            type: "image/jpeg",
-        } as any);
-    }
-
-    formData.append(
-        "upload_preset",
-        CLOUDINARY_UPLOAD_PRESET
-    );
-
-    formData.append(
-        "folder",
-        "community_posts"
-    );
-
-    const response = await fetch(
-        `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/image/upload`,
-        {
-            method: "POST",
-            body: formData,
-        }
-    );
-
-    if (!response.ok) {
-        let message = "Cloudinary image upload failed.";
-
-        try {
-            const errorData = await response.json();
-
-            if (errorData?.error?.message) {
-                message = errorData.error.message;
-            }
-        } catch {
-            // Ignore JSON parsing errors
-        }
-
-        throw new Error(message);
-    }
-
-    const data = await response.json();
-
-    if (!data?.secure_url) {
-        throw new Error(
-            "Cloudinary did not return an image URL."
-        );
-    }
-
-    return data.secure_url;
-};
-
-// ─────────────────────────────────────────────
-// CREATE COMMUNITY POST
-// ─────────────────────────────────────────────
+// ─── Create Community Post ────────────────────────────────────────────────────
 
 export const createCommunityPost = async (
-    payload: CreateCommunityPostPayload,
-    localImageUri?: string
+    data: FormData | Record<string, any>,
+    imageUri?: string
 ): Promise<CommunityPost> => {
-    let imageUrl: string | undefined;
-
-    // Upload image first
-    if (localImageUri) {
-        imageUrl = await uploadImageToCloudinary(
-            localImageUri
-        );
+    let payload = data;
+    if (!(data instanceof FormData) && imageUri) {
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+            if (value !== undefined && value !== null) {
+                formData.append(key, String(value));
+            }
+        });
+        const filename = imageUri.split("/").pop() ?? "photo.jpg";
+        const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";
+        const mimeType = ext === "png" ? "image/png" : "image/jpeg";
+        formData.append("image", {
+            uri: imageUri,
+            name: filename,
+            type: mimeType,
+        } as any);
+        payload = formData;
     }
 
-    // Send post data to backend
-    const response = await api.post<CommunityPost>(
-        "/community/create",
-        {
-            ...payload,
-            ...(imageUrl ? { imageUrl } : {}),
-        }
+    const response = await api.post<any>(
+        "/api/community/create",
+        payload,
+        data instanceof FormData || payload instanceof FormData
+            ? { headers: { "Content-Type": "multipart/form-data" } }
+            : undefined
     );
 
-    return response.data;
+    const body = response.data;
+    return body && body.data ? body.data : body;
 };
 
-// ─────────────────────────────────────────────
-// GET COMMUNITY FEED
-// ─────────────────────────────────────────────
+// ─── Get Community Feed ───────────────────────────────────────────────────────
 
-export const getCommunityFeed = async (): Promise<
-    CommunityPost[]
-> => {
-    const response = await api.get<CommunityPost[]>(
-        "/community"
+export const getCommunityFeed = async (): Promise<CommunityPost[]> => {
+    const response = await api.get<any>(
+        "/api/community"
     );
 
-    return response.data;
+    const body = response.data;
+    if (Array.isArray(body)) return body;
+    if (body && Array.isArray(body.data)) return body.data;
+    return [];
 };
 
-// ─────────────────────────────────────────────
-// GET SINGLE COMMUNITY POST
-// ─────────────────────────────────────────────
+// ─── Get Single Community Post ────────────────────────────────────────────────
 
 export const getCommunityPost = async (
     id: string
 ): Promise<CommunityPost> => {
-    const response = await api.get<CommunityPost>(
-        `/community/${id}`
+    const response = await api.get<any>(
+        `/api/community/${id}`
     );
 
-    return response.data;
+    const body = response.data;
+    return body && body.data ? body.data : body;
 };
 
-// ─────────────────────────────────────────────
-// REPORT COMMUNITY POST
-// ─────────────────────────────────────────────
+export const updateCommunityPost = async (
+    id: string,
+    data: FormData | Record<string, unknown>
+): Promise<CommunityPost> => {
+    const response = await api.put<any>(`/api/community/${id}`, data,
+        data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined);
+    return response.data?.data ?? response.data;
+};
+
+export const deleteCommunityPost = async (id: string): Promise<void> => {
+    await api.delete(`/api/community/${id}`);
+};
+
+const unwrapPostList = (body: any): CommunityPost[] =>
+    Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : []);
+
+export const getMyCommunityPosts = async (): Promise<CommunityPost[]> => {
+    const response = await api.get<any>("/api/community/mine");
+    return unwrapPostList(response.data);
+};
+
+export const getSavedCommunityPosts = async (): Promise<CommunityPost[]> => {
+    const response = await api.get<any>("/api/community/saved");
+    return unwrapPostList(response.data);
+};
+
+export const likeCommunityPost = async (id: string): Promise<CommunityLikeState> => {
+    const response = await api.post<any>(`/api/community/${id}/like`);
+    return response.data?.data ?? response.data;
+};
+
+export const unlikeCommunityPost = async (id: string): Promise<CommunityLikeState> => {
+    const response = await api.delete<any>(`/api/community/${id}/like`);
+    return response.data?.data ?? response.data;
+};
+
+export const saveCommunityPost = async (id: string): Promise<CommunitySaveState> => {
+    const response = await api.post<any>(`/api/community/${id}/save`);
+    return response.data?.data ?? response.data;
+};
+
+export const unsaveCommunityPost = async (id: string): Promise<CommunitySaveState> => {
+    const response = await api.delete<any>(`/api/community/${id}/save`);
+    return response.data?.data ?? response.data;
+};
+
+export const getCommunityComments = async (id: string): Promise<CommunityCommentsResponse> => {
+    const response = await api.get<any>(`/api/community/${id}/comments`);
+    return {
+        comments: Array.isArray(response.data?.data) ? response.data.data : [],
+        commentCount: Number(response.data?.commentCount) || 0,
+    };
+};
+
+export const createCommunityComment = async (
+    id: string,
+    content: string
+): Promise<{ comment: CommunityComment; commentCount: number }> => {
+    const response = await api.post<any>(`/api/community/${id}/comments`, { content });
+    return {
+        comment: response.data?.data,
+        commentCount: Number(response.data?.commentCount) || 0,
+    };
+};
+
+// ─── Report Community Post ────────────────────────────────────────────────────
 
 export const reportCommunityPost = async (
     id: string,
-    reason?: string
-): Promise<any> => {
-    const response = await api.post(
-        `/community/${id}/report`,
-        reason ? { reason } : {}
+    data?: string | Record<string, any>
+) => {
+    const payload = typeof data === "string" ? { reason: data } : (data ?? {});
+    const response = await api.post<any>(
+        `/api/community/${id}/report`,
+        payload
     );
 
-    return response.data;
+    const body = response.data;
+    return body && body.data ? body.data : body;
 };
 
 export default api;

@@ -4,32 +4,44 @@ const BRAND_COLOR = "#F5A623";
 
 export type TabKey = "posts" | "reports" | "saved" | "rescues";
 
+export type TabItem = TabKey | { key: TabKey; label: string };
+
 type Props = {
   activeTab: TabKey;
   onChange: (tab: TabKey) => void;
-  tabs?: TabKey[];
+  tabs?: TabItem[];
 };
 
 export default function ProfileTabBar({ activeTab, onChange, tabs = ["reports", "posts", "saved"] }: Props) {
   return (
     <View style={styles.tabRow}>
-      {tabs.map((tab) => (
-        <TouchableOpacity
-          key={tab}
-          style={styles.tabButton}
-          onPress={() => onChange(tab)}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === tab && styles.tabTextActive,
-            ]}
+      {tabs.map((tab) => {
+        const key = typeof tab === "object" && tab !== null ? tab.key : (tab as TabKey);
+        const label =
+          typeof tab === "object" && tab !== null
+            ? tab.label
+            : typeof tab === "string" && tab.length > 0
+            ? tab.charAt(0).toUpperCase() + tab.slice(1)
+            : String(tab || "");
+
+        return (
+          <TouchableOpacity
+            key={key}
+            style={styles.tabButton}
+            onPress={() => onChange(key)}
           >
-            {tab.charAt(0).toUpperCase() + tab.slice(1)}
-          </Text>
-          {activeTab === tab && <View style={styles.tabUnderline} />}
-        </TouchableOpacity>
-      ))}
+            <Text
+              style={[
+                styles.tabText,
+                activeTab === key && styles.tabTextActive,
+              ]}
+            >
+              {label}
+            </Text>
+            {activeTab === key && <View style={styles.tabUnderline} />}
+          </TouchableOpacity>
+        );
+      })}
     </View>
   );
 }

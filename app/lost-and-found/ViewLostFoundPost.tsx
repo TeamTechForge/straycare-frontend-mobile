@@ -473,8 +473,8 @@ const ViewAnimalPost = () => {
                 }}
                 activeOpacity={0.8}
               >
-                {typeof (post as any).userId === 'object' && (post as any).userId.avatar ? (
-                  <Image source={{ uri: (post as any).userId.avatar }} style={s.contactAvatar} />
+                {typeof (post as any).userId === 'object' && ((post as any).userId.profileImage || (post as any).userId.avatar) ? (
+                  <Image source={{ uri: (post as any).userId.profileImage || (post as any).userId.avatar }} style={s.contactAvatar} />
                 ) : (
                   <View style={s.contactAvatarPlaceholder}>
                     <Ionicons name="person" size={24} color="#A0A0A0" />

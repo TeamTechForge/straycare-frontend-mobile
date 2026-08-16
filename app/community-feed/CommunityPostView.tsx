@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 import { getCommunityPost } from "../../api/apiService";
+import { BASE_URL } from "../../constants/config.constants";
 
 // Converts ISO date string to readable format like "MAR 15, 2024"
 function formatDate(dateStr: string): string {
@@ -99,7 +100,7 @@ export default function CommunityPostView() {
             {/* Hero image — only renders if post has an imageUrl */}
             {post.imageUrl ? (
               <Image
-                source={{ uri: `http://10.87.129.94:5000${post.imageUrl}` }}
+                source={{ uri: `${BASE_URL}${post.imageUrl}` }}
                 style={styles.heroImage}
                 resizeMode="cover"
               />
