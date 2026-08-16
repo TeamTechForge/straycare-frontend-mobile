@@ -12,11 +12,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { getAllPosts, Post } from "../../services/adoptionService";
+import { getAllPosts, Post, toggleLikePost } from "../../services/adoptionService";
+import { useAuth } from "../../contexts/AuthContext";
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
 
-const FILTERS = ["All", "Dogs", "Cats", "Rabbits", "Birds"];
+const FILTERS = ["All", "Favorites", "Dogs", "Cats", "Rabbits", "Birds"];
 
 // ─── Pet Card ─────────────────────────────────────────────────────────────────
 
@@ -78,6 +79,7 @@ function PetCard({
 
 export default function AdoptionPostMain() {
   const router = useRouter();
+  const { user } = useAuth();
 
   const [posts, setPosts] = useState<(Post & { liked: boolean })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -92,25 +94,43 @@ export default function AdoptionPostMain() {
       setLoading(true);
       setError(null);
       const data = await getAllPosts();
-      // add local liked state to each post
-      setPosts(data.map((p) => ({ ...p, liked: false })));
+      // add persistent liked state based on logged in user's ID
+      setPosts(
+        data.map((p) => ({
+          ...p,
+          liked: !!(user?._id && p.likes?.some((id: any) => String(id) === String(user._id))),
+        }))
+      );
     } catch {
       setError("Could not load posts. Check your connection.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?._id]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  // ── Like toggle (local only — wire to API later if needed) ────────────────
+  // ── Persistent Like Toggle ────────────────────────────────────────────────
 
-  const handleToggleLike = (id: string) => {
+  const handleToggleLike = async (id: string) => {
+    // Optimistic UI update
     setPosts((prev) =>
       prev.map((p) => (p._id === id ? { ...p, liked: !p.liked } : p))
     );
+
+    try {
+      const res = await toggleLikePost(id);
+      setPosts((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, liked: res.liked } : p))
+      );
+    } catch (_err) {
+      // Revert optimistic update on failure
+      setPosts((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, liked: !p.liked } : p))
+      );
+    }
   };
 
   // ── Navigate to detail screen with real postId ────────────────────────────
@@ -130,6 +150,7 @@ export default function AdoptionPostMain() {
 
     const matchesFilter =
       activeFilter === "All" ||
+      (activeFilter === "Favorites" && post.liked) ||
       (activeFilter === "Dogs" && (post.category === "Dog" || post.category === "Dogs")) ||
       (activeFilter === "Cats" && (post.category === "Cat" || post.category === "Cats")) ||
       (activeFilter === "Rabbits" &&
@@ -215,10 +236,6 @@ export default function AdoptionPostMain() {
             onChangeText={setSearch}
           />
         </View>
-
-        <TouchableOpacity style={styles.tuneBtn} activeOpacity={0.8}>
-          <MaterialIcons name="tune" size={22} color="#062425" />
-        </TouchableOpacity>
       </View>
 
       {/* ── Filter Chips ── */}
@@ -236,6 +253,14 @@ export default function AdoptionPostMain() {
               onPress={() => setActiveFilter(f)}
               activeOpacity={0.8}
             >
+              {f === "Favorites" && (
+                <MaterialIcons
+                  name={activeFilter === f ? "favorite" : "favorite-border"}
+                  size={14}
+                  color={activeFilter === f ? "#fff" : "#D48806"}
+                  style={{ marginRight: 4 }}
+                />
+              )}
               <Text
                 style={[
                   styles.chipText,
@@ -261,9 +286,19 @@ export default function AdoptionPostMain() {
         refreshing={loading}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <MaterialIcons name="pets" size={48} color="#717878" />
-            <Text style={styles.emptyText}>No pets found</Text>
-            <Text style={styles.emptySubtext}>Try adjusting your search or filters</Text>
+            <MaterialIcons
+              name={activeFilter === "Favorites" ? "favorite-border" : "pets"}
+              size={48}
+              color="#717878"
+            />
+            <Text style={styles.emptyText}>
+              {activeFilter === "Favorites" ? "No favorite pets yet" : "No pets found"}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {activeFilter === "Favorites"
+                ? "Tap the heart on any pet card to add them to your favorites"
+                : "Try adjusting your search or filters"}
+            </Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -365,14 +400,6 @@ const styles = StyleSheet.create({
     color: "#1a1c1c",
     paddingVertical: 14,
   },
-  tuneBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "#f4f3f3",
-    alignItems: "center",
-    justifyContent: "center",
-  },
 
   // Filter Chips
   chipsScrollWrapper: {
@@ -386,7 +413,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   chip: {
-    paddingHorizontal: 20,
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
     paddingVertical: 8,
     borderRadius: 999,
     backgroundColor: "#FFF7E6",

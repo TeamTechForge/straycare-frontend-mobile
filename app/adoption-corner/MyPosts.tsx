@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -13,7 +13,6 @@ import {
 } from "react-native";
 import { getMyPosts, Post } from "../../services/adoptionService";
 import { useAuth } from "../../contexts/AuthContext";
-import { DeleteConfirmModal } from "./DeleteAdoptionPost";
 
 const C = {
   bg: "#F8F9FA",
@@ -37,9 +36,6 @@ export default function MyAdoptionPostsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
 
-  // Delete modal state
-  const [postToDelete, setPostToDelete] = useState<{ id: string; name: string } | null>(null);
-
   const loadPosts = async () => {
     try {
       const data = await getMyPosts();
@@ -53,9 +49,11 @@ export default function MyAdoptionPostsScreen() {
     }
   };
 
-  useEffect(() => {
-    loadPosts();
-  }, [user]);
+  useFocusEffect(
+    useCallback(() => {
+      loadPosts();
+    }, [user?._id])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -155,36 +153,13 @@ export default function MyAdoptionPostsScreen() {
             <Text style={styles.dateText}>{getDisplayDate(item)}</Text>
           </View>
         </TouchableOpacity>
-
-        {/* Action Row */}
-        <View style={styles.actionRow}>
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.editBtn]}
-            onPress={() =>
-              router.push(`/adoption-corner/EditAdoptionPost?postId=${item._id}`)
-            }
-            activeOpacity={0.8}
-          >
-            <MaterialIcons name="edit" size={16} color={C.textMain} />
-            <Text style={styles.editText}>Edit</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.actionBtn, styles.deleteBtn]}
-            onPress={() => setPostToDelete({ id: item._id, name: item.name })}
-            activeOpacity={0.8}
-          >
-            <MaterialIcons name="delete-outline" size={16} color={C.error} />
-            <Text style={styles.deleteText}>Delete</Text>
-          </TouchableOpacity>
-        </View>
       </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header (No top plus button, clean layout) */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.iconBtn}
@@ -194,13 +169,7 @@ export default function MyAdoptionPostsScreen() {
           <Ionicons name="arrow-back" size={22} color={C.textMain} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>My Adoption Posts</Text>
-        <TouchableOpacity
-          style={styles.iconBtn}
-          onPress={() => router.push("/adoption-corner/CreateAdoptionPost")}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="add" size={22} color={C.textMain} />
-        </TouchableOpacity>
+        <View style={{ width: 40 }} />
       </View>
 
       {/* Content */}
@@ -241,20 +210,6 @@ export default function MyAdoptionPostsScreen() {
               colors={[C.primary]}
             />
           }
-        />
-      )}
-
-      {/* Delete Confirmation Modal */}
-      {postToDelete && (
-        <DeleteConfirmModal
-          visible={!!postToDelete}
-          postId={postToDelete.id}
-          postName={postToDelete.name}
-          onClose={() => setPostToDelete(null)}
-          onDeleted={() => {
-            setPostToDelete(null);
-            loadPosts();
-          }}
         />
       )}
     </View>
@@ -439,41 +394,5 @@ const styles = StyleSheet.create({
   dateText: {
     fontSize: 11,
     color: C.textPlaceholder,
-  },
-  actionRow: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: C.surfaceLow,
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    justifyContent: "flex-end",
-    gap: 10,
-    backgroundColor: "#FAFAFA",
-  },
-  actionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 14,
-    paddingVertical: 7,
-    borderRadius: 8,
-    gap: 6,
-  },
-  editBtn: {
-    backgroundColor: C.surfaceLow,
-    borderWidth: 1,
-    borderColor: C.outline,
-  },
-  deleteBtn: {
-    backgroundColor: C.errorBg,
-  },
-  editText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: C.textMain,
-  },
-  deleteText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: C.error,
   },
 });

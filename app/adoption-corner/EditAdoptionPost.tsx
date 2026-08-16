@@ -215,9 +215,8 @@ export default function EditAdoptionPost() {
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
     if (!name.trim()) newErrors.name = "Pet name is required.";
-    if (!age.trim()) {
-      newErrors.age = "Age is required.";
-    } else if (
+    if (
+      age.trim() &&
       !/^\d+(\s*(year|years|month|months|week|weeks))?$/i.test(age.trim())
     ) {
       newErrors.age = "Enter a valid age (e.g. 2 years, 6 months).";
@@ -503,10 +502,10 @@ export default function EditAdoptionPost() {
           </View>
 
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <FieldLabel text="Age *" />
+            <FieldLabel text="Age" />
             <TextInput
               style={[s.input, errors.age && s.inputError]}
-              placeholder="e.g. 2 years"
+              placeholder="e.g. 2 years (optional)"
               placeholderTextColor={C.textPlaceholder}
               value={age}
               onChangeText={(v) => {

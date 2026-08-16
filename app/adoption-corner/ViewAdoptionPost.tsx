@@ -1,10 +1,12 @@
-import { MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   Linking,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,6 +14,11 @@ import {
   View,
 } from "react-native";
 import { getPostById, Post } from "../../services/adoptionService";
+import { useAuth } from "../../contexts/AuthContext";
+import { useCall } from "../../contexts/CallContext";
+import { useChatApi } from "../../hooks/useChatApi";
+import OwnerActionButtons from "../../components/OwnerActionButtons";
+import { DeleteConfirmModal } from "./DeleteAdoptionPost";
 
 // ─── Paging Dots ──────────────────────────────────────────────────────────────
 
@@ -45,41 +52,85 @@ function InfoChip({
   );
 }
 
+// ─── Status Badge Colors Helper ───────────────────────────────────────────────
+
+const getStatusConfig = (status: string) => {
+  switch (status) {
+    case "Available":
+      return {
+        bg: "#E8F5E9",
+        color: "#2E7D32",
+        icon: "check-circle" as keyof typeof MaterialIcons.glyphMap,
+      };
+    case "Adopted":
+      return {
+        bg: "#E0F2FE",
+        color: "#0284C7",
+        icon: "favorite" as keyof typeof MaterialIcons.glyphMap,
+      };
+    case "Pending":
+    default:
+      return {
+        bg: "#FFF7E6",
+        color: "#D48806",
+        icon: "schedule" as keyof typeof MaterialIcons.glyphMap,
+      };
+  }
+};
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function ViewAdoptionPost() {
   const router = useRouter();
+  const { user } = useAuth();
+  const { startCall } = useCall();
+  const { createConversation } = useChatApi();
   const { postId } = useLocalSearchParams<{ postId: string }>();
 
   const [post, setPost] = useState<Post | null>(null);
   const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
-  // ── Fetch post from backend ───────────────────────────────────────────────
+  // ── Fetch post from backend with auto-reload on focus ─────────────────────
 
-  useEffect(() => {
-    if (!postId) {
-      setError("Post not found.");
-      setLoading(false);
-      return;
-    }
-
-    getPostById(postId)
-      .then((data) => {
-        setPost(data);
-      })
-      .catch(() => {
-        setError("Could not load post. Please try again.");
-      })
-      .finally(() => {
+  const fetchPost = useCallback(
+    async (isRefresh = false) => {
+      if (!postId) {
+        setError("Post not found.");
         setLoading(false);
-      });
-  }, [postId]);
+        return;
+      }
+      if (isRefresh) {
+        setRefreshing(true);
+      }
+      try {
+        const data = await getPostById(postId);
+        setPost(data);
+        setError(null);
+      } catch (_err) {
+        if (!post) {
+          setError("Could not load post. Please try again.");
+        }
+      } finally {
+        setLoading(false);
+        setRefreshing(false);
+      }
+    },
+    [postId]
+  );
+
+  useFocusEffect(
+    useCallback(() => {
+      fetchPost();
+    }, [fetchPost])
+  );
 
   // ── Loading state ─────────────────────────────────────────────────────────
 
-  if (loading) {
+  if (loading && !post) {
     return (
       <View style={styles.centeredState}>
         <ActivityIndicator size="large" color="#F5A623" />
@@ -90,7 +141,7 @@ export default function ViewAdoptionPost() {
 
   // ── Error state ───────────────────────────────────────────────────────────
 
-  if (error || !post) {
+  if ((error && !post) || !post) {
     return (
       <View style={styles.centeredState}>
         <MaterialIcons name="error-outline" size={48} color="#717878" />
@@ -101,6 +152,13 @@ export default function ViewAdoptionPost() {
       </View>
     );
   }
+
+  // Check if the current user is the owner / caretaker of the post
+  const isOwner =
+    !!user?._id &&
+    (user._id === post.userId?._id || user._id === (post.userId as any));
+
+  const statusCfg = getStatusConfig(post.status);
 
   // ── Build info chips ──────────────────────────────────────────────────────
 
@@ -115,20 +173,86 @@ export default function ViewAdoptionPost() {
     verified: true,
   }));
 
+  // ── Call Handler ──────────────────────────────────────────────────────────
   const handleCall = () => {
-    const phone = post.userId?.phone || post.contact;
-    if (phone) Linking.openURL(`tel:${phone}`);
+    if (!post) return;
+    const rawUserId = post.userId;
+    const ownerId =
+      typeof rawUserId === "object" && rawUserId !== null
+        ? rawUserId._id
+        : (rawUserId || (post as any).ownerId);
+
+    if (ownerId && typeof startCall === "function") {
+      startCall(
+        String(ownerId),
+        post.posterName || (typeof rawUserId === "object" ? rawUserId?.name : "") || "Caretaker",
+        typeof rawUserId === "object" ? rawUserId?.avatar || undefined : undefined
+      );
+      return;
+    }
+
+    const phone =
+      (typeof rawUserId === "object" ? rawUserId?.phone : "") || post.contact;
+    if (phone && phone !== "N/A") {
+      Linking.openURL(`tel:${phone}`);
+    } else {
+      Alert.alert("Contact Unavailable", "No contact details available for this post.");
+    }
   };
 
-  const handleOpenChat = () => {
-    router.push({
-      pathname: "/chat/New",
-      params: {
-        targetUserId: post.userId?._id,
-        userName: post.posterName || post.userId?.name,
-        petName: post.name,
-      },
-    });
+  // ── Message Handler ───────────────────────────────────────────────────────
+  const handleMessage = async () => {
+    if (!post) return;
+    const rawUserId = post.userId;
+    const ownerId =
+      typeof rawUserId === "object" && rawUserId !== null
+        ? rawUserId._id
+        : (rawUserId || (post as any).ownerId);
+
+    if (!ownerId) {
+      Alert.alert("Contact Unavailable", "User ID is not available for this post.");
+      return;
+    }
+    if (user?._id === ownerId) {
+      Alert.alert("Error", "You cannot message yourself.");
+      return;
+    }
+
+    try {
+      const conversation = (await createConversation(String(ownerId), "direct")) as any;
+      const otherParticipant = conversation.participants?.find(
+        (p: any) => p._id !== user?._id
+      );
+
+      router.push({
+        pathname: "/chat/[conversationId]",
+        params: {
+          conversationId: conversation._id,
+          recipientName:
+            otherParticipant?.name || post.posterName || "Caretaker",
+          recipientId: String(ownerId),
+          recipientImage:
+            otherParticipant?.profileImage ||
+            (typeof rawUserId === "object" ? rawUserId.avatar : ""),
+        },
+      });
+    } catch (err: any) {
+      Alert.alert("Could Not Start Chat", err?.message || "Something went wrong.");
+    }
+  };
+
+  // ── Profile Navigation Handler ───────────────────────────────────────────
+  const handleOpenProfile = () => {
+    if (!post) return;
+    const rawUserId = post.userId;
+    const caretakerId =
+      typeof rawUserId === "object" && rawUserId !== null
+        ? rawUserId._id
+        : (rawUserId || (post as any).ownerId);
+
+    if (caretakerId) {
+      router.push(`/profile/${caretakerId}`);
+    }
   };
 
   const images =
@@ -142,6 +266,14 @@ export default function ViewAdoptionPost() {
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={() => fetchPost(true)}
+            tintColor="#F5A623"
+            colors={["#F5A623"]}
+          />
+        }
       >
         {/* ── Hero Image & Back Button ── */}
         <View style={styles.heroWrapper}>
@@ -202,9 +334,9 @@ export default function ViewAdoptionPost() {
                   {post.customCategory ? ` (${post.customCategory})` : ""}
                 </Text>
               </View>
-              <View style={styles.statusBadge}>
-                <MaterialIcons name="check-circle" size={14} color="#D48806" />
-                <Text style={styles.statusText}>{post.status}</Text>
+              <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
+                <MaterialIcons name={statusCfg.icon} size={14} color={statusCfg.color} />
+                <Text style={[styles.statusText, { color: statusCfg.color }]}>{post.status}</Text>
               </View>
             </View>
 
@@ -245,50 +377,90 @@ export default function ViewAdoptionPost() {
                 <Text style={styles.healthBadgeText}>{post.healthStatus}</Text>
               </View>
             </View>
+
+            {/* Location (always visible in about section if caretaker card is hidden) */}
+            {isOwner && (
+              <View style={styles.locationInlineRow}>
+                <MaterialIcons name="location-on" size={18} color="#F5A623" />
+                <Text style={styles.locationInlineText}>{post.location}</Text>
+              </View>
+            )}
+
+            {/* Action buttons if owner */}
+            {isOwner && (
+              <OwnerActionButtons
+                onEdit={() =>
+                  router.push(`/adoption-corner/EditAdoptionPost?postId=${post._id}`)
+                }
+                onDelete={() => setShowDeleteModal(true)}
+                editLabel="Edit Post"
+                deleteLabel="Delete Post"
+              />
+            )}
           </View>
         </View>
 
-        {/* ── Poster Info ── */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Caretaker Info</Text>
-          <View style={styles.posterCard}>
-            <View style={styles.posterRow}>
-              <View style={[styles.posterAvatar, styles.posterAvatarPlaceholder]}>
-                {post.userId?.avatar ? (
-                  <Image
-                    source={{ uri: post.userId.avatar }}
-                    style={styles.posterAvatar}
-                  />
-                ) : (
-                  <MaterialIcons name="person" size={28} color="#717878" />
-                )}
-              </View>
-              <View style={styles.posterInfo}>
-                <Text style={styles.posterName}>
-                  {post.posterName || post.userId?.name || "StrayCare User"}
-                </Text>
-                {post.userId?.organisation && (
-                  <Text style={styles.posterOrg}>{post.userId.organisation}</Text>
-                )}
-              </View>
-              {(post.userId?.phone || post.contact) && (
+        {/* ── Poster / Caretaker Info (ONLY shown if caretaker is NOT the current user) ── */}
+        {!isOwner && (
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Caretaker Info</Text>
+            <View style={styles.posterCard}>
+              <View style={styles.posterRow}>
                 <TouchableOpacity
-                  style={styles.phoneBtn}
-                  onPress={handleCall}
-                  activeOpacity={0.8}
+                  style={styles.posterUserTouchable}
+                  onPress={handleOpenProfile}
+                  activeOpacity={0.7}
                 >
-                  <MaterialIcons name="phone" size={20} color="#F5A623" />
+                  <View style={[styles.posterAvatar, styles.posterAvatarPlaceholder]}>
+                    {post.userId?.avatar ? (
+                      <Image
+                        source={{ uri: post.userId.avatar }}
+                        style={styles.posterAvatar}
+                      />
+                    ) : (
+                      <MaterialIcons name="person" size={28} color="#717878" />
+                    )}
+                  </View>
+                  <View style={styles.posterInfo}>
+                    <Text style={styles.posterName}>
+                      {post.posterName || post.userId?.name || "StrayCare User"}
+                    </Text>
+                    {post.userId?.organisation ? (
+                      <Text style={styles.posterOrg}>{post.userId.organisation}</Text>
+                    ) : (
+                      <Text style={styles.viewProfileHint}>View Profile ›</Text>
+                    )}
+                  </View>
                 </TouchableOpacity>
-              )}
-            </View>
 
-            {/* Location */}
-            <View style={styles.locationRow}>
-              <MaterialIcons name="location-on" size={16} color="#717878" />
-              <Text style={styles.locationText}>{post.location}</Text>
+                {/* Call & Message Action Buttons */}
+                <View style={styles.contactActions}>
+                  <TouchableOpacity
+                    style={styles.contactActionBtn}
+                    onPress={handleMessage}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="chatbubble" size={18} color="#FFFFFF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.contactActionBtn}
+                    onPress={handleCall}
+                    activeOpacity={0.85}
+                  >
+                    <Ionicons name="call" size={18} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              {/* Location */}
+              <View style={styles.locationRow}>
+                <MaterialIcons name="location-on" size={16} color="#717878" />
+                <Text style={styles.locationText}>{post.location}</Text>
+              </View>
             </View>
           </View>
-        </View>
+        )}
 
         {/* ── Notes if any ── */}
         {post.notes ? (
@@ -300,28 +472,22 @@ export default function ViewAdoptionPost() {
           </View>
         ) : null}
 
-        <View style={{ height: 20 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
 
-      {/* ── Bottom Action Footer ── */}
-      <View style={styles.footer}>
-        <TouchableOpacity
-          style={styles.cancelBtn}
-          onPress={() => router.back()}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.cancelBtnText}>Back</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.meetBtn}
-          onPress={handleOpenChat}
-          activeOpacity={0.85}
-        >
-          <MaterialIcons name="chat" size={20} color="#000" />
-          <Text style={styles.meetBtnText}>Adopt or Inquire</Text>
-        </TouchableOpacity>
-      </View>
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <DeleteConfirmModal
+          visible={showDeleteModal}
+          postId={post._id}
+          postName={post.name}
+          onClose={() => setShowDeleteModal(false)}
+          onDeleted={() => {
+            setShowDeleteModal(false);
+            router.replace("/adoption-corner");
+          }}
+        />
+      )}
     </View>
   );
 }
@@ -331,7 +497,7 @@ export default function ViewAdoptionPost() {
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: "#F8F9FA" },
   scroll: { flex: 1 },
-  scrollContent: { paddingBottom: 24 },
+  scrollContent: { paddingBottom: 30 },
 
   centeredState: {
     flex: 1,
@@ -508,6 +674,22 @@ const styles = StyleSheet.create({
   },
   healthBadgeText: { fontSize: 12, fontWeight: "600", color: "#191C1D" },
 
+  locationInlineRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 4,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#F3F4F5",
+  },
+  locationInlineText: {
+    fontSize: 13,
+    color: "#717878",
+    fontWeight: "500",
+    flex: 1,
+  },
+
   posterCard: {
     backgroundColor: "#fff",
     borderRadius: 16,
@@ -522,7 +704,13 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     padding: 16,
-    gap: 14,
+    gap: 12,
+  },
+  posterUserTouchable: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   posterAvatar: {
     width: 48,
@@ -537,13 +725,24 @@ const styles = StyleSheet.create({
   posterInfo: { flex: 1 },
   posterName: { fontSize: 15, fontWeight: "700", color: "#191C1D" },
   posterOrg: { fontSize: 13, color: "#717878", marginTop: 2 },
-  phoneBtn: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
-    backgroundColor: "#FFF7E6",
+  viewProfileHint: { fontSize: 12, color: "#F5A623", fontWeight: "600", marginTop: 2 },
+  contactActions: {
+    flexDirection: "row",
+    gap: 8,
+    alignItems: "center",
+  },
+  contactActionBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#F5A623",
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#F5A623",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
   },
   locationRow: {
     flexDirection: "row",
@@ -558,35 +757,4 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     flex: 1,
   },
-
-  footer: {
-    flexDirection: "row",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    backgroundColor: "#fff",
-    borderTopWidth: 1,
-    borderTopColor: "#E2E0D6",
-  },
-  cancelBtn: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#E2E0D6",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  cancelBtnText: { fontSize: 15, fontWeight: "600", color: "#191C1D" },
-  meetBtn: {
-    flex: 2,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    borderRadius: 12,
-    backgroundColor: "#F5A623",
-  },
-  meetBtnText: { fontSize: 15, fontWeight: "700", color: "#000" },
 });
