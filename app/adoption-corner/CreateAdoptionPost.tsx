@@ -1,7 +1,7 @@
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { Ionicons } from "@expo/vector-icons";
 import * as ImagePicker from "expo-image-picker";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -17,6 +17,7 @@ import ChatLocationPicker from "../../components/chat/ChatLocationPicker";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";
 import { useAuth } from "../../contexts/AuthContext";
+import { getReportByCaseId } from "../../api/strayApiService";
 import { createPost } from "../../services/adoptionService";
 import { ANIMAL_BREEDS, AnimalCategory } from "../../constants/breeds.constants";
 
@@ -42,6 +43,15 @@ type Category = AnimalCategory;
 type Gender = "Male" | "Female";
 type Status = "Available" | "Pending" | "Adopted";
 type HealthStatus = "Healthy" | "Needs Care" | "Under Treatment" | "Special Needs";
+
+type CaseReport = {
+  caseId: string;
+  animalType?: string;
+  breed?: string;
+  notes?: string;
+  location?: { lat?: number; lng?: number; address?: string };
+  photos?: string[];
+};
 
 const BREEDS_BY_CATEGORY = ANIMAL_BREEDS;
 
@@ -76,6 +86,8 @@ type Errors = {
 export default function CreateAdoptionPost() {
   const router = useRouter();
   const { user } = useAuth();
+  const { caseId: caseIdParam } = useLocalSearchParams<{ caseId?: string | string[] }>();
+  const caseId = Array.isArray(caseIdParam) ? caseIdParam[0] : caseIdParam;
 
   // ── Form State ────────────────────────────────────────────────────────────
   const [category, setCategory] = useState<Category>("Dog");
@@ -106,6 +118,53 @@ export default function CreateAdoptionPost() {
   const [errors, setErrors] = useState<Errors>({});
   const [errorMessage, setErrorMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [prefillingCase, setPrefillingCase] = useState(Boolean(caseId));
+
+  useEffect(() => {
+    if (!caseId) return;
+
+    const prefillFromCase = async () => {
+      try {
+        const report = (await getReportByCaseId(caseId)) as CaseReport;
+        const animalType = report.animalType?.trim() || "";
+        const normalizedAnimalType = animalType.toLowerCase();
+        const mappedCategory: Category =
+          normalizedAnimalType === "dog" ? "Dog" : normalizedAnimalType === "cat" ? "Cat" : "Other";
+        const reportedBreed = report.breed?.trim() || "";
+
+        setCategory(mappedCategory);
+        setCustomCategory(mappedCategory === "Other" ? animalType : "");
+        if (mappedCategory === "Other") {
+          setBreed("");
+          setOtherBreed("");
+        } else if (BREEDS_BY_CATEGORY[mappedCategory].includes(reportedBreed)) {
+          setBreed(reportedBreed);
+          setOtherBreed("");
+        } else {
+          setBreed(reportedBreed ? "Other" : "Unknown");
+          setOtherBreed(reportedBreed);
+        }
+        setDescription(report.notes?.trim() || "");
+        setLocation(
+          report.location?.address?.trim() ||
+            (report.location?.lat != null && report.location?.lng != null
+              ? `${report.location.lat}, ${report.location.lng}`
+              : "")
+        );
+        if (report.location?.lat != null && report.location?.lng != null) {
+          setSelectedRegion({ latitude: report.location.lat, longitude: report.location.lng });
+        }
+        setImages((report.photos || []).slice(0, 6));
+      } catch (error) {
+        console.error("Failed to prefill adoption form from case:", error);
+        Alert.alert("Case details unavailable", "You can still complete the adoption form manually.");
+      } finally {
+        setPrefillingCase(false);
+      }
+    };
+
+    void prefillFromCase();
+  }, [caseId]);
 
   // ── Category Change ───────────────────────────────────────────────────────
   const handleCategoryChange = (cat: Category) => {
@@ -285,8 +344,11 @@ export default function CreateAdoptionPost() {
       <View style={s.titleBlock}>
         <Text style={s.headerTitle}>Find a Forever Home</Text>
         <Text style={s.headerSub}>
-          Fill in the details below to help your pet find a loving new family.
+          {caseId
+            ? `Case ${caseId} details have been added. Complete the adoption-specific information below.`
+            : "Fill in the details below to help your pet find a loving new family."}
         </Text>
+        {prefillingCase && <ActivityIndicator style={{ marginTop: 8, alignSelf: "flex-start" }} color={C.primary} />}
       </View>
 
       {/* Error Banner */}

@@ -12,6 +12,9 @@ type Props = {
   onTrackPress?: () => void;
   onActionPress?: () => void;
   actionText?: string;
+  onSecondaryActionPress?: () => void;
+  secondaryActionText?: string;
+  secondaryActionDisabled?: boolean;
   summary?: string;
   onPress?: () => void;
 };
@@ -31,6 +34,8 @@ const getStatusColors = (status: string): { bg: string; text: string } => {
     case "treated":
     case "completed":
       return { bg: "#EAF6EE", text: "#2E7D32" }; // 🟢 Green (Map: #63ac84)
+    case "failed":
+      return { bg: "#FEE2E2", text: "#B91C1C" };
     case "ready for adoption":
       return { bg: "#E0EEFB", text: "#1D4ED8" }; // 🔵 Blue (Map: #2476da)
     case "cancelled":
@@ -50,6 +55,9 @@ export default function ReportPreviewCard({
   onTrackPress,
   onActionPress,
   actionText = "Update",
+  onSecondaryActionPress,
+  secondaryActionText = "Rescue Failed",
+  secondaryActionDisabled = false,
   summary,
   onPress,
 }: Props) {
@@ -80,6 +88,17 @@ export default function ReportPreviewCard({
               <TouchableOpacity style={styles.actionButton} onPress={onActionPress}>
                 <Ionicons name="create-outline" size={12} color="#FFF" />
                 <Text style={styles.actionButtonText}>{actionText}</Text>
+              </TouchableOpacity>
+            )}
+
+            {onSecondaryActionPress && (
+              <TouchableOpacity
+                style={[styles.failureButton, secondaryActionDisabled && styles.buttonDisabled]}
+                onPress={onSecondaryActionPress}
+                disabled={secondaryActionDisabled}
+              >
+                <Ionicons name="close-circle-outline" size={12} color="#FFF" />
+                <Text style={styles.actionButtonText}>{secondaryActionText}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -170,7 +189,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#10B981",
+    backgroundColor: BRAND_COLOR,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -181,6 +200,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
   },
+  failureButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#DC2626",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  buttonDisabled: { opacity: 0.6 },
   timelineContainer: {
     marginTop: 12,
     borderTopWidth: 1,
