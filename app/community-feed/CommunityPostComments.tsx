@@ -65,20 +65,22 @@ export default function CommunityPostComments() {
     }, [loadComments])
   );
 
-  const handleSend = async (text: string) => {
+  const handleSend = async (text: string): Promise<boolean> => {
     const content = text.trim();
-    if (!id || !content || submitting) return;
+    if (!id || !content || submitting) return false;
 
     try {
       setSubmitting(true);
       const result = await createCommunityComment(id, content);
       setComments((current) => [...current, result.comment]);
+      return true;
     } catch (submitError: any) {
       console.error("Create community comment error:", submitError);
       Alert.alert(
         "Unable to add comment",
         submitError?.response?.data?.message || "Please try again."
       );
+      return false;
     } finally {
       setSubmitting(false);
     }
@@ -88,7 +90,8 @@ export default function CommunityPostComments() {
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       <KeyboardAvoidingView
         style={styles.container}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        keyboardVerticalOffset={0}
       >
         <View style={styles.header}>
           <Ionicons name="chevron-back" size={26} color="#121C2C" onPress={() => router.back()} />
@@ -141,7 +144,7 @@ export default function CommunityPostComments() {
         )}
 
         <View style={[styles.composer, submitting && styles.composerDisabled]}>
-          <CommentComposer onSend={handleSend} />
+          <CommentComposer onSend={handleSend} disabled={submitting} multiline />
         </View>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -189,7 +192,7 @@ const styles = StyleSheet.create({
   content: { marginTop: 6, fontSize: 14, lineHeight: 20, color: "#4D4637" },
   composer: {
     paddingHorizontal: 16,
-    paddingBottom: 10,
+    paddingVertical: 10,
     backgroundColor: "#FFFFFF",
     borderTopWidth: 1,
     borderTopColor: "#D1C5B220",

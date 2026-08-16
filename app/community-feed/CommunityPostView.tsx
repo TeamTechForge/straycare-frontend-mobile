@@ -34,6 +34,7 @@ import {
   reportCommunityPost,
 } from "../../services/communityService";
 import ReportPostModal from "../../components/ReportPostModal";
+import { colors } from "../../constants/colors.constants";
 
 // ─────────────────────────────────────────────
 // DATE
@@ -300,11 +301,9 @@ export default function CommunityPostView() {
 
                 {/* CONTENT */}
 
-                <Text
-                  style={styles.description}
-                >
-                  {post.content}
-                </Text>
+                <View style={styles.contentAccent}>
+                  <Text style={styles.description}>{post.content}</Text>
+                </View>
               </View>
             </View>
 
@@ -469,7 +468,7 @@ const styles = StyleSheet.create({
   },
 
   tagBadge: {
-    backgroundColor: "#E6F7ED",
+    backgroundColor: colors.primary,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
@@ -479,7 +478,7 @@ const styles = StyleSheet.create({
   tagText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#27C468",
+    color: colors.text,
   },
 
   headline: {
@@ -547,6 +546,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#E54D4D",
   },
+  contentAccent: { borderLeftWidth: 3, borderLeftColor: colors.primary, paddingLeft: 14 },
   ownerBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#FFF0DD", borderRadius: 999, paddingVertical: 16 },
   ownerBtnText: { fontSize: 15, fontWeight: "700", color: "#704900" },
 });

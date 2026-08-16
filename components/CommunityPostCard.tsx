@@ -14,6 +14,7 @@ import { useRouter } from "expo-router";
 
 import ReportModal from "./ReportPostModal";
 import type { CommunityPost } from "../services/communityService";
+import { colors } from "../constants/colors.constants";
 
 // ─────────────────────────────────────────────
 // COLORS  (matches CommunityPostMain palette)
@@ -26,7 +27,7 @@ const C = {
   onSurfaceVariant: "#4D4637",
   outline: "#7F7665",
   outlineVariant: "#D1C5B2",
-  primary: "#F28C28",
+  primary: colors.primary,
   primaryContainer: "#FFF0DD",
   onPrimaryContainer: "#8A4A00",
 };
@@ -205,12 +206,9 @@ const CommunityPostCard: React.FC<
           </Text>
 
           {/* Content preview */}
-          <Text
-            style={styles.content}
-            numberOfLines={3}
-          >
-            {post.content || ""}
-          </Text>
+          <View style={styles.contentAccent}>
+            <Text style={styles.content} numberOfLines={3}>{post.content || ""}</Text>
+          </View>
 
           {post.imageUrl ? (
             <Image
@@ -435,6 +433,11 @@ const styles = StyleSheet.create({
     fontWeight: "500",
     color: C.outlineVariant,
     letterSpacing: 0.3,
+  },
+  contentAccent: {
+    borderLeftWidth: 3,
+    borderLeftColor: C.primary,
+    paddingLeft: 12,
   },
 
   actionItem: {

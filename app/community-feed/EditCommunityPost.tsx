@@ -1,8 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
+import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, Alert, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { getCommunityPost, updateCommunityPost } from "../../services/communityService";
+import PrimaryButton from "../../components/PrimaryButton";
+import { colors } from "../../constants/colors.constants";
 
 const CATEGORIES = [
   "Pet Care Tips", "Health & First Aid", "Stray Animal Help", "Training & Behavior",
@@ -17,6 +20,9 @@ export default function EditCommunityPost() {
   const [category, setCategory] = useState(CATEGORIES[0]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
+  const [replacementImageUri, setReplacementImageUri] = useState<string | null>(null);
+  const [imageRemoved, setImageRemoved] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -25,11 +31,32 @@ export default function EditCommunityPost() {
       setTitle(post.title || "");
       setContent(post.content || "");
       setCategory(post.category || CATEGORIES[0]);
+      setCurrentImageUrl(post.imageUrl || null);
     }).catch((error) => {
       Alert.alert("Unable to edit post", error?.response?.data?.message || error.message);
       router.back();
     }).finally(() => setLoading(false));
   }, [id, router]);
+
+  const handlePickImage = async () => {
+    const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
+    if (permission.status !== "granted") {
+      Alert.alert("Permission needed", "Please allow photo-library access to select an image.");
+      return;
+    }
+    const result = await ImagePicker.launchImageLibraryAsync({
+      mediaTypes: ["images"], allowsEditing: true, aspect: [5, 4], quality: 0.8,
+    });
+    if (!result.canceled && result.assets[0]) {
+      setReplacementImageUri(result.assets[0].uri);
+      setImageRemoved(false);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    setReplacementImageUri(null);
+    setImageRemoved(true);
+  };
 
   const handleSave = async () => {
     const trimmedTitle = title.trim();
@@ -41,7 +68,22 @@ export default function EditCommunityPost() {
     if (!id) return;
     try {
       setSaving(true);
-      await updateCommunityPost(id, { title: trimmedTitle, category, content: trimmedContent });
+      const formData = new FormData();
+      formData.append("title", trimmedTitle);
+      formData.append("category", category);
+      formData.append("content", trimmedContent);
+      if (replacementImageUri) {
+        const filename = replacementImageUri.split("/").pop() || "photo.jpg";
+        const extension = filename.split(".").pop()?.toLowerCase();
+        formData.append("image", {
+          uri: replacementImageUri,
+          name: filename,
+          type: extension === "png" ? "image/png" : "image/jpeg",
+        } as any);
+      } else if (imageRemoved) {
+        formData.append("removeImage", "true");
+      }
+      await updateCommunityPost(id, formData);
       router.replace({ pathname: "/community-feed/CommunityPostView", params: { id } });
     } catch (error: any) {
       Alert.alert("Unable to update post", error?.response?.data?.message || "Please try again.");
@@ -59,19 +101,31 @@ export default function EditCommunityPost() {
         <Text style={styles.headerTitle}>Edit Community Post</Text><View style={{ width: 24 }} />
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <Text style={styles.label}>Post Title</Text>
+        <Text style={styles.requiredNote}>Fields marked with <Text style={styles.required}>*</Text> are required.</Text>
+        <Text style={styles.label}>Post Title <Text style={styles.required}>*</Text></Text>
         <TextInput style={styles.input} value={title} onChangeText={setTitle} />
-        <Text style={styles.label}>Category</Text>
+        <Text style={styles.label}>Category <Text style={styles.required}>*</Text></Text>
         <View style={styles.chips}>{CATEGORIES.map((item) => (
           <TouchableOpacity key={item} style={[styles.chip, category === item && styles.chipActive]} onPress={() => setCategory(item)}>
             <Text style={[styles.chipText, category === item && styles.chipTextActive]}>{item}</Text>
           </TouchableOpacity>
         ))}</View>
-        <Text style={styles.label}>Post Content</Text>
+        <Text style={styles.label}>Post Content <Text style={styles.required}>*</Text></Text>
         <TextInput style={[styles.input, styles.textArea]} value={content} onChangeText={setContent} multiline scrollEnabled={false} textAlignVertical="top" />
-        <TouchableOpacity style={[styles.saveButton, saving && { opacity: 0.6 }]} disabled={saving} onPress={handleSave}>
-          {saving ? <ActivityIndicator color="#1f2937" /> : <Text style={styles.saveText}>Save Changes</Text>}
+        <Text style={styles.label}>Post Image (Optional)</Text>
+        {(replacementImageUri || (!imageRemoved && currentImageUrl)) ? (
+          <View style={styles.imageWrap}>
+            <Image source={{ uri: replacementImageUri || currentImageUrl! }} style={styles.previewImage} />
+            <TouchableOpacity style={styles.removeImage} onPress={handleRemoveImage}>
+              <Ionicons name="close-circle" size={30} color={colors.error} />
+            </TouchableOpacity>
+          </View>
+        ) : <View style={styles.noImage}><Ionicons name="image-outline" size={28} color="#94a3b8" /><Text style={styles.noImageText}>No image selected</Text></View>}
+        <TouchableOpacity style={styles.pickImage} onPress={handlePickImage}>
+          <Ionicons name="camera-outline" size={20} color={colors.primary} />
+          <Text style={styles.pickImageText}>{replacementImageUri ? "Change replacement image" : "Select image"}</Text>
         </TouchableOpacity>
+        <PrimaryButton title={saving ? "Saving..." : "Save Changes"} onPress={handleSave} disabled={saving} />
       </ScrollView>
     </View>
   );
@@ -86,5 +140,10 @@ const styles = StyleSheet.create({
   textArea: { minHeight: 120, paddingTop: 14 }, chips: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   chip: { paddingVertical: 8, paddingHorizontal: 16, borderRadius: 999, borderWidth: 1, borderColor: "#e2e8f0" },
   chipActive: { backgroundColor: "#f5c542", borderColor: "#f5c542" }, chipText: { fontSize: 13, color: "#475569" }, chipTextActive: { color: "#000", fontWeight: "600" },
-  saveButton: { marginTop: 32, paddingVertical: 16, backgroundColor: "#f5c542", borderRadius: 999, alignItems: "center" }, saveText: { fontSize: 16, fontWeight: "700", color: "#1f2937" },
+  requiredNote: { fontSize: 12, color: "#64748b", marginBottom: 4 }, required: { color: colors.error, fontWeight: "700" },
+  imageWrap: { width: "100%", height: 200, borderRadius: 16, overflow: "hidden" }, previewImage: { width: "100%", height: "100%" },
+  removeImage: { position: "absolute", top: 8, right: 8, backgroundColor: "#fff", borderRadius: 20 },
+  noImage: { height: 110, borderWidth: 1, borderStyle: "dashed", borderColor: "#cbd5e1", borderRadius: 16, alignItems: "center", justifyContent: "center", gap: 6 },
+  noImageText: { color: "#94a3b8", fontSize: 12 }, pickImage: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, padding: 12, marginVertical: 10 },
+  pickImageText: { color: "#475569", fontSize: 14, fontWeight: "600" },
 });

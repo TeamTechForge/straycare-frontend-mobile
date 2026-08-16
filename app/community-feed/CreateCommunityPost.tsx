@@ -3,7 +3,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -14,6 +13,8 @@ import {
   View,
 } from "react-native";
 import { createCommunityPost } from "../../services/communityService";
+import PrimaryButton from "../../components/PrimaryButton";
+import { colors } from "../../constants/colors.constants";
 
 // ── Category options ─────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -172,9 +173,10 @@ export default function CreateCommunityPost() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <Text style={styles.requiredNote}>Fields marked with <Text style={styles.required}>*</Text> are required.</Text>
         {/* ── Post Title ── */}
         <View style={styles.section}>
-          <Text style={styles.label}>Post Title</Text>
+          <Text style={styles.label}>Post Title <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, showError("title") && styles.inputError]}
             placeholder="Enter the title of the post"
@@ -193,7 +195,7 @@ export default function CreateCommunityPost() {
 
         {/* ── Category Chips ── */}
         <View style={styles.section}>
-          <Text style={styles.label}>Select Category</Text>
+          <Text style={styles.label}>Select Category <Text style={styles.required}>*</Text></Text>
           <View style={styles.chipsContainer}>
             {CATEGORIES.map((cat) => (
               <TouchableOpacity
@@ -219,7 +221,7 @@ export default function CreateCommunityPost() {
 
         {/* ── Post Content ── */}
         <View style={styles.section}>
-          <Text style={styles.label}>Post Content</Text>
+          <Text style={styles.label}>Post Content <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[
               styles.input,
@@ -289,17 +291,7 @@ export default function CreateCommunityPost() {
 
         {/* ── Action Buttons ── */}
         <View style={styles.actionsSection}>
-          <TouchableOpacity
-            style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#1f2937" />
-            ) : (
-              <Text style={styles.submitButtonText}>Submit Post</Text>
-            )}
-          </TouchableOpacity>
+          <PrimaryButton title={isSubmitting ? "Submitting..." : "Submit Post"} onPress={handleSubmit} disabled={isSubmitting} />
 
           <TouchableOpacity
             style={styles.cancelButton}
@@ -355,6 +347,8 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 28,
   },
+  requiredNote: { fontSize: 12, color: "#64748b", marginBottom: 8 },
+  required: { color: colors.error, fontWeight: "700" },
   label: {
     fontSize: 13,
     fontWeight: "600",
@@ -486,26 +480,6 @@ const styles = StyleSheet.create({
   },
   actionsSection: {
     gap: 12,
-  },
-  submitButton: {
-    width: "100%",
-    paddingVertical: 16,
-    backgroundColor: "#f5c542",
-    borderRadius: 9999,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1f2937",
   },
   cancelButton: {
     width: "100%",
