@@ -1,6 +1,6 @@
 import { MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -15,6 +15,8 @@ import {
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 import { createPost } from "@/services/adoptionService";
+import { getReportByCaseId } from "@/api/strayApiService";
+import { useAuth } from "@/contexts/AuthContext";
 
 // ─── Types ───────────────────────────────────────────────────────────────────
 
@@ -22,6 +24,15 @@ type Category = "Dog" | "Cat" | "Other";
 type Gender = "Male" | "Female";
 type Status = "Available" | "Pending" | "Adopted";
 type HealthStatus = "Healthy" | "Needs Care" | "Under Treatment" | "Special Needs";
+
+type CaseReport = {
+  caseId: string;
+  animalType?: string;
+  breed?: string;
+  notes?: string;
+  location?: { lat?: number; lng?: number; address?: string };
+  photos?: string[];
+};
 
 // ─── Breed lists per category ─────────────────────────────────────────────────
 
@@ -108,6 +119,9 @@ function InlinePicker({
 
 export default function CreateAdoptionPost() {
   const router = useRouter();
+  const { caseId: caseIdParam } = useLocalSearchParams<{ caseId?: string | string[] }>();
+  const { user } = useAuth();
+  const caseId = Array.isArray(caseIdParam) ? caseIdParam[0] : caseIdParam;
 
   // ── Form state ────────────────────────────────────────────────────────────
   const [category, setCategory] = useState<Category>("Dog");
@@ -131,6 +145,42 @@ export default function CreateAdoptionPost() {
   // ── UI state ──────────────────────────────────────────────────────────────
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
+  const [prefillingCase, setPrefillingCase] = useState(Boolean(caseId));
+
+  useEffect(() => {
+    if (!caseId) return;
+
+    const prefillFromCase = async () => {
+      try {
+        const report = (await getReportByCaseId(caseId)) as CaseReport;
+        const animalType = report.animalType?.trim() || "";
+        const normalizedAnimalType = animalType.toLowerCase();
+        const mappedCategory: Category =
+          normalizedAnimalType === "dog" ? "Dog" : normalizedAnimalType === "cat" ? "Cat" : "Other";
+
+        setCategory(mappedCategory);
+        setCustomCategory(mappedCategory === "Other" ? animalType : "");
+        setBreed(report.breed?.trim() || BREEDS_BY_CATEGORY[mappedCategory][0]);
+        setDescription(report.notes?.trim() || "");
+        setLocation(
+          report.location?.address?.trim() ||
+            (report.location?.lat != null && report.location?.lng != null
+              ? `${report.location.lat}, ${report.location.lng}`
+              : "")
+        );
+        setImages((report.photos || []).slice(0, 6));
+        setPosterName((current) => current || user?.name || "");
+        setContact((current) => current || user?.phone || "");
+      } catch (error) {
+        console.error("Failed to prefill adoption form from case:", error);
+        Alert.alert("Case details unavailable", "You can still complete the adoption form manually.");
+      } finally {
+        setPrefillingCase(false);
+      }
+    };
+
+    void prefillFromCase();
+  }, [caseId, user?.name, user?.phone]);
 
   const handleGetLocation = async () => {
     try {
@@ -310,8 +360,11 @@ export default function CreateAdoptionPost() {
         <View style={styles.introSection}>
           <Text style={styles.introTitle}>Find a Forever Home</Text>
           <Text style={styles.introSubtitle}>
-            Fill in the details below to help your pet find a loving new family.
+            {caseId
+              ? `Case ${caseId} details have been added. Complete the adoption-specific information below.`
+              : "Fill in the details below to help your pet find a loving new family."}
           </Text>
+          {prefillingCase && <ActivityIndicator style={styles.prefillLoader} color="#785a00" />}
         </View>
 
         {/* ── Animal Details Card ── */}
@@ -743,6 +796,7 @@ const styles = StyleSheet.create({
   introSection: { marginBottom: 4, paddingTop: 15 },
   introTitle: { fontSize: 22, fontWeight: "800", color: "#785a00", marginBottom: 4 },
   introSubtitle: { fontSize: 14, color: "#4e4635", lineHeight: 20 },
+  prefillLoader: { alignSelf: "flex-start", marginTop: 8 },
 
   card: {
     backgroundColor: "#fff", borderRadius: 12, padding: 16, gap: 16,

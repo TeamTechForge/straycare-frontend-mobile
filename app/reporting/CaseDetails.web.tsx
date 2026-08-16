@@ -65,6 +65,7 @@ export default function CaseDetails() {
 
   const caseId = safe(params.caseId);
   const isProfileStatusUpdate = safe(params.source) === "profile";
+  const returnToPreviousScreen = () => router.replace(isProfileStatusUpdate ? "/profile" : "/reporting");
   const isRescuer = Boolean(
     user && ["volunteer", "ngo", "vet", "rescuer"].includes(user.role)
   );
@@ -126,6 +127,12 @@ export default function CaseDetails() {
     try {
       const updated = await updateCaseStatus(report.caseId, nextStatus);
       setReport(updated);
+      if (nextStatus === "Ready for Adoption") {
+        router.push({
+          pathname: "/adoption-corner/CreateAdoptionPost",
+          params: { caseId: report.caseId },
+        } as never);
+      }
     } catch (err: any) {
       Alert.alert("Update Failed", err?.message || "The case status could not be updated.");
     } finally {
@@ -194,8 +201,8 @@ export default function CaseDetails() {
         </View>
 
         <PrimaryButton
-          title="Back to Cases"
-          onPress={() => router.push("/reporting")}
+          title={isProfileStatusUpdate ? "Back to Profile" : "Back to Cases"}
+          onPress={returnToPreviousScreen}
         />
       </View>
     </ScrollView>

@@ -5,13 +5,16 @@ import { fireEvent, render, waitFor } from "@testing-library/react-native";
 import CaseDetailsScreen from "../../app/reporting/CaseDetails";
 
 const mockPush = jest.fn<(...args: any[]) => void>();
+const mockReplace = jest.fn<(...args: any[]) => void>();
 const mockGetReportByCaseId = jest.fn<(...args: any[]) => Promise<any>>();
+const mockUpdateCaseStatus = jest.fn<(...args: any[]) => Promise<any>>();
 const mockAxiosPost = jest.fn<(...args: any[]) => Promise<any>>();
 let mockRole = "volunteer";
+let mockParams: Record<string, string> = { caseId: "SC-123" };
 
 jest.mock("expo-router", () => ({
-  useLocalSearchParams: () => ({ caseId: "SC-123" }),
-  useRouter: () => ({ push: mockPush, back: jest.fn() }),
+  useLocalSearchParams: () => mockParams,
+  useRouter: () => ({ push: mockPush, replace: mockReplace, back: jest.fn() }),
 }));
 
 jest.mock("@react-navigation/native", () => ({
@@ -35,7 +38,7 @@ jest.mock("../../contexts/AuthContext", () => ({
 
 jest.mock("../../api/strayApiService", () => ({
   getReportByCaseId: (...args: unknown[]) => mockGetReportByCaseId(...args),
-  updateCaseStatus: jest.fn(),
+  updateCaseStatus: (...args: unknown[]) => mockUpdateCaseStatus(...args),
 }));
 
 jest.mock("../../components/MapViewWrapper", () => {
@@ -61,7 +64,9 @@ describe("CaseDetails acceptance action", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     mockRole = "volunteer";
+    mockParams = { caseId: "SC-123" };
     mockGetReportByCaseId.mockResolvedValue(availableCase);
+    mockUpdateCaseStatus.mockResolvedValue({ ...availableCase, status: "Ready for Adoption" });
     mockAxiosPost.mockResolvedValue({ data: { requestId: "request-1" } });
   });
 
@@ -100,6 +105,34 @@ describe("CaseDetails acceptance action", () => {
     const screen = render(<CaseDetailsScreen />);
 
     expect(await screen.findByText('Mark as "Treated"')).toBeTruthy();
+  });
+
+  it("opens the adoption form with the case ID after marking a treated case ready for adoption", async () => {
+    mockGetReportByCaseId.mockResolvedValue({
+      ...availableCase,
+      status: "Treated",
+      permissions: { canAccept: false, canUpdate: true },
+    });
+    const screen = render(<CaseDetailsScreen />);
+
+    fireEvent.press(await screen.findByText('Mark as "Ready for Adoption"'));
+
+    await waitFor(() => {
+      expect(mockUpdateCaseStatus).toHaveBeenCalledWith("SC-123", "Ready for Adoption");
+      expect(mockPush).toHaveBeenCalledWith({
+        pathname: "/adoption-corner/CreateAdoptionPost",
+        params: { caseId: "SC-123" },
+      });
+    });
+  });
+
+  it("returns to the rescuer profile when opened from an active rescue card", async () => {
+    mockParams = { caseId: "SC-123", source: "profile", focus: "status-update" };
+    const screen = render(<CaseDetailsScreen />);
+
+    fireEvent.press(await screen.findByText("Back to Profile"));
+
+    expect(mockReplace).toHaveBeenCalledWith("/profile");
   });
 
   it("accepts the case and opens the first rescue-response screen", async () => {
