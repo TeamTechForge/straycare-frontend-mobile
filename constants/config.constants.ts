@@ -4,17 +4,26 @@ import { Platform } from 'react-native';
 /**
  * Resolves the backend API base URL.
  *
- * Priority order in development (__DEV__):
+ * Priority order:
  * 1. Explicit env override (EXPO_PUBLIC_API_URL)
  * 2. Dynamic Expo dev-server hostUri (automatically gets your PC's active IP from Metro)
- * 3. Hardcoded fallback IP (192.168.8.161)
+ * 3. Hardcoded fallback IP
  */
 
 const FALLBACK_IP = '172.20.10.6';
 const BACKEND_PORT = 5000;
 
 function resolveBaseUrl(): string {
-  // 1. Dynamic auto-detection from Expo Metro bundler in __DEV__ (always matches Metro host)
+  // 1. Explicit override. This allows a development build to use the hosted API.
+  const envUrl =
+    process.env.EXPO_PUBLIC_API_URL ||
+    Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL;
+  if (envUrl) {
+    console.log('[Config] Using EXPO_PUBLIC_API_URL:', envUrl);
+    return envUrl.replace(/\/$/, '');
+  }
+
+  // 2. Dynamic auto-detection from Expo Metro bundler in __DEV__
   const hostUri = Constants.expoConfig?.hostUri || (Constants as any).developerManifest?.hostUri;
   if (__DEV__ && hostUri) {
     const host = hostUri.split(':')[0];
@@ -34,15 +43,6 @@ function resolveBaseUrl(): string {
       }
       return `http://localhost:${BACKEND_PORT}`;
     }
-  }
-
-  // 2. Explicit environment override (e.g. production/deployed backend)
-  const envUrl =
-    process.env.EXPO_PUBLIC_API_URL ||
-    Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL;
-  if (envUrl) {
-    console.log('[Config] Using EXPO_PUBLIC_API_URL:', envUrl);
-    return envUrl;
   }
 
   // 3. Fallback to current LAN IP

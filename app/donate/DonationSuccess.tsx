@@ -3,8 +3,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import PrimaryButton from "../../components/PrimaryButton";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { BASE_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -98,11 +97,16 @@ export default function DonationSuccess() {
             Transaction ID: {displayTransactionId}
           </Text>
 
-          <PrimaryButton title="Back to Donate" onPress={() => router.replace("/Donate")} />
-          <PrimaryButton
-            title={canReceiveDonations ? "View Donation Hub" : "View Donation History"}
-            onPress={handleViewHistory}
-          />
+          <View style={styles.actions}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => router.replace("/Donate")}>
+              <Text style={styles.actionButtonText}>Back to Donate</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={handleViewHistory}>
+              <Text style={styles.actionButtonText}>
+                {canReceiveDonations ? "View Donation Hub" : "View Donation History"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View >
       </View >
     </View >
@@ -152,6 +156,25 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 35,
     color: "#777",
+    textAlign: "center",
+  },
+  actions: {
+    width: "78%",
+    maxWidth: 340,
+    gap: 12,
+  },
+  actionButton: {
+    minHeight: 46,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: "#F5A623",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionButtonText: {
+    color: "#1F1A17",
+    fontSize: 14,
+    fontWeight: "700",
     textAlign: "center",
   },
 });
