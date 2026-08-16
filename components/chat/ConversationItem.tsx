@@ -42,6 +42,8 @@ export default function ConversationItem({
         return { text: "VOLUNTEER", color: "#F59E0B", bg: "#FEF3C7" };
       case "admin":
         return { text: "ADMIN", color: "#EF4444", bg: "#FEF2F2" };
+      case "anonymous":
+        return null;
       default:
         return { text: "USER", color: "#6B7280", bg: "#F3F4F6" };
     }

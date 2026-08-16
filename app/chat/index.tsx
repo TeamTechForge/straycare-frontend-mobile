@@ -103,9 +103,27 @@ export default function ChatsScreen() {
         loadConversations();
     };
 
-    // Get the other participant in a 1:1 conversation
     const getOtherParticipant = (conversation: any) => {
         let other = conversation.participants?.find((p: any) => p && p._id !== user?._id);
+        
+        console.log(`[ChatList] Checking conv: type=${conversation.conversationType}, relatedEntity=`, conversation.relatedEntity);
+        if (conversation.conversationType === "rescue" && conversation.relatedEntity) {
+            let extractedId = conversation.relatedEntity.referenceId;
+            if (!extractedId && conversation.relatedEntity.kind && conversation.relatedEntity.kind.includes('_')) {
+                extractedId = conversation.relatedEntity.kind.split('_')[1];
+            }
+            let displayId = extractedId || conversation.relatedEntity.item?.toString().slice(-4) || 'Anon';
+            if (displayId.length === 24) {
+                displayId = displayId.slice(-4);
+            }
+            return {
+                _id: other?._id || "anon",
+                name: `Case Chat (${displayId})`,
+                role: "anonymous",
+                profileImage: "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff"
+            };
+        }
+
         if (!other) {
             return {
                 _id: "deleted",

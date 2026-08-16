@@ -47,7 +47,7 @@ export default function ProfileMenuDrawer({
           <View style={styles.menuItems}>
             <View style={{ height: 20 }} />
             <ProfileMenuItem icon="person-outline" label="My Profile" onPress={onProfilePress} />
-            <ProfileMenuItem icon="paw-outline" label="Adoption Corner" onPress={onAdoptionPress} />
+            <ProfileMenuItem icon="paw-outline" label="My Adoption Posts" onPress={onAdoptionPress} />
             <ProfileMenuItem icon="search-outline" label="My Lost & Found Posts" onPress={onMyLostFoundPress} />
             <ProfileMenuItem icon="card-outline" label="Donations" onPress={onDonationsPress} />
             <ProfileMenuItem icon="settings-outline" label="Settings" onPress={onSettingsPress} />

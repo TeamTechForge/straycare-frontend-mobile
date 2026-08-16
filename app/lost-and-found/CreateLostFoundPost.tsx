@@ -20,6 +20,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import ChatLocationPicker from '../../components/chat/ChatLocationPicker';
 import PrimaryButton from '../../components/PrimaryButton';
 import MapViewWrapper, { Marker } from '../../components/MapViewWrapper';
+import { ANIMAL_BREEDS } from '../../constants/breeds.constants';
 
 // Centralized color tokens used across all components and styles
 const C = {
@@ -287,16 +288,9 @@ const CreatePost = () => {
     }
   };
 
-  // Predefined breed options for dogs
-  const dogBreeds = [
-    'Unknown', 'Labrador Retriever', 'German Shepherd', 'Golden Retriever', 'French Bulldog',
-    'Poodle', 'Beagle', 'Bulldog', 'Rottweiler', 'Yorkshire Terrier', 'Doberman', 'Other'
-  ];
-  // Predefined breed options for cats
-  const catBreeds = [
-    'Unknown', 'Persian', 'Siamese', 'Bengal', 'Maine Coon', 'Ragdoll', 'Sphynx',
-    'British Shorthair', 'Scottish Fold', 'American Shorthair', 'Abyssinian', 'Other'
-  ];
+  // Predefined breed options for dogs and cats (Unknown at top, Other at bottom)
+  const dogBreeds = ANIMAL_BREEDS.Dog;
+  const catBreeds = ANIMAL_BREEDS.Cat;
 
   // Renders an uppercase spaced label above each form field
   const FieldLabel = ({ text }: { text: string }) => {

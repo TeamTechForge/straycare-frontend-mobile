@@ -25,6 +25,7 @@ export default function ReceivedDonations() {
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [messagingId, setMessagingId] = useState<string | null>(null);
+  const [recurringEnabled, setRecurringEnabled] = useState<boolean | null>(null);
 
   useEffect(() => {
     fetchReceivedDonations();
@@ -38,6 +39,15 @@ export default function ReceivedDonations() {
       const donRes: any = await axios.get(`${BASE_URL}/api/donations/received`, {
         headers: { Authorization: `Bearer ${token}` },
       });
+
+      try {
+        const profileRes: any = await axios.get(`${BASE_URL}/api/profiles/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        setRecurringEnabled(profileRes.data.recurringPaymentsEnabled === true);
+      } catch (profileError) {
+        console.error("Error checking recurring donation setup:", profileError);
+      }
 
       const fetchedDonations = donRes.data.map((d: any) => ({
         id: d._id,
@@ -127,6 +137,23 @@ export default function ReceivedDonations() {
         <Text style={styles.totalAmount}>Rs. {total.toFixed(2)}</Text>
       </View>
 
+      {recurringEnabled === false && (
+        <TouchableOpacity
+          style={styles.recurringNotice}
+          onPress={() => router.push("/profile/EditProfile")}
+          activeOpacity={0.8}
+        >
+          <Feather name="repeat" size={20} color="#B45309" />
+          <View style={styles.recurringNoticeContent}>
+            <Text style={styles.recurringNoticeTitle}>Enable recurring donations</Text>
+            <Text style={styles.recurringNoticeText}>
+              To receive cancellable recurring donations, open Edit Profile and add your PayHere API App ID and App Secret.
+            </Text>
+            <Text style={styles.recurringNoticeLink}>Go to Edit Profile →</Text>
+          </View>
+        </TouchableOpacity>
+      )}
+
       {donations.length === 0 ? (
         <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations received yet</Text>
       ) : (
@@ -152,6 +179,11 @@ const styles = StyleSheet.create({
   },
   totalLabel: { fontSize: 16, fontWeight: "600", color: "#333" },
   totalAmount: { fontSize: 20, fontWeight: "bold", color: "#222", marginTop: 5 },
+  recurringNotice: { flexDirection: "row", gap: 10, backgroundColor: "#FFF7E6", borderWidth: 1, borderColor: "#F6DFC0", borderRadius: 12, padding: 13, marginBottom: 18 },
+  recurringNoticeContent: { flex: 1 },
+  recurringNoticeTitle: { color: "#7A4A08", fontSize: 14, fontWeight: "700" },
+  recurringNoticeText: { color: "#705B3E", fontSize: 12, lineHeight: 18, marginTop: 4 },
+  recurringNoticeLink: { color: "#B45309", fontSize: 12, fontWeight: "700", marginTop: 7 },
   card: {
     backgroundColor: "#f9f9f9",
     padding: 15,

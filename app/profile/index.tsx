@@ -236,6 +236,12 @@ export default function ProfileScreen() {
   // To handle saved items (all current files had it empty)
   const savedItems: any[] = [];
 
+  // Helper to determine if a rescue case is completed (includes completed, ready for adoption, closed)
+  const isRescueCompleted = (status?: string) => {
+    const s = (status || "").toLowerCase().trim();
+    return ["completed", "ready for adoption", "ready_for_adoption", "closed", "adopted"].includes(s);
+  };
+
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.header}>
@@ -299,17 +305,17 @@ export default function ProfileScreen() {
               <View>
                 {/* 📌 ACTIVE CASES */}
                 <Text style={styles.subSectionTitle}>Active Cases</Text>
-                {rescues.filter((r: any) => !["completed", "failed"].includes((r.status || "").toLowerCase())).length > 0 ? (
+                {rescues.filter((r: any) => !isRescueCompleted(r.status) && (r.status || "").toLowerCase() !== "failed").length > 0 ? (
                   rescues
-                    .filter((r: any) => !["completed", "failed"].includes((r.status || "").toLowerCase()))
+                    .filter((r: any) => !isRescueCompleted(r.status) && (r.status || "").toLowerCase() !== "failed")
                     .map((rescue: any, index: number) => (
                       <ReportPreviewCard
                         key={rescue.id || rescue._id || `active-${index}`}
-                        title={rescue.title}
-                        date={rescue.date}
+                        title={`${rescue.animalType || "Rescue"} (${rescue.caseId || "Case"})`}
+                        date={rescue.createdAt ? new Date(rescue.createdAt).toLocaleDateString() : (rescue.date || "")}
                         status={rescue.status}
-                        image={rescue.image}
-                        summary={rescue.summary}
+                        image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : (rescue.photoUrl || "https://via.placeholder.com/150")}
+                        summary={rescue.summary || rescue.description}
                         actionText="Update Status"
                         onActionPress={() => openCaseStatusUpdate(rescue.caseId)}
                         onSecondaryActionPress={() => markRescueFailed(rescue)}
@@ -323,20 +329,6 @@ export default function ProfileScreen() {
                             },
                           })
                         }
-                        onTrackPress={() => {
-                          const statusLower = (rescue.status || "").toLowerCase();
-                          if (["pending", "request sent"].includes(statusLower)) {
-                            router.push({
-                              pathname: "/request-status",
-                              params: { caseId: rescue.caseId || rescue.id || rescue._id },
-                            });
-                          } else {
-                            router.push({
-                              pathname: "/rescuer-response/[requestId]",
-                              params: { requestId: rescue.id || rescue._id, caseId: rescue.caseId || rescue.id || rescue._id },
-                            });
-                          }
-                        }}
                       />
                     ))
                 ) : (
@@ -345,17 +337,17 @@ export default function ProfileScreen() {
 
                 {/* 📜 COMPLETED CASES */}
                 <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
-                {rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                {rescues.filter((r: any) => isRescueCompleted(r.status)).length > 0 ? (
                   rescues
-                    .filter((r: any) => (r.status || "").toLowerCase() === "completed")
+                    .filter((r: any) => isRescueCompleted(r.status))
                     .map((rescue: any, index: number) => (
                       <ReportPreviewCard
                         key={rescue.id || rescue._id || `completed-${index}`}
-                        title={rescue.title}
-                        date={rescue.date}
+                        title={`${rescue.animalType || "Rescue"} (${rescue.caseId || "Case"})`}
+                        date={rescue.createdAt ? new Date(rescue.createdAt).toLocaleDateString() : (rescue.date || "")}
                         status={rescue.status}
-                        image={rescue.image}
-                        summary={rescue.summary}
+                        image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : (rescue.photoUrl || "https://via.placeholder.com/150")}
+                        summary={rescue.summary || rescue.description}
                         onPress={() =>
                           router.push({
                             pathname: "/rescuer-response/[requestId]" as any,
@@ -494,7 +486,10 @@ export default function ProfileScreen() {
           role: user?.role,
           status: profile?.status
         }}
-        onAdoptionPress={() => setMenuVisible(false)}
+        onAdoptionPress={() => {
+          setMenuVisible(false);
+          router.push("/adoption-corner/MyPosts");
+        }}
         onMyLostFoundPress={() => {
           setMenuVisible(false);
           router.push("/lost-and-found/MyPosts");

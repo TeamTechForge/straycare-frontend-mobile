@@ -62,7 +62,7 @@ export interface Post {
   category: string;
   customCategory?: string;
   breed: string;
-  age: string;
+  age?: string;
   gender: string;
   name: string;
   status: "Available" | "Pending" | "Adopted";
@@ -74,6 +74,7 @@ export interface Post {
   posterName: string;
   contact: string;
   notes?: string;
+  likes?: string[];
   createdAt: string;
   updatedAt: string;
 }
@@ -82,7 +83,7 @@ export interface CreatePostPayload {
   category: string;
   customCategory?: string;
   breed: string;
-  age: string;
+  age?: string;
   gender: string;
   name: string;
   status: string;
@@ -160,14 +161,6 @@ const uploadSingleImage = async (
 
   const json: any = await response.json();
   return json.url;
-
-
-  if (!response.ok) {
-    throw new Error(`Image ${index + 1} upload failed`);
-  }
-
-  const data = await response.json();
-  return data.secure_url; // https Cloudinary URL
 };
 
 // Upload multiple images, returns array of Cloudinary URLs
@@ -238,5 +231,13 @@ export const deletePost = async (postId: string): Promise<void> => {
 // GET current user's own posts — used in My Posts screen
 export const getMyPosts = async (): Promise<Post[]> => {
   const { data } = await api.get<Post[]>("/my");
+  return data;
+};
+
+// POST toggle like for post
+export const toggleLikePost = async (
+  postId: string
+): Promise<{ liked: boolean; likeCount: number }> => {
+  const { data } = await api.post<{ liked: boolean; likeCount: number }>(`/${postId}/like`);
   return data;
 };

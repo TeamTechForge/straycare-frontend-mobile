@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import React, { useEffect, useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import InputField from '../../components/InputField';
 import PrimaryButton from '../../components/PrimaryButton';
 import SelectField from '../../components/SelectField';
@@ -43,6 +43,7 @@ export default function DonateScreen() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
+  const [showRecurringConfirmation, setShowRecurringConfirmation] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -78,6 +79,8 @@ export default function DonateScreen() {
     label: org.clinicName || org.orgName || org.name,
     value: org._id,
   }));
+  const selectedOrganization = organizations.find((org) => org._id === organization);
+  const recurringAvailable = selectedOrganization?.recurringEnabled === true;
 
   const clearError = (field: keyof FormErrors) => {
     setErrors((prev) => ({ ...prev, [field]: undefined }));
@@ -90,6 +93,9 @@ export default function DonateScreen() {
     if (!organization) nextErrors.organization = "Please select an organization.";
     if (!frequency) nextErrors.frequency = "Please select a donation frequency.";
     if (frequency === 'Recurring' && !plan) nextErrors.plan = "Please select a recurring plan.";
+    if (frequency === 'Recurring' && selectedOrganization && !selectedOrganization.recurringEnabled) {
+      nextErrors.organization = "This organization has not enabled cancellable recurring donations yet.";
+    }
 
     const donationAmount = parseFloat(amount);
     if (!amount) {
@@ -125,14 +131,7 @@ export default function DonateScreen() {
     if (!validate()) return;
 
     if (frequency === 'Recurring') {
-      Alert.alert(
-        'Confirm recurring donation',
-        `Rs. ${parseFloat(amount).toFixed(2)} will be charged ${plan === 'Yearly' ? 'every year' : 'every month'} until the subscription is cancelled.`,
-        [
-          { text: 'Go Back', style: 'cancel' },
-          { text: 'Continue to PayHere', onPress: openSummary },
-        ]
-      );
+      setShowRecurringConfirmation(true);
       return;
     }
 
@@ -146,7 +145,17 @@ export default function DonateScreen() {
   }, [frequency, paymentMethod]);
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+    <KeyboardAvoidingView
+      style={styles.container}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={Platform.OS === 'ios' ? 80 : 0}
+    >
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.content}
+        keyboardShouldPersistTaps="handled"
+        automaticallyAdjustKeyboardInsets
+      >
       <Text style={styles.title}>Donate & Support</Text>
       <Text style={styles.subtitle}>Help Provide Care for Stray Animals</Text>
 
@@ -167,6 +176,11 @@ export default function DonateScreen() {
           setOrganization(val);
           const selected = organizations.find(org => org._id === val);
           setOrganizationName(selected?.clinicName || selected?.orgName || selected?.name || '');
+          if (!selected?.recurringEnabled && frequency === 'Recurring') {
+            setFrequency('One-time');
+            setPlan('');
+            setPaymentMethod('');
+          }
           clearError('organization');
         }}
         options={organizationOptions}
@@ -187,15 +201,29 @@ export default function DonateScreen() {
             </Text>
           </TouchableOpacity>
           <TouchableOpacity
-            style={[styles.toggleSegment, frequency === 'Recurring' && styles.toggleSegmentActive]}
+            style={[
+              styles.toggleSegment,
+              frequency === 'Recurring' && styles.toggleSegmentActive,
+              !recurringAvailable && styles.toggleSegmentDisabled,
+            ]}
             onPress={() => { setFrequency('Recurring'); clearError('frequency'); }}
+            disabled={!recurringAvailable}
             activeOpacity={0.8}
           >
-            <Text style={[styles.toggleText, frequency === 'Recurring' && styles.toggleTextActive]}>
+            <Text style={[
+              styles.toggleText,
+              frequency === 'Recurring' && styles.toggleTextActive,
+              !recurringAvailable && styles.toggleTextDisabled,
+            ]}>
               Recurring
             </Text>
           </TouchableOpacity>
         </View>
+        {organization && !recurringAvailable && (
+          <Text style={styles.recurringUnavailableText}>
+            Recurring donations are not available for this organization yet.
+          </Text>
+        )}
         {errors.frequency && <Text style={styles.errorText}>{errors.frequency}</Text>}
       </View>
 
@@ -235,14 +263,51 @@ export default function DonateScreen() {
         error={errors.paymentMethod}
       />
 
-      <PrimaryButton title="Donate Now" onPress={handleDonate} />
-    </ScrollView>
+        <PrimaryButton title="Donate Now" onPress={handleDonate} />
+      </ScrollView>
+
+      <Modal
+        visible={showRecurringConfirmation}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowRecurringConfirmation(false)}
+      >
+        <Pressable style={styles.modalBackdrop} onPress={() => setShowRecurringConfirmation(false)}>
+          <Pressable style={styles.confirmationCard} onPress={(event) => event.stopPropagation()}>
+            <View style={styles.confirmationIcon}>
+              <Text style={styles.confirmationIconText}>i</Text>
+            </View>
+            <Text style={styles.confirmationTitle}>Confirm recurring donation</Text>
+            <Text style={styles.confirmationMessage}>
+              Rs. {parseFloat(amount || '0').toFixed(2)} will be charged {plan === 'Yearly' ? 'every year' : 'every month'} until the subscription is cancelled.
+            </Text>
+            <View style={styles.confirmationActions}>
+              <TouchableOpacity
+                style={[styles.confirmationButton, styles.backButton]}
+                onPress={() => setShowRecurringConfirmation(false)}
+              >
+                <Text style={styles.backButtonText}>Go Back</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={[styles.confirmationButton, styles.continueButton]}
+                onPress={() => {
+                  setShowRecurringConfirmation(false);
+                  openSummary();
+                }}
+              >
+                <Text style={styles.continueButtonText}>Continue to PayHere</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  content: { padding: 20, paddingTop: 50 },
+  content: { padding: 20, paddingTop: 50, paddingBottom: 120 },
   title: { fontSize: 22, fontWeight: 'bold', marginBottom: 5 },
   subtitle: { fontSize: 16, marginBottom: 20, color: '#555' },
   fieldGroup: { marginVertical: 8 },
@@ -264,6 +329,9 @@ const styles = StyleSheet.create({
   toggleSegmentActive: {
     backgroundColor: '#F5A623',
   },
+  toggleSegmentDisabled: {
+    opacity: 0.45,
+  },
   toggleText: {
     fontSize: 15,
     fontWeight: '500',
@@ -273,5 +341,51 @@ const styles = StyleSheet.create({
     color: '#fff',
     fontWeight: '700',
   },
+  toggleTextDisabled: { color: '#9CA3AF' },
+  recurringUnavailableText: { color: '#7A5A17', fontSize: 11, marginTop: 6 },
+  modalBackdrop: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.48)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  confirmationCard: {
+    width: '100%',
+    maxWidth: 390,
+    backgroundColor: '#fff',
+    borderRadius: 20,
+    padding: 24,
+    alignItems: 'center',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.22,
+    shadowRadius: 14,
+  },
+  confirmationIcon: {
+    width: 58,
+    height: 58,
+    borderRadius: 29,
+    backgroundColor: '#FFF4D6',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  confirmationIconText: { color: '#D97706', fontSize: 32, fontWeight: '700' },
+  confirmationTitle: { color: '#1F2937', fontSize: 20, fontWeight: '700', textAlign: 'center' },
+  confirmationMessage: { color: '#5B6472', fontSize: 15, lineHeight: 22, textAlign: 'center', marginTop: 12 },
+  confirmationActions: { flexDirection: 'row', gap: 12, width: '100%', marginTop: 24 },
+  confirmationButton: {
+    flex: 1,
+    minHeight: 48,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 10,
+  },
+  backButton: { backgroundColor: '#fff', borderWidth: 1, borderColor: '#D1D5DB' },
+  continueButton: { backgroundColor: '#F5A623' },
+  backButtonText: { color: '#4B5563', fontSize: 14, fontWeight: '600', textAlign: 'center' },
+  continueButtonText: { color: '#fff', fontSize: 14, fontWeight: '700', textAlign: 'center' },
 });
 

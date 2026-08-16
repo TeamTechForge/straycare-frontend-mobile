@@ -171,9 +171,9 @@ function InitialLayout() {
           if ((isCaseUpdate || isViewAction) && caseId) {
             handledNotificationIdsRef.current.add(notificationId);
             router.push({ pathname: "/reporting/CaseDetails", params: { caseId } } as never);
-          } else if (title === "New Rescue Request" && requestId) {
+          } else if (title === "New Rescue Request" || title.includes("Rescue Request") || (requestId && !caseId && !isCaseUpdate)) {
+            // For rescue request notifications: show notification only, do nothing when clicked
             handledNotificationIdsRef.current.add(notificationId);
-            router.push({ pathname: "/rescue-details/[id]", params: { id: requestId } } as never);
           } else if ((title.includes("Discussion") || title.includes("Reply")) && caseId) {
             handledNotificationIdsRef.current.add(notificationId);
             router.push({ pathname: "/discussion-thread/[id]", params: { id: caseId } } as never);
@@ -276,9 +276,6 @@ function InitialLayout() {
           // Alert.alert() is a system dialog that cannot be closed by code —
           // this Modal can be hidden instantly when rescue_cancelled fires.
           setRescueNotif({ reqId: String(reqId), reporterName, animalType });
-
-          // Navigate directly to the full details screen
-          router.push(`/rescue-details/${reqId}`);
         }
       } catch (err) {
         console.error("Global active request check failed:", err);
@@ -347,7 +344,6 @@ function InitialLayout() {
             <Text style={overlayStyles.body}>
               {rescueNotif?.reporterName ?? "A reporter"} reported a{" "}
               {rescueNotif?.animalType ?? "stray animal"} needing rescue near your location.
-              {"\n"}Review full details before accepting or rejecting.
             </Text>
             <TouchableOpacity
               style={overlayStyles.btn}
@@ -359,13 +355,6 @@ function InitialLayout() {
               }}
             >
               <Text style={overlayStyles.btnText}>View Case Details</Text>
-            </TouchableOpacity>
-            <TouchableOpacity
-              style={overlayStyles.dismissBtn}
-              activeOpacity={0.7}
-              onPress={() => setRescueNotif(null)}
-            >
-              <Text style={overlayStyles.dismissText}>Dismiss</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -419,19 +408,11 @@ const overlayStyles = StyleSheet.create({
     paddingHorizontal: 32,
     width: "100%",
     alignItems: "center",
-    marginBottom: 10,
   },
   btnText: {
     color: "#fff",
     fontSize: 15,
     fontWeight: "700",
-  },
-  dismissBtn: {
-    paddingVertical: 8,
-  },
-  dismissText: {
-    color: "#888",
-    fontSize: 13,
   },
 });
 

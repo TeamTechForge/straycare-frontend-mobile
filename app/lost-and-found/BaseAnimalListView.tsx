@@ -212,10 +212,6 @@ export default function BaseAnimalListView({
                   onChangeText={setSearch}
                 />
               </View>
-
-              <TouchableOpacity style={styles.tuneBtn}>
-                <MaterialIcons name="tune" size={22} color="#062425" />
-              </TouchableOpacity>
             </View>
 
             <ScrollView
@@ -314,14 +310,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#1a1c1c",
     paddingVertical: 14,
-  },
-  tuneBtn: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: "#f4f3f3",
-    alignItems: "center",
-    justifyContent: "center",
   },
   chipsScroll: {
     marginBottom: 20,

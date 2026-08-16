@@ -147,7 +147,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 25,
     paddingBottom: 4,
   },
   backButton: {
@@ -162,7 +162,7 @@ const styles = StyleSheet.create({
   heroSection: {
     alignItems: "center",
     paddingHorizontal: 32,
-    paddingTop: 24,
+    paddingTop: 10,
     paddingBottom: 32,
   },
   heroTitle: {
