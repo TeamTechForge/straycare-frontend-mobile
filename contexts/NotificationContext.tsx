@@ -11,6 +11,11 @@ export interface Notification {
   read: boolean;
   rescueRequestId?: string;
   caseId?: string;
+  event?: "rescue_accepted" | "case_status_updated" | string;
+  status?: string;
+  animalType?: string;
+  assignedRescuerName?: string;
+  action?: "view_case" | string;
   createdAt: string;
 }
 
@@ -82,12 +87,12 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
     } finally {
       setLoading(false);
     }
-  }, [API_URL]);
+  }, []);
 
   // Add local notification
-  const addNotification = (notification: Notification) => {
+  const addNotification = React.useCallback((notification: Notification) => {
     setNotifications((prev) => [notification, ...prev]);
-  };
+  }, []);
 
   // Mark notification as read
   const markAsRead = async (notificationId: string) => {

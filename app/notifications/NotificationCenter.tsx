@@ -16,15 +16,13 @@ import { useRouter } from "expo-router";
 
 export default function NotificationCenter() {
   const router = useRouter();
-  const { notifications, unreadCount, fetchNotifications, markAsRead, markAllAsRead, loading } =
+  const { notifications, unreadCount, fetchNotifications, markAsRead, loading } =
     useNotification();
   const [refreshing, setRefreshing] = React.useState(false);
 
   useEffect(() => {
-    fetchNotifications().then(() => {
-      markAllAsRead();
-    });
-  }, []);
+    void fetchNotifications();
+  }, [fetchNotifications]);
 
   const handleRefresh = async () => {
     setRefreshing(true);
@@ -90,92 +88,17 @@ export default function NotificationCenter() {
       }
     }
 
-    // If this is a rescue request notification, show accept/reject actions
-    if (item.title === "New Rescue Request" && item.rescueRequestId) {
-      Alert.alert(
-        "New Rescue Request",
-        item.message,
-        [
-          {
-            text: "Reject Request",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                const token = await SecureStore.getItemAsync("authToken");
-                if (!token) return;
-
-                const response = await fetch(`${API_URL}/rescue/request/${item.rescueRequestId}/respond`, {
-                  method: "PATCH",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({ action: "reject" }),
-                });
-
-                if (response.ok) {
-                  Alert.alert("Rejected", "You rejected the rescue request.");
-                  void fetchNotifications();
-                } else {
-                  console.error("[NotificationCenter] Reject request failed:", response.status);
-                }
-              } catch (err) {
-                console.error("[NotificationCenter] Error rejecting request:", err);
-              }
-            }
-          },
-          {
-            text: "Accept Request",
-            onPress: async () => {
-              try {
-                const token = await SecureStore.getItemAsync("authToken");
-                if (!token) return;
-
-                const response = await fetch(`${API_URL}/rescue/request/${item.rescueRequestId}/respond`, {
-                  method: "PATCH",
-                  headers: {
-                    "Content-Type": "application/json",
-                    Authorization: `Bearer ${token}`,
-                  },
-                  body: JSON.stringify({ action: "accept" }),
-                });
-
-                if (response.ok) {
-                  // Navigate to the rescue details screen
-                  router.push({
-                    pathname: "/rescue-details/[id]",
-                    params: { id: item.rescueRequestId },
-                  } as any);
-                } else {
-                  console.error("[NotificationCenter] Accept request failed:", response.status);
-                  Alert.alert("Error", "This request may have expired or was responded to already.");
-                }
-              } catch (err) {
-                console.error("[NotificationCenter] Error accepting request:", err);
-              }
-            }
-          },
-          {
-            text: "View Details",
-            onPress: () => {
-              router.push({
-                pathname: "/rescue-details/[id]",
-                params: { id: item.rescueRequestId },
-              } as any);
-            }
-          },
-          {
-            text: "Cancel",
-            style: "cancel",
-          }
-        ],
-        { cancelable: true }
-      );
-    } else if (item.caseId) {
+    if (item.caseId) {
       router.push({
-        pathname: "/live-tracking/[requestId]",
-        params: { requestId: item.caseId },
+        pathname: "/reporting/CaseDetails",
+        params: { caseId: item.caseId },
       } as any);
+      return;
+    }
+
+    if (item.rescueRequestId) {
+      router.push(`/rescue-details/${item.rescueRequestId}` as any);
+      return;
     }
   };
 
@@ -186,7 +109,8 @@ export default function NotificationCenter() {
         { borderLeftColor: getTypeColor(item.type) },
         !item.read && styles.unreadCard,
       ]}
-      onPress={() => handlePressNotification(item)}
+      onPress={() => void handlePressNotification(item)}
+      activeOpacity={0.7}
     >
       <View style={styles.notificationContent}>
         <View style={styles.titleRow}>
@@ -215,7 +139,7 @@ export default function NotificationCenter() {
       <View style={styles.centerContainer}>
         <Text style={styles.emptyText}>No notifications yet</Text>
         <Text style={styles.emptySubtext}>
-          You'll receive updates about your case status here
+          You{"'"}ll receive updates about your case status here
         </Text>
       </View>
     );

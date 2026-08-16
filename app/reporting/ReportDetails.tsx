@@ -13,11 +13,29 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import axios from "axios";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { API_URL } from "../../constants/config.constants";
-import { colors } from "../../constants/colors.constants";
-import { spacing } from "../../constants/spacing.constants";
-import { typography } from "../../constants/typography.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { getStoredItem } from "../../utils/storage";
+
+const colors = {
+  primary: "#FEB94B",
+  white: "#FFFFFF",
+  background: "#FFFFFF",
+  card: "#F6E3BF",
+  border: "#E0B35A",
+  text: "#111111",
+  error: "#FF3B30",
+};
+
+const typography = {
+  regular: "Inter-Regular",
+  medium: "Inter-Medium",
+  semibold: "Inter-SemiBold",
+  bold: "Inter-Bold",
+  title: 22,
+  section: 18,
+  body: 14,
+  small: 12,
+};
 
 const DEFAULT_PHOTO = "https://images.unsplash.com/photo-1535930749574-1399327ce78f?w=400&h=300&fit=crop&q=80";
 
@@ -265,7 +283,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     backgroundColor: "#F9FAFB",
-    padding: spacing.md,
+    padding: 16,
   },
   loadingText: {
     marginTop: 12,
@@ -295,8 +313,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.md,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
@@ -322,14 +340,14 @@ const styles = StyleSheet.create({
     color: "#111827",
   },
   scrollContent: {
-    padding: spacing.md,
-    gap: spacing.md,
+    padding: 16,
+    gap: 16,
     paddingBottom: 40,
   },
   statusBanner: {
     backgroundColor: "#FFF1CC",
     borderRadius: 16,
-    padding: spacing.md,
+    padding: 16,
     borderWidth: 1,
     borderColor: "#F5A623",
     flexDirection: "row",
@@ -355,7 +373,7 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: "#FFFFFF",
     borderRadius: 16,
-    padding: spacing.md,
+    padding: 16,
     borderWidth: 1,
     borderColor: "#E5E7EB",
     shadowColor: "#000",

@@ -455,6 +455,8 @@ export default function ChatRoomScreen() {
             onTitlePress={() => {
               if (recipientId === "deleted") {
                 Alert.alert("Account Deleted", "This user's profile is no longer available because they have deleted their account.");
+              } else if (recipientName?.includes("Case Chat")) {
+                Alert.alert("Anonymous Case", "This is an anonymous case. The reporter's profile is hidden for privacy.");
               } else if (recipientId) {
                 router.push(`/profile/${recipientId}`);
               }

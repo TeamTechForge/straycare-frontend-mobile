@@ -227,9 +227,12 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       await webrtcService.setupLocalStream();
       webrtcService.createPeerConnection();
       
+      const receiverOverride = calleeName.includes("Case Chat") ? calleeName : undefined;
+      
       socketRef.current.emit(CallEvents.START, {
         caller: { userId: user._id, name: user.name },
         calleeId,
+        receiverNameOverride: receiverOverride,
       });
       
       callAudioService.playOutgoing();

@@ -5,3 +5,6 @@ export const spacing = {
   lg: 20,
   xl: 28,
 };
+
+export default spacing;
+
