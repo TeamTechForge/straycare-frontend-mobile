@@ -38,6 +38,7 @@ const C = {
 interface CommunityPostCardProps {
   post: CommunityPost;
   onLike: (post: CommunityPost) => void | Promise<void>;
+  onSave: (post: CommunityPost) => void | Promise<void>;
   onReport: (
     postId: string,
     reason: string
@@ -68,7 +69,7 @@ function formatDate(dateStr?: string): string {
 
 const CommunityPostCard: React.FC<
   CommunityPostCardProps
-> = ({ post, onLike, onReport }) => {
+> = ({ post, onLike, onSave, onReport }) => {
   const router = useRouter();
 
   // Report modal visibility
@@ -230,7 +231,15 @@ const CommunityPostCard: React.FC<
               <Text style={styles.actionCount}>{post.commentCount || 0}</Text>
             </TouchableOpacity>
             <View style={styles.actionSpacer} />
-            <Ionicons name={post.isSaved ? "bookmark" : "bookmark-outline"} size={21} color={post.isSaved ? C.primary : C.outline} />
+            <TouchableOpacity
+              hitSlop={8}
+              onPress={(event) => {
+                event.stopPropagation();
+                void onSave(post);
+              }}
+            >
+              <Ionicons name={post.isSaved ? "bookmark" : "bookmark-outline"} size={21} color={post.isSaved ? C.primary : C.outline} />
+            </TouchableOpacity>
           </View>
         </View>
       </TouchableOpacity>

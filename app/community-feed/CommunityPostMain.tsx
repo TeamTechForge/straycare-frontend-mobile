@@ -28,8 +28,10 @@ import {
   CommunityPost,
   getCommunityFeed,
   likeCommunityPost,
+  saveCommunityPost,
   reportCommunityPost,
   unlikeCommunityPost,
+  unsaveCommunityPost,
 } from "../../services/communityService";
 
 // ─────────────────────────────────────────────
@@ -92,6 +94,7 @@ export default function CommunityPostMain() {
     useState(false);
 
   const pendingLikeIds = useRef(new Set<string>());
+  const pendingSaveIds = useRef(new Set<string>());
 
   // ─────────────────────────────────────────────
   // FETCH POSTS
@@ -166,6 +169,36 @@ export default function CommunityPostMain() {
       Alert.alert("Unable to update like", "Please try again.");
     } finally {
       pendingLikeIds.current.delete(post._id);
+    }
+  };
+
+  // ─────────────────────────────────────────────
+  // SAVE / UNSAVE POST
+  // ─────────────────────────────────────────────
+
+  const handleSavePost = async (post: CommunityPost) => {
+    if (pendingSaveIds.current.has(post._id)) return;
+    const nextIsSaved = !post.isSaved;
+    pendingSaveIds.current.add(post._id);
+    setPosts((current) => current.map((item) =>
+      item._id === post._id ? { ...item, isSaved: nextIsSaved } : item
+    ));
+
+    try {
+      const state = nextIsSaved
+        ? await saveCommunityPost(post._id)
+        : await unsaveCommunityPost(post._id);
+      setPosts((current) => current.map((item) =>
+        item._id === post._id ? { ...item, isSaved: state.isSaved } : item
+      ));
+    } catch (saveError) {
+      setPosts((current) => current.map((item) =>
+        item._id === post._id ? { ...item, isSaved: post.isSaved } : item
+      ));
+      console.error("Community save error:", saveError);
+      Alert.alert("Unable to update saved post", "Please try again.");
+    } finally {
+      pendingSaveIds.current.delete(post._id);
     }
   };
 
@@ -551,6 +584,7 @@ export default function CommunityPostMain() {
                 key={post._id}
                 post={post}
                 onLike={handleLikePost}
+                onSave={handleSavePost}
                 onReport={
                   handleReportPost
                 }

@@ -87,6 +87,11 @@ export interface CommunityCommentsResponse {
     commentCount: number;
 }
 
+export interface CommunitySaveState {
+    postId: string;
+    isSaved: boolean;
+}
+
 // ─── Create Community Post ────────────────────────────────────────────────────
 
 export const createCommunityPost = async (
@@ -150,6 +155,19 @@ export const getCommunityPost = async (
     return body && body.data ? body.data : body;
 };
 
+const unwrapPostList = (body: any): CommunityPost[] =>
+    Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : []);
+
+export const getMyCommunityPosts = async (): Promise<CommunityPost[]> => {
+    const response = await api.get<any>("/api/community/mine");
+    return unwrapPostList(response.data);
+};
+
+export const getSavedCommunityPosts = async (): Promise<CommunityPost[]> => {
+    const response = await api.get<any>("/api/community/saved");
+    return unwrapPostList(response.data);
+};
+
 export const likeCommunityPost = async (id: string): Promise<CommunityLikeState> => {
     const response = await api.post<any>(`/api/community/${id}/like`);
     return response.data?.data ?? response.data;
@@ -157,6 +175,16 @@ export const likeCommunityPost = async (id: string): Promise<CommunityLikeState>
 
 export const unlikeCommunityPost = async (id: string): Promise<CommunityLikeState> => {
     const response = await api.delete<any>(`/api/community/${id}/like`);
+    return response.data?.data ?? response.data;
+};
+
+export const saveCommunityPost = async (id: string): Promise<CommunitySaveState> => {
+    const response = await api.post<any>(`/api/community/${id}/save`);
+    return response.data?.data ?? response.data;
+};
+
+export const unsaveCommunityPost = async (id: string): Promise<CommunitySaveState> => {
+    const response = await api.delete<any>(`/api/community/${id}/save`);
     return response.data?.data ?? response.data;
 };
 

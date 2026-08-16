@@ -1,7 +1,8 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_URL } from "../../constants/config.constants";
@@ -16,6 +17,7 @@ import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
 import SavedPreviewCard from "../../components/profile/SavedPreviewCard";
 import { useAuth } from "../../contexts/AuthContext";
 import { getCaseStatusUpdateRoute } from "../../utils/profileRoutes";
+import { CommunityPost, getMyCommunityPosts, getSavedCommunityPosts } from "../../services/communityService";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -27,7 +29,8 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [rescues, setRescues] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [savedItems, setSavedItems] = useState<CommunityPost[]>([]);
   const [totalDonations, setTotalDonations] = useState(0);
   const [loading, setLoading] = useState(true);
 
@@ -35,7 +38,7 @@ export default function ProfileScreen() {
 
   const [totalReportsCount, setTotalReportsCount] = useState<number | null>(null);
   const [totalPostsCount, setTotalPostsCount] = useState<number | null>(null);
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
@@ -90,13 +93,13 @@ export default function ProfileScreen() {
           setReports(reportsData);
         }
 
-        const postsRes = await fetch(`${API_URL}/users/${userId}/posts`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        if (postsRes.ok) {
-          const postsData = (await postsRes.json()) as any;
-          setPosts(postsData);
-        }
+        const [postsData, savedPostsData] = await Promise.all([
+          getMyCommunityPosts(),
+          getSavedCommunityPosts(),
+        ]);
+        setPosts(postsData);
+        setSavedItems(savedPostsData);
+        setTotalPostsCount(postsData.length);
 
         // Fetch user stats (includes all reports and posts including anonymous)
         const publicProfRes = await fetch(`${API_URL}/users/${userId}/public-profile`, {
@@ -107,9 +110,6 @@ export default function ProfileScreen() {
           if (publicProfData?.stats?.reportsCount !== undefined) {
             setTotalReportsCount(publicProfData.stats.reportsCount);
           }
-          if (publicProfData?.stats?.postsCount !== undefined) {
-            setTotalPostsCount(publicProfData.stats.postsCount);
-          }
         }
       }
     } catch (error) {
@@ -118,11 +118,13 @@ export default function ProfileScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [router]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      void fetchData();
+    }, [fetchData])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -186,18 +188,14 @@ export default function ProfileScreen() {
     cover: require("../../assets/images/default-avatar.jpg"),
   };
 
-  const isNgoOrVet = isNgo || isVet;
   const isRescueRole = !isGeneralUser;
 
   const tabOptions: TabItem[] = [
-    { key: "posts", label: "Posts" },
+    { key: "posts", label: "My Posts" },
     ...(isRescueRole ? [{ key: "rescues" as TabKey, label: "Rescue Cases" }] : []),
     { key: "reports", label: "Reports" },
-    { key: "saved", label: "Saved" },
+    { key: "saved", label: "Saved Posts" },
   ];
-  
-  // To handle saved items (all current files had it empty)
-  const savedItems: any[] = [];
 
   return (
     <SafeAreaView style={styles.container}>
@@ -238,14 +236,15 @@ export default function ProfileScreen() {
         <View style={styles.sectionContent}>
           {activeTab === "posts" && (
             posts.length > 0 ? (
-              posts.map((post: any) => (
+              posts.map((post) => (
                 <PostPreviewCard
-                  key={post.id || post._id}
-                  image={post.image}
-                  likes={post.likes}
-                  comments={post.comments}
-                  time={post.time}
-                  onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: post.id || post._id } })}
+                  key={post._id}
+                  title={post.title || "Untitled"}
+                  image={post.imageUrl || undefined}
+                  likes={post.likeCount}
+                  comments={post.commentCount}
+                  time={post.date || post.createdAt || ""}
+                  onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: post._id } })}
                 />
               ))
             ) : (
@@ -426,12 +425,11 @@ export default function ProfileScreen() {
               <View style={styles.savedGrid}>
                 {savedItems.map((item) => (
                   <SavedPreviewCard
-                    key={item.id}
-                    title={item.title}
-                    subtitle={item.subtitle}
-                    location={item.location}
-                    image={item.image}
-                    onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: item.id || (item as any)._id } })}
+                    key={item._id}
+                    title={item.title || "Untitled"}
+                    subtitle={item.category || "Community"}
+                    image={item.imageUrl || undefined}
+                    onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: item._id } })}
                   />
                 ))}
               </View>
@@ -523,6 +521,8 @@ const styles = StyleSheet.create({
   savedGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 12,
   },
   modalBackground: {
     flex: 1,
