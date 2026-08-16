@@ -25,12 +25,13 @@ jest.mock("../../contexts/NotificationContext", () => ({
       {
         _id: "notification-2",
         userId: "user-1",
-        title: "New Rescue Request",
-        message: "A new rescue request for a dog is near you.",
-        type: "info",
+        title: "New post comment",
+        message: "Alex commented on your post: Helpful update",
+        type: "post_comment",
         read: false,
-        rescueRequestId: "req-123",
-        createdAt: "2026-08-15T00:00:00.000Z",
+        postId: "post-123",
+        event: "post_comment",
+        createdAt: "2026-08-16T00:00:00.000Z",
       },
     ],
     unreadCount: 2,
@@ -59,12 +60,15 @@ describe("NotificationCenter", () => {
     });
   });
 
-  it("routes rescue request notification to rescue details directly when clicked without needing a View Case button", async () => {
+  it("routes Community comment notifications to the post comments page", async () => {
     const screen = render(<NotificationCenter />);
-    expect(screen.queryByText("View Case")).toBeNull();
-    fireEvent.press(screen.getByText("New Rescue Request"));
+    fireEvent.press(screen.getByText("New post comment"));
+
     expect(mockMarkAsRead).toHaveBeenCalledWith("notification-2");
     await Promise.resolve();
-    expect(mockPush).toHaveBeenCalledWith("/rescue-details/req-123");
+    expect(mockPush).toHaveBeenCalledWith({
+      pathname: "/community-feed/CommunityPostComments",
+      params: { id: "post-123" },
+    });
   });
 });

@@ -12,6 +12,11 @@ const easProjectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || appJson.expo?.ext
 module.exports = {
   expo: {
     ...(appJson.expo || {}),
+    updates: {
+      enabled: false,
+      checkAutomatically: "NEVER",
+      fallbackToCacheTimeout: 0,
+    },
     plugins: [
       ...existingPlugins.filter(
         (p) => p !== '@react-native-community/datetimepicker' &&

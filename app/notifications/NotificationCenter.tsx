@@ -69,6 +69,14 @@ export default function NotificationCenter() {
     // Mark as read
     await markAsRead(item._id);
 
+    if (item.event === "post_comment" && item.postId) {
+      router.push({
+        pathname: "/community-feed/CommunityPostComments",
+        params: { id: item.postId },
+      });
+      return;
+    }
+
     // If notification is for a discussion thread reply or new discussion
     if (
       (item.title && (item.title.includes("Discussion") || item.title.includes("Reply"))) ||

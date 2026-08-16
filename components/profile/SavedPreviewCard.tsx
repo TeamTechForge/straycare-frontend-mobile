@@ -6,34 +6,32 @@ const BRAND_COLOR = "#F5A623";
 type Props = {
   title: string;
   subtitle: string;
-  location: string;
-  image: string;
+  image?: string;
   onPress?: () => void;
 };
 
 export default function SavedPreviewCard({
   title,
   subtitle,
-  location,
   image,
   onPress,
 }: Props) {
   return (
     <TouchableOpacity style={styles.savedCard} onPress={onPress} activeOpacity={0.8}>
       <View>
-        <Image source={{ uri: image }} style={styles.savedImage} />
-        <TouchableOpacity style={styles.savedBookmark}>
+        {image ? <Image source={{ uri: image }} style={styles.savedImage} /> : (
+          <View style={styles.savedImagePlaceholder}>
+            <Ionicons name="document-text-outline" size={28} color={BRAND_COLOR} />
+          </View>
+        )}
+        <View style={styles.savedBookmark}>
           <Ionicons name="bookmark" size={12} color={BRAND_COLOR} />
-        </TouchableOpacity>
+        </View>
       </View>
 
       <Text style={styles.savedTag}>{subtitle.toUpperCase()}</Text>
       <Text style={styles.savedTitle}>{title}</Text>
 
-      <View style={styles.savedLocationRow}>
-        <Ionicons name="location-outline" size={11} color="#888" />
-        <Text style={styles.savedLocation}>{location}</Text>
-      </View>
     </TouchableOpacity>
   );
 }
@@ -51,6 +49,13 @@ const styles = StyleSheet.create({
   savedImage: {
     width: "100%",
     height: 120,
+  },
+  savedImagePlaceholder: {
+    width: "100%",
+    height: 120,
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#FFF8EA",
   },
   savedBookmark: {
     position: "absolute",
@@ -76,16 +81,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#222",
-  },
-  savedLocationRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 3,
-    marginTop: 4,
-    marginHorizontal: 10,
-  },
-  savedLocation: {
-    fontSize: 10,
-    color: "#888",
   },
 });
