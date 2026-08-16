@@ -1,4 +1,4 @@
-import { MaterialIcons } from "@expo/vector-icons";
+import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useCallback, useEffect, useState } from "react";
 import {
@@ -12,11 +12,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { getAllPosts, Post } from "@/services/adoptionService";
+import { getAllPosts, Post, toggleLikePost } from "../../services/adoptionService";
+import { useAuth } from "../../contexts/AuthContext";
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
 
-const FILTERS = ["All", "Dogs", "Cats", "Rabbits", "Birds"];
+const FILTERS = ["All", "Favorites", "Dogs", "Cats", "Rabbits", "Birds"];
 
 // ─── Pet Card ─────────────────────────────────────────────────────────────────
 
@@ -52,16 +53,22 @@ function PetCard({
           <MaterialIcons
             name={item.liked ? "favorite" : "favorite-border"}
             size={18}
-            color={item.liked ? "#ba1a1a" : "#131d21"}
+            color={item.liked ? "#e63946" : "#062425"}
           />
         </TouchableOpacity>
       </View>
       <View style={styles.cardInfo}>
-        <Text style={styles.cardName} numberOfLines={1}>{item.name}</Text>
-        <Text style={styles.cardBreed} numberOfLines={1}>{item.breed}</Text>
+        <Text style={styles.cardName} numberOfLines={1}>
+          {item.name}
+        </Text>
+        <Text style={styles.cardBreed} numberOfLines={1}>
+          {item.breed}
+        </Text>
         <View style={styles.cardLocation}>
-          <MaterialIcons name="location-on" size={13} color="#5c5f60" />
-          <Text style={styles.cardLocationText} numberOfLines={1}>{item.location}</Text>
+          <MaterialIcons name="location-on" size={13} color="#717878" />
+          <Text style={styles.cardLocationText} numberOfLines={1}>
+            {item.location}
+          </Text>
         </View>
       </View>
     </TouchableOpacity>
@@ -72,6 +79,7 @@ function PetCard({
 
 export default function AdoptionPostMain() {
   const router = useRouter();
+  const { user } = useAuth();
 
   const [posts, setPosts] = useState<(Post & { liked: boolean })[]>([]);
   const [loading, setLoading] = useState(true);
@@ -86,25 +94,43 @@ export default function AdoptionPostMain() {
       setLoading(true);
       setError(null);
       const data = await getAllPosts();
-      // add local liked state to each post
-      setPosts(data.map((p) => ({ ...p, liked: false })));
+      // add persistent liked state based on logged in user's ID
+      setPosts(
+        data.map((p) => ({
+          ...p,
+          liked: !!(user?._id && p.likes?.some((id: any) => String(id) === String(user._id))),
+        }))
+      );
     } catch {
       setError("Could not load posts. Check your connection.");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [user?._id]);
 
   useEffect(() => {
     fetchPosts();
   }, [fetchPosts]);
 
-  // ── Like toggle (local only — wire to API later if needed) ────────────────
+  // ── Persistent Like Toggle ────────────────────────────────────────────────
 
-  const handleToggleLike = (id: string) => {
+  const handleToggleLike = async (id: string) => {
+    // Optimistic UI update
     setPosts((prev) =>
       prev.map((p) => (p._id === id ? { ...p, liked: !p.liked } : p))
     );
+
+    try {
+      const res = await toggleLikePost(id);
+      setPosts((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, liked: res.liked } : p))
+      );
+    } catch (_err) {
+      // Revert optimistic update on failure
+      setPosts((prev) =>
+        prev.map((p) => (p._id === id ? { ...p, liked: !p.liked } : p))
+      );
+    }
   };
 
   // ── Navigate to detail screen with real postId ────────────────────────────
@@ -124,17 +150,20 @@ export default function AdoptionPostMain() {
 
     const matchesFilter =
       activeFilter === "All" ||
+      (activeFilter === "Favorites" && post.liked) ||
       (activeFilter === "Dogs" && (post.category === "Dog" || post.category === "Dogs")) ||
       (activeFilter === "Cats" && (post.category === "Cat" || post.category === "Cats")) ||
       (activeFilter === "Rabbits" &&
         (post.category === "Other" &&
           (post.breed.toLowerCase().includes("rabbit") ||
-           (post.customCategory && post.customCategory.toLowerCase().includes("rabbit"))))) ||
+            (post.customCategory && post.customCategory.toLowerCase().includes("rabbit"))))) ||
       (activeFilter === "Birds" &&
         (post.category === "Other" &&
           (post.breed.toLowerCase().includes("parrot") ||
-           post.breed.toLowerCase().includes("bird") ||
-           (post.customCategory && (post.customCategory.toLowerCase().includes("bird") || post.customCategory.toLowerCase().includes("parrot"))))));
+            post.breed.toLowerCase().includes("bird") ||
+            (post.customCategory &&
+              (post.customCategory.toLowerCase().includes("bird") ||
+                post.customCategory.toLowerCase().includes("parrot"))))));
 
     return matchesSearch && matchesFilter;
   });
@@ -144,7 +173,7 @@ export default function AdoptionPostMain() {
   if (loading) {
     return (
       <View style={styles.centeredState}>
-        <ActivityIndicator size="large" color="#785a00" />
+        <ActivityIndicator size="large" color="#FEB94B" />
         <Text style={styles.loadingText}>Loading pets...</Text>
       </View>
     );
@@ -155,9 +184,9 @@ export default function AdoptionPostMain() {
   if (error) {
     return (
       <View style={styles.centeredState}>
-        <MaterialIcons name="wifi-off" size={48} color="#d2c5af" />
+        <MaterialIcons name="wifi-off" size={48} color="#717878" />
         <Text style={styles.emptyText}>{error}</Text>
-        <TouchableOpacity style={styles.retryBtn} onPress={fetchPosts}>
+        <TouchableOpacity style={styles.retryBtn} onPress={fetchPosts} activeOpacity={0.8}>
           <Text style={styles.retryText}>Retry</Text>
         </TouchableOpacity>
       </View>
@@ -171,47 +200,73 @@ export default function AdoptionPostMain() {
       {/* ── Header ── */}
       <View style={styles.header}>
         <TouchableOpacity
-          style={styles.backBtn}
+          style={styles.iconBtn}
           onPress={() => router.back()}
           activeOpacity={0.8}
         >
-          <MaterialIcons name="arrow-back" size={24} color="#785a00" />
+          <Ionicons name="arrow-back" size={22} color="#062425" />
         </TouchableOpacity>
+
         <Text style={styles.headerTitle}>Adoption Corner</Text>
+
+        {/* Top Create Adoption Post Action */}
+        <TouchableOpacity
+          style={styles.iconBtn}
+          onPress={() => router.push("/adoption-corner/CreateAdoptionPost")}
+          activeOpacity={0.8}
+        >
+          <Ionicons name="add" size={24} color="#062425" />
+        </TouchableOpacity>
       </View>
 
       {/* ── Search Bar ── */}
-      <View style={styles.searchWrapper}>
-        <View style={styles.searchBar}>
-          <MaterialIcons name="search" size={20} color="#807663" style={styles.searchIcon} />
+      <View style={styles.searchRow}>
+        <View style={styles.searchInputWrap}>
+          <MaterialIcons
+            name="search"
+            size={20}
+            color="#717878"
+            style={styles.searchIcon}
+          />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search anything"
-            placeholderTextColor="#b0a895"
+            placeholder="Search by breed or name..."
+            placeholderTextColor="#717878"
             value={search}
             onChangeText={setSearch}
           />
-          <TouchableOpacity style={styles.filterIconBtn} activeOpacity={0.8}>
-            <MaterialIcons name="tune" size={20} color="#131d21" />
-          </TouchableOpacity>
         </View>
       </View>
 
       {/* ── Filter Chips ── */}
-      <View style={styles.filtersWrapper}>
+      <View style={styles.chipsScrollWrapper}>
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.filtersContent}
+          style={styles.chipsScroll}
+          contentContainerStyle={styles.chipsContent}
         >
           {FILTERS.map((f) => (
             <TouchableOpacity
               key={f}
-              style={[styles.filterChip, activeFilter === f && styles.filterChipActive]}
+              style={[styles.chip, activeFilter === f && styles.chipActive]}
               onPress={() => setActiveFilter(f)}
               activeOpacity={0.8}
             >
-              <Text style={[styles.filterText, activeFilter === f && styles.filterTextActive]}>
+              {f === "Favorites" && (
+                <MaterialIcons
+                  name={activeFilter === f ? "favorite" : "favorite-border"}
+                  size={14}
+                  color={activeFilter === f ? "#fff" : "#D48806"}
+                  style={{ marginRight: 4 }}
+                />
+              )}
+              <Text
+                style={[
+                  styles.chipText,
+                  activeFilter === f && styles.chipTextActive,
+                ]}
+              >
                 {f}
               </Text>
             </TouchableOpacity>
@@ -231,9 +286,19 @@ export default function AdoptionPostMain() {
         refreshing={loading}
         ListEmptyComponent={
           <View style={styles.emptyState}>
-            <MaterialIcons name="pets" size={48} color="#d2c5af" />
-            <Text style={styles.emptyText}>No pets found</Text>
-            <Text style={styles.emptySubtext}>Try adjusting your search or filters</Text>
+            <MaterialIcons
+              name={activeFilter === "Favorites" ? "favorite-border" : "pets"}
+              size={48}
+              color="#717878"
+            />
+            <Text style={styles.emptyText}>
+              {activeFilter === "Favorites" ? "No favorite pets yet" : "No pets found"}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {activeFilter === "Favorites"
+                ? "Tap the heart on any pet card to add them to your favorites"
+                : "Try adjusting your search or filters"}
+            </Text>
           </View>
         }
         renderItem={({ item }) => (
@@ -246,15 +311,6 @@ export default function AdoptionPostMain() {
           </View>
         )}
       />
-
-      {/* ── FAB: Add Post ── */}
-      <TouchableOpacity
-        style={styles.fab}
-        onPress={() => router.push("/adoption-corner/CreateAdoptionPost")}
-        activeOpacity={0.85}
-      >
-        <MaterialIcons name="add" size={28} color="#fff" />
-      </TouchableOpacity>
     </View>
   );
 }
@@ -264,7 +320,7 @@ export default function AdoptionPostMain() {
 const styles = StyleSheet.create({
   screen: {
     flex: 1,
-    backgroundColor: "#f1fbff",
+    backgroundColor: "#faf9f8",
   },
 
   // Centered states (loading / error)
@@ -272,12 +328,12 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#f1fbff",
+    backgroundColor: "#faf9f8",
     gap: 12,
   },
   loadingText: {
     fontSize: 14,
-    color: "#807663",
+    color: "#717878",
     marginTop: 8,
   },
   retryBtn: {
@@ -285,7 +341,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 28,
     paddingVertical: 12,
     borderRadius: 24,
-    backgroundColor: "#785a00",
+    backgroundColor: "#F5A623",
   },
   retryText: {
     color: "#fff",
@@ -297,104 +353,90 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 14,
-    paddingTop: 30,
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingTop: 52,
     paddingBottom: 12,
-    backgroundColor: "#f1fbff",
-    borderBottomWidth: 1,
-    borderBottomColor: "#e4f0f4",
+    backgroundColor: "#faf9f8",
   },
-  backBtn: {
+  iconBtn: {
     width: 40,
     height: 40,
     borderRadius: 20,
+    backgroundColor: "#f4f3f3",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#eaf5fa",
   },
   headerTitle: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#785a00",
+    color: "#062425",
     letterSpacing: -0.3,
-    marginLeft: 70,
   },
 
   // Search
-  searchWrapper: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 8,
-    backgroundColor: "#f1fbff",
-  },
-  searchBar: {
+  searchRow: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#fff",
-    borderRadius: 30,
-    height: 48,
-    paddingHorizontal: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.06,
-    shadowRadius: 4,
-    elevation: 2,
+    gap: 10,
+    paddingHorizontal: 20,
+    paddingTop: 8,
+    marginBottom: 16,
   },
-  searchIcon: { marginLeft: 14, marginRight: 4 },
+  searchInputWrap: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f4f3f3",
+    borderRadius: 14,
+    paddingHorizontal: 14,
+  },
+  searchIcon: {
+    marginRight: 8,
+  },
   searchInput: {
     flex: 1,
     fontSize: 14,
-    color: "#131d21",
-    height: "100%",
-    paddingHorizontal: 4,
-  },
-  filterIconBtn: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    alignItems: "center",
-    justifyContent: "center",
-    marginRight: 4,
+    color: "#1a1c1c",
+    paddingVertical: 14,
   },
 
-  // Filters
-  filtersWrapper: {
-    backgroundColor: "#f1fbff",
-    paddingBottom: 8,
+  // Filter Chips
+  chipsScrollWrapper: {
+    marginBottom: 16,
   },
-  filtersContent: {
-    paddingHorizontal: 16,
+  chipsScroll: {
+    flexGrow: 0,
+  },
+  chipsContent: {
     gap: 8,
-    flexDirection: "row",
-  },
-  filterChip: {
-    paddingVertical: 8,
     paddingHorizontal: 20,
-    borderRadius: 30,
-    backgroundColor: "#fff",
-    borderWidth: 1,
-    borderColor: "#d2c5af",
   },
-  filterChipActive: {
-    backgroundColor: "#f9c74f",
-    borderColor: "#f9c74f",
+  chip: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    borderRadius: 999,
+    backgroundColor: "#FFF7E6",
   },
-  filterText: {
-    fontSize: 13,
+  chipActive: {
+    backgroundColor: "#F5A623",
+  },
+  chipText: {
+    color: "#D48806",
     fontWeight: "600",
-    color: "#4e4635",
+    fontSize: 13,
   },
-  filterTextActive: {
-    color: "#785a00",
-    fontWeight: "700",
+  chipTextActive: {
+    color: "#fff",
   },
 
   // Grid
   gridContent: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 16,
     paddingTop: 4,
-    paddingBottom: 100,
+    paddingBottom: 32,
   },
   gridRow: {
     justifyContent: "space-between",
@@ -407,18 +449,18 @@ const styles = StyleSheet.create({
   // Card
   card: {
     backgroundColor: "#fff",
-    borderRadius: 14,
+    borderRadius: 18,
     overflow: "hidden",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
+    shadowColor: "#1e3a3a",
+    shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+    shadowRadius: 12,
+    elevation: 3,
   },
   cardImageWrapper: {
     width: "100%",
     aspectRatio: 1,
-    backgroundColor: "#e4f0f4",
+    backgroundColor: "#f4f3f3",
     position: "relative",
   },
   cardImage: {
@@ -432,33 +474,33 @@ const styles = StyleSheet.create({
     width: 32,
     height: 32,
     borderRadius: 16,
-    backgroundColor: "rgba(241,251,255,0.75)",
+    backgroundColor: "rgba(255,255,255,0.85)",
     alignItems: "center",
     justifyContent: "center",
   },
   cardInfo: {
-    padding: 10,
-    gap: 3,
+    padding: 12,
+    gap: 4,
   },
   cardName: {
     fontSize: 15,
     fontWeight: "700",
-    color: "#131d21",
+    color: "#062425",
   },
   cardBreed: {
     fontSize: 13,
-    color: "#4e4635",
+    color: "#414848",
     fontWeight: "400",
   },
   cardLocation: {
     flexDirection: "row",
     alignItems: "center",
     gap: 2,
-    marginTop: 3,
+    marginTop: 2,
   },
   cardLocationText: {
     fontSize: 12,
-    color: "#5c5f60",
+    color: "#717878",
     fontWeight: "500",
     flex: 1,
   },
@@ -473,29 +515,11 @@ const styles = StyleSheet.create({
   emptyText: {
     fontSize: 16,
     fontWeight: "700",
-    color: "#807663",
+    color: "#062425",
   },
   emptySubtext: {
     fontSize: 13,
-    color: "#b0a895",
+    color: "#717878",
     textAlign: "center",
-  },
-
-  // FAB
-  fab: {
-    position: "absolute",
-    bottom: 28,
-    right: 20,
-    width: 56,
-    height: 56,
-    borderRadius: 18,
-    backgroundColor: "#785a00",
-    alignItems: "center",
-    justifyContent: "center",
-    shadowColor: "#785a00",
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    elevation: 8,
   },
 });

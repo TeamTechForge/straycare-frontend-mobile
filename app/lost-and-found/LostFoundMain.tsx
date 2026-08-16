@@ -158,7 +158,7 @@ const styles = StyleSheet.create({
   heroSection: {
     alignItems: "center",
     paddingHorizontal: 32,
-    paddingTop: 8,
+    paddingTop: 2,
     paddingBottom: 24,
   },
   heroTitle: {
