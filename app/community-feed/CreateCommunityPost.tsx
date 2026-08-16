@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { createCommunityPost } from "../../services/communityService";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 import { colors } from "../../constants/colors.constants";
 
 // ── Category options ─────────────────────────────────────────────────────────
@@ -157,12 +158,7 @@ export default function CreateCommunityPost() {
     <View style={styles.container}>
       {/* ── Header ── */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Ionicons name="chevron-back" size={24} color="#1f2937" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Create Community Post</Text>
         <View style={styles.headerSpacer} />
       </View>

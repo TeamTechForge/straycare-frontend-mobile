@@ -13,6 +13,7 @@ import {
   TouchableOpacity, 
   View 
 } from "react-native";
+import BackButton from "../../components/BackButton";
 import { Picker } from "@react-native-picker/picker";
 
 import InputField from "../../components/InputField";
@@ -156,11 +157,9 @@ export default function ContactSupportScreen() {
       <ScrollView style={styles.container} contentContainerStyle={styles.content}>
         {/* Header */}
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={24} color="#000" />
-          </TouchableOpacity>
+          <BackButton onPress={() => router.back()} />
           <Text style={styles.headerTitle}>Contact Support</Text>
-          <View style={{ width: 24 }} />
+          <View style={{ width: 40 }} />
         </View>
 
         {/* Title */}

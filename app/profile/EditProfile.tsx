@@ -13,6 +13,7 @@ import FileUploadField from "../../components/FileUploadField";
 import { API_URL } from "../../constants/config.constants";
 import { SafeAreaView } from "react-native-safe-area-context";
 import ImageViewer from "../../components/ui/ImageViewer";
+import BackButton from "../../components/BackButton";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -324,9 +325,7 @@ export default function EditProfileScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.header}>
-          <TouchableOpacity onPress={() => router.back()}>
-            <Ionicons name="arrow-back" size={22} color="#222" />
-          </TouchableOpacity>
+          <BackButton onPress={() => router.back()} />
           <Text style={styles.headerTitle}>Edit {roleTitle} Profile</Text>
           <View style={styles.headerSpacer} />
         </View>

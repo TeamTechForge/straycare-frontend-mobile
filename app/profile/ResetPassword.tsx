@@ -7,6 +7,7 @@ import * as SecureStore from "expo-secure-store";
 import { API_URL } from "../../constants/config.constants";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -101,11 +102,9 @@ export default function ResetPasswordScreen() {
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#222" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Change Password</Text>
-        <View style={{ width: 22 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <View style={styles.iconCircle}>

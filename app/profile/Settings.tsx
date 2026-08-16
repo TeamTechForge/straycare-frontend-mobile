@@ -6,6 +6,7 @@ import * as SecureStore from "expo-secure-store";
 import { API_URL } from "../../constants/config.constants";
 
 import SettingsRow from "../../components/settings/SettingsRow";
+import BackButton from "../../components/BackButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { pushNotificationService } from "../../services/pushNotificationService";
 
@@ -87,11 +88,9 @@ export default function SettingsScreen() {
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#222" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Settings</Text>
-        <View style={{ width: 22 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <Text style={styles.sectionTitle}>ACCOUNT SETTINGS</Text>

@@ -160,7 +160,7 @@ export default function DonateScreen() {
       <Text style={styles.subtitle}>Help Provide Care for Stray Animals</Text>
 
       <SelectField
-        label="Donation Category"
+        label="Donation Category *"
         placeholder="Select donation category"
         selectedValue={category}
         onValueChange={(val: string) => { setCategory(val); clearError('category'); }}
@@ -169,7 +169,7 @@ export default function DonateScreen() {
       />
 
       <SelectField
-        label="Organization"
+        label="Organization *"
         placeholder="Select Clinic/Shelter"
         selectedValue={organization}
         onValueChange={(val: string) => {
@@ -189,7 +189,9 @@ export default function DonateScreen() {
 
       {/* Frequency toggle (inline, not a shared component since it's only used here) */}
       <View style={styles.fieldGroup}>
-        <Text style={styles.label}>Donation Frequency</Text>
+        <Text style={styles.label}>
+          Donation Frequency <Text style={styles.requiredStar}>*</Text>
+        </Text>
         <View style={styles.toggleTrack}>
           <TouchableOpacity
             style={[styles.toggleSegment, frequency === 'One-time' && styles.toggleSegmentActive]}
@@ -230,7 +232,7 @@ export default function DonateScreen() {
       {frequency === 'Recurring' && (
         <>
           <SelectField
-            label="Recurring Plan"
+            label="Recurring Plan *"
             placeholder="Select a plan"
             selectedValue={plan}
             onValueChange={(val: string) => { setPlan(val); clearError('plan'); }}
@@ -244,7 +246,7 @@ export default function DonateScreen() {
       )}
 
       <InputField
-        label="Donation Amount (Rs.)"
+        label="Donation Amount (Rs.) *"
         placeholder="Enter amount (minimum Rs. 100)"
         value={amount}
         onChangeText={(text) => { setAmount(text); clearError('amount'); }}
@@ -253,7 +255,7 @@ export default function DonateScreen() {
       />
 
       <SelectField
-        label="Payment Method"
+        label="Payment Method *"
         placeholder="Select payment method"
         selectedValue={paymentMethod}
         onValueChange={(val: string) => { setPaymentMethod(val); clearError('paymentMethod'); }}
@@ -312,6 +314,7 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 16, marginBottom: 20, color: '#555' },
   fieldGroup: { marginVertical: 8 },
   label: { fontSize: 13, marginBottom: 6, fontWeight: '500', color: '#333' },
+  requiredStar: { color: '#DC2626' },
   errorText: { color: 'red', fontSize: 12, marginTop: 4 },
   recurringNotice: { color: '#7A5A17', fontSize: 12, marginTop: -2, marginBottom: 8 },
   toggleTrack: {

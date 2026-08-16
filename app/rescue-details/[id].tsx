@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import AppButton from "../../components/ui/AppButton";
+import BackButton from "../../components/BackButton";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { useAuth } from "../../contexts/AuthContext";
@@ -384,9 +385,7 @@ export default function RescueDetailsScreen() {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* ── Custom Header Row ── */}
         <View style={styles.header}>
-          <TouchableOpacity style={styles.backButton} onPress={() => router.back()}>
-            <Text style={styles.backIcon}>←</Text>
-          </TouchableOpacity>
+          <BackButton onPress={() => router.back()} style={{ marginRight: spacing.md }} />
           <View style={styles.headerTitleContainer}>
             <Text style={styles.title}>Rescue Details</Text>
             <Text style={styles.subtitle}>ID: {idValue}</Text>

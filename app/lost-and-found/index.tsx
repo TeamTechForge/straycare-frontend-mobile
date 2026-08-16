@@ -117,14 +117,6 @@ export default function LostAndFoundScreen() {
             <Text style={styles.cardDescription}>
               Report a found animal and help it get home.
             </Text>
-            <View style={styles.chevronContainer}>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color="#0f3a3a"
-                style={{ opacity: 0.35 }}
-              />
-            </View>
           </View>
         </Pressable>
       </View>

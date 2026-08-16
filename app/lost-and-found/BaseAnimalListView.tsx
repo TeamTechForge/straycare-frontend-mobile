@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import { AnimalPost } from "../../services/lostAndFoundService";
+import BackButton from "../../components/BackButton";
 
 interface BaseAnimalListViewProps {
   mode: "lost" | "found";
@@ -165,9 +166,7 @@ export default function BaseAnimalListView({
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#062425" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
 
         <TouchableOpacity
           style={styles.iconBtn}

@@ -13,6 +13,8 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import axios from "axios";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { API_URL } from "../../constants/config.constants";
+import BackButton from "../../components/BackButton";
+import { typography } from "../../constants/typography.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { getStoredItem } from "../../utils/storage";
 
@@ -26,16 +28,7 @@ const colors = {
   error: "#FF3B30",
 };
 
-const typography = {
-  regular: "Inter-Regular",
-  medium: "Inter-Medium",
-  semibold: "Inter-SemiBold",
-  bold: "Inter-Bold",
-  title: 22,
-  section: 18,
-  body: 14,
-  small: 12,
-};
+
 
 const DEFAULT_PHOTO = "https://images.unsplash.com/photo-1535930749574-1399327ce78f?w=400&h=300&fit=crop&q=80";
 
@@ -132,13 +125,7 @@ export default function ReportDetailsScreen() {
     <SafeAreaView style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-          activeOpacity={0.8}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Rescue Details</Text>
         <View style={{ width: 40 }} />
       </View>

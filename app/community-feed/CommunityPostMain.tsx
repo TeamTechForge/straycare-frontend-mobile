@@ -40,7 +40,7 @@ import {
 // ─────────────────────────────────────────────
 
 const C = {
-  surface: "#F9F9FF",
+  surface: "#FFFFFF",
   surfaceContainerLowest: "#FFFFFF",
 
   onSurface: "#121C2C",
@@ -329,7 +329,7 @@ export default function CommunityPostMain() {
           <Ionicons
             name="add"
             size={27}
-            color={C.primary}
+            color="#000000"
           />
         </TouchableOpacity>
       </View>

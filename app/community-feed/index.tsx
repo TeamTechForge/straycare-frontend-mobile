@@ -17,7 +17,7 @@ import { getCommunityFeed } from "../../api/apiService"; // API call to fetch po
 
 
 const C = {
-  surface: "#f9f9ff",                // Main background color
+  surface: "#ffffff",                // Main background color
   surfaceContainerLowest: "#ffffff", // Card/input background
   onSurface: "#121c2c",             // Primary text color
   onSurfaceVariant: "#4d4637",      // Secondary text color
@@ -246,7 +246,7 @@ export default function CommunityFeed() {
         <TouchableOpacity
           onPress={() => router.push("/community-feed/CreateCommunityPost")}
         >
-          <Ionicons name="add" size={26} color={C.onSurface} />
+          <Ionicons name="add" size={26} color="#000000" />
         </TouchableOpacity>
       </View>
 
@@ -414,7 +414,7 @@ const styles = StyleSheet.create({
   // Root container — fills full screen with surface background
   container: {
     flex: 1,
-    backgroundColor: "#f9f9ff",
+    backgroundColor: "#ffffff",
     paddingTop: 50, // Offset for status bar
   },
 
@@ -425,7 +425,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 14,
-    backgroundColor: "#f9f9ff",
+    backgroundColor: "#ffffff",
     borderBottomWidth: 1,
     borderBottomColor: "#d1c5b220", // Very subtle bottom border
   },
@@ -439,7 +439,7 @@ const styles = StyleSheet.create({
   searchWrapper: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: "#f9f9ff",
+    backgroundColor: "#ffffff",
     borderBottomWidth: 1,
     borderBottomColor: "#d1c5b215",
     gap: 10, // Space between search bar and category pills

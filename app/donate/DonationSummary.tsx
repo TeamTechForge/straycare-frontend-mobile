@@ -2,6 +2,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect } from "react";
 import { Alert, StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 
 export default function DonationSummary() {
   const { category, organization, organizationName, frequency, plan, amount, paymentMethod, paymentFailed } =
@@ -24,6 +25,9 @@ export default function DonationSummary() {
 
   return (
     <View style={styles.container}>
+      <View style={{ marginBottom: 12 }}>
+        <BackButton onPress={() => router.back()} />
+      </View>
       <Text style={styles.title}>Donation Summary</Text>
       <Text style={styles.subtitle}>Please review your donation details</Text>
 
@@ -64,7 +68,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 60,
+    paddingTop: 40,
     paddingBottom: 20,
     backgroundColor: "#fff",
   },

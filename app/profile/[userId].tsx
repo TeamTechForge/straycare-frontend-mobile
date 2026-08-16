@@ -16,6 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import BackButton from "../../components/BackButton";
 
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
@@ -37,8 +38,11 @@ interface Post {
   title: string;
   tag: string;
   author: string;
+  imageUrl?: string;
   likes: number;
+  likeCount?: number;
   commentCount: number;
+  comments?: number;
   createdAt: string;
 }
 
@@ -92,6 +96,8 @@ export default function PublicProfileScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
   const [reportModalVisible, setReportModalVisible] = useState(false);
   const [isViewerVisible, setIsViewerVisible] = useState(false);
+
+  const isOwner = !!user?._id && (String(user._id) === String(userId) || String((user as any).id) === String(userId));
 
   const fetchProfileAndStats = async () => {
     try {
@@ -359,9 +365,7 @@ export default function PublicProfileScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
 
         <Text style={styles.headerTitle}>PROFILE</Text>
 
@@ -522,10 +526,11 @@ export default function PublicProfileScreen() {
               posts.map((post) => (
                 <PostPreviewCard
                   key={post._id}
-                  image="https://images.unsplash.com/photo-1517849845537-4d257902454a?q=80&w=600&auto=format&fit=crop" // Fallback placeholder image for posts
-                  likes={post.likes}
-                  comments={post.commentCount}
-                  time={new Date(post.createdAt).toLocaleDateString()}
+                  title={post.title || "Community Post"}
+                  image={post.imageUrl || undefined}
+                  likes={post.likeCount ?? post.likes ?? 0}
+                  comments={post.commentCount ?? post.comments ?? 0}
+                  time={post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ""}
                   onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: post._id } })}
                 />
               ))
@@ -539,15 +544,15 @@ export default function PublicProfileScreen() {
           )}
 
           {activeTab === "reports" && (
-            reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report").length > 0 ? (
+            (isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).length > 0 ? (
               <View>
                 {/* 📌 ACTIVE CASES */}
                 <Text style={styles.subSectionTitle}>Active Cases</Text>
-                {reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() !== "completed").length > 0 ? (
-                  reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() !== "completed").map((report) => (
+                {(isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  (isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((report) => (
                     <ReportPreviewCard
                       key={report._id}
-                      title={`${report.animalType} (${report.caseId || report.breed || "Case"})`}
+                      title={`${report.animalType} (${report.caseId || report.breed || "Case"})${report.anonymous ? " • Anonymous" : ""}`}
                       date={new Date(report.createdAt).toLocaleDateString()}
                       status={report.status}
                       image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
@@ -561,12 +566,16 @@ export default function PublicProfileScreen() {
                           });
                         }
                       }}
-                      onTrackPress={() => {
-                        router.push({
-                          pathname: "/live-tracking/[requestId]",
-                          params: { requestId: report.caseId || report._id },
-                        });
-                      }}
+                      onTrackPress={
+                        isOwner
+                          ? () => {
+                              router.push({
+                                pathname: "/live-tracking/[requestId]",
+                                params: { requestId: report.caseId || report._id },
+                              });
+                            }
+                          : undefined
+                      }
                     />
                   ))
                 ) : (
@@ -575,11 +584,11 @@ export default function PublicProfileScreen() {
 
                 {/* 📜 COMPLETED CASES */}
                 <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
-                {reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() === "completed").length > 0 ? (
-                  reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report" && (r.status || "").toLowerCase() === "completed").map((report) => (
+                {(isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  (isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() === "completed").map((report) => (
                     <ReportPreviewCard
                       key={report._id}
-                      title={`${report.animalType} (${report.caseId || report.breed || "Case"})`}
+                      title={`${report.animalType} (${report.caseId || report.breed || "Case"})${report.anonymous ? " • Anonymous" : ""}`}
                       date={new Date(report.createdAt).toLocaleDateString()}
                       status={report.status}
                       image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
@@ -592,12 +601,6 @@ export default function PublicProfileScreen() {
                             params: { caseId: report.caseId },
                           });
                         }
-                      }}
-                      onTrackPress={() => {
-                        router.push({
-                          pathname: "/live-tracking/[requestId]",
-                          params: { requestId: report.caseId || report._id },
-                        });
                       }}
                     />
                   ))

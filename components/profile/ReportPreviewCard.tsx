@@ -35,7 +35,7 @@ const getStatusColors = (status: string): { bg: string; text: string } => {
     case "completed":
       return { bg: "#EAF6EE", text: "#2E7D32" }; // 🟢 Green (Map: #63ac84)
     case "failed":
-      return { bg: "#FEE2E2", text: "#B91C1C" };
+      return { bg: "#FEE2E2", text: "#e32a2aff" };
     case "ready for adoption":
       return { bg: "#E0EEFB", text: "#1D4ED8" }; // 🔵 Blue (Map: #2476da)
     case "cancelled":
@@ -74,7 +74,7 @@ export default function ReportPreviewCard({
             <View style={[styles.reportStatusBadge, { backgroundColor: statusColors.bg }]}>
               <Text style={[styles.reportStatusText, { color: statusColors.text }]}>{status}</Text>
             </View>
-            
+
             {onTrackPress &&
               status &&
               ["accepted", "under rescue"].includes(status.toLowerCase()) && (
@@ -203,7 +203,7 @@ const styles = StyleSheet.create({
   failureButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#DC2626",
+    backgroundColor: "#e16060ff",
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,

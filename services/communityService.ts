@@ -75,9 +75,11 @@ export interface CommunityComment {
     _id: string;
     postId: string;
     userId: string;
+    parentCommentId?: string | null;
     username: string;
     profileImage: string;
     content: string;
+    canDelete?: boolean;
     createdAt: string;
     updatedAt: string;
 }
@@ -211,12 +213,27 @@ export const getCommunityComments = async (id: string): Promise<CommunityComment
 
 export const createCommunityComment = async (
     id: string,
-    content: string
+    content: string,
+    parentCommentId?: string | null
 ): Promise<{ comment: CommunityComment; commentCount: number }> => {
-    const response = await api.post<any>(`/api/community/${id}/comments`, { content });
+    const response = await api.post<any>(`/api/community/${id}/comments`, {
+        content,
+        parentCommentId: parentCommentId || undefined,
+    });
     return {
         comment: response.data?.data,
         commentCount: Number(response.data?.commentCount) || 0,
+    };
+};
+
+export const deleteCommunityComment = async (
+    postId: string,
+    commentId: string
+): Promise<{ commentId: string; commentCount: number }> => {
+    const response = await api.delete<any>(`/api/community/${postId}/comments/${commentId}`);
+    return {
+        commentId,
+        commentCount: Number(response.data?.data?.commentCount) || 0,
     };
 };
 
