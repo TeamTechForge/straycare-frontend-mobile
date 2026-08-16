@@ -40,7 +40,7 @@ import {
 // ─────────────────────────────────────────────
 
 const C = {
-  surface: "#F9F9FF",
+  surface: "#FFFFFF",
   surfaceContainerLowest: "#FFFFFF",
 
   onSurface: "#121C2C",

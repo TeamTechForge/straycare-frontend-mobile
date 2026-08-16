@@ -13,11 +13,13 @@ type Props = {
 export default function PostPreviewCard({
   image,
   title = "Community post",
-  likes,
-  comments,
+  likes = 0,
+  comments = 0,
   time,
   onPress,
 }: Props) {
+  const formattedTime = time && time.includes("T") ? new Date(time).toLocaleDateString() : (time || "");
+
   return (
     <TouchableOpacity style={styles.postCard} onPress={onPress} activeOpacity={0.8}>
       {image ? <Image source={{ uri: image }} style={styles.postImage} /> : (
@@ -29,15 +31,15 @@ export default function PostPreviewCard({
       <View style={styles.postOverlayBottom}>
         <View style={styles.postMetaLeft}>
           <View style={styles.metaItem}>
-            <Ionicons name="heart" size={11} color="#FFD166" />
+            <Ionicons name="heart" size={12} color="#FF6B6B" />
             <Text style={styles.postMetaText}>{likes}</Text>
           </View>
           <View style={styles.metaItem}>
-            <Ionicons name="chatbubble" size={10} color="#fff" />
+            <Ionicons name="chatbubble" size={11} color="#fff" />
             <Text style={styles.postMetaText}>{comments}</Text>
           </View>
         </View>
-        <Text style={styles.postTime}>{time}</Text>
+        {formattedTime ? <Text style={styles.postTime}>{formattedTime}</Text> : null}
       </View>
     </TouchableOpacity>
   );
@@ -48,6 +50,9 @@ const styles = StyleSheet.create({
     borderRadius: 14,
     overflow: "hidden",
     backgroundColor: "#fff",
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#EFEFEF",
   },
   postImage: {
     width: "100%",
@@ -71,10 +76,14 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    backgroundColor: "rgba(0, 0, 0, 0.65)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
   },
   postMetaLeft: {
     flexDirection: "row",
-    gap: 10,
+    gap: 12,
   },
   metaItem: {
     flexDirection: "row",
@@ -83,12 +92,12 @@ const styles = StyleSheet.create({
   },
   postMetaText: {
     color: "#fff",
-    fontSize: 11,
-    fontWeight: "600",
+    fontSize: 12,
+    fontWeight: "700",
   },
   postTime: {
-    color: "#fff",
-    fontSize: 10,
+    color: "rgba(255, 255, 255, 0.85)",
+    fontSize: 11,
     fontWeight: "600",
   },
 });

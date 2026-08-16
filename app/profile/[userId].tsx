@@ -37,8 +37,11 @@ interface Post {
   title: string;
   tag: string;
   author: string;
+  imageUrl?: string;
   likes: number;
+  likeCount?: number;
   commentCount: number;
+  comments?: number;
   createdAt: string;
 }
 
@@ -524,10 +527,11 @@ export default function PublicProfileScreen() {
               posts.map((post) => (
                 <PostPreviewCard
                   key={post._id}
-                  image="https://images.unsplash.com/photo-1517849845537-4d257902454a?q=80&w=600&auto=format&fit=crop" // Fallback placeholder image for posts
-                  likes={post.likes}
-                  comments={post.commentCount}
-                  time={new Date(post.createdAt).toLocaleDateString()}
+                  title={post.title || "Community Post"}
+                  image={post.imageUrl || undefined}
+                  likes={post.likeCount ?? post.likes ?? 0}
+                  comments={post.commentCount ?? post.comments ?? 0}
+                  time={post.createdAt ? new Date(post.createdAt).toLocaleDateString() : ""}
                   onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: post._id } })}
                 />
               ))

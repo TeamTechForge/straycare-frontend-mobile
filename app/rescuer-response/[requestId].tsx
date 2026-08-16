@@ -514,13 +514,13 @@ export default function RescuerResponseScreen() {
         ) : (
           <View style={styles.actionSection}>
             <PrimaryButton
-              title="📝  Custom Progress Note"
+              title="Custom Progress Note"
               onPress={() => setProgressModalVisible(true)}
               variant="outline"
             />
 
             <PrimaryButton
-              title={updatingStatus ? "Updating..." : "✅  Mark Rescue as Completed"}
+              title={updatingStatus ? "Updating..." : "Mark Rescue as Completed"}
               onPress={handleCompleteRescue}
               disabled={updatingStatus}
             />

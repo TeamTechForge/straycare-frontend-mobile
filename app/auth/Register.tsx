@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -208,11 +210,15 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <ScrollView
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
       <Image
         source={require("../../assets/images/signupimg.jpg")}
@@ -369,7 +375,7 @@ export default function RegisterScreen() {
         onCancel={() => setIsAccountExistsVisible(false)}
         onClose={() => setIsAccountExistsVisible(false)}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

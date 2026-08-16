@@ -7,6 +7,8 @@ type Props = {
   title: string;
   subtitle: string;
   image?: string;
+  likes?: number;
+  comments?: number;
   onPress?: () => void;
 };
 
@@ -14,6 +16,8 @@ export default function SavedPreviewCard({
   title,
   subtitle,
   image,
+  likes,
+  comments,
   onPress,
 }: Props) {
   return (
@@ -30,8 +34,24 @@ export default function SavedPreviewCard({
       </View>
 
       <Text style={styles.savedTag}>{subtitle.toUpperCase()}</Text>
-      <Text style={styles.savedTitle}>{title}</Text>
+      <Text style={styles.savedTitle} numberOfLines={2}>{title}</Text>
 
+      {(likes !== undefined || comments !== undefined) && (
+        <View style={styles.savedMetaRow}>
+          {likes !== undefined && (
+            <View style={styles.metaItem}>
+              <Ionicons name="heart" size={11} color="#FF6B6B" />
+              <Text style={styles.metaText}>{likes}</Text>
+            </View>
+          )}
+          {comments !== undefined && (
+            <View style={styles.metaItem}>
+              <Ionicons name="chatbubble-outline" size={10} color="#777" />
+              <Text style={styles.metaText}>{comments}</Text>
+            </View>
+          )}
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -45,6 +65,7 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#EFEFEF",
     paddingBottom: 10,
+    marginBottom: 12,
   },
   savedImage: {
     width: "100%",
@@ -81,5 +102,22 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "700",
     color: "#222",
+  },
+  savedMetaRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginTop: 6,
+    marginHorizontal: 10,
+    alignItems: "center",
+  },
+  metaItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  metaText: {
+    fontSize: 10,
+    fontWeight: "600",
+    color: "#777",
   },
 });

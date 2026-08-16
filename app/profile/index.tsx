@@ -284,8 +284,8 @@ export default function ProfileScreen() {
                   key={post._id}
                   title={post.title || "Untitled"}
                   image={post.imageUrl || undefined}
-                  likes={post.likeCount}
-                  comments={post.commentCount}
+                  likes={post.likeCount ?? (post as any).likes ?? 0}
+                  comments={post.commentCount ?? (post as any).comments ?? 0}
                   time={post.date || post.createdAt || ""}
                   onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: post._id } })}
                 />
@@ -454,6 +454,8 @@ export default function ProfileScreen() {
                     title={item.title || "Untitled"}
                     subtitle={item.category || "Community"}
                     image={item.imageUrl || undefined}
+                    likes={item.likeCount ?? (item as any).likes ?? 0}
+                    comments={item.commentCount ?? (item as any).comments ?? 0}
                     onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: item._id } })}
                   />
                 ))}

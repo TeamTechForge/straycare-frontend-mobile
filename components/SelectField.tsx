@@ -24,7 +24,18 @@ export default function SelectField({ label, placeholder, selectedValue, onValue
 
   return (
     <View style={styles.container}>
-      <Text style={styles.label}>{label}</Text>
+      {label && (
+        <Text style={styles.label}>
+          {label.includes("*") ? (
+            <>
+              {label.replace("*", "").trim()}{" "}
+              <Text style={styles.requiredStar}>*</Text>
+            </>
+          ) : (
+            label
+          )}
+        </Text>
+      )}
       <TouchableOpacity
         style={[styles.selectButton, error && styles.selectError]}
         onPress={() => setOpen(true)}
@@ -43,7 +54,7 @@ export default function SelectField({ label, placeholder, selectedValue, onValue
         <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
           <Pressable style={styles.modalCard} onPress={(event) => event.stopPropagation()}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{label}</Text>
+              <Text style={styles.modalTitle}>{label.replace("*", "").trim()}</Text>
               <TouchableOpacity onPress={() => setOpen(false)} accessibilityLabel="Close options">
                 <Ionicons name="close" size={22} color="#4B5563" />
               </TouchableOpacity>
@@ -76,6 +87,7 @@ export default function SelectField({ label, placeholder, selectedValue, onValue
 const styles = StyleSheet.create({
   container: { marginVertical: 8 },
   label: { fontSize: 13, marginBottom: 6, fontWeight: '500', color: '#333' },
+  requiredStar: { color: '#DC2626' },
   selectButton: {
     minHeight: 52,
     paddingHorizontal: 16,
