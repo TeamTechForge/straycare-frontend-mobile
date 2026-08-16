@@ -329,7 +329,7 @@ export default function CommunityPostMain() {
           <Ionicons
             name="add"
             size={27}
-            color={C.primary}
+            color="#000000"
           />
         </TouchableOpacity>
       </View>

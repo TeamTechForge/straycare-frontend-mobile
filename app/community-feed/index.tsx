@@ -246,7 +246,7 @@ export default function CommunityFeed() {
         <TouchableOpacity
           onPress={() => router.push("/community-feed/CreateCommunityPost")}
         >
-          <Ionicons name="add" size={26} color={C.onSurface} />
+          <Ionicons name="add" size={26} color="#000000" />
         </TouchableOpacity>
       </View>
 

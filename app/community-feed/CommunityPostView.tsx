@@ -34,6 +34,7 @@ import {
   reportCommunityPost,
 } from "../../services/communityService";
 import ReportPostModal from "../../components/ReportPostModal";
+import OwnerActionButtons from "../../components/OwnerActionButtons";
 import { colors } from "../../constants/colors.constants";
 
 // ─────────────────────────────────────────────
@@ -309,55 +310,36 @@ export default function CommunityPostView() {
 
             {/* ACTIONS */}
 
-            <View
-              style={styles.actionsContainer}
-            >
-              {/* BACK */}
-
-              <TouchableOpacity
-                style={styles.backBtn}
-                onPress={() =>
-                  router.back()
-                }
-              >
-                <Ionicons
-                  name="chevron-back"
-                  size={20}
-                  color="#704900"
+            <View style={styles.actionsContainer}>
+              {post.isOwner ? (
+                <OwnerActionButtons
+                  onEdit={() =>
+                    router.push({
+                      pathname: "/community-feed/EditCommunityPost",
+                      params: { id: post._id },
+                    })
+                  }
+                  onDelete={handleDelete}
+                  editLabel="Edit Post"
+                  deleteLabel="Delete Post"
+                  containerStyle={{ marginTop: 0, borderTopWidth: 0, paddingTop: 0 }}
                 />
-
-                <Text
-                  style={styles.backBtnText}
+              ) : (
+                <TouchableOpacity
+                  style={styles.reportBtn}
+                  onPress={() => setReportVisible(true)}
                 >
-                  Back
-                </Text>
-              </TouchableOpacity>
+                  <MaterialIcons
+                    name="report"
+                    size={20}
+                    color="#E54D4D"
+                  />
 
-              {post.isOwner ? <>
-                <TouchableOpacity style={styles.ownerBtn} onPress={() => router.push({ pathname: "/community-feed/EditCommunityPost", params: { id: post._id } })}>
-                  <Ionicons name="create-outline" size={20} color="#704900" />
-                  <Text style={styles.ownerBtnText}>Edit Post</Text>
+                  <Text style={styles.reportBtnText}>
+                    Report Post
+                  </Text>
                 </TouchableOpacity>
-                <TouchableOpacity style={styles.reportBtn} onPress={handleDelete}>
-                  <Ionicons name="trash-outline" size={20} color="#E54D4D" />
-                  <Text style={styles.reportBtnText}>Delete Post</Text>
-                </TouchableOpacity>
-              </> : <TouchableOpacity
-                style={styles.reportBtn}
-                onPress={() => setReportVisible(true)}
-              >
-                <MaterialIcons
-                  name="report"
-                  size={20}
-                  color="#E54D4D"
-                />
-
-                <Text
-                  style={styles.reportBtnText}
-                >
-                  Report Post
-                </Text>
-              </TouchableOpacity>}
+              )}
             </View>
           </ScrollView>
         )}
@@ -515,22 +497,6 @@ const styles = StyleSheet.create({
     gap: 12,
   },
 
-  backBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: "#f9b959",
-    borderRadius: 999,
-    paddingVertical: 16,
-  },
-
-  backBtnText: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#704900",
-  },
-
   reportBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -547,6 +513,4 @@ const styles = StyleSheet.create({
     color: "#E54D4D",
   },
   contentAccent: { borderLeftWidth: 3, borderLeftColor: colors.primary, paddingLeft: 14 },
-  ownerBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#FFF0DD", borderRadius: 999, paddingVertical: 16 },
-  ownerBtnText: { fontSize: 15, fontWeight: "700", color: "#704900" },
 });
