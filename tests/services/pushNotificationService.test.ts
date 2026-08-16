@@ -1,5 +1,6 @@
 import * as Notifications from "expo-notifications";
 import * as SecureStore from "expo-secure-store";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 
 const loadService = () => {
   return require("../../services/pushNotificationService").pushNotificationService;
@@ -8,13 +9,13 @@ const loadService = () => {
 describe("pushNotificationService", () => {
   beforeEach(() => {
     jest.clearAllMocks();
-    (global.fetch as jest.Mock) = jest.fn();
+    (global.fetch as any) = jest.fn();
   });
 
   it("registers the View Case action and returns null when notification permission is denied", async () => {
     const service = loadService();
-    (Notifications.getPermissionsAsync as jest.Mock).mockResolvedValue({ status: "denied" });
-    (Notifications.requestPermissionsAsync as jest.Mock).mockResolvedValue({ status: "denied" });
+    (Notifications.getPermissionsAsync as any).mockResolvedValue({ status: "denied" });
+    (Notifications.requestPermissionsAsync as any).mockResolvedValue({ status: "denied" });
 
     await expect(service.setupPushNotifications()).resolves.toBeNull();
 
@@ -26,8 +27,8 @@ describe("pushNotificationService", () => {
 
   it("posts the Expo token with the authenticated session and saves it only after success", async () => {
     const service = loadService();
-    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue("session-token");
-    (global.fetch as jest.Mock).mockResolvedValue({ ok: true });
+    (SecureStore.getItemAsync as any).mockResolvedValue("session-token");
+    (global.fetch as any).mockResolvedValue({ ok: true });
 
     await expect(service.sendTokenToBackend("ExponentPushToken[test]")).resolves.toBe(true);
 
@@ -44,7 +45,7 @@ describe("pushNotificationService", () => {
 
   it("registers a push token once per authenticated session", async () => {
     const service = loadService();
-    (SecureStore.getItemAsync as jest.Mock).mockResolvedValue("session-token");
+    (SecureStore.getItemAsync as any).mockResolvedValue("session-token");
     jest.spyOn(service, "setupPushNotifications").mockResolvedValue("ExponentPushToken[test]");
     jest.spyOn(service, "sendTokenToBackend").mockResolvedValue(true);
 
@@ -62,12 +63,12 @@ describe("pushNotificationService", () => {
     const service = loadService();
     const first = { remove: jest.fn() };
     const second = { remove: jest.fn() };
-    (Notifications.addNotificationReceivedListener as jest.Mock)
+    (Notifications.addNotificationReceivedListener as any)
       .mockReturnValueOnce(first)
       .mockReturnValueOnce(second);
 
-    service.listenForNotifications(jest.fn());
-    const cleanup = service.listenForNotifications(jest.fn());
+    service.listenForNotifications(jest.fn() as any);
+    const cleanup = service.listenForNotifications(jest.fn() as any);
     cleanup();
 
     expect(first.remove).toHaveBeenCalledTimes(1);

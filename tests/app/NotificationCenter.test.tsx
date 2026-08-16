@@ -1,10 +1,11 @@
 import React from "react";
+import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import { fireEvent, render } from "@testing-library/react-native";
 import NotificationCenter from "../../app/notifications/NotificationCenter";
 
-const mockPush = jest.fn();
-const mockMarkAsRead = jest.fn().mockResolvedValue(undefined);
-const mockFetchNotifications = jest.fn().mockResolvedValue(undefined);
+const mockPush = jest.fn<(...args: any[]) => void>();
+const mockMarkAsRead = jest.fn<(...args: any[]) => Promise<void>>().mockResolvedValue(undefined);
+const mockFetchNotifications = jest.fn<(...args: any[]) => Promise<void>>().mockResolvedValue(undefined);
 
 jest.mock("expo-router", () => ({ useRouter: () => ({ push: mockPush }) }));
 jest.mock("../../contexts/NotificationContext", () => ({
@@ -33,7 +34,7 @@ jest.mock("../../contexts/NotificationContext", () => ({
         createdAt: "2026-08-16T00:00:00.000Z",
       },
     ],
-    unreadCount: 1,
+    unreadCount: 2,
     fetchNotifications: mockFetchNotifications,
     markAsRead: mockMarkAsRead,
     loading: false,
@@ -41,13 +42,15 @@ jest.mock("../../contexts/NotificationContext", () => ({
 }));
 
 describe("NotificationCenter", () => {
-  beforeEach(() => jest.clearAllMocks());
+  beforeEach(() => {
+    jest.clearAllMocks();
+  });
 
-  it("keeps fetched notifications unread until opened and routes case updates to Case Details", async () => {
+  it("routes case notification to Case Details directly when clicked", async () => {
     const screen = render(<NotificationCenter />);
 
     expect(mockFetchNotifications).toHaveBeenCalledTimes(1);
-    fireEvent.press(screen.getByLabelText("View case SC-100"));
+    fireEvent.press(screen.getByText("Case SC-100 Accepted"));
 
     expect(mockMarkAsRead).toHaveBeenCalledWith("notification-1");
     await Promise.resolve();

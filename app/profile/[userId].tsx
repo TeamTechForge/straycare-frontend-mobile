@@ -619,15 +619,15 @@ export default function PublicProfileScreen() {
               <View>
                 {/* 📌 ACTIVE RESCUES */}
                 <Text style={styles.subSectionTitle}>Active Rescues</Text>
-                {rescues.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
-                  rescues.filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((rescue: any) => (
+                {rescues.filter((r: any) => !["completed", "ready for adoption", "ready_for_adoption", "closed", "adopted"].includes((r.status || "").toLowerCase().trim())).length > 0 ? (
+                  rescues.filter((r: any) => !["completed", "ready for adoption", "ready_for_adoption", "closed", "adopted"].includes((r.status || "").toLowerCase().trim())).map((rescue: any) => (
                     <ReportPreviewCard
                       key={rescue._id || rescue.caseId}
-                      title={`${rescue.animalType} (${rescue.caseId})`}
-                      date={new Date(rescue.createdAt).toLocaleDateString()}
-                      status={rescue.status.toUpperCase()}
-                      image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
-                      summary={rescue.summary}
+                      title={`${rescue.animalType || "Rescue"} (${rescue.caseId || "Case"})`}
+                      date={rescue.createdAt ? new Date(rescue.createdAt).toLocaleDateString() : ""}
+                      status={rescue.status ? rescue.status.toUpperCase() : "ACTIVE"}
+                      image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : (rescue.photoUrl || "https://via.placeholder.com/150")}
+                      summary={rescue.summary || rescue.description}
                       onPress={() => {
                         router.push({
                           pathname: "/reporting/CaseSummary",
@@ -642,15 +642,15 @@ export default function PublicProfileScreen() {
 
                 {/* 📜 COMPLETED CASES */}
                 <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
-                {rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
-                  rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").map((rescue: any) => (
+                {rescues.filter((r: any) => ["completed", "ready for adoption", "ready_for_adoption", "closed", "adopted"].includes((r.status || "").toLowerCase().trim())).length > 0 ? (
+                  rescues.filter((r: any) => ["completed", "ready for adoption", "ready_for_adoption", "closed", "adopted"].includes((r.status || "").toLowerCase().trim())).map((rescue: any) => (
                     <ReportPreviewCard
                       key={rescue._id || rescue.caseId}
-                      title={`${rescue.animalType} (${rescue.caseId})`}
-                      date={new Date(rescue.createdAt).toLocaleDateString()}
-                      status={rescue.status.toUpperCase()}
-                      image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
-                      summary={rescue.summary}
+                      title={`${rescue.animalType || "Rescue"} (${rescue.caseId || "Case"})`}
+                      date={rescue.createdAt ? new Date(rescue.createdAt).toLocaleDateString() : ""}
+                      status={rescue.status ? rescue.status.toUpperCase() : "COMPLETED"}
+                      image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : (rescue.photoUrl || "https://via.placeholder.com/150")}
+                      summary={rescue.summary || rescue.description}
                       onPress={() => {
                         router.push({
                           pathname: "/reporting/CaseSummary",

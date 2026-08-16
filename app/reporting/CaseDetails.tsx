@@ -76,9 +76,12 @@ const getNextStatus = (current: string) => {
 };
 
 export default function CaseDetailsScreen() {
-  const { caseId, focus } = useLocalSearchParams();
+  const { caseId, focus, source } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const openedFromProfile = source === "profile";
+  const returnToPreviousScreen = () =>
+    router.replace(openedFromProfile ? "/profile" : "/(tabs)/Report");
 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
@@ -146,6 +149,14 @@ export default function CaseDetailsScreen() {
       await updateCaseStatus(report.caseId, next);
       await loadCase();
 
+      if (next === "Ready for Adoption") {
+        router.push({
+          pathname: "/adoption-corner/CreateAdoptionPost",
+          params: { caseId: report.caseId },
+        } as never);
+        return;
+      }
+
       // 🔔 Show banner immediately when status changes
       setNotificationMessage(`Case updated: ${next}`);
       setShowNotification(true);
@@ -180,7 +191,10 @@ export default function CaseDetailsScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.value}>{loadError || "Case not found."}</Text>
-        <PrimaryButton title="Back to Map" onPress={() => router.replace("/reporting")} />
+        <PrimaryButton
+          title={openedFromProfile ? "Back to Profile" : "Back to Map"}
+          onPress={returnToPreviousScreen}
+        />
       </View>
     );
   }
@@ -375,7 +389,10 @@ export default function CaseDetailsScreen() {
         <Text style={styles.value}>No timeline updates yet</Text>
       )}
 
-      <PrimaryButton title="Back to Map" onPress={() => router.replace("/reporting")} />
+      <PrimaryButton
+        title={openedFromProfile ? "Back to Profile" : "Back to Map"}
+        onPress={returnToPreviousScreen}
+      />
     </ScrollView>
   );
 }

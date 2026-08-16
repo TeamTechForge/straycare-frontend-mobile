@@ -79,25 +79,27 @@ export default function LoginScreen() {
 
   const onSubmit = async (data: any) => {
     setIsLoading(true);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    let timeoutId: any = null;
 
-    const url = `${API_URL}/auth/Login`;
+    const url = `${API_URL}/auth/login`;
     const headers = { "Content-Type": "application/json" };
     const body = JSON.stringify({ email: data.email, password: data.password });
 
     try {
       console.log("Attempting login via:", url);
-      console.log("Login request headers:", headers);
-      console.log("Login request body:", body);
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      if (controller) {
+        timeoutId = setTimeout(() => controller.abort(), 20000);
+      }
+
       const response = await fetch(url, {
         method: "POST",
         headers,
         body,
-        signal: controller.signal as any,
+        ...(controller ? { signal: controller.signal as any } : {}),
       });
 
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       const json: any = await response.json();
 
       if (!response.ok) {
@@ -130,14 +132,12 @@ export default function LoginScreen() {
         router.replace("/(tabs)/Home");
       }
     } catch (error: any) {
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       console.error("Login error:", error);
       console.error("Login error details:", {
         name: error?.name,
         message: error?.message,
         stack: error?.stack,
-        response: error?.response,
-        request: error?.request,
       });
       if (error.name === "AbortError") {
         Alert.alert(
@@ -151,6 +151,7 @@ export default function LoginScreen() {
         );
       }
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };

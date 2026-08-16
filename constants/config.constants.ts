@@ -4,24 +4,23 @@ import { Platform } from 'react-native';
 /**
  * Resolves the backend API base URL.
  *
- * Priority order in development (__DEV__):
+ * Priority order:
  * 1. Explicit env override (EXPO_PUBLIC_API_URL)
  * 2. Dynamic Expo dev-server hostUri (automatically gets your PC's active IP from Metro)
- * 3. Hardcoded fallback IP (192.168.8.161)
+ * 3. Hardcoded fallback IP
  */
 
-const FALLBACK_IP = '10.52.115.94';
+const FALLBACK_IP = '172.20.10.6';
 const BACKEND_PORT = 5000;
 
 function resolveBaseUrl(): string {
-  // 1. Explicit environment override. Native Android development builds use
-  // this to target the deployed backend instead of a USB/LAN-only server.
+  // 1. Explicit override. This allows a development build to use the hosted API.
   const envUrl =
     process.env.EXPO_PUBLIC_API_URL ||
     Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL;
   if (envUrl) {
     console.log('[Config] Using EXPO_PUBLIC_API_URL:', envUrl);
-    return envUrl;
+    return envUrl.replace(/\/$/, '');
   }
 
   // 2. Dynamic auto-detection from Expo Metro bundler in __DEV__
