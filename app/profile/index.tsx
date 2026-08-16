@@ -1,8 +1,9 @@
 import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl, Modal, TextInput, Alert } from "react-native";
+import { useCallback, useState, useEffect } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_URL } from "../../constants/config.constants";
 
@@ -11,10 +12,12 @@ import PostPreviewCard from "../../components/profile/PostPreviewCard";
 import ProfileHeaderCard from "../../components/profile/ProfileHeaderCard";
 import ProfileMenuDrawer from "../../components/profile/ProfileMenuDrawer";
 import ProfileStatsRow from "../../components/profile/ProfileStatsRow";
-import ProfileTabBar, { TabKey } from "../../components/profile/ProfileTabBar";
+import ProfileTabBar, { TabKey, TabItem } from "../../components/profile/ProfileTabBar";
 import ReportPreviewCard from "../../components/profile/ReportPreviewCard";
 import SavedPreviewCard from "../../components/profile/SavedPreviewCard";
 import { useAuth } from "../../contexts/AuthContext";
+import { getCaseStatusUpdateRoute } from "../../utils/profileRoutes";
+import { CommunityPost, getMyCommunityPosts, getSavedCommunityPosts } from "../../services/communityService";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -26,19 +29,17 @@ export default function ProfileScreen() {
   const [profile, setProfile] = useState<any>(null);
   const [rescues, setRescues] = useState<any[]>([]);
   const [reports, setReports] = useState<any[]>([]);
-  const [posts, setPosts] = useState<any[]>([]);
+  const [posts, setPosts] = useState<CommunityPost[]>([]);
+  const [savedItems, setSavedItems] = useState<CommunityPost[]>([]);
   const [totalDonations, setTotalDonations] = useState(0);
   const [loading, setLoading] = useState(true);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [failingRescueId, setFailingRescueId] = useState<string | null>(null);
 
-  // Status update modal state
-  const [modalVisible, setModalVisible] = useState(false);
-  const [selectedCaseId, setSelectedCaseId] = useState<string | null>(null);
-  const [updateText, setUpdateText] = useState("");
-  const [updateStatus, setUpdateStatus] = useState("Under Rescue");
-
-  const fetchData = async () => {
+  const [totalReportsCount, setTotalReportsCount] = useState<number | null>(null);
+  const [totalPostsCount, setTotalPostsCount] = useState<number | null>(null);
+  const fetchData = useCallback(async () => {
     try {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
@@ -93,12 +94,23 @@ export default function ProfileScreen() {
           setReports(reportsData);
         }
 
-        const postsRes = await fetch(`${API_URL}/users/${userId}/posts`, {
+        const [postsData, savedPostsData] = await Promise.all([
+          getMyCommunityPosts(),
+          getSavedCommunityPosts(),
+        ]);
+        setPosts(postsData);
+        setSavedItems(savedPostsData);
+        setTotalPostsCount(postsData.length);
+
+        // Fetch user stats (includes all reports and posts including anonymous)
+        const publicProfRes = await fetch(`${API_URL}/users/${userId}/public-profile`, {
           headers: { Authorization: `Bearer ${token}` },
         });
-        if (postsRes.ok) {
-          const postsData = (await postsRes.json()) as any;
-          setPosts(postsData);
+        if (publicProfRes.ok) {
+          const publicProfData = (await publicProfRes.json()) as any;
+          if (publicProfData?.stats?.reportsCount !== undefined) {
+            setTotalReportsCount(publicProfData.stats.reportsCount);
+          }
         }
       }
     } catch (error) {
@@ -107,48 +119,57 @@ export default function ProfileScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [router]);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  useFocusEffect(
+    useCallback(() => {
+      void fetchData();
+    }, [fetchData])
+  );
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchData();
   };
 
-  const handleUpdateDetails = (caseId: string) => {
-    setSelectedCaseId(caseId);
-    setUpdateText("");
-    setUpdateStatus("Under Rescue");
-    setModalVisible(true);
+  const openCaseStatusUpdate = (caseId: string) => {
+    router.push(getCaseStatusUpdateRoute(caseId));
   };
 
-  const submitDetailsUpdate = async () => {
-    if (!selectedCaseId) return;
-    try {
-      const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch(`${API_URL}/rescue/request/${selectedCaseId}/details`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
+  const markRescueFailed = (rescue: any) => {
+    const rescueId = rescue.rescueRequestId || rescue._id || rescue.id || rescue.caseId;
+    if (!rescueId) return;
+
+    Alert.alert(
+      "Mark rescue as failed?",
+      "This closes the rescue and records it as failed in rescue history.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Mark Failed",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setFailingRescueId(String(rescueId));
+              const token = await SecureStore.getItemAsync("authToken");
+              const response = await fetch(`${API_URL}/rescue/request/${encodeURIComponent(String(rescueId))}/fail`, {
+                method: "PATCH",
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              const result = await response.json();
+              if (!response.ok) {
+                throw new Error(result?.error || result?.message || "Could not mark this rescue as failed.");
+              }
+              await fetchData();
+            } catch (error: any) {
+              Alert.alert("Update Failed", error?.message || "Could not mark this rescue as failed.");
+            } finally {
+              setFailingRescueId(null);
+            }
+          },
         },
-        body: JSON.stringify({ summary: updateText.trim(), status: updateStatus }),
-      });
-      if (response.ok) {
-        Alert.alert("Success", "Rescue details updated successfully!");
-        setModalVisible(false);
-        fetchData(); // Reload rescues
-      } else {
-        const errData = (await response.json()) as any;
-        Alert.alert("Error", errData.error || "Failed to update details.");
-      }
-    } catch (err) {
-      console.error(err);
-      Alert.alert("Error", "Something went wrong.");
-    }
+      ]
+    );
   };
 
   // Role-based logic
@@ -158,9 +179,9 @@ export default function ProfileScreen() {
   const isVet = user?.role === 'vet';
 
   const stats = [
-    { value: posts.length, label: "POSTS" },
+    { value: totalPostsCount !== null ? totalPostsCount : posts.length, label: "POSTS" },
     ...(!isGeneralUser ? [{ value: rescues.length, label: "RESCUES" }] : []),
-    { value: reports.length, label: "REPORTS" },
+    { value: totalReportsCount !== null ? totalReportsCount : reports.length, label: "REPORTS" },
     ...(isNgo || isVet ? [{ value: "$" + totalDonations, label: "DONATIONS" }] : []),
   ];
 
@@ -200,13 +221,24 @@ export default function ProfileScreen() {
     location: location,
     bio: bio,
     memberSince: user?.createdAt ? new Date(user.createdAt).getFullYear().toString() : "2026",
-    avatar: profile?.profileImage || user?.avatar || "https://via.placeholder.com/150",
+    avatar: profile?.profileImage || user?.avatar ? (profile?.profileImage || user?.avatar) : require("../../assets/images/default-avatar.jpg"),
+    cover: require("../../assets/images/default-avatar.jpg"),
   };
-  
-  // To handle saved items (all current files had it empty)
-  const savedItems: any[] = [];
 
-  const tabOptions = isGeneralUser ? ["posts", "reports", "saved"] : ["posts", "rescues", "reports", "saved"];
+  const isRescueRole = !isGeneralUser;
+
+  const tabOptions: TabItem[] = [
+    { key: "posts", label: "My Posts" },
+    ...(isRescueRole ? [{ key: "rescues" as TabKey, label: "Rescue Cases" }] : []),
+    { key: "reports", label: "Reports" },
+    { key: "saved", label: "Saved Posts" },
+  ];
+
+  // Helper to determine if a rescue case is in completed/history cases section
+  const isRescueCompleted = (status?: string) => {
+    const s = (status || "").toLowerCase().trim();
+    return ["completed", "ready for adoption", "ready_for_adoption", "closed", "adopted"].includes(s);
+  };
 
   return (
     <SafeAreaView style={styles.container}>
@@ -236,65 +268,105 @@ export default function ProfileScreen() {
           memberSince={userData.memberSince}
           avatar={userData.avatar}
           role={user?.role}
+          isVerified={user?.isApproved}
           onEditPress={() => router.push("/profile/EditProfile")}
         />
 
         <ProfileStatsRow stats={stats} />
 
-        <ProfileTabBar activeTab={activeTab} onChange={setActiveTab} tabs={tabOptions as any} />
+        <ProfileTabBar activeTab={activeTab} onChange={setActiveTab} tabs={tabOptions} />
 
         <View style={styles.sectionContent}>
           {activeTab === "posts" && (
             posts.length > 0 ? (
-              posts.map((post: any) => (
+              posts.map((post) => (
                 <PostPreviewCard
-                  key={post.id || post._id}
-                  image={post.image}
-                  likes={post.likes}
-                  comments={post.comments}
-                  time={post.time}
-                  onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: post.id || post._id } })}
+                  key={post._id}
+                  title={post.title || "Untitled"}
+                  image={post.imageUrl || undefined}
+                  likes={post.likeCount ?? (post as any).likes ?? 0}
+                  comments={post.commentCount ?? (post as any).comments ?? 0}
+                  time={post.date || post.createdAt || ""}
+                  onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: post._id } })}
                 />
               ))
             ) : (
               <EmptyStateCard
-                icon="paw"
-                title={isVet ? "No posts yet." : "You haven't posted anything yet."}
-                subtitle={isVet ? "Share your medical cases and animal care tips." : "Create posts and share them with the community."}
+                icon="images-outline"
+                title="No posts yet"
+                subtitle="Share photos and stories of rescues with the community."
               />
             )
           )}
 
-          {activeTab === "rescues" && !isGeneralUser && (
-            rescues.filter((r: any) => !r.status || ["accepted", "under rescue", "completed", "in progress"].includes(r.status.toLowerCase())).length > 0 ? (
-              rescues
-                .filter((r: any) => !r.status || ["accepted", "under rescue", "completed", "in progress"].includes(r.status.toLowerCase()))
-                .map((rescue: any, index: number) => (
-                  <ReportPreviewCard
-                    key={rescue.rescueRequestId || rescue._id || rescue.caseId || `rescue-${index}`}
-                    title={`${rescue.animalType} (${rescue.caseId})`}
-                    date={new Date(rescue.createdAt).toLocaleDateString()}
-                    status={rescue.status}
-                    image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : "https://via.placeholder.com/150"}
-                    summary={rescue.summary}
-                    actionText="Update Status"
-                    onActionPress={rescue.status !== "Completed" && rescue.status !== "completed" ? () => handleUpdateDetails(rescue.caseId) : undefined}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/rescuer-response/[requestId]" as any,
-                        params: {
-                          requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
-                          caseId: rescue.caseId,
-                        },
-                      })
-                    }
-                  />
-                ))
+          {activeTab === "rescues" && isRescueRole && (
+            rescues.length > 0 ? (
+              <View>
+                {/* 📌 ACTIVE CASES */}
+                <Text style={styles.subSectionTitle}>Active Cases</Text>
+                {rescues.filter((r: any) => !isRescueCompleted(r.status) && (r.status || "").toLowerCase() !== "failed").length > 0 ? (
+                  rescues
+                    .filter((r: any) => !isRescueCompleted(r.status) && (r.status || "").toLowerCase() !== "failed")
+                    .map((rescue: any, index: number) => (
+                      <ReportPreviewCard
+                        key={rescue.id || rescue._id || `active-${index}`}
+                        title={`${rescue.animalType || "Rescue"} (${rescue.caseId || "Case"})`}
+                        date={rescue.createdAt ? new Date(rescue.createdAt).toLocaleDateString() : (rescue.date || "")}
+                        status={rescue.status}
+                        image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : (rescue.photoUrl || "https://via.placeholder.com/150")}
+                        summary={rescue.summary || rescue.description}
+                        actionText="Update Status"
+                        onActionPress={() => openCaseStatusUpdate(rescue.caseId)}
+                        onSecondaryActionPress={() => markRescueFailed(rescue)}
+                        secondaryActionDisabled={failingRescueId === String(rescue.rescueRequestId || rescue._id || rescue.id || rescue.caseId)}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/rescuer-response/[requestId]" as any,
+                            params: {
+                              requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                              caseId: rescue.caseId,
+                            },
+                          })
+                        }
+                      />
+                    ))
+                ) : (
+                  <Text style={styles.noActiveText}>No active rescue cases right now.</Text>
+                )}
+
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {rescues.filter((r: any) => isRescueCompleted(r.status)).length > 0 ? (
+                  rescues
+                    .filter((r: any) => isRescueCompleted(r.status))
+                    .map((rescue: any, index: number) => (
+                      <ReportPreviewCard
+                        key={rescue.id || rescue._id || `completed-${index}`}
+                        title={`${rescue.animalType || "Rescue"} (${rescue.caseId || "Case"})`}
+                        date={rescue.createdAt ? new Date(rescue.createdAt).toLocaleDateString() : (rescue.date || "")}
+                        status={rescue.status}
+                        image={rescue.photos && rescue.photos.length > 0 ? rescue.photos[0] : (rescue.photoUrl || "https://via.placeholder.com/150")}
+                        summary={rescue.summary || rescue.description}
+                        onPress={() =>
+                          router.push({
+                            pathname: "/rescuer-response/[requestId]" as any,
+                            params: {
+                              requestId: rescue.rescueRequestId || rescue._id || rescue.caseId,
+                              caseId: rescue.caseId,
+                            },
+                          })
+                        }
+                      />
+                    ))
+                ) : (
+                  <Text style={styles.noActiveText}>No completed rescue cases yet.</Text>
+                )}
+              </View>
             ) : (
               <EmptyStateCard
                 icon="medkit-outline"
-                title="No active cases yet."
-                subtitle={isVolunteer ? "Your accepted rescue requests will appear here." : "Current treatments and medical cases will appear here."}
+                title="No rescues yet."
+                subtitle={isVolunteer ? "Your accepted rescue requests will appear here." : "Treatments and medical cases will appear here."}
               />
             )
           )}
@@ -302,13 +374,13 @@ export default function ProfileScreen() {
           {activeTab === "reports" && (
             reports.length > 0 ? (
               <View>
-                {/* 📌 CURRENT CASES */}
-                <Text style={styles.subSectionTitle}>Current Cases</Text>
-                {reports.filter((r: any) => ["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).length > 0 ? (
-                  reports.filter((r: any) => ["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).map((report: any, index: number) => (
+                {/* 📌 ACTIVE CASES */}
+                <Text style={styles.subSectionTitle}>Active Cases</Text>
+                {reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
+                  reports.filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((report: any, index: number) => (
                     <ReportPreviewCard
                       key={report._id || report.caseId || `current-${index}`}
-                      title={`${report.animalType} (${report.caseId})`}
+                      title={`${report.animalType} (${report.caseId})${report.anonymous ? " • Anonymous" : ""}`}
                       date={new Date(report.createdAt).toLocaleDateString()}
                       status={report.status}
                       image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
@@ -340,13 +412,13 @@ export default function ProfileScreen() {
                   <Text style={styles.noActiveText}>No active rescue cases right now.</Text>
                 )}
 
-                {/* 📜 RESCUE HISTORY */}
-                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Rescue History</Text>
-                {reports.filter((r: any) => !["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).length > 0 ? (
-                  reports.filter((r: any) => !["needs help", "pending", "request sent", "under rescue", "accepted", "in progress"].includes((r.status || "").toLowerCase())).map((report: any, index: number) => (
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
+                  reports.filter((r: any) => (r.status || "").toLowerCase() === "completed").map((report: any, index: number) => (
                     <ReportPreviewCard
                       key={report._id || report.caseId || `history-${index}`}
-                      title={`${report.animalType} (${report.caseId})`}
+                      title={`${report.animalType} (${report.caseId})${report.anonymous ? " • Anonymous" : ""}`}
                       date={new Date(report.createdAt).toLocaleDateString()}
                       status={report.status}
                       image={report.photos && report.photos.length > 0 ? report.photos[0] : "https://via.placeholder.com/150"}
@@ -358,16 +430,10 @@ export default function ProfileScreen() {
                           params: { caseId: report.caseId },
                         });
                       }}
-                      onTrackPress={() => {
-                        router.push({
-                          pathname: "/live-tracking/[requestId]",
-                          params: { requestId: report.caseId },
-                        });
-                      }}
                     />
                   ))
                 ) : (
-                  <Text style={styles.noActiveText}>No past rescue history.</Text>
+                  <Text style={styles.noActiveText}>No completed cases yet.</Text>
                 )}
               </View>
             ) : (
@@ -384,12 +450,13 @@ export default function ProfileScreen() {
               <View style={styles.savedGrid}>
                 {savedItems.map((item) => (
                   <SavedPreviewCard
-                    key={item.id}
-                    title={item.title}
-                    subtitle={item.subtitle}
-                    location={item.location}
-                    image={item.image}
-                    onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: item.id || (item as any)._id } })}
+                    key={item._id}
+                    title={item.title || "Untitled"}
+                    subtitle={item.category || "Community"}
+                    image={item.imageUrl || undefined}
+                    likes={item.likeCount ?? (item as any).likes ?? 0}
+                    comments={item.commentCount ?? (item as any).comments ?? 0}
+                    onPress={() => router.push({ pathname: "/community-feed/CommunityPostView", params: { id: item._id } })}
                   />
                 ))}
               </View>
@@ -404,56 +471,6 @@ export default function ProfileScreen() {
         </View>
       </ScrollView>
 
-      {/* Cross-platform modal for updating status details */}
-      <Modal visible={modalVisible} animationType="slide" transparent>
-        <View style={styles.modalBackground}>
-          <View style={styles.modalContainer}>
-            <Text style={styles.modalTitle}>Update Rescue Status</Text>
-            
-            <View style={{ marginBottom: 15, width: "100%" }}>
-              {["Under Rescue", "Treated", "Ready for Adoption", "Completed"].map((s) => (
-                <TouchableOpacity
-                  key={s}
-                  style={{
-                    padding: 12,
-                    marginVertical: 4,
-                    borderRadius: 8,
-                    borderWidth: 1,
-                    borderColor: updateStatus === s ? BRAND_COLOR : "#ddd",
-                    backgroundColor: updateStatus === s ? "#FFF7E6" : "#fff",
-                  }}
-                  onPress={() => setUpdateStatus(s)}
-                >
-                  <Text style={{
-                    color: updateStatus === s ? BRAND_COLOR : "#555",
-                    fontWeight: updateStatus === s ? "bold" : "normal",
-                    textAlign: "center"
-                  }}>
-                    {s}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-
-            <TextInput
-              style={styles.modalInput}
-              placeholder="Add optional notes (e.g. On my way, Animal is safe)"
-              value={updateText}
-              onChangeText={setUpdateText}
-              multiline
-            />
-            <View style={styles.modalButtonRow}>
-              <TouchableOpacity style={[styles.modalButton, styles.cancelBtn]} onPress={() => setModalVisible(false)}>
-                <Text style={styles.cancelBtnText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalButton, styles.submitBtn]} onPress={submitDetailsUpdate}>
-                <Text style={styles.submitBtnText}>Submit</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-
       <ProfileMenuDrawer
         visible={menuVisible}
         onClose={() => setMenuVisible(false)}
@@ -463,7 +480,14 @@ export default function ProfileScreen() {
           role: user?.role,
           status: profile?.status
         }}
-        onAdoptionPress={() => setMenuVisible(false)}
+        onAdoptionPress={() => {
+          setMenuVisible(false);
+          router.push("/adoption-corner/MyPosts");
+        }}
+        onMyLostFoundPress={() => {
+          setMenuVisible(false);
+          router.push("/lost-and-found/MyPosts");
+        }}
         onProfilePress={() => setMenuVisible(false)}
         onDonationsPress={() => {
           setMenuVisible(false);
@@ -490,7 +514,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: 16,
-    paddingBottom: 24,
+    paddingBottom: 100,
   },
   header: {
     paddingTop: 16,
@@ -527,6 +551,8 @@ const styles = StyleSheet.create({
   savedGrid: {
     flexDirection: "row",
     justifyContent: "space-between",
+    flexWrap: "wrap",
+    gap: 12,
   },
   modalBackground: {
     flex: 1,

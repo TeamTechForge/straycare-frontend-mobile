@@ -17,7 +17,7 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "verbatimModuleSyntax": false,
-    "baseUrl": ".",
+    //"baseUrl": ".",
     "paths": {
       "@/*": [
         "./*"
@@ -33,7 +33,10 @@
   ],
   "exclude": [
     "node_modules",
-    "app-example"
+    "app-example",
+    "tests",
+    "**/*.test.ts",
+    "**/*.test.tsx"
   ],
   "extends": "expo/tsconfig.base.json"
 }

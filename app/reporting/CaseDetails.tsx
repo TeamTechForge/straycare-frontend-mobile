@@ -1,5 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
+import * as SecureStore from "expo-secure-store";
 import {
   ActivityIndicator,
   Image,
@@ -13,18 +15,8 @@ import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { getReportByCaseId, updateCaseStatus } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 import { useAuth } from "../../contexts/AuthContext";
-import { useRescueUpdates } from "../../hooks/useRescueUpdates";
 import { API_URL } from "../../constants/config.constants";
 import axios from "axios";
-
-type Reporter = {
-  id: string;
-  name: string;
-  phone?: string;
-  email?: string;
-  role?: string;
-  profileImage?: string;
-};
 
 type Report = {
   caseId: string;
@@ -34,9 +26,9 @@ type Report = {
   status: string;
   notes?: string;
   anonymous?: boolean;
-  reporterUserId?: string;
-  assignedRescuerUserId?: string;
-  reporter?: Reporter;
+  reportedBy?: string;
+  isOwner?: boolean;
+  permissions?: { canAccept: boolean; canUpdate: boolean };
   location: {
     lat: number;
     lng: number;
@@ -47,23 +39,28 @@ type Report = {
     status: string;
     timestamp: string;
     message?: string;
+    actorName?: string;
+    rescuerName?: string;
   }[];
 };
 
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Needs Help":
-      return "red";
+      return "#D32F2F";
     case "Under Rescue":
-      return "yellow";
+      return "#FBC02D";
     case "Treated":
-      return "green";
+      return "#2E7D32";
     case "Ready for Adoption":
-      return "blue";
+      return "#1976D2";
     default:
       return "gray";
   }
 };
+
+const getStatusTextColor = (status: string) =>
+  status === "Under Rescue" ? "#2B2B2B" : "#FFFFFF";
 
 const getNextStatus = (current: string) => {
   switch (current) {
@@ -79,49 +76,32 @@ const getNextStatus = (current: string) => {
 };
 
 export default function CaseDetailsScreen() {
-  const { caseId } = useLocalSearchParams();
+  const { caseId, focus, source } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+  const openedFromProfile = source === "profile";
+  const returnToPreviousScreen = () =>
+    router.replace(openedFromProfile ? "/profile" : "/(tabs)/Report");
 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [acceptingRescue, setAcceptingRescue] = useState(false);
+  const scrollViewRef = useRef<ScrollView>(null);
+  const [statusUpdateY, setStatusUpdateY] = useState<number | null>(null);
 
   // 🔔 Notification States
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
 
-  // 🔒 Check if user is a rescuer role
-  const isRescuer = user && ["volunteer", "ngo", "vet"].includes(user.role);
-
-  const currentUserId = (user as any)?._id || (user as any)?.id;
-
-  // 🔒 Check if logged-in user is the accepted rescuer for this case
-  const isAssignedRescuer = Boolean(
-    currentUserId &&
-    report?.assignedRescuerUserId &&
-    String(currentUserId) === String(report.assignedRescuerUserId)
-  );
-
-  // 🔒 Check if logged-in user is the reporter who created this report
-  const isMyReport = Boolean(
-    currentUserId &&
-    ((report?.reporterUserId && String(currentUserId) === String(report.reporterUserId)) ||
-     (report?.reporter?.id && String(currentUserId) === String(report.reporter.id)))
-  );
+  // 🔒 Check if user is a rescuer
+  const isRescuer = user && ["volunteer", "ngo", "vet", "rescuer"].includes(user.role);
+  const isReporter = user && !isRescuer;
 
   // 📡 Real-time updates via Socket.io
-  useRescueUpdates(report, (updatedReport) => {
-    setReport(updatedReport as Report);
-    setNotificationMessage(`Case updated: ${updatedReport.status}`);
-    setShowNotification(true);
-    setTimeout(() => setShowNotification(false), 3000);
-  });
-
-  useEffect(() => {
-    const loadCase = async () => {
+  const loadCase = useCallback(async () => {
+    setLoadError(null);
       try {
         const data = await getReportByCaseId(caseId as string);
         setReport(data);
@@ -131,19 +111,32 @@ export default function CaseDetailsScreen() {
       } finally {
         setLoading(false);
       }
-    };
-
-    loadCase();
   }, [caseId]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void loadCase();
+    }, [loadCase])
+  );
+
+  useEffect(() => {
+    if (focus !== "status-update" || loading || statusUpdateY === null) return;
+    const frame = requestAnimationFrame(() => {
+      scrollViewRef.current?.scrollTo({ y: Math.max(0, statusUpdateY - 20), animated: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [focus, loading, statusUpdateY]);
 
   const handleStatusUpdate = async () => {
     if (!report) return;
 
     // 🔒 Check if user is a rescuer
-    if (!isRescuer) {
+    if (!isRescuer || !report.permissions?.canUpdate) {
       Alert.alert(
         "Access Denied",
-        "Only rescuers, volunteers, NGOs, and veterinarians can update case status."
+        report.permissions?.canAccept
+          ? "Accept this case first before changing the status."
+          : "Only the assigned rescuer can change the status of this case."
       );
       return;
     }
@@ -153,8 +146,16 @@ export default function CaseDetailsScreen() {
 
     setUpdating(true);
     try {
-      const updated = await updateCaseStatus(report.caseId, next);
-      setReport(updated);
+      await updateCaseStatus(report.caseId, next);
+      await loadCase();
+
+      if (next === "Ready for Adoption") {
+        router.push({
+          pathname: "/adoption-corner/CreateAdoptionPost",
+          params: { caseId: report.caseId },
+        } as never);
+        return;
+      }
 
       // 🔔 Show banner immediately when status changes
       setNotificationMessage(`Case updated: ${next}`);
@@ -164,10 +165,10 @@ export default function CaseDetailsScreen() {
       console.log("Failed to update status:", err);
 
       // Handle 403 Forbidden error
-      if (err?.response?.status === 403) {
+      if (err?.status === 403 || err?.response?.status === 403) {
         Alert.alert(
-          "Permission Denied",
-          "You don't have permission to update this case status. Only rescuers can update cases."
+          "Not Allowed",
+          "Only the assigned rescuer can change the status of this case."
         );
       } else {
         Alert.alert("Error", "Failed to update case status. Please try again.");
@@ -190,16 +191,57 @@ export default function CaseDetailsScreen() {
     return (
       <View style={styles.center}>
         <Text style={styles.value}>{loadError || "Case not found."}</Text>
-        <PrimaryButton title="Back to Map" onPress={() => router.back()} />
+        <PrimaryButton
+          title={openedFromProfile ? "Back to Profile" : "Back to Map"}
+          onPress={returnToPreviousScreen}
+        />
       </View>
     );
   }
 
   const statusColor = getStatusColor(report.status);
   const nextStatus = getNextStatus(report.status);
+  const acceptRescue = async () => {
+    Alert.alert(
+      "Accept this case?",
+      "This will assign the case to you and change the status to Under Rescue.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Accept",
+          onPress: async () => {
+            setAcceptingRescue(true);
+            try {
+              const token = await SecureStore.getItemAsync("authToken");
+              const response = await axios.post(
+                `${API_URL}/strays/report/${report.caseId}/accept`,
+                {},
+                { headers: { Authorization: `Bearer ${token}` } }
+              );
+              const data = response.data as any;
+              await loadCase();
+              router.push({
+                pathname: "/rescuer-response/[requestId]",
+                params: { requestId: data.requestId, caseId: report.caseId },
+              } as never);
+            } catch (err: any) {
+              const errorMsg =
+                err?.response?.data?.error ||
+                err?.response?.data?.message ||
+                err?.message ||
+                "Failed to accept rescue. Please try again.";
+              Alert.alert("Accept Failed", errorMsg);
+            } finally {
+              setAcceptingRescue(false);
+            }
+          },
+        },
+      ]
+    );
+  };
 
   return (
-    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
+    <ScrollView ref={scrollViewRef} style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
 
       {/* 🔔 Notification Banner */}
       {showNotification && (
@@ -211,7 +253,9 @@ export default function CaseDetailsScreen() {
       <Text style={styles.caseId}>Case ID: {report.caseId}</Text>
 
       <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
-        <Text style={styles.statusText}>{report.status}</Text>
+        <Text style={[styles.statusText, { color: getStatusTextColor(report.status) }]}>
+          {report.status}
+        </Text>
       </View>
 
       <Text style={styles.label}>Photos</Text>
@@ -240,41 +284,13 @@ export default function CaseDetailsScreen() {
         <Text style={styles.value}>{report.location?.address || "Unknown"}</Text>
       </View>
 
-      {/* Reporter Card */}
-      {report.anonymous ? (
-        <View style={[styles.sectionCard, styles.anonymousCard]}>
-          <Text style={styles.anonymousBadge}>🔒 Anonymous Report</Text>
-          <Text style={styles.value}>Reporter details hidden for privacy</Text>
-        </View>
-      ) : (
-        report.reporter && (
-          <View style={[styles.sectionCard, styles.reporterCard]}>
-            <Text style={styles.label}>Reported By</Text>
-            <View style={{ flexDirection: "row", alignItems: "center", marginTop: 10 }}>
-              {report.reporter.profileImage && (
-                <Image
-                  source={{ uri: report.reporter.profileImage }}
-                  style={styles.reporterAvatar}
-                />
-              )}
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <Text style={styles.reporterName}>{report.reporter.name}</Text>
-                {report.reporter.role && (
-                  <Text style={styles.reporterRole}>
-                    {report.reporter.role.replace(/_/g, " ").toUpperCase()}
-                  </Text>
-                )}
-                {report.reporter.phone && (
-                  <Text style={styles.reporterContact}>📞 {report.reporter.phone}</Text>
-                )}
-                {report.reporter.email && (
-                  <Text style={styles.reporterContact}>✉️ {report.reporter.email}</Text>
-                )}
-              </View>
-            </View>
-          </View>
-        )
-      )}
+      <View style={[styles.sectionCard, report.anonymous ? styles.anonymousCard : styles.reporterCard]}>
+        <Text style={styles.label}>Reported By</Text>
+        <Text style={styles.reporterName}>{report.reportedBy || "Reporter"}</Text>
+        {report.anonymous ? (
+          <Text style={styles.anonymousHint}>Identity hidden for privacy</Text>
+        ) : null}
+      </View>
 
       {report.location?.lat != null && report.location?.lng != null && (
         <MapViewWrapper
@@ -302,87 +318,33 @@ export default function CaseDetailsScreen() {
         <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
       </View>
 
-      {/* ✅ Status Update Button - Only the accepted rescuer can change status */}
-      {nextStatus && isAssignedRescuer && (
-        <PrimaryButton
-          title={updating ? "Updating..." : `Mark as "${nextStatus}"`}
-          onPress={handleStatusUpdate}
-          disabled={updating}
-        />
-      )}
+      {/* ✅ Status Update Button - Rescuers Only */}
+      <View onLayout={(event) => setStatusUpdateY(event.nativeEvent.layout.y)}>
+        {nextStatus && report.permissions?.canUpdate && (
+          <PrimaryButton
+            title={updating ? "Updating..." : `Mark as "${nextStatus}"`}
+            onPress={handleStatusUpdate}
+            disabled={updating}
+          />
+        )}
+      </View>
 
-      {/* 🚑 Accept Rescue Button — Rescuers Only, when case Needs Help (NOT allowed on own reported cases) */}
-      {isRescuer && report.status === "Needs Help" && !isMyReport && (
+      {/* Accept Rescue Button - controlled by the server-side case permission */}
+      {isRescuer && report.permissions?.canAccept && (
         <PrimaryButton
-          title={acceptingRescue ? "Accepting..." : "🚑  Accept Rescue"}
-          onPress={async () => {
-            setAcceptingRescue(true);
-            try {
-              const token = await require("expo-secure-store").getItemAsync("authToken");
-              const response = await axios.post(
-                `${API_URL}/rescue/accept-from-map`,
-                { caseId: report.caseId },
-                { headers: { Authorization: `Bearer ${token}` } }
-              );
-              const data = response.data as any;
-              Alert.alert(
-                "Rescue Accepted",
-                `You have accepted case ${report.caseId}. The reporter has been notified.`,
-                [
-                  {
-                    text: "Open Response Workflow",
-                    onPress: () => {
-                      router.push({
-                        pathname: "/rescuer-response/[requestId]",
-                        params: {
-                          requestId: data.requestId,
-                          caseId: report.caseId,
-                        },
-                      } as never);
-                    },
-                  },
-                ]
-              );
-              // Update local state with assigned rescuer user ID
-              setReport({
-                ...report,
-                status: "Under Rescue",
-                assignedRescuerUserId: String(currentUserId || ""),
-              });
-            } catch (err: any) {
-              const errorMsg = err?.response?.data?.error || "Failed to accept rescue. Please try again.";
-              Alert.alert("Accept Failed", errorMsg);
-            } finally {
-              setAcceptingRescue(false);
-            }
-          }}
+          title={acceptingRescue ? "Accepting..." : "Accept This Case"}
+          onPress={acceptRescue}
           disabled={acceptingRescue}
         />
       )}
 
-      {/* 🔒 Info Message for reporter opening their own reported case */}
-      {report.status === "Needs Help" && isMyReport && (
+      {/* 🔒 Info Message for Non-Rescuers / Case Reporter */}
+      {nextStatus && !report.permissions?.canUpdate && (!report.permissions?.canAccept || report.isOwner) && (
         <View style={styles.restrictedMessage}>
           <Text style={styles.restrictedText}>
-            ℹ️ You reported this case. Another rescuer must accept it.
-          </Text>
-        </View>
-      )}
-
-      {/* 🔒 View-Only Banner for other rescuers & general users */}
-      {nextStatus && report.status !== "Needs Help" && !isAssignedRescuer && (
-        <View style={styles.restrictedMessage}>
-          <Text style={styles.restrictedText}>
-            🔒 View Only — Only the accepted rescuer can update case status
-          </Text>
-        </View>
-      )}
-
-      {/* 🔒 Info Message for non-rescuers when case Needs Help */}
-      {report.status === "Needs Help" && !isRescuer && !isMyReport && (
-        <View style={styles.restrictedMessage}>
-          <Text style={styles.restrictedText}>
-            ℹ️ Only rescuers can accept rescue cases
+            {isReporter || report.isOwner
+              ? "You can track this case here. Only the assigned rescuer can update the rescue status."
+              : "Only the assigned rescuer can change the status of this case."}
           </Text>
         </View>
       )}
@@ -402,18 +364,17 @@ export default function CaseDetailsScreen() {
               <Text style={styles.timelineStatus}>{entry.status}</Text>
 
               {/* Show message with rescuer info if available */}
-              {entry.message && (
-                <Text style={styles.timelineMessage}>{entry.message}</Text>
-              )}
+              <Text style={styles.timelineMessage}>
+                {entry.status === "Needs Help" && entry.message === "Case created"
+                  ? `Case reported by ${report.anonymous ? "Anonymous" : report.reportedBy || "Reporter"}`
+                  : entry.message}
+              </Text>
 
               {/* Show rescuer details card if available */}
-              {entry.rescuerName && (
+              {entry.actorName && (
                 <View style={styles.rescuerInfoBox}>
                   <Text style={styles.rescuerInfoLabel}>
                     👤 {entry.rescuerName}
-                  </Text>
-                  <Text style={styles.rescuerInfoRole}>
-                    {entry.rescuerRole?.replace(/_/g, " ").toUpperCase()}
                   </Text>
                 </View>
               )}
@@ -428,8 +389,10 @@ export default function CaseDetailsScreen() {
         <Text style={styles.value}>No timeline updates yet</Text>
       )}
 
-      {/* ✅ Fix applied here: Pops the screen instead of pushing a new map */}
-      <PrimaryButton title="Back to Map" onPress={() => router.back()} />
+      <PrimaryButton
+        title={openedFromProfile ? "Back to Profile" : "Back to Map"}
+        onPress={returnToPreviousScreen}
+      />
     </ScrollView>
   );
 }
@@ -545,6 +508,11 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#666",
     marginBottom: 8,
+  },
+  anonymousHint: {
+    fontSize: 13,
+    color: "#666",
+    marginTop: 4,
   },
   reporterAvatar: {
     width: 50,

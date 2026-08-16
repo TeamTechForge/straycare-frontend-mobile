@@ -1,12 +1,13 @@
 import { Asset } from "expo-asset";
-import * as FileSystem from "expo-file-system";
+import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
-import { useLocalSearchParams } from "expo-router";
-import * as Sharing from "expo-sharing";
-import { StyleSheet, Text, View } from "react-native";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { Alert, Platform, StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 
 export default function Receipt() {
+  const router = useRouter();
   const { donation } = useLocalSearchParams();
   const parsed = donation ? JSON.parse(donation as string) : null;
 
@@ -97,25 +98,50 @@ export default function Receipt() {
       `;
 
       const { uri } = await Print.printToFileAsync({ html });
-      
-      const canShare = await Sharing.isAvailableAsync();
-      if (canShare) {
-        await Sharing.shareAsync(uri, {
-          mimeType: "application/pdf",
-          dialogTitle: "Download Donation Receipt",
-          UTI: "com.adobe.pdf",
+
+      const safeOrderId = String(parsed.orderId || "receipt").replace(/[^a-zA-Z0-9_-]/g, "-");
+      const fileName = `StrayCare-Receipt-${safeOrderId}.pdf`;
+
+      if (Platform.OS === "android") {
+        const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+        if (!permission.granted) {
+          Alert.alert("Save cancelled", "Choose a folder to save the receipt.");
+          return;
+        }
+
+        const pdfBase64 = await FileSystem.readAsStringAsync(uri, {
+          encoding: FileSystem.EncodingType.Base64,
         });
+        const destinationUri = await FileSystem.StorageAccessFramework.createFileAsync(
+          permission.directoryUri,
+          fileName,
+          "application/pdf"
+        );
+        await FileSystem.writeAsStringAsync(destinationUri, pdfBase64, {
+          encoding: FileSystem.EncodingType.Base64,
+        });
+        Alert.alert("Receipt saved", `${fileName} was saved to the selected folder.`);
       } else {
-        console.log("Sharing not available");
+        const destinationUri = `${FileSystem.documentDirectory}${fileName}`;
+        const existing = await FileSystem.getInfoAsync(destinationUri);
+        if (existing.exists) {
+          await FileSystem.deleteAsync(destinationUri);
+        }
+        await FileSystem.copyAsync({ from: uri, to: destinationUri });
+        Alert.alert("Receipt saved", "The PDF was saved securely on this device.");
       }
     } catch (err) {
       console.error("Receipt error:", err);
+      Alert.alert("Unable to save receipt", "Please try again.");
     }
   }
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Donation Receipt</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+        <BackButton onPress={() => router.back()} />
+        <Text style={[styles.title, { marginBottom: 0, marginLeft: 12 }]}>Donation Receipt</Text>
+      </View>
       <View style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.label}>Order ID:</Text>
@@ -149,13 +175,13 @@ export default function Receipt() {
         </View>
       </View>
 
-      <PrimaryButton title="Download Receipt (PDF)" onPress={downloadReceipt} />
+      <PrimaryButton title="Save Receipt (PDF)" onPress={downloadReceipt} />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 60 },
+  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 40 },
   title: { fontSize: 22, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
   card: {
     backgroundColor: "#f9f9f9",

@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import BackButton from "../../components/BackButton";
 
 const { width } = Dimensions.get("window");
 
@@ -25,15 +26,7 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         {/* Back Button */}
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => [
-            styles.backButton,
-            pressed && styles.backButtonPressed,
-          ]}
-        >
-          <Ionicons name="chevron-back" size={24} color="#0f3a3a" />
-        </Pressable>
+        <BackButton onPress={() => router.back()} />
 
         {/* PLUS BUTTON (NEW) */}
         <Pressable
@@ -43,7 +36,7 @@ export default function HomeScreen() {
             pressed && styles.backButtonPressed,
           ]}
         >
-          <Ionicons name="add" size={24} color="#0f3a3a" />
+          <Ionicons name="add" size={24} color="#062425" />
         </Pressable>
       </View>
 
@@ -117,7 +110,7 @@ export default function HomeScreen() {
               <Ionicons
                 name="chevron-forward"
                 size={20}
-                color="#0f3a3a"
+                color="#062425"
                 style={{ opacity: 0.35 }}
               />
             </View>
@@ -143,8 +136,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 8,
-    paddingBottom: 4,
+    paddingTop: 0,
+    paddingBottom: 0,
   },
   backButton: {
     padding: 8,
@@ -158,20 +151,20 @@ const styles = StyleSheet.create({
   heroSection: {
     alignItems: "center",
     paddingHorizontal: 32,
-    paddingTop: 24,
-    paddingBottom: 32,
+    paddingTop: 2,
+    paddingBottom: 24,
   },
   heroTitle: {
     fontSize: 30,
     fontWeight: "800",
-    color: "#0f3a3a",
+    color: "#062425",
     textAlign: "center",
     lineHeight: 38,
     letterSpacing: -0.5,
     marginBottom: 12,
   },
   heroHighlight: {
-    color: "#f97316",
+    color: "#F5A623",
   },
   heroSubtitle: {
     fontSize: 16,

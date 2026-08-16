@@ -13,6 +13,7 @@ import {
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { getAllReports } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Report = {
   caseId: string;
@@ -25,6 +26,8 @@ type Report = {
     address?: string;
   };
 };
+
+const MAP_STATUSES = ["Needs Help", "Under Rescue", "Treated", "Ready for Adoption"] as const;
 
 const getMarkerColor = (status: string) => {
   switch (status) {
@@ -48,14 +51,14 @@ const getMarkerColor = (status: string) => {
   }
 };
 
-const RadarMarker = ({ 
-  coordinate, 
-  status, 
-  onPress 
-}: { 
-  coordinate: { latitude: number; longitude: number }; 
-  status: string; 
-  onPress: () => void; 
+const RadarMarker = ({
+  coordinate,
+  status,
+  onPress
+}: {
+  coordinate: { latitude: number; longitude: number };
+  status: string;
+  onPress: () => void;
 }) => {
   const isSearching = status === "Pending" || status === "Request Sent";
   const radarAnim = useRef(new Animated.Value(0)).current;
@@ -110,23 +113,35 @@ const RadarMarker = ({
   }
 
   return (
-    <Marker 
-      coordinate={coordinate} 
-      pinColor={getMarkerColor(status)} 
-      onPress={onPress} 
+    <Marker
+      coordinate={coordinate}
+      pinColor={getMarkerColor(status)}
+      onPress={onPress}
     />
   );
 };
 
 export default function ReportingMapScreen() {
-  const router = useRouter();
   const mapRef = useRef<any>(null);
-
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
+  const [selectedStatuses, setSelectedStatuses] = useState<Set<string>>(
+    () => new Set(["Needs Help"])
+  );
 
-  const loadReports = async () => {
+  const toggleStatus = (status: string) => {
+    setSelectedStatuses((current) => {
+      const next = new Set(current);
+      if (next.has(status)) next.delete(status);
+      else next.add(status);
+      return next;
+    });
+  };
+
+  const loadReports = useCallback(async () => {
     try {
       const data = await getAllReports();
       setReports(data);
@@ -135,16 +150,16 @@ export default function ReportingMapScreen() {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
-    loadReports();
-  }, []);
+    void loadReports();
+  }, [loadReports]);
 
   useFocusEffect(
     useCallback(() => {
-      loadReports();
-    }, [])
+      void loadReports();
+    }, [loadReports])
   );
 
   // The map's initialRegion only applies on first mount and never recenters,
@@ -156,6 +171,7 @@ export default function ReportingMapScreen() {
     if (!mapReady) return;
 
     const validCoords = reports
+      .filter((report) => selectedStatuses.has(report.status))
       .filter(
         (r) =>
           r.location && r.location.lat != null && r.location.lng != null
@@ -171,7 +187,7 @@ export default function ReportingMapScreen() {
         animated: true,
       });
     }
-  }, [reports, mapReady]);
+  }, [reports, mapReady, selectedStatuses]);
 
   // Override hardware back button to navigate to Home
   useEffect(() => {
@@ -212,7 +228,7 @@ export default function ReportingMapScreen() {
           longitudeDelta: 0.05,
         }}
       >
-        {reports.map((report) => {
+        {reports.filter((report) => selectedStatuses.has(report.status)).map((report) => {
           if (
             !report.location ||
             report.location.lat == null ||
@@ -244,8 +260,28 @@ export default function ReportingMapScreen() {
         })}
       </MapViewWrapper>
 
+      <View style={styles.filterCard}>
+        <Text style={styles.filterTitle}>Case status filters</Text>
+        <View style={styles.filterRow}>
+          {MAP_STATUSES.map((status) => {
+            const selected = selectedStatuses.has(status);
+            return (
+              <TouchableOpacity
+                key={status}
+                style={[styles.filterChip, selected && styles.filterChipSelected]}
+                onPress={() => toggleStatus(status)}
+              >
+                <Text style={[styles.filterChipText, selected && styles.filterChipTextSelected]}>
+                  {status}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+
       {/* Add Case Button */}
-      <View style={styles.bottomButtonWrapper}>
+      <View style={[styles.bottomButtonWrapper, { bottom: insets.bottom + 115 }]}>
         <PrimaryButton
           title="Report a Case +"
           onPress={() => router.push("/reporting/AnimalDetails")}
@@ -275,9 +311,24 @@ const styles = StyleSheet.create({
   },
   header: { fontSize: 18, fontWeight: "700", color: "#333", textAlign: "center" },
   subtext: { fontSize: 14, color: "#666", textAlign: "center" },
+  filterCard: {
+    position: "absolute",
+    top: 96,
+    left: 12,
+    right: 12,
+    backgroundColor: "#fff",
+    borderRadius: 12,
+    padding: 10,
+    elevation: 2,
+  },
+  filterTitle: { fontSize: 12, fontWeight: "700", color: "#333", marginBottom: 7 },
+  filterRow: { flexDirection: "row", flexWrap: "wrap", gap: 6 },
+  filterChip: { borderWidth: 1, borderColor: "#BDBDBD", borderRadius: 14, paddingHorizontal: 9, paddingVertical: 5 },
+  filterChipSelected: { backgroundColor: "#D32F2F", borderColor: "#D32F2F" },
+  filterChipText: { color: "#444", fontSize: 11, fontWeight: "600" },
+  filterChipTextSelected: { color: "#fff" },
   bottomButtonWrapper: {
     position: "absolute",
-    bottom: 90,
     left: 20,
     right: 20,
   },

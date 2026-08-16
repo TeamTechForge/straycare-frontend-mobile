@@ -1,14 +1,50 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
-import React from "react";
-import { StyleSheet, Text, View } from "react-native";
-import PrimaryButton from "../../components/PrimaryButton";
+import axios from "axios";
+import * as SecureStore from "expo-secure-store";
+import React, { useEffect, useState } from "react";
+import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import BackButton from "../../components/BackButton";
+import { BASE_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
+
+type RecurringStatusResponse = {
+  status: "PENDING" | "ACTIVE" | "FAILED" | "CANCELLED" | "COMPLETED";
+};
 
 export default function DonationSuccess() {
   const router = useRouter();
   const { user } = useAuth();
-  const { transactionId, amount, organization } = useLocalSearchParams();
+  const { transactionId, amount, organization, recurring } = useLocalSearchParams();
+  const [recurringStatus, setRecurringStatus] = useState(recurring === "true" ? "PENDING" : "ACTIVE");
+
+  useEffect(() => {
+    if (recurring !== "true" || !transactionId) return;
+    let cancelled = false;
+    let attempts = 0;
+
+    const checkStatus = async () => {
+      try {
+        const token = await SecureStore.getItemAsync("authToken");
+        const response = await axios.get<RecurringStatusResponse>(
+          `${BASE_URL}/api/donations/recurring/${encodeURIComponent(String(transactionId))}/status`,
+          { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 }
+        );
+        if (!cancelled) setRecurringStatus(response.data.status);
+        if (response.data.status === "PENDING" && attempts++ < 5 && !cancelled) {
+          setTimeout(checkStatus, 2000);
+        }
+      } catch {
+        if (attempts++ < 5 && !cancelled) setTimeout(checkStatus, 2000);
+      }
+    };
+
+    checkStatus();
+    return () => { cancelled = true; };
+  }, [recurring, transactionId]);
+
+  const isRecurringPending = recurring === "true" && recurringStatus === "PENDING";
+  const recurringFailed = recurring === "true" && ["FAILED", "CANCELLED"].includes(recurringStatus);
 
   const displayTransactionId = transactionId
     ? String(transactionId)
@@ -29,19 +65,28 @@ export default function DonationSuccess() {
 
   return (
     <View style={styles.container}>
+      <View style={{ marginBottom: 12, marginLeft: -4, marginTop: 40 }}>
+        <BackButton onPress={() => router.replace("/Donate")} />
+      </View>
       <View style={styles.middle}>
         <View style={styles.contentContainer}>
-          <Ionicons
-            name="checkmark-circle"
+          {isRecurringPending ? <ActivityIndicator size="large" color="#F5A623" style={styles.icon} /> : <Ionicons
+            name={recurringFailed ? "close-circle" : "checkmark-circle"}
             size={90}
-            color="#F5A623"
+            color={recurringFailed ? "#D64545" : "#F5A623"}
             style={styles.icon}
-          />
+          />}
 
-          <Text style={styles.message}>Thank You!</Text>
+          <Text style={styles.message}>
+            {isRecurringPending ? "Confirming Payment" : recurringFailed ? "Payment Not Activated" : "Thank You!"}
+          </Text>
 
           <Text style={styles.subMessage}>
-            Donation Completed Successfully
+            {isRecurringPending
+              ? "PayHere is confirming your recurring donation. It will appear in history after confirmation."
+              : recurringFailed
+                ? "PayHere did not activate this recurring donation."
+                : recurring === "true" ? "Recurring Donation Activated" : "Donation Completed Successfully"}
           </Text>
 
           {displayOrganization ? (
@@ -56,11 +101,16 @@ export default function DonationSuccess() {
             Transaction ID: {displayTransactionId}
           </Text>
 
-          <PrimaryButton title="Back to Donate" onPress={() => router.replace("/Donate")} />
-          <PrimaryButton
-            title={canReceiveDonations ? "View Donation Hub" : "View Donation History"}
-            onPress={handleViewHistory}
-          />
+          <View style={styles.actions}>
+            <TouchableOpacity style={styles.actionButton} onPress={() => router.replace("/Donate")}>
+              <Text style={styles.actionButtonText}>Back to Donate</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.actionButton} onPress={handleViewHistory}>
+              <Text style={styles.actionButtonText}>
+                {canReceiveDonations ? "View Donation Hub" : "View Donation History"}
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View >
       </View >
     </View >
@@ -110,6 +160,25 @@ const styles = StyleSheet.create({
     marginTop: 15,
     marginBottom: 35,
     color: "#777",
+    textAlign: "center",
+  },
+  actions: {
+    width: "78%",
+    maxWidth: 340,
+    gap: 12,
+  },
+  actionButton: {
+    minHeight: 46,
+    paddingHorizontal: 16,
+    borderRadius: 10,
+    backgroundColor: "#F5A623",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  actionButtonText: {
+    color: "#1F1A17",
+    fontSize: 14,
+    fontWeight: "700",
     textAlign: "center",
   },
 });

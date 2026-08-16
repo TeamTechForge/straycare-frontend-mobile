@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -19,6 +21,7 @@ import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import CustomAlertModal from "../../components/CustomAlertModal";
+import { setStoredItem } from "../../utils/storage";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -53,7 +56,7 @@ export default function RegisterScreen() {
       setIsGoogleLoading(true);
       try {
         const result = await handleGoogleSignIn(googleResponse);
-        await SecureStore.setItemAsync("authToken", result.token);
+        await setStoredItem("authToken", result.token);
         await refreshUser();
 
         if (result.isNewUser) {
@@ -170,7 +173,7 @@ export default function RegisterScreen() {
 
       if (response.ok) {
         // Store JWT securely
-        await SecureStore.setItemAsync("authToken", data.token);
+        await setStoredItem("authToken", data.token);
 
         // Refresh AuthContext so token + user are available app-wide
         await refreshUser();
@@ -207,11 +210,15 @@ export default function RegisterScreen() {
   };
 
   return (
-    <View style={{ flex: 1 }}>
+    <KeyboardAvoidingView
+      style={{ flex: 1 }}
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+    >
       <ScrollView
         style={styles.container}
-        contentContainerStyle={{ paddingBottom: 40 }}
+        contentContainerStyle={{ paddingBottom: 100 }}
         showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
       >
       <Image
         source={require("../../assets/images/signupimg.jpg")}
@@ -225,7 +232,9 @@ export default function RegisterScreen() {
           Join our community and help save lives
         </Text>
 
-        <Text style={styles.label}>Name</Text>
+        <Text style={styles.label}>
+          Name <Text style={{ color: "red" }}>*</Text>
+        </Text>
         <InputField
           placeholder="John Doe"
           value={name}
@@ -234,7 +243,9 @@ export default function RegisterScreen() {
         />
         {errors.name && <Text style={styles.error}>{errors.name}</Text>}
 
-        <Text style={styles.label}>Email Address</Text>
+        <Text style={styles.label}>
+          Email Address <Text style={{ color: "red" }}>*</Text>
+        </Text>
         <InputField
           placeholder="Johndoe@gmail.com"
           value={email}
@@ -243,7 +254,9 @@ export default function RegisterScreen() {
         />
         {errors.email && <Text style={styles.error}>{errors.email}</Text>}
 
-        <Text style={styles.label}>Phone Number</Text>
+        <Text style={styles.label}>
+          Phone Number <Text style={{ color: "red" }}>*</Text>
+        </Text>
         <InputField
           placeholder="+94 77 555 5555"
           value={phone}
@@ -252,7 +265,9 @@ export default function RegisterScreen() {
         />
         {errors.phone && <Text style={styles.error}>{errors.phone}</Text>}
 
-        <Text style={styles.label}>Password</Text>
+        <Text style={styles.label}>
+          Password <Text style={{ color: "red" }}>*</Text>
+        </Text>
         <InputField
           placeholder="********"
           value={password}
@@ -262,7 +277,9 @@ export default function RegisterScreen() {
         />
         {errors.password && <Text style={styles.error}>{errors.password}</Text>}
 
-        <Text style={styles.label}>Confirm Password</Text>
+        <Text style={styles.label}>
+          Confirm Password <Text style={{ color: "red" }}>*</Text>
+        </Text>
         <InputField
           placeholder="********"
           value={confirmPassword}
@@ -358,7 +375,7 @@ export default function RegisterScreen() {
         onCancel={() => setIsAccountExistsVisible(false)}
         onClose={() => setIsAccountExistsVisible(false)}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 

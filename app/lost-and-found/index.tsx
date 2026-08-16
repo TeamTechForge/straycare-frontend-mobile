@@ -26,7 +26,7 @@ export default function LostAndFoundScreen() {
       <View style={styles.header}>
         {/* Back Button */}
         <Pressable
-          onPress={() => router.back()}
+          onPress={() => router.replace('/(tabs)/Home')}
           style={({ pressed }) => [
             styles.backButton,
             pressed && styles.backButtonPressed,
@@ -78,7 +78,9 @@ export default function LostAndFoundScreen() {
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>Urgent help needed</Text>
               </View>
-              <Text style={styles.cardTitle}>I Lost a Pet</Text>
+              <Text style={styles.cardTitle}>
+                I <Text style={{ color: "#F5A623" }}>Lost</Text> a Pet
+              </Text>
             </View>
           </View>
           <View style={styles.cardBody}>
@@ -106,21 +108,15 @@ export default function LostAndFoundScreen() {
               <View style={styles.badge}>
                 <Text style={styles.badgeText}>Compassionate care</Text>
               </View>
-              <Text style={styles.cardTitle}>I Found a Pet</Text>
+              <Text style={styles.cardTitle}>
+                I <Text style={{ color: "#F5A623" }}>Found</Text> a Pet
+              </Text>
             </View>
           </View>
           <View style={styles.cardBody}>
             <Text style={styles.cardDescription}>
               Report a found animal and help it get home.
             </Text>
-            <View style={styles.chevronContainer}>
-              <Ionicons
-                name="chevron-forward"
-                size={20}
-                color="#0f3a3a"
-                style={{ opacity: 0.35 }}
-              />
-            </View>
           </View>
         </Pressable>
       </View>
@@ -143,7 +139,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 8,
+    paddingTop: 25,
     paddingBottom: 4,
   },
   backButton: {
@@ -158,7 +154,7 @@ const styles = StyleSheet.create({
   heroSection: {
     alignItems: "center",
     paddingHorizontal: 32,
-    paddingTop: 24,
+    paddingTop: 10,
     paddingBottom: 32,
   },
   heroTitle: {
@@ -171,7 +167,7 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   heroHighlight: {
-    color: "#f97316",
+    color: "#F5A623",
   },
   heroSubtitle: {
     fontSize: 16,

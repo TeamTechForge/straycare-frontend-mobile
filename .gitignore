@@ -9,6 +9,10 @@ dist/
 web-build/
 expo-env.d.ts
 
+# Testing
+coverage/
+.nyc_output/
+
 # Native
 .kotlin/
 *.orig.*
@@ -49,3 +53,6 @@ app-example
 # Build logs
 build_log.txt
 *.build_log.txt
+
+# Google Services
+google-services.json

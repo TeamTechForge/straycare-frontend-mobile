@@ -1,13 +1,35 @@
 {
-    "build": {
-        "preview": {
-            "distribution": "internal",
-            "android": {
-                "buildType": "apk"
-            },
-            "env": {
-                "EXPO_PUBLIC_API_URL": "https://straycare-backend-69nd.onrender.com"
-            }
-        }
+  "cli": {
+    "version": ">= 21.7.0",
+    "appVersionSource": "remote"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://straycare-backend-69nd.onrender.com",
+        "EXPO_PUBLIC_FIREBASE_API_KEY": "AIzaSyDhE7Wd-ATsQ4k-p2cptSBxWMJ9GaobgCE",
+        "EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN": "straycareweb.firebaseapp.com",
+        "EXPO_PUBLIC_FIREBASE_PROJECT_ID": "straycareweb",
+        "EXPO_PUBLIC_FIREBASE_STORAGE_BUCKET": "straycareweb.firebasestorage.app",
+        "EXPO_PUBLIC_FIREBASE_MESSAGING_SENDER_ID": "394016070568",
+        "EXPO_PUBLIC_FIREBASE_APP_ID": "1:394016070568:web:c681019d95af145a20db9d",
+        "EXPO_PUBLIC_GOOGLE_WEB_CLIENT_ID": "394016070568-il1dg2te3prtfbteolmb5jjskmroqtdb.apps.googleusercontent.com",
+        "EXPO_PUBLIC_GOOGLE_ANDROID_CLIENT_ID": "394016070568-n94vq7ptbo69lpstpfe6c3of46m4hi04.apps.googleusercontent.com"
+      }
+    },
+    "production": {
+      "autoIncrement": true
     }
-}
+  },
+  "submit": {
+    "production": {}
+  }
+}

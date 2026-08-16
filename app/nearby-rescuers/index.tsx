@@ -14,10 +14,10 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
 import axios from "axios";
 
-import { Ionicons } from "@expo/vector-icons";
 import { useAuth } from "../../contexts/AuthContext";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
@@ -372,14 +372,13 @@ export default function NearbyRescuersScreen() {
     <SafeAreaView style={styles.container}>
       {/* HEADER BAR */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backIconButton}
-          activeOpacity={0.7}
-          onPress={() => router.back()}
-          disabled={workflowState === "waiting" || workflowState === "sending"}
-        >
-          <Ionicons name="arrow-back" size={24} color="#111827" />
-        </TouchableOpacity>
+        <BackButton 
+          onPress={() => {
+            if (workflowState !== "waiting" && workflowState !== "sending") {
+              router.back();
+            }
+          }}
+        />
         <Text style={styles.headerTitle}>Nearby Help Map</Text>
         <View style={{ width: 40 }} />
       </View>
@@ -490,7 +489,7 @@ export default function NearbyRescuersScreen() {
                           { text: "Cancel", style: "cancel" },
                           {
                             text: "Publish Now",
-                            onPress: () => router.push("/reporting"),
+                            onPress: () => router.push("/(tabs)/Report"),
                           },
                         ]
                       );
@@ -516,7 +515,7 @@ export default function NearbyRescuersScreen() {
                         [
                           {
                             text: "OK",
-                            onPress: () => router.push("/reporting"),
+                            onPress: () => router.push("/(tabs)/Report"),
                           },
                         ]
                       );

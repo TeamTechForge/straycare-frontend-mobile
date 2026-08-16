@@ -12,29 +12,37 @@ type Props = {
   onTrackPress?: () => void;
   onActionPress?: () => void;
   actionText?: string;
+  onSecondaryActionPress?: () => void;
+  secondaryActionText?: string;
+  secondaryActionDisabled?: boolean;
   summary?: string;
   onPress?: () => void;
 };
 
 const getStatusColors = (status: string): { bg: string; text: string } => {
   switch (status?.toLowerCase()) {
-    case "under rescue":
-      return { bg: "#FFF1CC", text: "#D97706" };
-    case "treated":
-      return { bg: "#DBEAFE", text: "#2563EB" };
-    case "ready for adoption":
-      return { bg: "#D1FAE5", text: "#059669" };
-    case "completed":
-      return { bg: "#D1FAE5", text: "#047857" };
     case "needs help":
-      return { bg: "#FEE2E2", text: "#DC2626" };
-    case "pending":
+      return { bg: "#FEE2E2", text: "#DC2626" }; // 🔴 Red (Map: red)
     case "request sent":
-      return { bg: "#FEF3C7", text: "#B45309" };
+    case "pending":
+      return { bg: "#FEF9C3", text: "#B45309" }; // 🟡 Yellow (Map: #FFD700)
+    case "under rescue":
+    case "under_rescue":
+    case "in progress":
     case "accepted":
-      return { bg: "#FFF1CC", text: BRAND_COLOR };
+      return { bg: "#FFEDD5", text: "#EA580C" }; // 🟠 Orange (Map: orange)
+    case "treated":
+    case "completed":
+      return { bg: "#EAF6EE", text: "#2E7D32" }; // 🟢 Green (Map: #63ac84)
+    case "failed":
+      return { bg: "#FEE2E2", text: "#e32a2aff" };
+    case "ready for adoption":
+      return { bg: "#E0EEFB", text: "#1D4ED8" }; // 🔵 Blue (Map: #2476da)
+    case "cancelled":
+    case "closed":
+      return { bg: "#F3F4F6", text: "#4B5563" }; // ⚫ Gray (Map: gray)
     default:
-      return { bg: "#FFF1CC", text: BRAND_COLOR };
+      return { bg: "#F3F4F6", text: "#4B5563" };
   }
 };
 
@@ -47,6 +55,9 @@ export default function ReportPreviewCard({
   onTrackPress,
   onActionPress,
   actionText = "Update",
+  onSecondaryActionPress,
+  secondaryActionText = "Mark as Failed",
+  secondaryActionDisabled = false,
   summary,
   onPress,
 }: Props) {
@@ -63,7 +74,7 @@ export default function ReportPreviewCard({
             <View style={[styles.reportStatusBadge, { backgroundColor: statusColors.bg }]}>
               <Text style={[styles.reportStatusText, { color: statusColors.text }]}>{status}</Text>
             </View>
-            
+
             {onTrackPress &&
               status &&
               ["accepted", "under rescue"].includes(status.toLowerCase()) && (
@@ -77,6 +88,17 @@ export default function ReportPreviewCard({
               <TouchableOpacity style={styles.actionButton} onPress={onActionPress}>
                 <Ionicons name="create-outline" size={12} color="#FFF" />
                 <Text style={styles.actionButtonText}>{actionText}</Text>
+              </TouchableOpacity>
+            )}
+
+            {onSecondaryActionPress && (
+              <TouchableOpacity
+                style={[styles.failureButton, secondaryActionDisabled && styles.buttonDisabled]}
+                onPress={onSecondaryActionPress}
+                disabled={secondaryActionDisabled}
+              >
+                <Ionicons name="close-circle-outline" size={12} color="#FFF" />
+                <Text style={styles.actionButtonText}>{secondaryActionText}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -167,7 +189,7 @@ const styles = StyleSheet.create({
   actionButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#10B981",
+    backgroundColor: BRAND_COLOR,
     borderRadius: 8,
     paddingHorizontal: 8,
     paddingVertical: 4,
@@ -178,6 +200,16 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: "700",
   },
+  failureButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#e16060ff",
+    borderRadius: 8,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    gap: 4,
+  },
+  buttonDisabled: { opacity: 0.6 },
   timelineContainer: {
     marginTop: 12,
     borderTopWidth: 1,

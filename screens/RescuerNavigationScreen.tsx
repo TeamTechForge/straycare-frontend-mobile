@@ -8,10 +8,14 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import * as Location from "expo-location";
+import axios from "axios";
 
 import MapViewWrapper, { Marker } from "../components/MapViewWrapper";
 import { colors } from "../constants/colors.constants";
+import { API_URL } from "../constants/config.constants";
 import { fetchRescueById } from "../services/rescueService";
+import { getStoredItem } from "../utils/storage";
 import type { LiveTrackingResponse } from "../types/Api";
 
 type Params = {
@@ -21,37 +25,129 @@ type Params = {
 const getFirstParam = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
+// Haversine formula to calculate distance between two coordinates in km
+function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
+  const R = 6371;
+  const dLat = (lat2 - lat1) * (Math.PI / 180);
+  const dLon = (lon2 - lon1) * (Math.PI / 180);
+  const a =
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * (Math.PI / 180)) * Math.cos(lat2 * (Math.PI / 180)) * Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return Number((R * c).toFixed(1));
+}
+
 export default function RescuerNavigationScreen() {
   const router = useRouter();
   const { requestId } = useLocalSearchParams<Params>();
   const requestIdValue = getFirstParam(requestId) ?? "";
 
   const [tracking, setTracking] = useState<LiveTrackingResponse | null>(null);
+  const [deviceLocation, setDeviceLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // 📡 1. Live GPS tracking from device
+  useEffect(() => {
+    let locationSubscription: Location.LocationSubscription | null = null;
+    (async () => {
+      try {
+        const { status } = await Location.requestForegroundPermissionsAsync();
+        if (status === "granted") {
+          const currentPos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
+          if (currentPos?.coords) {
+            setDeviceLocation({
+              latitude: currentPos.coords.latitude,
+              longitude: currentPos.coords.longitude,
+            });
+          }
+          locationSubscription = await Location.watchPositionAsync(
+            { accuracy: Location.Accuracy.Balanced, distanceInterval: 10 },
+            (loc) => {
+              if (loc?.coords) {
+                setDeviceLocation({
+                  latitude: loc.coords.latitude,
+                  longitude: loc.coords.longitude,
+                });
+              }
+            }
+          );
+        }
+      } catch (locErr) {
+        console.warn("[RescuerNavigation] GPS permission/location error:", locErr);
+      }
+    })();
+
+    return () => {
+      if (locationSubscription) {
+        locationSubscription.remove();
+      }
+    };
+  }, []);
+
+  // 📡 2. Fetch rescue case details & calculate live distance / ETA
   useEffect(() => {
     let active = true;
 
     const loadTracking = async () => {
       if (!requestIdValue) return;
       try {
-        const response = await fetchRescueById(requestIdValue);
-        if (!active) return;
+        let response: any = null;
+        try {
+          response = await fetchRescueById(requestIdValue);
+        } catch (_fetchErr) {
+          // Fallback: fetch via authenticated stray/rescue API
+          const authToken = await getStoredItem("authToken");
+          const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
+          try {
+            const res = await axios.get(`${API_URL}/rescue/status/${requestIdValue}`, { headers });
+            response = res.data;
+          } catch (_resErr) {
+            const fallbackRes = await axios.get(`${API_URL}/strays/report/${requestIdValue}`, { headers });
+            response = fallbackRes.data;
+          }
+        }
+
+        if (!active || !response) return;
+
+        const targetLocation =
+          response.reporterLocation ||
+          response.rescueLocation ||
+          response.location ||
+          (response.location?.lat ? { latitude: response.location.lat, longitude: response.location.lng } : null);
+
+        const currentRescuerLoc =
+          deviceLocation ||
+          response.rescuerLocation ||
+          (response.rescuer?.location ? { latitude: response.rescuer.location.lat || response.rescuer.location.latitude, longitude: response.rescuer.location.lng || response.rescuer.location.longitude } : null);
+
+        let derivedDistanceKm: number = typeof response.distanceKm === "number" ? response.distanceKm : 0;
+        let derivedEtaMinutes: number = typeof response.etaMinutes === "number" ? response.etaMinutes : 5;
+
+        if (currentRescuerLoc && targetLocation) {
+          derivedDistanceKm = calculateDistanceKm(
+            currentRescuerLoc.latitude,
+            currentRescuerLoc.longitude,
+            targetLocation.latitude || targetLocation.lat,
+            targetLocation.longitude || targetLocation.lng
+          );
+          derivedEtaMinutes = Math.max(1, Math.round(derivedDistanceKm * 6));
+        }
+
         setTracking({
           rescueRequestId: requestIdValue,
           status: response.status,
-          case: response as any, // Cast to match interface requirements if needed
-          reporterLocation: response.reporterLocation,
-          rescuerLocation: response.rescuerLocation,
-          distanceKm: response.distanceKm as number,
-          etaMinutes: response.etaMinutes as number,
-          lastUpdatedAt: response.lastUpdatedAt,
+          case: response as any,
+          reporterLocation: targetLocation,
+          rescuerLocation: currentRescuerLoc,
+          distanceKm: derivedDistanceKm,
+          etaMinutes: derivedEtaMinutes,
+          lastUpdatedAt: response.lastUpdatedAt || new Date().toISOString(),
         });
         setError(null);
       } catch (err) {
         if (!active) return;
-        setError("Unable to load live location.");
+        setError("Unable to load rescue location.");
       } finally {
         if (active) setLoading(false);
       }
@@ -64,16 +160,16 @@ export default function RescuerNavigationScreen() {
       active = false;
       clearInterval(interval);
     };
-  }, [requestIdValue]);
+  }, [requestIdValue, deviceLocation]);
 
   const initialRegion = useMemo(() => {
-    const location = tracking?.rescuerLocation ?? tracking?.reporterLocation ?? tracking?.case.location;
+    const location = deviceLocation ?? tracking?.rescuerLocation ?? tracking?.reporterLocation ?? tracking?.case?.location;
     return location
       ? {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          latitudeDelta: 0.01,
-          longitudeDelta: 0.01,
+          latitude: location.latitude || (location as any).lat || 6.9271,
+          longitude: location.longitude || (location as any).lng || 79.8612,
+          latitudeDelta: 0.02,
+          longitudeDelta: 0.02,
         }
       : {
           latitude: 6.9271,
@@ -81,7 +177,7 @@ export default function RescuerNavigationScreen() {
           latitudeDelta: 0.03,
           longitudeDelta: 0.03,
         };
-  }, [tracking]);
+  }, [tracking, deviceLocation]);
 
   return (
     <View style={styles.container}>
@@ -90,14 +186,14 @@ export default function RescuerNavigationScreen() {
           {tracking.reporterLocation ? (
             <Marker
               coordinate={tracking.reporterLocation}
-              title="Reporter"
-              description={tracking.case.reporter?.name || "Reporter"}
-              pinColor="#2563EB"
+              title="Rescue Location"
+              description={tracking.case?.animalType || "Animal in need"}
+              pinColor="#EF4444"
             />
           ) : null}
-          {tracking.rescuerLocation ? (
+          {(deviceLocation || tracking.rescuerLocation) ? (
             <Marker
-              coordinate={tracking.rescuerLocation}
+              coordinate={deviceLocation || tracking.rescuerLocation!}
               title="You"
               description="Your live location"
               pinColor={colors.primary}
@@ -132,14 +228,20 @@ export default function RescuerNavigationScreen() {
               <View style={styles.infoBox}>
                 <Text style={styles.infoLabel}>DISTANCE</Text>
                 <Text style={styles.infoValue}>
-                  {tracking.distanceKm ? tracking.distanceKm.toFixed(1) : "—"} km
+                  {typeof tracking.distanceKm === "number" && !isNaN(tracking.distanceKm)
+                    ? tracking.distanceKm.toFixed(1)
+                    : "0.0"}{" "}
+                  km
                 </Text>
               </View>
               <View style={styles.divider} />
               <View style={styles.infoBox}>
                 <Text style={styles.infoLabel}>ETA</Text>
                 <Text style={styles.infoValue}>
-                  {tracking.etaMinutes ?? "—"} min
+                  {typeof tracking.etaMinutes === "number" && !isNaN(tracking.etaMinutes)
+                    ? tracking.etaMinutes
+                    : "—"}{" "}
+                  min
                 </Text>
               </View>
             </View>

@@ -13,6 +13,7 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   ScrollView,
+  Switch,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
@@ -21,6 +22,7 @@ import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
 import AppButton from "../../components/ui/AppButton";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const uploadToCloudinary = async (imageUri: string) => {
   const data = new FormData();
@@ -58,7 +60,9 @@ export default function AddContent() {
   const router = useRouter();
   const [content, setContent] = useState("");
   const [imageUri, setImageUri] = useState<string | null>(null);
+  const [anonymous, setAnonymous] = useState(false);
   const [uploading, setUploading] = useState(false);
+  const insets = useSafeAreaInsets();
 
   const handlePickImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -112,7 +116,7 @@ export default function AddContent() {
     try {
       router.push({
         pathname: "/forum/published" as any,
-        params: { content: content.trim(), imageUrl },
+        params: { content: content.trim(), imageUrl, anonymous: anonymous ? "true" : "false" },
       });
     } catch (e) {
       Alert.alert("Error", "Could not publish thread.");
@@ -183,13 +187,27 @@ export default function AddContent() {
             </Text>
           </TouchableOpacity>
 
+          {/* Anonymous Toggle Option */}
+          <View style={styles.anonymousRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={styles.anonymousTitle}>Post Anonymously</Text>
+              <Text style={styles.anonymousSubtitle}>Hide your name from the community discussion.</Text>
+            </View>
+            <Switch
+              value={anonymous}
+              onValueChange={setAnonymous}
+              trackColor={{ false: "#E5E7EB", true: colors.primary }}
+              thumbColor={anonymous ? "#FFFFFF" : "#F4F4F5"}
+            />
+          </View>
+
           {uploading ? (
             <ActivityIndicator size="small" color={colors.primary} style={{ marginTop: 12 }} />
           ) : null}
         </ScrollView>
 
         {/* Fixed Bottom Publish Button — never covered by keyboard */}
-        <View style={styles.bottomBar}>
+        <View style={[styles.bottomBar, { paddingBottom: Math.max(insets.bottom, 16) }]}>
           <AppButton
             title="Publish"
             onPress={onPublish}
@@ -303,6 +321,30 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: typography.semibold,
     color: colors.primary,
+  },
+
+  anonymousRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    width: "100%",
+    marginTop: 20,
+    padding: 16,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#ECECEC",
+  },
+  anonymousTitle: {
+    fontSize: 14,
+    fontFamily: typography.semibold,
+    color: "#111827",
+  },
+  anonymousSubtitle: {
+    fontSize: 12,
+    fontFamily: typography.regular,
+    color: "#6B7280",
+    marginTop: 2,
   },
 
   bottomBar: {

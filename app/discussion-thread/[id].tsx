@@ -1,9 +1,9 @@
 import React, { useCallback, useMemo, useRef, useState, useEffect } from "react";
-import { ActivityIndicator, Image, RefreshControl, SafeAreaView, ScrollView, Text, View } from "react-native";
+import { ActivityIndicator, Alert, Image, RefreshControl, SafeAreaView, ScrollView, Text, View } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
-import { getAllPosts, addComment, getThread, deletePost } from "../../services/forumService";
+import { getAllPosts, addComment, getThread, deletePost, deleteComment } from "../../services/forumService";
 import type { ForumPost, ForumThreadComment } from "../../types/Forum";
 import type { ThreadData, ThreadMessage } from "../../types/Thread";
 import { threadStyles as styles } from "../../styles/thread.styles";
@@ -26,12 +26,14 @@ const mapCommentToMessage = (comment: ForumThreadComment): ThreadMessage => {
   return {
     id: comment.id,
     name: displayName,
+    userAvatar: comment.userAvatar,
     role: "",
     subtitle: "",
     time: timeLabel.toUpperCase(),
     text: comment.text,
     likes: 0,
     likedByMe: false,
+    isMine: comment.isMine,
   };
 };
 
@@ -157,6 +159,32 @@ export default function DiscussionThreadScreen() {
     }
   }
 
+  async function handleDeleteComment(targetCommentId: string) {
+    if (!id) return;
+
+    // Save previous messages backup for rollback if needed
+    const previousMessages = thread.messages;
+
+    // Optimistically remove comment from UI immediately
+    setThread((prev) => ({
+      ...prev,
+      messages: prev.messages.filter((m) => m.id !== targetCommentId),
+    }));
+
+    try {
+      console.log("[DiscussionThread] Deleting comment", targetCommentId, "from thread", id);
+      await deleteComment(id, targetCommentId);
+      await loadThread();
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to delete comment";
+      console.error("[DiscussionThread] Delete comment failed", err);
+      // Rollback optimistic removal and show alert
+      setThread((prev) => ({ ...prev, messages: previousMessages }));
+      Alert.alert("Unable to Delete Comment", message);
+      void loadThread();
+    }
+  }
+
   return (
     <SafeAreaView style={styles.safe}>
       <View style={styles.page}>
@@ -185,6 +213,9 @@ export default function DiscussionThreadScreen() {
               title={headerTitle}
               likes={post?.likes ?? thread.likes}
               isMine={post?.isMine}
+              author={post?.author}
+              authorAvatar={post?.authorAvatar}
+              createdAt={post?.createdAt}
               onDelete={handleDeleteThread}
             />
 
@@ -216,6 +247,7 @@ export default function DiscussionThreadScreen() {
                   message={message}
                   isHighlighted={message.id === activeHighlightId || message.id === commentId}
                   onToggleLike={() => toggleMessageLike(message.id)}
+                  onDeleteComment={(commentIdToDelete) => handleDeleteComment(commentIdToDelete)}
                 />
               ))}
             </ScrollView>

@@ -17,6 +17,7 @@ import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { handleGoogleSignIn, useGoogleAuth } from "../../services/googleAuthService";
+import { setStoredItem } from "../../utils/storage";
 
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
@@ -78,25 +79,27 @@ export default function LoginScreen() {
 
   const onSubmit = async (data: any) => {
     setIsLoading(true);
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 15000);
+    let timeoutId: any = null;
 
-    const url = `${API_URL}/auth/Login`;
+    const url = `${API_URL}/auth/login`;
     const headers = { "Content-Type": "application/json" };
     const body = JSON.stringify({ email: data.email, password: data.password });
 
     try {
       console.log("Attempting login via:", url);
-      console.log("Login request headers:", headers);
-      console.log("Login request body:", body);
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      if (controller) {
+        timeoutId = setTimeout(() => controller.abort(), 20000);
+      }
+
       const response = await fetch(url, {
         method: "POST",
         headers,
         body,
-        signal: controller.signal as any,
+        ...(controller ? { signal: controller.signal as any } : {}),
       });
 
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       const json: any = await response.json();
 
       if (!response.ok) {
@@ -114,8 +117,8 @@ export default function LoginScreen() {
         return;
       }
 
-      // Store JWT securely — never in AsyncStorage
-      await SecureStore.setItemAsync("authToken", json.token);
+      // Store JWT securely (SecureStore on native, AsyncStorage on web)
+      await setStoredItem("authToken", json.token);
 
       // Refresh AuthContext so token + user are available app-wide
       await refreshUser();
@@ -129,14 +132,12 @@ export default function LoginScreen() {
         router.replace("/(tabs)/Home");
       }
     } catch (error: any) {
-      clearTimeout(timeoutId);
+      if (timeoutId) clearTimeout(timeoutId);
       console.error("Login error:", error);
       console.error("Login error details:", {
         name: error?.name,
         message: error?.message,
         stack: error?.stack,
-        response: error?.response,
-        request: error?.request,
       });
       if (error.name === "AbortError") {
         Alert.alert(
@@ -150,17 +151,18 @@ export default function LoginScreen() {
         );
       }
     } finally {
+      if (timeoutId) clearTimeout(timeoutId);
       setIsLoading(false);
     }
   };
 
   return (
     <View style={styles.container}>
-      
+
       {/* CURVED IMAGE HEADER */}
       <View style={styles.imageContainer}>
         <Image
-          source={require("../../assets/images/login-dogs.jpg")} 
+          source={require("../../assets/images/login-dogs.jpg")}
           style={styles.image}
         />
         <View style={styles.curveOverlay} />
@@ -174,78 +176,78 @@ export default function LoginScreen() {
         </Text>
 
         {/* EMAIL INPUT */}
-<Controller
-  control={control}
-  name="email"
-  render={({ field: { onChange, value } }) => (
-    <TextInput
-      style={styles.input}
-      placeholder="Email Address"
-      placeholderTextColor="#999"
-      value={value}
-      onChangeText={onChange}
-      keyboardType="email-address"
-      editable={!isLoading}
-    />
-  )}
-/>
-
-{errors.email && (
-  <Text style={{ color: "red", marginBottom: 10 }}>
-    {errors.email.message}
-  </Text>
-)}
-
-{/* PASSWORD INPUT */}
-<Controller
-  control={control}
-  name="password"
-  render={({ field: { onChange, value } }) => (
-    <View style={styles.passwordContainer}>
-      <TextInput
-        style={styles.passwordInput}
-        placeholder="Password"
-        placeholderTextColor="#999"
-        secureTextEntry={!isPasswordVisible}
-        value={value}
-        onChangeText={onChange}
-        editable={!isLoading}
-      />
-      <TouchableOpacity
-        onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-        style={styles.eyeIcon}
-        disabled={isLoading}
-      >
-        <Ionicons
-          name={isPasswordVisible ? "eye-off" : "eye"}
-          size={20}
-          color="#6B7280"
+        <Controller
+          control={control}
+          name="email"
+          render={({ field: { onChange, value } }) => (
+            <TextInput
+              style={styles.input}
+              placeholder="Email Address"
+              placeholderTextColor="#999"
+              value={value}
+              onChangeText={onChange}
+              keyboardType="email-address"
+              editable={!isLoading}
+            />
+          )}
         />
-      </TouchableOpacity>
-    </View>
-  )}
-/>
 
-{errors.password && (
-  <Text style={{ color: "red", marginBottom: 10 }}>
-    {errors.password.message}
-  </Text>
-)}
+        {errors.email && (
+          <Text style={{ color: "red", marginBottom: 10 }}>
+            {errors.email.message}
+          </Text>
+        )}
+
+        {/* PASSWORD INPUT */}
+        <Controller
+          control={control}
+          name="password"
+          render={({ field: { onChange, value } }) => (
+            <View style={styles.passwordContainer}>
+              <TextInput
+                style={styles.passwordInput}
+                placeholder="Password"
+                placeholderTextColor="#999"
+                secureTextEntry={!isPasswordVisible}
+                value={value}
+                onChangeText={onChange}
+                editable={!isLoading}
+              />
+              <TouchableOpacity
+                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
+                style={styles.eyeIcon}
+                disabled={isLoading}
+              >
+                <Ionicons
+                  name={isPasswordVisible ? "eye-off" : "eye"}
+                  size={20}
+                  color="#6B7280"
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+        />
+
+        {errors.password && (
+          <Text style={{ color: "red", marginBottom: 10 }}>
+            {errors.password.message}
+          </Text>
+        )}
 
         {/*  FORGOT PASSWORD */}
         <TouchableOpacity
-           style={styles.forgotContainer}
-            onPress={() => router.push("/auth/ForgotPasswordScreen")}
-            disabled={isLoading}
+          style={styles.forgotContainer}
+          onPress={() => router.push("/auth/ForgotPasswordScreen")}
+          disabled={isLoading}
         >
-        <Text style={styles.forgotText}>Forgot Password?</Text>
+          <Text style={styles.forgotText}>Forgot Password?</Text>
         </TouchableOpacity>
 
         {/* LOGIN BUTTON */}
         <PrimaryButton
           title={isLoading ? "Logging in..." : "Log in"}
-           onPress={handleSubmit(onSubmit)}
-           disabled={isLoading}
+          onPress={handleSubmit(onSubmit)}
+          disabled={isLoading}
         />
 
         {/* DIVIDER */}
@@ -272,7 +274,7 @@ export default function LoginScreen() {
             </Text>
           </TouchableOpacity>
         )}
-        
+
         {/*  SIGNUP LINK */}
         <View style={styles.signupContainer}>
           <Text style={styles.signupText}>Don't have an account? </Text>

@@ -6,12 +6,31 @@ const appJson = fs.existsSync(appJsonPath) ? require(appJsonPath) : {};
 
 require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
+const existingPlugins = appJson.expo?.plugins || [];
+const easProjectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || appJson.expo?.extra?.eas?.projectId;
+
 module.exports = {
   expo: {
     ...(appJson.expo || {}),
+    updates: {
+      enabled: false,
+      checkAutomatically: "NEVER",
+      fallbackToCacheTimeout: 0,
+    },
+    plugins: [
+      ...existingPlugins.filter(
+        (p) => p !== '@react-native-community/datetimepicker' &&
+               (Array.isArray(p) ? p[0] !== '@react-native-community/datetimepicker' : true)
+      ),
+      '@react-native-community/datetimepicker',
+    ],
     extra: {
       ...(appJson.expo?.extra || {}),
+      ...(easProjectId ? { eas: { projectId: easProjectId } } : {}),
       EXPO_PUBLIC_API_URL: process.env.EXPO_PUBLIC_API_URL,
+      // Cloudinary
+      EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME: process.env.EXPO_PUBLIC_CLOUDINARY_CLOUD_NAME,
+      EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET: process.env.EXPO_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
       // Firebase
       EXPO_PUBLIC_FIREBASE_API_KEY: process.env.EXPO_PUBLIC_FIREBASE_API_KEY,
       EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN: process.env.EXPO_PUBLIC_FIREBASE_AUTH_DOMAIN,

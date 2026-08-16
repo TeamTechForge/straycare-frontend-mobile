@@ -6,6 +6,7 @@ import {
   Alert,
   Animated,
   Dimensions,
+  Image,
   Linking,
   RefreshControl,
   ScrollView,
@@ -16,8 +17,13 @@ import {
   View,
 } from 'react-native';
 import { getAnimalPostById, reportAnimalPost } from '../../api/apiService';
+import { AnimalPost, deleteAnimalPost } from '../../services/lostAndFoundService';
 import { useCall } from '../../contexts/CallContext';
+import { useAuth } from '../../contexts/AuthContext';
+import { useChatApi } from '../../hooks/useChatApi';
 import { BASE_URL } from '../../constants/config.constants';
+import OwnerActionButtons from '../../components/OwnerActionButtons';
+import BackButton from '../../components/BackButton';
 
 // ─── Colour changes were made ────────────────────────────────────────────────────────────
 const C = {
@@ -25,12 +31,12 @@ const C = {
   surface: '#FFFFFF',
   surfaceLow: '#F0F3FF',
   surfaceHighest: '#DCE2F3',
-  primary: '#994700',
-  primaryContainer: '#F5A623',
+  primary: '#F5A623',
+  primaryContainer: '#FFF7E6',
   onPrimary: '#FFFFFF',
-  outlineVariant: '#E0C0AF',
+  outlineVariant: '#F5A623',
   textMain: '#151C27',
-  textSub: '#584235',
+  textSub: '#717878',
   textSecondary: '#5B5F63',
   orange50: '#FFF7F0',
   orangeBorder: '#FFE5D0',
@@ -42,28 +48,12 @@ const { width: SCREEN_W } = Dimensions.get('window');
 const IMAGE_HEIGHT = 280;
 // BASE_URL is imported from constants
 
-// ─── Types ────────────────────────────────────────────────────────────────────
-interface AnimalPost {
-  _id: string;
-  status: 'lost' | 'found';
-  type: 'dog' | 'cat' | 'other';
-  customType?: string;
-  breed?: string;
-  name?: string;
-  description: string;
-  location: string;
-  date: string;
-  contactName: string;
-  contactNumber: string;
-  imageUrl?: string; // URL returned by backend after upload
-  images?: string[]; // Legacy images array
-}
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getAnimalLabel = (post: AnimalPost) => {
-  if (post.type === 'other') return post.customType || 'Animal';
+  if (!post.type || post.type === 'other') return post.customType || 'Animal';
   return post.type.charAt(0).toUpperCase() + post.type.slice(1);
 };
+
 
 const statusConfig = {
   lost: { bg: '#F5A623', text: '#FFFFFF', label: 'Lost' },
@@ -250,11 +240,14 @@ const ViewAnimalPost = () => {
   }, [fetchPost]);
 
   const { startCall } = useCall();
+  const { user } = useAuth();
+  const { createConversation } = useChatApi();
 
   // ─── Call handler ───────────────────────────────────────────────────────────
   const handleCall = () => {
     if (!post) return;
-    const ownerId = (post as any).userId || (post as any).ownerId || (post as any).postedBy;
+    const rawUserId = (post as any).userId;
+    const ownerId = typeof rawUserId === 'object' && rawUserId !== null ? rawUserId._id : (rawUserId || (post as any).ownerId || (post as any).postedBy);
     if (!ownerId) {
       Alert.alert(
         'Contact Unavailable',
@@ -263,6 +256,65 @@ const ViewAnimalPost = () => {
       return;
     }
     startCall(String(ownerId), post.contactName || 'User');
+  };
+
+  // ─── Message handler ────────────────────────────────────────────────────────
+  const handleMessage = async () => {
+    if (!post) return;
+    const rawUserId = (post as any).userId;
+    const ownerId = typeof rawUserId === 'object' && rawUserId !== null ? rawUserId._id : (rawUserId || (post as any).ownerId || (post as any).postedBy);
+    if (!ownerId) {
+      Alert.alert('Contact Unavailable', 'User ID is not available for this post.');
+      return;
+    }
+    if (user?._id === ownerId) {
+      Alert.alert('Error', 'You cannot message yourself.');
+      return;
+    }
+    
+    try {
+      const conversation = (await createConversation(String(ownerId), "direct")) as any;
+      const otherParticipant = conversation.participants?.find(
+        (p: any) => p._id !== user?._id
+      );
+
+      router.push({
+        pathname: "/chat/[conversationId]",
+        params: {
+          conversationId: conversation._id,
+          recipientName: otherParticipant?.name || post.contactName || "User",
+          recipientId: String(ownerId),
+          recipientImage: otherParticipant?.profileImage || (typeof rawUserId === 'object' ? rawUserId.avatar : ""),
+        },
+      });
+    } catch (err: any) {
+      Alert.alert('Could Not Start Chat', err.message || 'Something went wrong.');
+    }
+  };
+
+  // ─── Delete handler ─────────────────────────────────────────────────────────
+  const handleDelete = () => {
+    if (!post) return;
+    Alert.alert(
+      "Delete Post",
+      "Are you sure you want to delete this post? This action cannot be undone.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await deleteAnimalPost(post._id);
+              Alert.alert('Deleted', 'Your post has been deleted.');
+              router.back();
+            } catch (err) {
+              Alert.alert("Error", "Failed to delete the post.");
+            }
+          },
+        },
+      ]
+    );
   };
 
   // ─── Report handler ─────────────────────────────────────────────────────────
@@ -353,9 +405,9 @@ const ViewAnimalPost = () => {
           )}
           <View style={s.imageOverlay} />
 
-          <TouchableOpacity style={s.backBtn} onPress={() => router.back()} activeOpacity={0.85}>
-            <Ionicons name="arrow-back" size={20} color="#fff" />
-          </TouchableOpacity>
+          <View style={s.backBtnWrapper}>
+            <BackButton onPress={() => router.back()} />
+          </View>
         </View>
 
         {/* ── Detail card ── */}
@@ -411,41 +463,55 @@ const ViewAnimalPost = () => {
           </View>
 
           {/* Contact card */}
-          <View style={s.contactCard}>
-            <View>
-              <Text style={s.contactLabel}>Contact Owner</Text>
-              <Text style={s.contactName}>{post.contactName}</Text>
+          {(!user?._id || user._id !== ((post as any).userId?._id || (post as any).userId || (post as any).ownerId)) && (
+            <View style={s.contactCard}>
+              <TouchableOpacity 
+                style={s.contactInfo}
+                onPress={() => {
+                  const rawUserId = (post as any).userId;
+                  const ownerId = typeof rawUserId === 'object' && rawUserId !== null ? rawUserId._id : (rawUserId || (post as any).ownerId || (post as any).postedBy);
+                  if (ownerId) router.push(`/profile/${ownerId}`);
+                }}
+                activeOpacity={0.8}
+              >
+                {typeof (post as any).userId === 'object' && ((post as any).userId.profileImage || (post as any).userId.avatar) ? (
+                  <Image source={{ uri: (post as any).userId.profileImage || (post as any).userId.avatar }} style={s.contactAvatar} />
+                ) : (
+                  <View style={s.contactAvatarPlaceholder}>
+                    <Ionicons name="person" size={24} color="#A0A0A0" />
+                  </View>
+                )}
+                <View>
+                  <Text style={s.contactLabel}>Contact Owner</Text>
+                  <Text style={s.contactName}>{post.contactName}</Text>
+                </View>
+              </TouchableOpacity>
+              
+              <View style={s.contactActions}>
+                <TouchableOpacity style={s.actionBtn} onPress={handleMessage} activeOpacity={0.85}>
+                  <Ionicons name="chatbubble" size={20} color={C.onPrimary} />
+                </TouchableOpacity>
+                <TouchableOpacity style={s.actionBtn} onPress={handleCall} activeOpacity={0.85}>
+                  <Ionicons name="call" size={20} color={C.onPrimary} />
+                </TouchableOpacity>
+              </View>
             </View>
-            <TouchableOpacity style={s.callBtn} onPress={handleCall} activeOpacity={0.85}>
-              <Ionicons name="call" size={20} color={C.onPrimary} />
-            </TouchableOpacity>
-          </View>
+          )}
+
+          {/* Action buttons if owner */}
+          {user?._id && (
+            user._id === ((post as any).userId?._id || (post as any).userId || (post as any).ownerId)
+          ) && (
+            <OwnerActionButtons 
+              onEdit={() => router.push(`/lost-and-found/CreateLostFoundPost?postId=${post._id}`)}
+              onDelete={handleDelete}
+              editLabel="Edit Post"
+            />
+          )}
         </Animated.View>
 
-        <View style={{ height: 120 }} />
+        <View style={{ height: 40 }} />
       </ScrollView>
-
-      {/* ── Fixed footer ── */}
-      <Animated.View style={[s.footer, { opacity: fadeAnim }]}>
-        <TouchableOpacity style={s.footerBackBtn} onPress={() => router.back()} activeOpacity={0.8}>
-          <Ionicons name="arrow-back" size={17} color={C.textMain} />
-          <Text style={s.footerBackText}>Back</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[s.reportBtn, isReporting && s.reportBtnDisabled]}
-          onPress={handleReport}
-          activeOpacity={0.85}
-          disabled={isReporting}
-        >
-          {isReporting ? (
-            <ActivityIndicator size="small" color={C.onPrimary} />
-          ) : (
-            <Ionicons name="flag" size={17} color={C.onPrimary} />
-          )}
-          <Text style={s.reportBtnText}>{isReporting ? 'Reporting…' : 'Report Post'}</Text>
-        </TouchableOpacity>
-      </Animated.View>
     </View>
   );
 };
@@ -488,20 +554,11 @@ const s = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.18)',
   },
-  backBtn: {
+  backBtnWrapper: {
     position: 'absolute',
     top: 52,
     left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    zIndex: 10,
   },
 
   // Card
@@ -627,90 +684,38 @@ const s = StyleSheet.create({
     padding: 16,
     marginTop: 6,
   },
-  contactLabel: {
-    fontSize: 11,
-    fontWeight: '500',
-    color: C.textSecondary,
-    marginBottom: 3,
-    letterSpacing: 0.3
+  contactLabel: { fontSize: 13, color: C.textSub, marginBottom: 2 },
+  contactName: { fontSize: 16, fontWeight: '700', color: C.textMain },
+  contactInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
-
-  contactName: {
-    fontSize: 18,
-    fontWeight: '700',
-    color: C.textMain,
-    letterSpacing: -0.2
-  },
-
-  callBtn: {
+  contactAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
-    backgroundColor: C.primaryContainer,
+    backgroundColor: '#E0E0E0',
+  },
+  contactAvatarPlaceholder: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: '#E0E0E0',
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#F5A623',
-    shadowOpacity: 0.35,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
-
-  // Footer
-  footer: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  contactActions: {
     flexDirection: 'row',
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingTop: 14,
-    paddingBottom: 30,
-    backgroundColor: 'rgba(255,255,255,0.94)',
-    borderTopWidth: 1,
-    borderTopColor: '#EFEFEF',
-    shadowColor: '#000',
-    shadowOpacity: 0.06,
-    shadowRadius: 12,
-    shadowOffset: { width: 0, height: -4 },
-    elevation: 10,
-  },
-  footerBackBtn: {
-    flex: 1,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: C.surfaceHighest,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 6,
-  },
-  footerBackText: { fontSize: 14, fontWeight: '600', color: C.textMain },
-  reportBtn: {
-    flex: 2,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: C.primaryContainer,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
     gap: 8,
-    shadowColor: '#F5A623',
-    shadowOpacity: 0.3,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 6,
   },
-  reportBtnDisabled: {
-    backgroundColor: '#E2DFD4',
-    shadowOpacity: 0
-  },
-
-  reportBtnText: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: C.onPrimary
+  actionBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: C.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
 });
-
+

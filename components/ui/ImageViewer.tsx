@@ -3,7 +3,7 @@ import { Modal, View, Image, TouchableOpacity, StyleSheet, Platform } from "reac
 import { Ionicons } from "@expo/vector-icons";
 
 type ImageViewerProps = {
-  imageUrl: string | null;
+  imageUrl: any;
   visible: boolean;
   onClose: () => void;
 };
@@ -23,7 +23,7 @@ export default function ImageViewer({ imageUrl, visible, onClose }: ImageViewerP
           <Ionicons name="close" size={30} color="#fff" />
         </TouchableOpacity>
         <Image
-          source={{ uri: imageUrl }}
+          source={typeof imageUrl === 'string' ? { uri: imageUrl } : imageUrl}
           style={styles.imageViewerImage}
           resizeMode="contain"
         />
