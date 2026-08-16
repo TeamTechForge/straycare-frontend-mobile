@@ -39,6 +39,7 @@ interface CommunityPostCardProps {
   post: CommunityPost;
   onLike: (post: CommunityPost) => void | Promise<void>;
   onSave: (post: CommunityPost) => void | Promise<void>;
+  onDelete: (post: CommunityPost) => void | Promise<void>;
   onReport: (
     postId: string,
     reason: string
@@ -69,7 +70,7 @@ function formatDate(dateStr?: string): string {
 
 const CommunityPostCard: React.FC<
   CommunityPostCardProps
-> = ({ post, onLike, onSave, onReport }) => {
+> = ({ post, onLike, onSave, onDelete, onReport }) => {
   const router = useRouter();
 
   // Report modal visibility
@@ -135,7 +136,7 @@ const CommunityPostCard: React.FC<
               }}
               onPress={(event) => {
                 event.stopPropagation();
-                if (!post.isOwner) setMenuVisible((prev) => !prev);
+                setMenuVisible((prev) => !prev);
               }}
             >
               <Ionicons
@@ -149,7 +150,22 @@ const CommunityPostCard: React.FC<
           {/* Overflow dropdown */}
           {menuVisible && (
             <View style={styles.overflowMenu}>
-              <TouchableOpacity
+              {post.isOwner ? <>
+                <TouchableOpacity style={styles.overflowMenuItem} onPress={() => {
+                  setMenuVisible(false);
+                  router.push({ pathname: "/community-feed/EditCommunityPost", params: { id: post._id } });
+                }}>
+                  <Ionicons name="create-outline" size={16} color={C.onSurface} />
+                  <Text style={[styles.overflowMenuText, { color: C.onSurface }]}>Edit</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.overflowMenuItem} onPress={() => {
+                  setMenuVisible(false);
+                  void onDelete(post);
+                }}>
+                  <Ionicons name="trash-outline" size={16} color="#E53935" />
+                  <Text style={styles.overflowMenuText}>Delete</Text>
+                </TouchableOpacity>
+              </> : <TouchableOpacity
                 style={
                   styles.overflowMenuItem
                 }
@@ -170,7 +186,7 @@ const CommunityPostCard: React.FC<
                 >
                   Report
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity>}
             </View>
           )}
 

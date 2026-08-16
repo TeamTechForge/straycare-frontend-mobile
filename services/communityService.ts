@@ -155,6 +155,19 @@ export const getCommunityPost = async (
     return body && body.data ? body.data : body;
 };
 
+export const updateCommunityPost = async (
+    id: string,
+    data: FormData | Record<string, unknown>
+): Promise<CommunityPost> => {
+    const response = await api.put<any>(`/api/community/${id}`, data,
+        data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined);
+    return response.data?.data ?? response.data;
+};
+
+export const deleteCommunityPost = async (id: string): Promise<void> => {
+    await api.delete(`/api/community/${id}`);
+};
+
 const unwrapPostList = (body: any): CommunityPost[] =>
     Array.isArray(body) ? body : (Array.isArray(body?.data) ? body.data : []);
 

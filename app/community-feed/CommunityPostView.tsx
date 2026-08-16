@@ -17,6 +17,7 @@ import React, {
 
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -28,7 +29,10 @@ import {
 import {
   getCommunityPost,
   CommunityPost,
+  deleteCommunityPost,
+  reportCommunityPost,
 } from "../../services/communityService";
+import ReportPostModal from "../../components/ReportPostModal";
 
 // ─────────────────────────────────────────────
 // DATE
@@ -72,6 +76,22 @@ export default function CommunityPostView() {
 
   const [error, setError] =
     useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+
+  const handleDelete = () => {
+    if (!post) return;
+    Alert.alert("Delete post?", "This action cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: async () => {
+        try {
+          await deleteCommunityPost(post._id);
+          router.replace("/community-feed/CommunityPostMain");
+        } catch (deleteError: any) {
+          Alert.alert("Unable to delete post", deleteError?.response?.data?.message || "Please try again.");
+        }
+      } },
+    ]);
+  };
 
   // ─────────────────────────────────────────────
   // FETCH POST
@@ -271,7 +291,7 @@ export default function CommunityPostView() {
                     <Text
                       style={styles.authorName}
                     >
-                      {post.authorName ||
+                      {post.username || post.authorName ||
                         "Community User"}
                     </Text>
                   </Text>
@@ -313,19 +333,18 @@ export default function CommunityPostView() {
                 </Text>
               </TouchableOpacity>
 
-              {/* REPORT */}
-
-              <TouchableOpacity
+              {post.isOwner ? <>
+                <TouchableOpacity style={styles.ownerBtn} onPress={() => router.push({ pathname: "/community-feed/EditCommunityPost", params: { id: post._id } })}>
+                  <Ionicons name="create-outline" size={20} color="#704900" />
+                  <Text style={styles.ownerBtnText}>Edit Post</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.reportBtn} onPress={handleDelete}>
+                  <Ionicons name="trash-outline" size={20} color="#E54D4D" />
+                  <Text style={styles.reportBtnText}>Delete Post</Text>
+                </TouchableOpacity>
+              </> : <TouchableOpacity
                 style={styles.reportBtn}
-                onPress={() =>
-                  router.push({
-                    pathname:
-                      "/community-feed/ReportCommunityPost",
-                    params: {
-                      id: post._id,
-                    },
-                  })
-                }
+                onPress={() => setReportVisible(true)}
               >
                 <MaterialIcons
                   name="report"
@@ -338,10 +357,13 @@ export default function CommunityPostView() {
                 >
                   Report Post
                 </Text>
-              </TouchableOpacity>
+              </TouchableOpacity>}
             </View>
           </ScrollView>
         )}
+      <ReportPostModal visible={reportVisible} onClose={() => setReportVisible(false)} onSubmit={async (reason) => {
+        if (post) await reportCommunityPost(post._id, reason);
+      }} />
     </View>
   );
 }
@@ -524,4 +546,6 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#E54D4D",
   },
+  ownerBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#FFF0DD", borderRadius: 999, paddingVertical: 16 },
+  ownerBtnText: { fontSize: 15, fontWeight: "700", color: "#704900" },
 });

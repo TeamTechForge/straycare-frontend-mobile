@@ -27,6 +27,7 @@ import CommunityPostCard from "../../components/CommunityPostCard";
 import {
   CommunityPost,
   getCommunityFeed,
+  deleteCommunityPost,
   likeCommunityPost,
   saveCommunityPost,
   reportCommunityPost,
@@ -200,6 +201,29 @@ export default function CommunityPostMain() {
     } finally {
       pendingSaveIds.current.delete(post._id);
     }
+  };
+
+  // ─────────────────────────────────────────────
+  // DELETE POST
+  // ─────────────────────────────────────────────
+
+  const handleDeletePost = (post: CommunityPost) => {
+    Alert.alert("Delete post?", "This action cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            await deleteCommunityPost(post._id);
+            setPosts((current) => current.filter((item) => item._id !== post._id));
+          } catch (deleteError) {
+            console.error("Delete community post error:", deleteError);
+            Alert.alert("Unable to delete post", "Please try again.");
+          }
+        },
+      },
+    ]);
   };
 
   // ─────────────────────────────────────────────
@@ -585,6 +609,7 @@ export default function CommunityPostMain() {
                 post={post}
                 onLike={handleLikePost}
                 onSave={handleSavePost}
+                onDelete={handleDeletePost}
                 onReport={
                   handleReportPost
                 }
