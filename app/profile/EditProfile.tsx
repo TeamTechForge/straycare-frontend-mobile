@@ -33,6 +33,9 @@ export default function EditProfileScreen() {
   // Vet & NGO Common
   const [merchantId, setMerchantId] = useState("");
   const [merchantSecret, setMerchantSecret] = useState("");
+  const [payHereAppId, setPayHereAppId] = useState("");
+  const [payHereAppSecret, setPayHereAppSecret] = useState("");
+  const [recurringPaymentsEnabled, setRecurringPaymentsEnabled] = useState(false);
 
   // Vet Specific
   const [clinicName, setClinicName] = useState("");
@@ -151,6 +154,7 @@ export default function EditProfileScreen() {
             setLicenseDocument(profileData.licenseDocument || null);
             setMerchantId(profileData.merchantId || "");
             setMerchantSecret(profileData.merchantSecret || "");
+            setRecurringPaymentsEnabled(profileData.recurringPaymentsEnabled === true);
           } else if (userData.role === "ngo") {
             setLocation(profileData.location || "");
             setOrgName(profileData.orgName || "");
@@ -160,6 +164,7 @@ export default function EditProfileScreen() {
             setVerificationDocument(profileData.verificationDocument || null);
             setMerchantId(profileData.merchantId || "");
             setMerchantSecret(profileData.merchantSecret || "");
+            setRecurringPaymentsEnabled(profileData.recurringPaymentsEnabled === true);
           } else {
             setLocation(profileData.location || "");
           }
@@ -219,6 +224,11 @@ export default function EditProfileScreen() {
   };
 
   const handleSaveChanges = async () => {
+    if ((payHereAppId && !payHereAppSecret) || (!payHereAppId && payHereAppSecret)) {
+      Alert.alert("Recurring setup", "Enter both the PayHere App ID and App Secret.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const token = await SecureStore.getItemAsync("authToken");
@@ -250,6 +260,8 @@ export default function EditProfileScreen() {
           licenseDocument: uploadedDocUrl,
           merchantId,
           merchantSecret,
+          payHereAppId,
+          payHereAppSecret,
         };
       } else if (role === "ngo") {
         endpoint = "/profiles/ngo";
@@ -265,6 +277,8 @@ export default function EditProfileScreen() {
           verificationDocument: uploadedDocUrl,
           merchantId,
           merchantSecret,
+          payHereAppId,
+          payHereAppSecret,
         };
       }
 
@@ -425,7 +439,34 @@ export default function EditProfileScreen() {
             <InputField value={merchantId} onChangeText={setMerchantId} placeholder="Enter Merchant ID" />
             
             <Text style={styles.label}>PayHere Merchant Secret</Text>
-            <InputField value={merchantSecret} onChangeText={setMerchantSecret} placeholder="Enter Merchant Secret" />
+            <InputField value={merchantSecret} onChangeText={setMerchantSecret} placeholder="Enter Merchant Secret" secure />
+
+            <View style={[styles.recurringSetupNotice, recurringPaymentsEnabled && styles.recurringEnabledNotice]}>
+              <Ionicons
+                name={recurringPaymentsEnabled ? "checkmark-circle-outline" : "information-circle-outline"}
+                size={21}
+                color={recurringPaymentsEnabled ? "#15803D" : "#B45309"}
+              />
+              <View style={styles.recurringSetupText}>
+                <Text style={[styles.recurringSetupTitle, recurringPaymentsEnabled && styles.recurringEnabledTitle]}>
+                  {recurringPaymentsEnabled ? "Recurring donations enabled" : "Want to receive recurring donations?"}
+                </Text>
+                <Text style={styles.recurringSetupDescription}>
+                  {recurringPaymentsEnabled
+                    ? "Your API credentials are saved securely and are hidden here. Enter both fields below only if you want to replace them."
+                    : "One-time donations already work with your Merchant details. For recurring donations, create an API key in PayHere Sandbox under Settings → API Keys, enable Subscription Management API and Automatic Charging API, and enter its App ID and App Secret below."}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.label}>PayHere API App ID</Text>
+            <InputField value={payHereAppId} onChangeText={setPayHereAppId} placeholder="Enter App ID to enable recurring donations" />
+
+            <Text style={styles.label}>PayHere API App Secret</Text>
+            <InputField value={payHereAppSecret} onChangeText={setPayHereAppSecret} placeholder="Enter App Secret" secure />
+            <Text style={styles.helperText}>
+              Required for donor-controlled recurring cancellation. Leave both blank to keep the existing setup.
+            </Text>
           </>
         )}
 
@@ -470,4 +511,10 @@ const styles = StyleSheet.create({
   cancelButton: { marginTop: 8, borderWidth: 1, borderColor: "#DDD", borderRadius: 12, paddingVertical: 14, alignItems: "center", backgroundColor: "#fff" },
   cancelButtonText: { fontSize: 16, fontWeight: "600", color: "#666" },
   helperText: { fontSize: 11, color: "#888", marginTop: -10, marginBottom: 10 },
+  recurringSetupNotice: { flexDirection: "row", gap: 10, backgroundColor: "#FFF7E6", borderWidth: 1, borderColor: "#F6DFC0", borderRadius: 12, padding: 12, marginVertical: 12 },
+  recurringEnabledNotice: { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" },
+  recurringSetupText: { flex: 1 },
+  recurringSetupTitle: { fontSize: 13, fontWeight: "700", color: "#7A4A08", marginBottom: 4 },
+  recurringEnabledTitle: { color: "#166534" },
+  recurringSetupDescription: { fontSize: 11, lineHeight: 17, color: "#705B3E" },
 });
