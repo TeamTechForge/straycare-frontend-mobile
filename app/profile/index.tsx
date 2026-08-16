@@ -156,7 +156,7 @@ export default function ProfileScreen() {
               });
               const result = await response.json();
               if (!response.ok) {
-                throw new Error(result?.error || "Could not mark this rescue as failed.");
+                throw new Error(result?.error || result?.message || "Could not mark this rescue as failed.");
               }
               await fetchData();
             } catch (error: any) {
@@ -343,11 +343,11 @@ export default function ProfileScreen() {
                   <Text style={styles.noActiveText}>No active rescue cases right now.</Text>
                 )}
 
-                {/* 📜 RESCUE HISTORY */}
-                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Rescue History</Text>
-                {rescues.filter((r: any) => ["completed", "failed"].includes((r.status || "").toLowerCase())).length > 0 ? (
+                {/* 📜 COMPLETED CASES */}
+                <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
+                {rescues.filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
                   rescues
-                    .filter((r: any) => ["completed", "failed"].includes((r.status || "").toLowerCase()))
+                    .filter((r: any) => (r.status || "").toLowerCase() === "completed")
                     .map((rescue: any, index: number) => (
                       <ReportPreviewCard
                         key={rescue.id || rescue._id || `completed-${index}`}
@@ -368,7 +368,7 @@ export default function ProfileScreen() {
                       />
                     ))
                 ) : (
-                  <Text style={styles.noActiveText}>No rescue history yet.</Text>
+                  <Text style={styles.noActiveText}>No completed rescue cases yet.</Text>
                 )}
               </View>
             ) : (

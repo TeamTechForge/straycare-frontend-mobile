@@ -135,6 +135,14 @@ describe("CaseDetails acceptance action", () => {
     expect(mockReplace).toHaveBeenCalledWith("/profile");
   });
 
+  it("returns to the map tab when opened from the map", async () => {
+    const screen = render(<CaseDetailsScreen />);
+
+    fireEvent.press(await screen.findByText("Back to Map"));
+
+    expect(mockReplace).toHaveBeenCalledWith("/(tabs)/Report");
+  });
+
   it("accepts the case and opens the first rescue-response screen", async () => {
     jest.spyOn(Alert, "alert").mockImplementation((_title, _message, buttons) => {
       const accept = buttons?.find((button) => button.text === "Accept");

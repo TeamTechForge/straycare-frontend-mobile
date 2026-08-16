@@ -80,7 +80,8 @@ export default function CaseDetailsScreen() {
   const router = useRouter();
   const { user } = useAuth();
   const openedFromProfile = source === "profile";
-  const returnToPreviousScreen = () => router.replace(openedFromProfile ? "/profile" : "/reporting");
+  const returnToPreviousScreen = () =>
+    router.replace(openedFromProfile ? "/profile" : "/(tabs)/Report");
 
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);

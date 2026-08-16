@@ -65,7 +65,8 @@ export default function CaseDetails() {
 
   const caseId = safe(params.caseId);
   const isProfileStatusUpdate = safe(params.source) === "profile";
-  const returnToPreviousScreen = () => router.replace(isProfileStatusUpdate ? "/profile" : "/reporting");
+  const returnToPreviousScreen = () =>
+    router.replace(isProfileStatusUpdate ? "/profile" : "/(tabs)/Report");
   const isRescuer = Boolean(
     user && ["volunteer", "ngo", "vet", "rescuer"].includes(user.role)
   );
