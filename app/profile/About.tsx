@@ -1,6 +1,7 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import BackButton from "../../components/BackButton";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -11,11 +12,9 @@ export default function AboutScreen() {
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#222" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>About StrayCare</Text>
-        <View style={{ width: 22 }} />
+        <View style={{ width: 40 }} />
       </View>
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContent}>

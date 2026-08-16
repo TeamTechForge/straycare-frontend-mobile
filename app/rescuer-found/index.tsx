@@ -21,6 +21,7 @@ import {
   View,
 } from "react-native";
 import { useLocalSearchParams, router } from "expo-router";
+import BackButton from "../../components/BackButton";
 
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
@@ -123,14 +124,7 @@ export default function RescuerFoundScreen() {
          *  Header
          * ══════════════════════════════════════════ */}
         <View style={styles.headerRow}>
-          <TouchableOpacity
-            style={styles.backPill}
-            activeOpacity={0.7}
-            onPress={() => router.back()}
-          >
-            <Text style={styles.backChevron}>‹</Text>
-            <Text style={styles.backText}>Back</Text>
-          </TouchableOpacity>
+          <BackButton onPress={() => router.back()} />
           <Text style={styles.headerTitle}>Rescuer Found</Text>
           {/* Spacer to center the title */}
           <View style={{ width: 60 }} />

@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { AnimalPost, getMyAnimalPosts } from "../../services/lostAndFoundService";
 import { useAuth } from "../../contexts/AuthContext";
+import BackButton from "../../components/BackButton";
 
 export default function MyPostsScreen() {
   const router = useRouter();
@@ -123,9 +124,7 @@ export default function MyPostsScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity style={styles.iconBtn} onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#062425" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>My Posts</Text>
         <View style={{ width: 44 }} />
       </View>

@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useFocusEffect } from "@react-navigation/native";
+import BackButton from "../../components/BackButton";
 
 import CommentComposer from "../../components/forum/CommentComposer";
 import {
@@ -94,9 +95,9 @@ export default function CommunityPostComments() {
         keyboardVerticalOffset={0}
       >
         <View style={styles.header}>
-          <Ionicons name="chevron-back" size={26} color="#121C2C" onPress={() => router.back()} />
+          <BackButton onPress={() => router.back()} />
           <Text style={styles.headerTitle}>Comments</Text>
-          <View style={styles.headerSpacer} />
+          <View style={{ width: 40 }} />
         </View>
 
         {loading ? (

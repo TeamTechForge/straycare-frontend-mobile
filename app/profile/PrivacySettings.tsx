@@ -5,6 +5,7 @@ import { ActivityIndicator, Alert, StyleSheet, Text, TouchableOpacity, View, Scr
 import * as SecureStore from "expo-secure-store";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
+import BackButton from "../../components/BackButton";
 
 const BRAND_COLOR = "#F5A623";
 
@@ -109,9 +110,7 @@ export default function PrivacySettingsScreen() {
     <View style={styles.container}>
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#222" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Privacy</Text>
         <TouchableOpacity onPress={handleSave} disabled={saving}>
           {saving ? (

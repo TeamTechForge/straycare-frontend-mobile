@@ -23,6 +23,7 @@ import { useAuth } from '../../contexts/AuthContext';
 import { useChatApi } from '../../hooks/useChatApi';
 import { BASE_URL } from '../../constants/config.constants';
 import OwnerActionButtons from '../../components/OwnerActionButtons';
+import BackButton from '../../components/BackButton';
 
 // ─── Colour changes were made ────────────────────────────────────────────────────────────
 const C = {
@@ -404,9 +405,9 @@ const ViewAnimalPost = () => {
           )}
           <View style={s.imageOverlay} />
 
-          <TouchableOpacity style={s.backBtn} onPress={() => router.back()} activeOpacity={0.85}>
-            <Ionicons name="arrow-back" size={20} color="#fff" />
-          </TouchableOpacity>
+          <View style={s.backBtnWrapper}>
+            <BackButton onPress={() => router.back()} />
+          </View>
         </View>
 
         {/* ── Detail card ── */}
@@ -553,20 +554,11 @@ const s = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.18)',
   },
-  backBtn: {
+  backBtnWrapper: {
     position: 'absolute',
     top: 52,
     left: 16,
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.2,
-    shadowRadius: 6,
-    elevation: 4,
+    zIndex: 10,
   },
 
   // Card

@@ -13,6 +13,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import axios from "axios";
 import { Ionicons, Feather } from "@expo/vector-icons";
+import BackButton from "../../components/BackButton";
 
 import { API_URL } from "../../constants/config.constants";
 import { colors } from "../../constants/colors.constants";
@@ -175,13 +176,7 @@ export default function CaseSummaryScreen() {
     <SafeAreaView style={styles.container}>
       {/* ── Header ── */}
       <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="arrow-back" size={22} color="#1F2937" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Case Summary</Text>
         <View style={{ width: 40 }} />
       </View>

@@ -1,11 +1,13 @@
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import * as Print from "expo-print";
-import { useLocalSearchParams } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { Alert, Platform, StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 
 export default function Receipt() {
+  const router = useRouter();
   const { donation } = useLocalSearchParams();
   const parsed = donation ? JSON.parse(donation as string) : null;
 
@@ -136,7 +138,10 @@ export default function Receipt() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Donation Receipt</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+        <BackButton onPress={() => router.back()} />
+        <Text style={[styles.title, { marginBottom: 0, marginLeft: 12 }]}>Donation Receipt</Text>
+      </View>
       <View style={styles.card}>
         <View style={styles.row}>
           <Text style={styles.label}>Order ID:</Text>
@@ -176,7 +181,7 @@ export default function Receipt() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 60 },
+  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 20, paddingTop: 40 },
   title: { fontSize: 22, fontWeight: "bold", marginBottom: 20, textAlign: "center" },
   card: {
     backgroundColor: "#f9f9f9",

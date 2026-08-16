@@ -4,6 +4,7 @@ import axios from "axios";
 import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import BackButton from "../../components/BackButton";
 import { BASE_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 
@@ -64,6 +65,9 @@ export default function DonationSuccess() {
 
   return (
     <View style={styles.container}>
+      <View style={{ marginBottom: 12, marginLeft: -4, marginTop: 40 }}>
+        <BackButton onPress={() => router.replace("/Donate")} />
+      </View>
       <View style={styles.middle}>
         <View style={styles.contentContainer}>
           {isRecurringPending ? <ActivityIndicator size="large" color="#F5A623" style={styles.icon} /> : <Ionicons

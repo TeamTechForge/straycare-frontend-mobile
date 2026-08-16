@@ -16,6 +16,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
+import BackButton from "../../components/BackButton";
 
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
@@ -364,9 +365,7 @@ export default function PublicProfileScreen() {
     <SafeAreaView style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#1F2937" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
 
         <Text style={styles.headerTitle}>PROFILE</Text>
 

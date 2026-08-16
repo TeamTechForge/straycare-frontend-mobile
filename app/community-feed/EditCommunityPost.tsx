@@ -5,6 +5,7 @@ import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
 import { getCommunityPost, updateCommunityPost } from "../../services/communityService";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 import { colors } from "../../constants/colors.constants";
 
 const CATEGORIES = [
@@ -97,8 +98,9 @@ export default function EditCommunityPost() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}><Ionicons name="chevron-back" size={24} color="#1f2937" /></TouchableOpacity>
-        <Text style={styles.headerTitle}>Edit Community Post</Text><View style={{ width: 24 }} />
+        <BackButton onPress={() => router.back()} />
+        <Text style={styles.headerTitle}>Edit Post</Text>
+        <View style={{ width: 40 }} />
       </View>
       <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
         <Text style={styles.requiredNote}>Fields marked with <Text style={styles.required}>*</Text> are required.</Text>

@@ -20,6 +20,7 @@ import axios from "axios";
 
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
@@ -350,9 +351,7 @@ export default function RescuerResponseScreen() {
     <SafeAreaView style={styles.container}>
       {/* HEADER BAR */}
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => router.back()} activeOpacity={0.8}>
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Response Processing</Text>
         <View style={{ width: 40 }} />
       </View>

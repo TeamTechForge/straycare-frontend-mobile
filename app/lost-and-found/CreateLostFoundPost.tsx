@@ -21,6 +21,7 @@ import ChatLocationPicker from '../../components/chat/ChatLocationPicker';
 import PrimaryButton from '../../components/PrimaryButton';
 import MapViewWrapper, { Marker } from '../../components/MapViewWrapper';
 import { ANIMAL_BREEDS } from '../../constants/breeds.constants';
+import BackButton from '../../components/BackButton';
 
 // Centralized color tokens used across all components and styles
 const C = {
@@ -313,9 +314,9 @@ const CreatePost = () => {
     <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
 
       {/* Back arrow — navigates to the previous screen */}
-      <TouchableOpacity style={s.backIconBtn} onPress={() => router.back()}>
-        <Ionicons name="arrow-back" size={24} color={C.textMain} />
-      </TouchableOpacity>
+      <View style={{ marginBottom: 12 }}>
+        <BackButton onPress={() => router.back()} />
+      </View>
 
       {/* Page title and subtitle */}
       <View style={s.titleBlock}>

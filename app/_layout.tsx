@@ -1,11 +1,12 @@
 // Root layout for the app, defining the navigation stack and global providers.
 import { Stack, useRouter, useSegments } from "expo-router";
-import { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Modal,
   StyleSheet,
   Text,
+  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -416,6 +417,8 @@ const overlayStyles = StyleSheet.create({
   },
 });
 
+
+
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     "Inter-Regular": require("../assets/fonts/Inter-Regular.ttf"),
@@ -423,6 +426,26 @@ export default function RootLayout() {
     "Inter-SemiBold": require("../assets/fonts/Inter-SemiBold.ttf"),
     "Inter-Bold": require("../assets/fonts/Inter-Bold.ttf"),
   });
+
+  // Set global default font once fonts are loaded
+  useEffect(() => {
+    if (fontsLoaded) {
+      const oldTextRender = (Text as any).render;
+      (Text as any).render = function (...args: any) {
+        const origin = oldTextRender.call(this, ...args);
+        return React.cloneElement(origin, {
+          style: [{ fontFamily: "Inter-Regular" }, origin.props.style],
+        });
+      };
+      const oldTextInputRender = (TextInput as any).render;
+      (TextInput as any).render = function (...args: any) {
+        const origin = oldTextInputRender.call(this, ...args);
+        return React.cloneElement(origin, {
+          style: [{ fontFamily: "Inter-Regular" }, origin.props.style],
+        });
+      };
+    }
+  }, [fontsLoaded]);
 
   // Wait until fonts load
   if (!fontsLoaded) {

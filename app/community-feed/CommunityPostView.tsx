@@ -30,6 +30,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import BackButton from "../../components/BackButton";
 
 import {
   getCommunityPost,
@@ -378,22 +379,13 @@ export default function CommunityPostView() {
       >
         {/* HEADER */}
         <View style={styles.header}>
-          <TouchableOpacity
-            style={styles.iconBtn}
-            onPress={() => router.back()}
-          >
-            <Ionicons
-              name="arrow-back"
-              size={24}
-              color="#161c27"
-            />
-          </TouchableOpacity>
+          <BackButton onPress={() => router.back()} />
 
           <Text style={styles.headerTitle}>
             Community Feed
           </Text>
 
-          <View style={styles.iconBtn} />
+          <View style={{ width: 40 }} />
         </View>
 
         {/* LOADING */}

@@ -4,6 +4,7 @@ import * as SecureStore from "expo-secure-store";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, Modal, Pressable, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import BackButton from "../../components/BackButton";
 import { BASE_URL } from "../../constants/config.constants";
 
 type Donation = {
@@ -172,7 +173,10 @@ export default function DonationHistory() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
-      <Text style={styles.title}>Donation History</Text>
+      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+        <BackButton onPress={() => router.back()} />
+        <Text style={[styles.title, { marginBottom: 0, marginLeft: 12 }]}>Donation History</Text>
+      </View>
       {donations.length === 0 && recurringDonations.length === 0 ? (
         <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations yet</Text>
       ) : (

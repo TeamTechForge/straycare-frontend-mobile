@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import BackButton from "../../components/BackButton";
 
 const { width } = Dimensions.get("window");
 
@@ -25,15 +26,7 @@ export default function HomeScreen() {
       {/* Header */}
       <View style={styles.header}>
         {/* Back Button */}
-        <Pressable
-          onPress={() => router.back()}
-          style={({ pressed }) => [
-            styles.backButton,
-            pressed && styles.backButtonPressed,
-          ]}
-        >
-          <Ionicons name="chevron-back" size={24} color="#062425" />
-        </Pressable>
+        <BackButton onPress={() => router.back()} />
 
         {/* PLUS BUTTON (NEW) */}
         <Pressable
