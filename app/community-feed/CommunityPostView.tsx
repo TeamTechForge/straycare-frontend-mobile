@@ -1,8 +1,24 @@
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+// app/community-feed/CommunityPostView.tsx
+
+import {
+  Ionicons,
+  MaterialIcons,
+} from "@expo/vector-icons";
+
+import {
+  useLocalSearchParams,
+  useRouter,
+} from "expo-router";
+
+import React, {
+  useCallback,
+  useEffect,
+  useState,
+} from "react";
+
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
@@ -10,180 +26,370 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { getCommunityPost } from "../../api/apiService";
-import { BASE_URL } from "../../constants/config.constants";
 
-// Converts ISO date string to readable format like "MAR 15, 2024"
-function formatDate(dateStr: string): string {
+import {
+  getCommunityPost,
+  CommunityPost,
+  deleteCommunityPost,
+  reportCommunityPost,
+} from "../../services/communityService";
+import ReportPostModal from "../../components/ReportPostModal";
+import { colors } from "../../constants/colors.constants";
+
+// ─────────────────────────────────────────────
+// DATE
+// ─────────────────────────────────────────────
+
+function formatDate(
+  dateStr?: string
+): string {
+  if (!dateStr) {
+    return "";
+  }
+
   const date = new Date(dateStr);
-  return date.toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  }).toUpperCase();
+
+  return date
+    .toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    })
+    .toUpperCase();
 }
+
+// ─────────────────────────────────────────────
+// COMPONENT
+// ─────────────────────────────────────────────
 
 export default function CommunityPostView() {
   const router = useRouter();
-  const { id } = useLocalSearchParams<{ id: string }>(); // Get post ID from navigation params
 
-  const [post, setPost] = useState<any>(null);   // Stores the fetched post data
-  const [loading, setLoading] = useState(true);  // True while API request is in progress
-  const [error, setError] = useState(false);     // True if API request fails
+  const { id } =
+    useLocalSearchParams<{
+      id: string;
+    }>();
 
-  // Fetch post when screen loads or when ID changes
-  useEffect(() => {
-    if (id) fetchPost();
-  }, [id]);
+  const [post, setPost] =
+    useState<CommunityPost | null>(null);
 
-  // Calls the API to fetch a single post by ID and updates state accordingly
-  const fetchPost = async () => {
+  const [loading, setLoading] =
+    useState(true);
+
+  const [error, setError] =
+    useState(false);
+  const [reportVisible, setReportVisible] = useState(false);
+
+  const handleDelete = () => {
+    if (!post) return;
+    Alert.alert("Delete post?", "This action cannot be undone.", [
+      { text: "Cancel", style: "cancel" },
+      { text: "Delete", style: "destructive", onPress: async () => {
+        try {
+          await deleteCommunityPost(post._id);
+          router.replace("/community-feed/CommunityPostMain");
+        } catch (deleteError: any) {
+          Alert.alert("Unable to delete post", deleteError?.response?.data?.message || "Please try again.");
+        }
+      } },
+    ]);
+  };
+
+  // ─────────────────────────────────────────────
+  // FETCH POST
+  // ─────────────────────────────────────────────
+
+  const fetchPost = useCallback(async () => {
+    if (!id) {
+      setError(true);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(false);
-      const response = await getCommunityPost(id);
-      if (response.data.success) {
-        setPost(response.data.data); // Store post data on success
-      } else {
-        setError(true); // API returned failure response
-      }
+
+      // getCommunityPost already returns CommunityPost
+      const postData =
+        await getCommunityPost(id);
+
+      setPost(postData);
     } catch (err) {
-      setError(true); // Network or unexpected error
+      console.error(
+        "Fetch community post error:",
+        err
+      );
+
+      setError(true);
     } finally {
-      setLoading(false); // Always stop spinner regardless of outcome
+      setLoading(false);
     }
+  }, [id]);
+
+  useEffect(() => {
+    if (id) {
+      void fetchPost();
+    }
+  }, [id, fetchPost]);
+
+  // ─────────────────────────────────────────────
+  // IMAGE URL
+  // ─────────────────────────────────────────────
+
+  const getImageUrl = (
+    imageUrl?: string | null
+  ) => {
+    if (!imageUrl) {
+      return null;
+    }
+
+    // Cloudinary URL
+    if (
+      imageUrl.startsWith("http://") ||
+      imageUrl.startsWith("https://")
+    ) {
+      return imageUrl;
+    }
+
+    // Backend relative image
+    return imageUrl;
   };
+
+  // ─────────────────────────────────────────────
+  // UI
+  // ─────────────────────────────────────────────
 
   return (
     <View style={styles.container}>
+      {/* HEADER */}
 
-      {/* Header — back button on left, title in center, empty view on right for balance */}
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.iconBtn}
-          onPress={() => router.push("/community-feed/CommunityPostMain")}
+          onPress={() => router.back()}
         >
-          <Ionicons name="arrow-back" size={24} color="#161c27" />
+          <Ionicons
+            name="arrow-back"
+            size={24}
+            color="#161c27"
+          />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Community Feed</Text>
-        <View style={styles.iconBtn} /> {/* Empty view keeps title centered */}
+
+        <Text style={styles.headerTitle}>
+          Community Feed
+        </Text>
+
+        <View style={styles.iconBtn} />
       </View>
 
-      {/* Show spinner while post data is being fetched */}
+      {/* LOADING */}
+
       {loading && (
         <View style={styles.centeredState}>
-          <ActivityIndicator size="large" color="#775a00" />
-          <Text style={styles.stateText}>Loading post...</Text>
+          <ActivityIndicator
+            size="large"
+            color="#775a00"
+          />
+
+          <Text style={styles.stateText}>
+            Loading post...
+          </Text>
         </View>
       )}
 
-      {/* Show error message with retry button if fetch failed */}
+      {/* ERROR */}
+
       {!loading && error && (
         <View style={styles.centeredState}>
-          <Ionicons name="cloud-offline-outline" size={40} color="#837565" />
-          <Text style={styles.stateText}>Failed to load post.</Text>
-          <TouchableOpacity style={styles.retryBtn} onPress={fetchPost}>
-            <Text style={styles.retryBtnText}>Retry</Text>
+          <Ionicons
+            name="cloud-offline-outline"
+            size={40}
+            color="#837565"
+          />
+
+          <Text style={styles.stateText}>
+            Failed to load post.
+          </Text>
+
+          <TouchableOpacity
+            style={styles.retryBtn}
+            onPress={fetchPost}
+          >
+            <Text style={styles.retryBtnText}>
+              Retry
+            </Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* Render full post content only when loaded successfully */}
-      {!loading && !error && post && (
-        <ScrollView
-          contentContainerStyle={styles.scrollContent}
-          showsVerticalScrollIndicator={false}
-        >
-          {/* Main post card */}
-          <View style={styles.card}>
+      {/* POST */}
 
-            {/* Hero image — only renders if post has an imageUrl */}
-            {post.imageUrl ? (
-              <Image
-                source={{ uri: `${BASE_URL}${post.imageUrl}` }}
-                style={styles.heroImage}
-                resizeMode="cover"
-              />
-            ) : null}
+      {!loading &&
+        !error &&
+        post && (
+          <ScrollView
+            contentContainerStyle={
+              styles.scrollContent
+            }
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={styles.card}>
+              {/* IMAGE */}
 
-            <View style={styles.cardBody}>
+              {getImageUrl(
+                post.imageUrl
+              ) && (
+                  <Image
+                    source={{
+                      uri: getImageUrl(
+                        post.imageUrl
+                      )!,
+                    }}
+                    style={styles.heroImage}
+                    resizeMode="cover"
+                  />
+                )}
 
-              {/* Date on the left, category badge on the right */}
-              <View style={styles.metaRow}>
-                <Text style={styles.dateText}>{formatDate(post.submittedAt)}</Text>
-                <View style={styles.tagBadge}>
-                  <Text style={styles.tagText}>{post.category}</Text>
+              <View style={styles.cardBody}>
+                {/* DATE + CATEGORY */}
+
+                <View style={styles.metaRow}>
+                  <Text
+                    style={styles.dateText}
+                  >
+                    {formatDate(
+                      post.submittedAt ||
+                      post.createdAt
+                    )}
+                  </Text>
+
+                  <View
+                    style={styles.tagBadge}
+                  >
+                    <Text
+                      style={styles.tagText}
+                    >
+                      {post.category}
+                    </Text>
+                  </View>
+                </View>
+
+                {/* TITLE */}
+
+                <Text style={styles.headline}>
+                  {post.title}
+                </Text>
+
+                {/* AUTHOR */}
+
+                <View
+                  style={styles.authorRow}
+                >
+                  <Text
+                    style={styles.authorText}
+                  >
+                    Posted by{" "}
+                    <Text
+                      style={styles.authorName}
+                    >
+                      {post.username || post.authorName ||
+                        "Community User"}
+                    </Text>
+                  </Text>
+                </View>
+
+                {/* CONTENT */}
+
+                <View style={styles.contentAccent}>
+                  <Text style={styles.description}>{post.content}</Text>
                 </View>
               </View>
-
-              {/* Post title */}
-              <Text style={styles.headline}>{post.title}</Text>
-
-              {/* Author name with "Posted by" prefix, separated by divider lines */}
-              <View style={styles.authorRow}>
-                <Text style={styles.authorText}>
-                  Posted by{" "}
-                  <Text style={styles.authorName}>{post.authorName}</Text>
-                </Text>
-              </View>
-
-              {/* Full post content body */}
-              <Text style={styles.description}>{post.content}</Text>
             </View>
-          </View>
 
-          {/* Action buttons below the post card */}
-          <View style={styles.actionsContainer}>
+            {/* ACTIONS */}
 
-            {/* Back button — returns to the community feed list */}
-            <TouchableOpacity
-              style={styles.backBtn}
-              onPress={() => router.push("/community-feed/CommunityPostMain")}
+            <View
+              style={styles.actionsContainer}
             >
-              <Ionicons name="chevron-back" size={20} color="#704900" />
-              <Text style={styles.backBtnText}>Back</Text>
-            </TouchableOpacity>
+              {/* BACK */}
 
-            {/* Report button — navigates to the report screen with post ID */}
-            <TouchableOpacity
-              style={styles.reportBtn}
-              onPress={() =>
-                router.push({
-                  pathname: "/community-feed/ReportCommunityPost",
-                  params: { id: post._id },
-                })
-              }
-            >
-              <MaterialIcons name="report" size={20} color="#E54D4D" />
-              <Text style={styles.reportBtnText}>Report Post</Text>
-            </TouchableOpacity>
-          </View>
-        </ScrollView>
-      )}
+              <TouchableOpacity
+                style={styles.backBtn}
+                onPress={() =>
+                  router.back()
+                }
+              >
+                <Ionicons
+                  name="chevron-back"
+                  size={20}
+                  color="#704900"
+                />
+
+                <Text
+                  style={styles.backBtnText}
+                >
+                  Back
+                </Text>
+              </TouchableOpacity>
+
+              {post.isOwner ? <>
+                <TouchableOpacity style={styles.ownerBtn} onPress={() => router.push({ pathname: "/community-feed/EditCommunityPost", params: { id: post._id } })}>
+                  <Ionicons name="create-outline" size={20} color="#704900" />
+                  <Text style={styles.ownerBtnText}>Edit Post</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.reportBtn} onPress={handleDelete}>
+                  <Ionicons name="trash-outline" size={20} color="#E54D4D" />
+                  <Text style={styles.reportBtnText}>Delete Post</Text>
+                </TouchableOpacity>
+              </> : <TouchableOpacity
+                style={styles.reportBtn}
+                onPress={() => setReportVisible(true)}
+              >
+                <MaterialIcons
+                  name="report"
+                  size={20}
+                  color="#E54D4D"
+                />
+
+                <Text
+                  style={styles.reportBtnText}
+                >
+                  Report Post
+                </Text>
+              </TouchableOpacity>}
+            </View>
+          </ScrollView>
+        )}
+      <ReportPostModal visible={reportVisible} onClose={() => setReportVisible(false)} onSubmit={async (reason) => {
+        if (post) await reportCommunityPost(post._id, reason);
+      }} />
     </View>
   );
 }
 
+// ─────────────────────────────────────────────
+// STYLES
+// ─────────────────────────────────────────────
+
 const styles = StyleSheet.create({
-  // Root screen container
   container: {
     flex: 1,
     backgroundColor: "#f9f9ff",
   },
 
-  // Fixed top header with back button and screen title
   header: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
     paddingHorizontal: 16,
-    paddingTop: 50, // Offset for device status bar
+    paddingTop: 50,
     paddingBottom: 12,
     backgroundColor: "#ffffff",
     borderBottomWidth: 1,
     borderBottomColor: "#F1F1F1",
   },
-  // Circular tap target for header icons
+
   iconBtn: {
     width: 40,
     height: 40,
@@ -191,45 +397,45 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+
   headerTitle: {
     fontSize: 18,
     fontWeight: "700",
     color: "#161c27",
   },
 
-  // Centered layout for loading, error, and empty states
   centeredState: {
     flex: 1,
     alignItems: "center",
     justifyContent: "center",
     gap: 12,
   },
+
   stateText: {
     fontSize: 14,
     color: "#837565",
     fontWeight: "500",
   },
-  // Gold pill retry button
+
   retryBtn: {
     backgroundColor: "#fcd371",
     paddingHorizontal: 24,
     paddingVertical: 10,
     borderRadius: 999,
   },
+
   retryBtnText: {
     fontSize: 13,
     fontWeight: "700",
     color: "#775a00",
   },
 
-  // Scroll area padding with extra bottom space
   scrollContent: {
     padding: 20,
     paddingBottom: 40,
     gap: 16,
   },
 
-  // White rounded card clipping the hero image to match border radius
   card: {
     backgroundColor: "#ffffff",
     borderRadius: 16,
@@ -237,82 +443,78 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: "#F1F1F1",
   },
-  // Hero image spans full card width at fixed height
+
   heroImage: {
     width: "100%",
     height: 220,
   },
-  // Inner card content area with vertical spacing between sections
+
   cardBody: {
     padding: 20,
     gap: 12,
   },
 
-  // Row holding date (left) and category badge (right)
   metaRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
   },
-  // Uppercase spaced date label in muted color
+
   dateText: {
     fontSize: 12,
     fontWeight: "600",
     letterSpacing: 0.8,
     color: "#837565",
-    textTransform: "uppercase",
   },
-  // Green pill badge for the post category
+
   tagBadge: {
-    backgroundColor: "#E6F7ED",
+    backgroundColor: colors.primary,
     borderRadius: 999,
     paddingHorizontal: 12,
     paddingVertical: 6,
+    maxWidth: "60%",
   },
+
   tagText: {
     fontSize: 13,
     fontWeight: "600",
-    color: "#27C468",
+    color: colors.text,
   },
 
-  // Large bold post title
   headline: {
     fontSize: 22,
     fontWeight: "800",
     color: "#161c27",
     lineHeight: 28,
-    letterSpacing: -0.4,
   },
 
-  // Author row separated from title and content by top and bottom borders
   authorRow: {
     paddingVertical: 8,
     borderTopWidth: 1,
     borderBottomWidth: 1,
     borderColor: "#F1F1F1",
   },
+
   authorText: {
     fontSize: 15,
     color: "#504537",
   },
-  // Bold dark styling for the author name inline within authorText
+
   authorName: {
     fontWeight: "700",
     color: "#161c27",
   },
 
-  // Full post body text with comfortable line height
   description: {
     fontSize: 15,
     color: "#504537",
     lineHeight: 24,
   },
 
-  // Vertical stack of action buttons below the card
   actionsContainer: {
     gap: 12,
   },
-  // Gold pill back button with icon and label side by side
+
   backBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -322,12 +524,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 16,
   },
+
   backBtnText: {
     fontSize: 15,
     fontWeight: "700",
     color: "#704900",
   },
-  // Light red pill report button with icon and label side by side
+
   reportBtn: {
     flexDirection: "row",
     alignItems: "center",
@@ -337,9 +540,13 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     paddingVertical: 16,
   },
+
   reportBtnText: {
     fontSize: 15,
     fontWeight: "700",
     color: "#E54D4D",
   },
+  contentAccent: { borderLeftWidth: 3, borderLeftColor: colors.primary, paddingLeft: 14 },
+  ownerBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, backgroundColor: "#FFF0DD", borderRadius: 999, paddingVertical: 16 },
+  ownerBtnText: { fontSize: 15, fontWeight: "700", color: "#704900" },
 });

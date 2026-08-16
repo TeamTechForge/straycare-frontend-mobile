@@ -2,7 +2,8 @@ import { Ionicons } from "@expo/vector-icons";
 import { Image, StyleSheet, Text, View, TouchableOpacity } from "react-native";
 
 type Props = {
-  image: string;
+  image?: string;
+  title?: string;
   likes: number;
   comments: number;
   time: string;
@@ -11,6 +12,7 @@ type Props = {
 
 export default function PostPreviewCard({
   image,
+  title = "Community post",
   likes,
   comments,
   time,
@@ -18,7 +20,12 @@ export default function PostPreviewCard({
 }: Props) {
   return (
     <TouchableOpacity style={styles.postCard} onPress={onPress} activeOpacity={0.8}>
-      <Image source={{ uri: image }} style={styles.postImage} />
+      {image ? <Image source={{ uri: image }} style={styles.postImage} /> : (
+        <View style={styles.postPlaceholder}>
+          <Ionicons name="document-text-outline" size={34} color="#F5A623" />
+          <Text style={styles.placeholderTitle} numberOfLines={2}>{title}</Text>
+        </View>
+      )}
       <View style={styles.postOverlayBottom}>
         <View style={styles.postMetaLeft}>
           <View style={styles.metaItem}>
@@ -46,6 +53,16 @@ const styles = StyleSheet.create({
     width: "100%",
     height: 240,
   },
+  postPlaceholder: {
+    width: "100%",
+    height: 240,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    padding: 20,
+    backgroundColor: "#FFF8EA",
+  },
+  placeholderTitle: { fontSize: 15, fontWeight: "700", color: "#333", textAlign: "center" },
   postOverlayBottom: {
     position: "absolute",
     bottom: 10,

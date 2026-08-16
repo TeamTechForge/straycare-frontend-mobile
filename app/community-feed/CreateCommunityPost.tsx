@@ -3,7 +3,6 @@ import * as ImagePicker from "expo-image-picker";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -13,7 +12,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { createCommunityPost } from "../../api/apiService";
+import { createCommunityPost } from "../../services/communityService";
+import PrimaryButton from "../../components/PrimaryButton";
+import { colors } from "../../constants/colors.constants";
 
 // ── Category options ─────────────────────────────────────────────────────────
 const CATEGORIES = [
@@ -29,8 +30,7 @@ const CATEGORIES = [
 // ── Validation ───────────────────────────────────────────────────────────────
 function validateForm(
   title: string,
-  content: string,
-  authorName: string
+  content: string
 ): Record<string, string> {
   const errors: Record<string, string> = {};
 
@@ -46,14 +46,8 @@ function validateForm(
     errors.content = "Content must be at least 20 characters.";
   }
 
-  if (!authorName.trim()) {
-    errors.authorName = "Please fill in your name.";
-  }
-
   return errors;
 }
-
-console.log("createCommunityPost:", createCommunityPost);
 
 export default function CreateCommunityPost() {
   const router = useRouter();
@@ -61,7 +55,6 @@ export default function CreateCommunityPost() {
   // Form state
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [authorName, setAuthorName] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("Pet Care Tips");
 
   // Image state
@@ -102,15 +95,15 @@ export default function CreateCommunityPost() {
   // ── Blur handler ────────────────────────────────────────────────────────────
   const handleBlur = (field: string) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
-    setErrors(validateForm(title, content, authorName));
+    setErrors(validateForm(title, content));
   };
 
   // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     // Mark all fields touched so all errors become visible
-    setTouched({ title: true, content: true, authorName: true });
+    setTouched({ title: true, content: true });
 
-    const newErrors = validateForm(title, content, authorName);
+    const newErrors = validateForm(title, content);
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -122,8 +115,6 @@ export default function CreateCommunityPost() {
       formData.append("title", title.trim());
       formData.append("category", selectedCategory);
       formData.append("content", content.trim());
-      formData.append("authorName", authorName.trim());
-      formData.append("submittedAt", new Date().toISOString());
 
       // Only attach image if the user picked one
       if (imageUri) {
@@ -138,18 +129,21 @@ export default function CreateCommunityPost() {
         } as any);
       }
 
-      const response = await createCommunityPost(formData);
+      const savedPost = await createCommunityPost(formData);
 
-      if (response.data.success) {
+      // createCommunityPost already unwraps the response —
+      // it returns the saved post object directly.
+      if (savedPost && savedPost._id) {
         router.replace("/community-feed/CommunityPostMain");
       } else {
         Alert.alert("Error", "Something went wrong. Please try again.");
       }
-    } catch (error) {
-      console.log("Submit error:", error);
+    } catch (error: any) {
+      console.log("Submit error:", error?.response?.data || error);
+      const serverMessage = error?.response?.data?.message || error?.message;
       Alert.alert(
         "Error",
-        "Failed to submit post. Please check your connection and try again."
+        serverMessage || "Failed to submit post. Please check your connection and try again."
       );
     } finally {
       setIsSubmitting(false);
@@ -179,9 +173,10 @@ export default function CreateCommunityPost() {
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
+        <Text style={styles.requiredNote}>Fields marked with <Text style={styles.required}>*</Text> are required.</Text>
         {/* ── Post Title ── */}
         <View style={styles.section}>
-          <Text style={styles.label}>Post Title</Text>
+          <Text style={styles.label}>Post Title <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[styles.input, showError("title") && styles.inputError]}
             placeholder="Enter the title of the post"
@@ -189,7 +184,7 @@ export default function CreateCommunityPost() {
             value={title}
             onChangeText={(text) => {
               setTitle(text);
-              if (touched.title) setErrors(validateForm(text, content, authorName));
+              if (touched.title) setErrors(validateForm(text, content));
             }}
             onBlur={() => handleBlur("title")}
           />
@@ -200,7 +195,7 @@ export default function CreateCommunityPost() {
 
         {/* ── Category Chips ── */}
         <View style={styles.section}>
-          <Text style={styles.label}>Select Category</Text>
+          <Text style={styles.label}>Select Category <Text style={styles.required}>*</Text></Text>
           <View style={styles.chipsContainer}>
             {CATEGORIES.map((cat) => (
               <TouchableOpacity
@@ -226,7 +221,7 @@ export default function CreateCommunityPost() {
 
         {/* ── Post Content ── */}
         <View style={styles.section}>
-          <Text style={styles.label}>Post Content</Text>
+          <Text style={styles.label}>Post Content <Text style={styles.required}>*</Text></Text>
           <TextInput
             style={[
               styles.input,
@@ -238,11 +233,11 @@ export default function CreateCommunityPost() {
             value={content}
             onChangeText={(text) => {
               setContent(text);
-              if (touched.content) setErrors(validateForm(title, text, authorName));
+              if (touched.content) setErrors(validateForm(title, text));
             }}
             onBlur={() => handleBlur("content")}
             multiline
-            numberOfLines={5}
+            scrollEnabled={false}
             textAlignVertical="top"
           />
           {showError("content") && (
@@ -291,44 +286,12 @@ export default function CreateCommunityPost() {
           )}
         </View>
 
-        {/* ── Author Name ── */}
-        <View style={styles.section}>
-          <Text style={styles.label}>Author Name</Text>
-          <TextInput
-            style={[
-              styles.input,
-              showError("authorName") && styles.inputError,
-            ]}
-            placeholder="Enter your name"
-            placeholderTextColor="#94a3b8"
-            value={authorName}
-            onChangeText={(text) => {
-              setAuthorName(text);
-              if (touched.authorName) setErrors(validateForm(title, content, text));
-            }}
-            onBlur={() => handleBlur("authorName")}
-          />
-          {showError("authorName") && (
-            <Text style={styles.errorText}>{errors.authorName}</Text>
-          )}
-        </View>
-
         {/* ── Vertical Spacer ── */}
         <View style={styles.spacer} />
 
         {/* ── Action Buttons ── */}
         <View style={styles.actionsSection}>
-          <TouchableOpacity
-            style={[styles.submitButton, isSubmitting && styles.submitButtonDisabled]}
-            onPress={handleSubmit}
-            disabled={isSubmitting}
-          >
-            {isSubmitting ? (
-              <ActivityIndicator color="#1f2937" />
-            ) : (
-              <Text style={styles.submitButtonText}>Submit Post</Text>
-            )}
-          </TouchableOpacity>
+          <PrimaryButton title={isSubmitting ? "Submitting..." : "Submit Post"} onPress={handleSubmit} disabled={isSubmitting} />
 
           <TouchableOpacity
             style={styles.cancelButton}
@@ -384,6 +347,8 @@ const styles = StyleSheet.create({
   section: {
     marginBottom: 28,
   },
+  requiredNote: { fontSize: 12, color: "#64748b", marginBottom: 8 },
+  required: { color: colors.error, fontWeight: "700" },
   label: {
     fontSize: 13,
     fontWeight: "600",
@@ -515,26 +480,6 @@ const styles = StyleSheet.create({
   },
   actionsSection: {
     gap: 12,
-  },
-  submitButton: {
-    width: "100%",
-    paddingVertical: 16,
-    backgroundColor: "#f5c542",
-    borderRadius: 9999,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 4,
-  },
-  submitButtonDisabled: {
-    opacity: 0.6,
-  },
-  submitButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#1f2937",
   },
   cancelButton: {
     width: "100%",

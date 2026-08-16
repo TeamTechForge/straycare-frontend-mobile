@@ -56,7 +56,7 @@ export default function ReportPreviewCard({
   onActionPress,
   actionText = "Update",
   onSecondaryActionPress,
-  secondaryActionText = "Rescue Failed",
+  secondaryActionText = "Mark as Failed",
   secondaryActionDisabled = false,
   summary,
   onPress,
