@@ -490,7 +490,7 @@ export default function NearbyRescuersScreen() {
                           { text: "Cancel", style: "cancel" },
                           {
                             text: "Publish Now",
-                            onPress: () => router.push("/reporting"),
+                            onPress: () => router.push("/(tabs)/Report"),
                           },
                         ]
                       );
@@ -516,7 +516,7 @@ export default function NearbyRescuersScreen() {
                         [
                           {
                             text: "OK",
-                            onPress: () => router.push("/reporting"),
+                            onPress: () => router.push("/(tabs)/Report"),
                           },
                         ]
                       );

@@ -2,7 +2,7 @@ import { Feather, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl } from "react-native";
+import { Alert, ScrollView, StyleSheet, Text, TouchableOpacity, View, ActivityIndicator, RefreshControl } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { API_URL } from "../../constants/config.constants";
 
@@ -32,6 +32,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
 
   const [refreshing, setRefreshing] = useState(false);
+  const [failingRescueId, setFailingRescueId] = useState<string | null>(null);
 
   const [totalReportsCount, setTotalReportsCount] = useState<number | null>(null);
   const [totalPostsCount, setTotalPostsCount] = useState<number | null>(null);
@@ -131,6 +132,42 @@ export default function ProfileScreen() {
 
   const openCaseStatusUpdate = (caseId: string) => {
     router.push(getCaseStatusUpdateRoute(caseId));
+  };
+
+  const markRescueFailed = (rescue: any) => {
+    const rescueId = rescue.rescueRequestId || rescue._id || rescue.id || rescue.caseId;
+    if (!rescueId) return;
+
+    Alert.alert(
+      "Mark rescue as failed?",
+      "This closes the rescue and records it as failed in rescue history.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Mark Failed",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setFailingRescueId(String(rescueId));
+              const token = await SecureStore.getItemAsync("authToken");
+              const response = await fetch(`${API_URL}/rescue/request/${encodeURIComponent(String(rescueId))}/fail`, {
+                method: "PATCH",
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              const result = await response.json();
+              if (!response.ok) {
+                throw new Error(result?.error || result?.message || "Could not mark this rescue as failed.");
+              }
+              await fetchData();
+            } catch (error: any) {
+              Alert.alert("Update Failed", error?.message || "Could not mark this rescue as failed.");
+            } finally {
+              setFailingRescueId(null);
+            }
+          },
+        },
+      ]
+    );
   };
 
   // Role-based logic
@@ -268,9 +305,9 @@ export default function ProfileScreen() {
               <View>
                 {/* 📌 ACTIVE CASES */}
                 <Text style={styles.subSectionTitle}>Active Cases</Text>
-                {rescues.filter((r: any) => !isRescueCompleted(r.status)).length > 0 ? (
+                {rescues.filter((r: any) => !isRescueCompleted(r.status) && (r.status || "").toLowerCase() !== "failed").length > 0 ? (
                   rescues
-                    .filter((r: any) => !isRescueCompleted(r.status))
+                    .filter((r: any) => !isRescueCompleted(r.status) && (r.status || "").toLowerCase() !== "failed")
                     .map((rescue: any, index: number) => (
                       <ReportPreviewCard
                         key={rescue.id || rescue._id || `active-${index}`}
@@ -281,6 +318,8 @@ export default function ProfileScreen() {
                         summary={rescue.summary || rescue.description}
                         actionText="Update Status"
                         onActionPress={() => openCaseStatusUpdate(rescue.caseId)}
+                        onSecondaryActionPress={() => markRescueFailed(rescue)}
+                        secondaryActionDisabled={failingRescueId === String(rescue.rescueRequestId || rescue._id || rescue.id || rescue.caseId)}
                         onPress={() =>
                           router.push({
                             pathname: "/rescuer-response/[requestId]" as any,
