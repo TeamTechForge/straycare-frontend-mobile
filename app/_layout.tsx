@@ -356,13 +356,6 @@ function InitialLayout() {
             >
               <Text style={overlayStyles.btnText}>View Case Details</Text>
             </TouchableOpacity>
-            <TouchableOpacity
-              style={overlayStyles.dismissBtn}
-              activeOpacity={0.7}
-              onPress={() => setRescueNotif(null)}
-            >
-              <Text style={overlayStyles.dismissText}>Dismiss</Text>
-            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -415,19 +408,11 @@ const overlayStyles = StyleSheet.create({
     paddingHorizontal: 32,
     width: "100%",
     alignItems: "center",
-    marginBottom: 10,
   },
   btnText: {
     color: "#fff",
     fontSize: 15,
     fontWeight: "700",
-  },
-  dismissBtn: {
-    paddingVertical: 8,
-  },
-  dismissText: {
-    color: "#888",
-    fontSize: 13,
   },
 });
 

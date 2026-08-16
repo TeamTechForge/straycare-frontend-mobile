@@ -69,15 +69,6 @@ export default function NotificationCenter() {
     // Mark as read
     await markAsRead(item._id);
 
-    // If this is a rescue request notification, do nothing (show notification only, no details/navigation/dialog)
-    if (
-      item.title === "New Rescue Request" ||
-      item.title.includes("Rescue Request") ||
-      (item.rescueRequestId && !item.caseId && !item.event)
-    ) {
-      return;
-    }
-
     // If notification is for a discussion thread reply or new discussion
     if (
       (item.title && (item.title.includes("Discussion") || item.title.includes("Reply"))) ||
@@ -102,28 +93,13 @@ export default function NotificationCenter() {
         pathname: "/reporting/CaseDetails",
         params: { caseId: item.caseId },
       } as any);
+      return;
     }
-  };
 
-  const isReporterCaseNotification = (item: Notification) =>
-    Boolean(
-      item.caseId &&
-      (item.event === "rescue_accepted" ||
-        item.event === "case_status_updated" ||
-        item.title.includes("Case Status") ||
-        item.title.includes("Rescue Request Accepted") ||
-        item.title.startsWith("Case ") ||
-        item.title.startsWith("Treatment Started") ||
-        item.title.startsWith("Ready for Adoption"))
-    );
-
-  const openCaseDetails = async (item: Notification) => {
-    if (!item.caseId) return;
-    await markAsRead(item._id);
-    router.push({
-      pathname: "/reporting/CaseDetails",
-      params: { caseId: item.caseId },
-    } as any);
+    if (item.rescueRequestId) {
+      router.push(`/rescue-details/${item.rescueRequestId}` as any);
+      return;
+    }
   };
 
   const renderNotification = ({ item }: { item: Notification }) => (
@@ -133,7 +109,8 @@ export default function NotificationCenter() {
         { borderLeftColor: getTypeColor(item.type) },
         !item.read && styles.unreadCard,
       ]}
-      onPress={() => handlePressNotification(item)}
+      onPress={() => void handlePressNotification(item)}
+      activeOpacity={0.7}
     >
       <View style={styles.notificationContent}>
         <View style={styles.titleRow}>
@@ -144,16 +121,6 @@ export default function NotificationCenter() {
           {item.message}
         </Text>
         <Text style={styles.timestamp}>{formatDate(item.createdAt)}</Text>
-        {isReporterCaseNotification(item) && (
-          <TouchableOpacity
-            accessibilityRole="button"
-            accessibilityLabel={`View case ${item.caseId}`}
-            style={styles.viewCaseButton}
-            onPress={() => void openCaseDetails(item)}
-          >
-            <Text style={styles.viewCaseButtonText}>View Case</Text>
-          </TouchableOpacity>
-        )}
       </View>
     </TouchableOpacity>
   );
@@ -291,19 +258,6 @@ const styles = StyleSheet.create({
   timestamp: {
     fontSize: 12,
     color: "#999",
-  },
-  viewCaseButton: {
-    alignSelf: "flex-start",
-    marginTop: 8,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 8,
-    backgroundColor: "#F5A623",
-  },
-  viewCaseButtonText: {
-    color: "#1F2937",
-    fontSize: 13,
-    fontWeight: "700",
   },
   loadingText: {
     marginTop: 12,

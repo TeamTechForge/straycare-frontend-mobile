@@ -45,11 +45,11 @@ describe("NotificationCenter", () => {
     jest.clearAllMocks();
   });
 
-  it("keeps fetched notifications unread until opened and routes case updates to Case Details", async () => {
+  it("routes case notification to Case Details directly when clicked", async () => {
     const screen = render(<NotificationCenter />);
 
     expect(mockFetchNotifications).toHaveBeenCalledTimes(1);
-    fireEvent.press(screen.getByLabelText("View case SC-100"));
+    fireEvent.press(screen.getByText("Case SC-100 Accepted"));
 
     expect(mockMarkAsRead).toHaveBeenCalledWith("notification-1");
     await Promise.resolve();
@@ -59,10 +59,12 @@ describe("NotificationCenter", () => {
     });
   });
 
-  it("does nothing when clicking a rescue request notification", async () => {
+  it("routes rescue request notification to rescue details directly when clicked without needing a View Case button", async () => {
     const screen = render(<NotificationCenter />);
+    expect(screen.queryByText("View Case")).toBeNull();
     fireEvent.press(screen.getByText("New Rescue Request"));
     expect(mockMarkAsRead).toHaveBeenCalledWith("notification-2");
-    expect(mockPush).not.toHaveBeenCalled();
+    await Promise.resolve();
+    expect(mockPush).toHaveBeenCalledWith("/rescue-details/req-123");
   });
 });
