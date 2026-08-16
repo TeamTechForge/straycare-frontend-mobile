@@ -644,23 +644,23 @@ export default function RescueDetailsScreen() {
 
           {/* Accept / Reject Action Buttons for received rescue requests */}
           {details?.status === "pending" && (user?.role === "volunteer" || user?.role === "ngo" || user?.role === "vet" || user?.role === "rescuer") && (
-            <View style={{ flexDirection: "row", gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderColor: "#E5E7EB" }}>
+            <View style={styles.cardActionRow}>
               <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 12, backgroundColor: "#EF4444", borderRadius: 10, alignItems: "center" }}
+                style={[styles.cardRejectButton, responding && { opacity: 0.6 }]}
                 onPress={() => respondToRequest("reject")}
                 disabled={responding}
                 activeOpacity={0.85}
               >
-                <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 14 }}>Reject Request</Text>
+                <Text style={styles.cardRejectButtonText}>Reject Request</Text>
               </TouchableOpacity>
 
               <TouchableOpacity
-                style={{ flex: 1, paddingVertical: 12, backgroundColor: "#10B981", borderRadius: 10, alignItems: "center" }}
+                style={[styles.cardAcceptButton, responding && { opacity: 0.6 }]}
                 onPress={() => respondToRequest("accept")}
                 disabled={responding}
                 activeOpacity={0.85}
               >
-                <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 14 }}>Accept Request</Text>
+                <Text style={styles.cardAcceptButtonText}>Accept Request</Text>
               </TouchableOpacity>
             </View>
           )}
@@ -673,24 +673,24 @@ export default function RescueDetailsScreen() {
       {(!details?.status || details?.status === "pending" || details?.status === "Needs Help") && (
         <View style={styles.actionBar}>
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: "#EF4444", paddingVertical: 14, borderRadius: 12, alignItems: "center" }, responding && { opacity: 0.6 }]}
+            style={[styles.actionBtn, styles.rejectButton, responding && { opacity: 0.6 }]}
             onPress={() => respondToRequest("reject")}
             disabled={responding}
             activeOpacity={0.85}
           >
-            <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 16 }}>Reject Request</Text>
+            <Text style={styles.rejectButtonText}>Reject Request</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
-            style={[styles.actionBtn, { backgroundColor: "#10B981", paddingVertical: 14, borderRadius: 12, alignItems: "center" }, responding && { opacity: 0.6 }]}
+            style={[styles.actionBtn, styles.acceptButton, responding && { opacity: 0.6 }]}
             onPress={() => respondToRequest("accept")}
             disabled={responding}
             activeOpacity={0.85}
           >
             {responding ? (
-              <ActivityIndicator color="#FFFFFF" size="small" />
+              <ActivityIndicator color={colors.text} size="small" />
             ) : (
-              <Text style={{ color: "#FFFFFF", fontFamily: "Inter-SemiBold", fontSize: 16 }}>Accept Request</Text>
+              <Text style={styles.acceptButtonText}>Accept Request</Text>
             )}
           </TouchableOpacity>
         </View>
