@@ -88,6 +88,15 @@ const isAbortError = (err: unknown): boolean => {
   return false;
 };
 
+const normalizeStatus = (s: any): RescueStatus => {
+  if (!s) return "pending";
+  const str = String(s).toLowerCase();
+  if (str === "accepted" || str === "under rescue" || str === "in progress" || str === "treated") return "accepted";
+  if (str === "completed") return "completed";
+  if (str === "rejected" || str === "cancelled" || str === "failed") return "rejected";
+  return "pending";
+};
+
 // ─── Status color mapping ──────────────────────────────────────────────────────
 const STATUS_THEME = {
   pending:   { bg: "#FFF7E6", text: "#B8860B", label: "Pending" },
@@ -303,7 +312,7 @@ export default function RequestStatusScreen() {
         console.log("[RequestStatus] Response:", data);
 
         if (mountedRef.current) {
-          setStatus(data.status ?? "pending");
+          setStatus(normalizeStatus(data.status));
           setRescuer(data.rescuer ?? null);
           setRequestId(data.requestId ?? null);
         }
@@ -375,10 +384,10 @@ export default function RequestStatusScreen() {
 
           if (cancelledRef.current || !mountedRef.current) return; // cancelled or unmounted while awaiting
 
-          const responseData: RescueStatusResponse = res.data;
-          const newStatus: RescueStatus = responseData.status;
+          const responseData: any = res.data;
+          const newStatus: RescueStatus = normalizeStatus(responseData.status);
 
-          console.log("[RequestStatus] Poll result:", newStatus);
+          console.log("[RequestStatus] Poll result:", newStatus, "raw:", responseData.status);
 
           // Always update rescuer details if returned
           if (responseData.rescuer) {
