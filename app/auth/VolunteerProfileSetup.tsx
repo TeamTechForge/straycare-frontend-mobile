@@ -190,8 +190,8 @@ export default function VolunteerProfileSetupScreen() {
     if (!phone.trim()) {
       newErrors.phone = "Phone number is required";
       valid = false;
-    } else if (phone.trim().length < 8) {
-      newErrors.phone = "Enter a valid phone number";
+    } else if (!/^[0-9]{10}$/.test(phone.trim())) {
+      newErrors.phone = "Must be exactly 10 digits (e.g. 0771234567)";
       valid = false;
     }
 
@@ -277,7 +277,7 @@ export default function VolunteerProfileSetupScreen() {
 
         <InputField
           label="Phone Number *"
-          placeholder="e.g. +94 77 123 4567"
+          placeholder="e.g. 0771234567"
           value={phone}
           onChangeText={setPhone}
           error={errors.phone}

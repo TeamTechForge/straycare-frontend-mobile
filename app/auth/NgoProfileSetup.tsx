@@ -230,6 +230,7 @@ export default function NgoProfileSetupScreen() {
     if (!regNumber.trim()) { newErrors.regNumber = "Registration number is required"; valid = false; }
     if (!year.trim()) { newErrors.year = "Founded year is required"; valid = false; }
     if (!phone.trim()) { newErrors.phone = "Phone number is required"; valid = false; }
+    else if (!/^[0-9]{10}$/.test(phone.trim())) { newErrors.phone = "Must be exactly 10 digits (e.g. 0771234567)"; valid = false; }
     if (!location.trim()) { newErrors.location = "Address is required"; valid = false; }
 
     setErrors(newErrors);
@@ -340,7 +341,7 @@ export default function NgoProfileSetupScreen() {
       <FormSection title="Contact & Location">
         <InputField
           label="Phone Number *"
-          placeholder="e.g. +94 11 234 5678"
+          placeholder="e.g. 0771234567"
           value={phone}
           onChangeText={setPhone}
           icon="call-outline"

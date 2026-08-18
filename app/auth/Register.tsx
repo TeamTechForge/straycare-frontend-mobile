@@ -106,8 +106,8 @@ export default function RegisterScreen() {
 
     if (!phone.trim()) {
       newErrors.phone = "Phone is required";
-    } else if (phone.length < 10) {
-      newErrors.phone = "Invalid phone number";
+    } else if (!/^[0-9]{10}$/.test(phone.trim())) {
+      newErrors.phone = "Must be exactly 10 digits (e.g. 0771234567)";
     }
 
     if (!password) {
@@ -258,7 +258,7 @@ export default function RegisterScreen() {
           Phone Number <Text style={{ color: "red" }}>*</Text>
         </Text>
         <InputField
-          placeholder="+94 77 555 5555"
+          placeholder="e.g. 0771234567"
           value={phone}
           onChangeText={setPhone}
           editable={!isLoading}
