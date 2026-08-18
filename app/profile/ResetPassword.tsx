@@ -76,15 +76,16 @@ export default function ResetPasswordScreen() {
         },
         body: JSON.stringify({
           currentPassword,
-          newPassword,
+          newPassword: newPassword.trim(),
         }),
       });
 
       const data: any = await response.json();
 
       if (response.ok) {
-        Alert.alert("Success", "Password updated successfully");
-        router.back();
+        Alert.alert("Success", "Password updated successfully", [
+          { text: "OK", onPress: () => router.back() }
+        ]);
       } else {
         if (data.message === "Incorrect current password") {
           setErrors((prev) => ({ ...prev, currentPassword: "The password you entered is incorrect" }));
@@ -115,7 +116,7 @@ export default function ResetPasswordScreen() {
       <Text style={styles.subtitle}>
         Create a secure new password for your account to get back to helping pets.
       </Text>
-      
+
       <Text style={styles.label}>Current Password</Text>
       <InputField
         placeholder="Your current password"
@@ -146,7 +147,7 @@ export default function ResetPasswordScreen() {
       />
 
       <View style={{ marginTop: 18 }}>
-        <PrimaryButton title="Update Password  🔑" onPress={handleUpdatePassword} />
+        <PrimaryButton title="Update Password" onPress={handleUpdatePassword} />
       </View>
     </View>
   );
@@ -197,10 +198,10 @@ const styles = StyleSheet.create({
     marginTop: -2,
     marginBottom: 8,
   },
-    label: {
-  fontSize: 13,
-  marginBottom: 6,
-  fontWeight: "500",
-  color: "#333",
-},
+  label: {
+    fontSize: 13,
+    marginBottom: 6,
+    fontWeight: "500",
+    color: "#333",
+  },
 });
