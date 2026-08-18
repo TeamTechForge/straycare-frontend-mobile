@@ -217,13 +217,13 @@ export default function NearbyRescuersScreen() {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/rescue/status/${requestId}`);
         const responseData = response.data as any;
-        const status = responseData.status;
-        console.log("[NearbyHelpMap] Polled status:", status);
+        const rawStatus = String(responseData.status || "").toLowerCase();
+        console.log("[NearbyHelpMap] Polled status:", responseData.status);
 
-        if (status === "accepted") {
+        if (rawStatus === "accepted" || rawStatus === "under rescue") {
           clearInterval(pollInterval);
           setWorkflowState("accepted");
-        } else if (status === "rejected") {
+        } else if (rawStatus === "rejected" || rawStatus === "failed") {
           clearInterval(pollInterval);
           const rejectedRescuerName = selectedRescuer.name;
           const rejectedRescuerId = selectedRescuer._id;
