@@ -206,7 +206,7 @@ export default function LocationPicker() {
 
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
-          title={isEditing ? "Save Changes →" : "Continue Report →"}
+          title={isEditing ? "Save Changes" : "Continue Report"}
           onPress={handleNext}
         />
       </View>

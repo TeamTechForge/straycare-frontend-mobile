@@ -313,7 +313,7 @@ export default function AnimalDetails() {
 
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
-          title={isEditing ? "Save Changes →" : "Next Step →"}
+          title={isEditing ? "Save Changes" : "Next Step"}
           onPress={handleNext}
         />
       </View>

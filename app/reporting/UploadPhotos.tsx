@@ -172,7 +172,7 @@ export default function UploadPhotos() {
 
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
-          title={isEditing ? "Save Changes ->" : "Next Step ->"}
+          title={isEditing ? "Save Changes" : "Next Step"}
           onPress={handleNext}
         />
       </View>
