@@ -146,7 +146,7 @@ export default function ResetPasswordScreen() {
       />
 
       <View style={{ marginTop: 18 }}>
-        <PrimaryButton title="Update Password  🔑" onPress={handleUpdatePassword} />
+        <PrimaryButton title="Update Password" onPress={handleUpdatePassword} />
       </View>
     </View>
   );

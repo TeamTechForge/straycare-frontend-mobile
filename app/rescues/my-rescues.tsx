@@ -8,6 +8,7 @@
 
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, FlatList, SafeAreaView, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import RescueCaseCard from "../../components/rescue-history/RescueCaseCard";
@@ -82,13 +83,14 @@ export default function MyRescuesScreen() {
           ) : error ? (
             /* Error state */
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-              <Text style={{ fontSize: 40, marginBottom: 8 }}>⚠️</Text>
+              <Ionicons name="alert-circle-outline" size={38} color="#9CA3AF" style={{ marginBottom: 8 }} />
               <Text style={styles.emptyText}>{error}</Text>
             </View>
           ) : rescues.length === 0 ? (
             /* Empty state */
-            <View style={{ flex: 1, justifyContent: "center" }}>
-              <Text style={styles.emptyText}>🚑 You haven{"'"}t reported any rescue cases yet.</Text>
+            <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+              <Ionicons name="folder-open-outline" size={38} color="#9CA3AF" style={{ marginBottom: 8 }} />
+              <Text style={styles.emptyText}>You haven{"'"}t reported any rescue cases yet.</Text>
             </View>
           ) : (
             /* Rescue list */

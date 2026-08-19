@@ -72,8 +72,9 @@ export default function ThreadHeaderCard({
 
       <Text style={styles.headerTitle}>{title}</Text>
 
-      <View style={styles.headerActions}>
-        <Text style={styles.headerLike}>👍 {likes}</Text>
+      <View style={[styles.headerActions, { flexDirection: "row", alignItems: "center" }]}>
+        <Ionicons name="thumbs-up-outline" size={13} color="#4B5563" style={{ marginRight: 4 }} />
+        <Text style={styles.headerLike}>{likes}</Text>
       </View>
     </View>
   );

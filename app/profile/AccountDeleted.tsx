@@ -54,7 +54,7 @@ export default function AccountDeletedScreen() {
         <PrimaryButton title="Return to Welcome Screen" onPress={handleReturnWelcome} />
       </View>
 
-      <Text style={styles.footer}>🐾 StrayCare</Text>
+      <Text style={styles.footer}>StrayCare</Text>
     </View>
   );
 }

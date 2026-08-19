@@ -546,7 +546,7 @@ export default function PublicProfileScreen() {
           {activeTab === "reports" && (
             (isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).length > 0 ? (
               <View>
-                {/* 📌 ACTIVE CASES */}
+                {/* ACTIVE CASES */}
                 <Text style={styles.subSectionTitle}>Active Cases</Text>
                 {(isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() !== "completed").length > 0 ? (
                   (isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() !== "completed").map((report) => (
@@ -571,7 +571,11 @@ export default function PublicProfileScreen() {
                           ? () => {
                               router.push({
                                 pathname: "/live-tracking/[requestId]",
-                                params: { requestId: report.caseId || report._id },
+                                params: {
+                                  requestId: report.caseId || report._id,
+                                  fromProfile: "true",
+                                  source: "profile",
+                                },
                               });
                             }
                           : undefined
@@ -582,7 +586,7 @@ export default function PublicProfileScreen() {
                   <Text style={styles.noActiveText}>No active cases right now.</Text>
                 )}
 
-                {/* 📜 COMPLETED CASES */}
+                {/* COMPLETED CASES */}
                 <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
                 {(isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() === "completed").length > 0 ? (
                   (isOwner ? reports : reports.filter((r: any) => !r.anonymous && r.animalType !== "Anonymous Report")).filter((r: any) => (r.status || "").toLowerCase() === "completed").map((report) => (
@@ -620,7 +624,7 @@ export default function PublicProfileScreen() {
           {activeTab === "rescues" && (
             rescues.length > 0 ? (
               <View>
-                {/* 📌 ACTIVE RESCUES */}
+                {/* ACTIVE RESCUES */}
                 <Text style={styles.subSectionTitle}>Active Rescues</Text>
                 {rescues.filter((r: any) => !["completed", "ready for adoption", "ready_for_adoption", "closed", "adopted"].includes((r.status || "").toLowerCase().trim())).length > 0 ? (
                   rescues.filter((r: any) => !["completed", "ready for adoption", "ready_for_adoption", "closed", "adopted"].includes((r.status || "").toLowerCase().trim())).map((rescue: any) => (

@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
 import axios from "axios";
@@ -434,32 +435,32 @@ export default function NearbyRescuersScreen() {
                       />
                     ) : (
                       <View style={[styles.avatar, styles.emptyAvatar]}>
-                        <Text style={styles.emptyAvatarText}>👤</Text>
+                        <Ionicons name="person" size={26} color="#9CA3AF" />
                       </View>
                     )}
                     <View style={styles.avatarBadge}>
-                      <Text style={styles.avatarBadgeIcon}>🐾</Text>
+                      <Ionicons name="shield-checkmark" size={10} color={colors.primary} />
                     </View>
                   </View>
 
                   <View style={styles.profileInfo}>
                     <Text style={styles.rescuerName}>{selectedRescuer.name}</Text>
-                    <Text style={styles.rescuerRole}>Professional Rescuer</Text>
+                    <Text style={styles.rescuerRole}>Certified Rescuer</Text>
                   </View>
                 </View>
 
                 {/* Stats Row */}
                 <View style={styles.chipsRow}>
                   <View style={styles.chip}>
-                    <Text style={styles.chipEmoji}>📍</Text>
+                    <Ionicons name="location-outline" size={13} color={colors.primary} />
                     <Text style={styles.chipText}>{distanceFormatted} km</Text>
                   </View>
                   <View style={styles.chip}>
-                    <Text style={styles.chipEmoji}>⏱</Text>
+                    <Ionicons name="time-outline" size={13} color={colors.primary} />
                     <Text style={styles.chipText}>~{etaMinutes} min</Text>
                   </View>
                   <View style={styles.chip}>
-                    <Text style={styles.chipEmoji}>✅</Text>
+                    <Ionicons name="checkmark-circle-outline" size={13} color="#10B981" />
                     <Text style={styles.chipText}>Available</Text>
                   </View>
                 </View>
@@ -480,7 +481,7 @@ export default function NearbyRescuersScreen() {
                   )}
 
                   <PrimaryButton
-                    title="📢  Publish Case to Rescue Map"
+                    title="Publish Case to Rescue Map"
                     onPress={() => {
                       Alert.alert(
                         "Publish to Rescue Map",
@@ -500,14 +501,14 @@ export default function NearbyRescuersScreen() {
               </>
             ) : (
               <View style={styles.emptyContainer}>
-                <Text style={{ fontSize: 40, marginBottom: 8 }}>🔍</Text>
+                <Ionicons name="search-outline" size={38} color="#9CA3AF" style={{ marginBottom: 8 }} />
                 <Text style={styles.emptyText}>No nearby rescuers are currently available.</Text>
                 <Text style={styles.emptySubtext}>
                   You can publish your case directly to the public rescue map so any available rescuer or volunteer across the platform can see and accept it.
                 </Text>
                 <View style={styles.buttonGroup}>
                   <PrimaryButton
-                    title="📢  Publish Case to Rescue Map"
+                    title="Publish Case to Rescue Map"
                     onPress={() => {
                       Alert.alert(
                         "Published to Map",
@@ -544,17 +545,17 @@ export default function NearbyRescuersScreen() {
                     />
                   ) : (
                     <View style={[styles.avatar, styles.emptyAvatar]}>
-                      <Text style={styles.emptyAvatarText}>👤</Text>
+                      <Ionicons name="person" size={26} color="#9CA3AF" />
                     </View>
                   )}
                   <View style={styles.avatarBadge}>
-                    <Text style={styles.avatarBadgeIcon}>🐾</Text>
+                    <Ionicons name="shield-checkmark" size={10} color={colors.primary} />
                   </View>
                 </View>
 
                 <View style={styles.profileInfo}>
                   <Text style={styles.rescuerName}>{selectedRescuer.name}</Text>
-                  <Text style={styles.rescuerRole}>Professional Rescuer</Text>
+                  <Text style={styles.rescuerRole}>Certified Rescuer</Text>
                 </View>
               </View>
 
@@ -568,8 +569,8 @@ export default function NearbyRescuersScreen() {
               <View style={styles.timerRow}>
                 <Text style={styles.timerText}>
                   {countdown > 0
-                    ? `⏱ Rescuer has ${countdown}s to respond`
-                    : "⚠️ Rescuer is taking too long to respond."}
+                    ? `Rescuer has ${countdown}s to respond`
+                    : "Rescuer is taking too long to respond."}
                 </Text>
               </View>
 
@@ -601,17 +602,17 @@ export default function NearbyRescuersScreen() {
                     />
                   ) : (
                     <View style={[styles.avatar, styles.emptyAvatar]}>
-                      <Text style={styles.emptyAvatarText}>👤</Text>
+                      <Ionicons name="person" size={26} color="#9CA3AF" />
                     </View>
                   )}
                   <View style={styles.avatarBadge}>
-                    <Text style={styles.avatarBadgeIcon}>🐾</Text>
+                    <Ionicons name="shield-checkmark" size={10} color={colors.primary} />
                   </View>
                 </View>
 
                 <View style={styles.profileInfo}>
                   <Text style={styles.rescuerName}>{selectedRescuer.name}</Text>
-                  <Text style={styles.rescuerRole}>Professional Rescuer</Text>
+                  <Text style={styles.rescuerRole}>Certified Rescuer</Text>
                 </View>
               </View>
 
