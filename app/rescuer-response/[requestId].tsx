@@ -1,21 +1,23 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import {
   ActivityIndicator,
   Alert,
   Image,
-  Linking,
   Modal,
   Platform,
   SafeAreaView,
   ScrollView,
   StyleSheet,
+  Switch,
   Text,
   TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import * as Location from "expo-location";
 import axios from "axios";
 
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
@@ -42,11 +44,6 @@ const resolvePhotoUrl = (url: string | undefined): string => {
   }
   const cleanUrl = url.startsWith("/") ? url : `/${url}`;
   return `${API_URL}${cleanUrl}`;
-};
-
-const getInitial = (name?: string): string => {
-  if (!name || name.trim().length === 0) return "U";
-  return name.trim().charAt(0).toUpperCase();
 };
 
 const timeAgo = (timestamp?: string): string => {
@@ -82,6 +79,11 @@ export default function RescuerResponseScreen() {
   const [progressModalVisible, setProgressModalVisible] = useState(false);
   const [progressNote, setProgressNote] = useState("");
   const [submittingProgress, setSubmittingProgress] = useState(false);
+
+  // Live location sharing state (Default: OFF)
+  const [shareLiveLocation, setShareLiveLocation] = useState(false);
+  const locationSubRef = useRef<Location.LocationSubscription | null>(null);
+  const rescueSocketRef = useRef<any>(null);
 
   // Fetch full case & request details
   const fetchDetails = useCallback(async () => {
@@ -131,9 +133,7 @@ export default function RescuerResponseScreen() {
     };
   }, [socket, caseId]);
 
-  // Listen for reporter cancellation on the /rescue namespace.
-  // The backend emits "rescue_cancelled" to the room keyed by the request's _id
-  // (which equals the requestId URL param for this screen).
+  // Listen for reporter cancellation on the /rescue namespace & keep socket ref.
   useEffect(() => {
     if (!requestId) return;
 
@@ -143,9 +143,13 @@ export default function RescuerResponseScreen() {
       reconnection: true,
     });
 
+    rescueSocketRef.current = rescueSocket;
+
     rescueSocket.on("connect", () => {
-      // Join the room for this specific request so we receive its events
       rescueSocket.emit("join_rescue", String(requestId));
+      if (caseId && caseId !== requestId) {
+        rescueSocket.emit("join_rescue", String(caseId));
+      }
     });
 
     rescueSocket.on("rescue_cancelled", () => {
@@ -154,8 +158,136 @@ export default function RescuerResponseScreen() {
 
     return () => {
       rescueSocket.disconnect();
+      rescueSocketRef.current = null;
     };
-  }, [requestId, router]);
+  }, [requestId, caseId, router]);
+
+  // Handle Share Live Location toggle ON / OFF
+  const handleToggleLiveLocation = async (value: boolean) => {
+    if (value) {
+      try {
+        const { status: permStatus } = await Location.requestForegroundPermissionsAsync();
+        if (permStatus !== "granted") {
+          Alert.alert(
+            "Permission Required",
+            "Location permission is needed to share your live location with the reporter."
+          );
+          setShareLiveLocation(false);
+          return;
+        }
+
+        setShareLiveLocation(true);
+
+        // Emit current position immediately
+        try {
+          const initialLoc = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          if (initialLoc?.coords) {
+            const lat = initialLoc.coords.latitude;
+            const lng = initialLoc.coords.longitude;
+            const targetId = String(caseId || requestId);
+
+            if (rescueSocketRef.current?.connected) {
+              rescueSocketRef.current.emit("location_sharing_status", { rescueId: String(requestId), isSharing: true });
+              rescueSocketRef.current.emit("location_update", { rescueId: String(requestId), lat, lng, isSharing: true });
+              if (caseId && caseId !== requestId) {
+                rescueSocketRef.current.emit("location_sharing_status", { rescueId: String(caseId), isSharing: true });
+                rescueSocketRef.current.emit("location_update", { rescueId: String(caseId), lat, lng, isSharing: true });
+              }
+            }
+            if (socket?.connected) {
+              socket.emit("location_sharing_status", { caseId: targetId, rescueId: String(requestId), isSharing: true });
+              socket.emit("location_update", {
+                caseId: targetId,
+                rescueId: String(requestId),
+                location: { latitude: lat, longitude: lng },
+                lat,
+                lng,
+                isSharing: true,
+              });
+            }
+          }
+        } catch (posErr) {
+          console.warn("[RescuerResponse] Initial position fetch error:", posErr);
+        }
+
+        // Clean up any existing watcher before starting a new one
+        if (locationSubRef.current) {
+          locationSubRef.current.remove();
+          locationSubRef.current = null;
+        }
+
+        // Start watching position and streaming live updates
+        const subscription = await Location.watchPositionAsync(
+          {
+            accuracy: Location.Accuracy.Balanced,
+            timeInterval: 5000,
+            distanceInterval: 10,
+          },
+          (loc) => {
+            if (loc?.coords) {
+              const lat = loc.coords.latitude;
+              const lng = loc.coords.longitude;
+              const targetId = String(caseId || requestId);
+
+              if (rescueSocketRef.current?.connected) {
+                rescueSocketRef.current.emit("location_update", { rescueId: String(requestId), lat, lng, isSharing: true });
+                if (caseId && caseId !== requestId) {
+                  rescueSocketRef.current.emit("location_update", { rescueId: String(caseId), lat, lng, isSharing: true });
+                }
+              }
+              if (socket?.connected) {
+                socket.emit("location_update", {
+                  caseId: targetId,
+                  rescueId: String(requestId),
+                  location: { latitude: lat, longitude: lng },
+                  lat,
+                  lng,
+                  isSharing: true,
+                });
+              }
+            }
+          }
+        );
+
+        locationSubRef.current = subscription;
+      } catch (err) {
+        console.error("[RescuerResponse] Error starting live location sharing:", err);
+        Alert.alert("Location Error", "Unable to start live location sharing.");
+        setShareLiveLocation(false);
+      }
+    } else {
+      setShareLiveLocation(false);
+      if (rescueSocketRef.current?.connected) {
+        rescueSocketRef.current.emit("location_sharing_status", { rescueId: String(requestId), isSharing: false });
+        rescueSocketRef.current.emit("location_update", { rescueId: String(requestId), isSharing: false });
+        if (caseId && caseId !== requestId) {
+          rescueSocketRef.current.emit("location_sharing_status", { rescueId: String(caseId), isSharing: false });
+          rescueSocketRef.current.emit("location_update", { rescueId: String(caseId), isSharing: false });
+        }
+      }
+      if (socket?.connected) {
+        const targetId = String(caseId || requestId);
+        socket.emit("location_sharing_status", { caseId: targetId, rescueId: String(requestId), isSharing: false });
+        socket.emit("location_update", { caseId: targetId, rescueId: String(requestId), isSharing: false });
+      }
+      if (locationSubRef.current) {
+        locationSubRef.current.remove();
+        locationSubRef.current = null;
+      }
+    }
+  };
+
+  // Cleanup location watcher on screen unmount
+  useEffect(() => {
+    return () => {
+      if (locationSubRef.current) {
+        locationSubRef.current.remove();
+        locationSubRef.current = null;
+      }
+    };
+  }, []);
 
   // ── Action 1: In-App Voice Call reporter ────────────────────────────────────
   const handleInAppCall = () => {
@@ -291,6 +423,11 @@ export default function RescuerResponseScreen() {
           onPress: async () => {
             setUpdatingStatus(true);
             try {
+              if (locationSubRef.current) {
+                locationSubRef.current.remove();
+                locationSubRef.current = null;
+              }
+              setShareLiveLocation(false);
               const token = await SecureStore.getItemAsync("authToken");
               await axios.patch(
                 `${API_URL}/rescue/request/${requestId}/details`,
@@ -299,7 +436,7 @@ export default function RescuerResponseScreen() {
               );
 
               Alert.alert(
-                "Rescue Completed! 🎉",
+                "Rescue Completed",
                 "Thank you for saving an animal! The case has been marked as completed.",
                 [
                   {
@@ -326,6 +463,23 @@ export default function RescuerResponseScreen() {
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading response workflow...</Text>
       </View>
+    );
+  }
+
+  if (!caseDetails) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <Ionicons name="alert-circle-outline" size={40} color="#9CA3AF" style={{ marginBottom: 10 }} />
+          <Text style={{ fontSize: 15, color: "#4B5563", fontFamily: typography.semibold, textAlign: "center", marginBottom: 16 }}>
+            Unable to load rescue case details.
+          </Text>
+          <View style={{ width: 220, gap: 10 }}>
+            <PrimaryButton title="Try Again" onPress={() => { setLoading(true); void fetchDetails(); }} />
+            <PrimaryButton title="Go Back" onPress={() => router.back()} variant="outline" />
+          </View>
+        </View>
+      </SafeAreaView>
     );
   }
 
@@ -360,14 +514,14 @@ export default function RescuerResponseScreen() {
         {/* STATUS BANNER */}
         <View style={styles.statusBanner}>
           <View style={styles.statusBadge}>
-            <Text style={styles.statusBadgeText}>🟠 {status.toUpperCase()}</Text>
+            <Text style={styles.statusBadgeText}>{status.toUpperCase()}</Text>
           </View>
           <Text style={styles.statusBannerSubtext}>
             You have accepted this rescue case. Follow up with the reporter below.
           </Text>
         </View>
 
-        {/* 👤 REPORTER DETAILS CARD */}
+        {/* REPORTER DETAILS CARD */}
         <View style={styles.card}>
           <Text style={styles.sectionHeader}>Reporter Information</Text>
           <View style={styles.reporterRow}>
@@ -382,22 +536,22 @@ export default function RescuerResponseScreen() {
           {/* IN-APP COMMUNICATION BUTTONS */}
           <View style={styles.communicationRow}>
             <TouchableOpacity style={styles.callButton} onPress={handleInAppCall}>
-              <Text style={styles.commIcon}>📞</Text>
+              <Ionicons name="call" size={16} color="#000000" />
               <Text style={styles.callButtonText}>In-App Call</Text>
             </TouchableOpacity>
 
             <TouchableOpacity style={[styles.chatButton, startingChat && { opacity: 0.6 }]} onPress={handleInAppChat} disabled={startingChat}>
               {startingChat ? (
-                <ActivityIndicator size="small" color="#FFFFFF" />
+                <ActivityIndicator size="small" color="#F5A623" />
               ) : (
-                <Text style={styles.commIcon}>💬</Text>
+                <Ionicons name="chatbubble-ellipses" size={16} color="#000000" />
               )}
               <Text style={styles.chatButtonText}>{startingChat ? "Opening..." : "In-App Chat"}</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* 🐾 ANIMAL & CASE DETAILS CARD */}
+        {/* ANIMAL & CASE DETAILS CARD */}
         <View style={styles.card}>
           <Text style={styles.sectionHeader}>Case Information</Text>
           <View style={styles.infoRow}>
@@ -431,10 +585,13 @@ export default function RescuerResponseScreen() {
           )}
         </View>
 
-        {/* 📍 LOCATION & NAVIGATION CARD */}
+        {/* LOCATION & NAVIGATION CARD */}
         <View style={styles.card}>
           <Text style={styles.sectionHeader}>Rescue Location</Text>
-          <Text style={styles.addressText}>📍 {address}</Text>
+          <View style={{ flexDirection: "row", alignItems: "center", marginBottom: spacing.sm }}>
+            <Ionicons name="location-sharp" size={15} color="#F5A623" style={{ marginRight: 4 }} />
+            <Text style={[styles.addressText, { marginBottom: 0 }]}>{address}</Text>
+          </View>
 
           {locationLat && locationLng && (
             <View style={styles.mapPreviewContainer}>
@@ -456,12 +613,44 @@ export default function RescuerResponseScreen() {
             </View>
           )}
 
+          {/* SHARE LIVE LOCATION TOGGLE DIRECTLY BELOW THE MAP */}
+          <View style={styles.liveLocationToggleRow}>
+            <View style={styles.liveLocationToggleLeft}>
+              <View style={[styles.liveLocationIconBox, shareLiveLocation && styles.liveLocationIconBoxActive]}>
+                <Ionicons
+                  name={shareLiveLocation ? "navigate" : "navigate-outline"}
+                  size={18}
+                  color={shareLiveLocation ? "#FFFFFF" : "#F5A623"}
+                />
+              </View>
+              <View style={styles.liveLocationTextBox}>
+                <Text style={styles.liveLocationTitle}>Share Live Location</Text>
+                <Text style={styles.liveLocationSubtitle}>
+                  {shareLiveLocation
+                    ? "Sharing live location with reporter"
+                    : "Share your live location with reporter"}
+                </Text>
+              </View>
+            </View>
+            <Switch
+              value={shareLiveLocation}
+              onValueChange={handleToggleLiveLocation}
+              disabled={isCaseCompleted}
+              trackColor={{ false: "#E5E7EB", true: "#F5C46B" }}
+              thumbColor={shareLiveLocation ? "#F5A623" : "#FFFFFF"}
+              ios_backgroundColor="#E5E7EB"
+            />
+          </View>
+
           <TouchableOpacity style={styles.navigateButton} onPress={handleNavigateToLocation}>
-            <Text style={styles.navigateButtonText}>🧭  Navigate to Location</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "center" }}>
+              <Ionicons name="navigate-outline" size={16} color="#333" style={{ marginRight: 6 }} />
+              <Text style={styles.navigateButtonText}>Navigate to Location</Text>
+            </View>
           </TouchableOpacity>
         </View>
 
-        {/* ⏱ TIMELINE TRACKER CARD */}
+        {/* TIMELINE TRACKER CARD */}
         <View style={styles.card}>
           <Text style={styles.sectionHeader}>Rescue Timeline</Text>
           <View style={styles.timelineContainer}>
@@ -490,7 +679,7 @@ export default function RescuerResponseScreen() {
           </View>
         </View>
 
-        {/* 📝 RESCUE ACTION BUTTONS */}
+        {/* RESCUE ACTION BUTTONS */}
         {isCaseCompleted ? (
           <View style={styles.actionSection}>
             <View style={{
@@ -501,7 +690,7 @@ export default function RescuerResponseScreen() {
               borderWidth: 1,
               borderColor: "#A7F3D0",
             }}>
-              <Text style={{ fontSize: 28, marginBottom: 6 }}>✅</Text>
+              <Ionicons name="checkmark-circle" size={32} color="#10B981" style={{ marginBottom: 6 }} />
               <Text style={{ fontSize: 16, fontFamily: typography.bold, color: "#047857", marginBottom: 4 }}>
                 Rescue Completed
               </Text>
@@ -764,6 +953,50 @@ const styles = StyleSheet.create({
   },
   mapPreview: {
     flex: 1,
+  },
+  liveLocationToggleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#F9FAFB",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
+    marginBottom: spacing.sm,
+  },
+  liveLocationToggleLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    marginRight: 10,
+  },
+  liveLocationIconBox: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F5A62315",
+    alignItems: "center",
+    justifyContent: "center",
+    marginRight: 10,
+  },
+  liveLocationIconBoxActive: {
+    backgroundColor: "#F5A623",
+  },
+  liveLocationTextBox: {
+    flex: 1,
+  },
+  liveLocationTitle: {
+    fontSize: 14,
+    fontFamily: typography.bold,
+    color: "#1F2937",
+  },
+  liveLocationSubtitle: {
+    fontSize: 11,
+    fontFamily: typography.regular,
+    color: "#6B7280",
+    marginTop: 1,
   },
   navigateButton: {
     backgroundColor: "#F5A62333",

@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
@@ -340,8 +341,10 @@ function InitialLayout() {
       >
         <View style={overlayStyles.backdrop}>
           <View style={overlayStyles.card}>
-            <Text style={overlayStyles.emoji}>🚨</Text>
-            <Text style={overlayStyles.title}>New Rescue Request!</Text>
+            <View style={{ marginBottom: 12 }}>
+              <Ionicons name="notifications-circle" size={48} color="#F5A623" />
+            </View>
+            <Text style={overlayStyles.title}>New Rescue Request</Text>
             <Text style={overlayStyles.body}>
               {rescueNotif?.reporterName ?? "A reporter"} reported a{" "}
               {rescueNotif?.animalType ?? "stray animal"} needing rescue near your location.

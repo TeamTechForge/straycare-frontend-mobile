@@ -21,7 +21,7 @@ export default function AllRescues({ data }: Props) {
   if (!data.length) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
-        <Text style={styles.emptyText}>📋 No rescue cases available.</Text>
+        <Text style={styles.emptyText}>No rescue cases available.</Text>
       </View>
     );
   }

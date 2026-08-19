@@ -184,8 +184,8 @@ export default function DiscussionForumScreen() {
           >
             {tab === "Active" ? (
               <>
-                {/* 📌 MY ACTIVE THREADS */}
-                <Text style={styles.sectionHeaderTitle}>📌 My Active Threads</Text>
+                {/* MY ACTIVE THREADS */}
+                <Text style={styles.sectionHeaderTitle}>My Active Threads</Text>
                 {myActivePosts.length > 0 ? (
                   myActivePosts.map((post) => (
                     <ForumPostCard
@@ -199,8 +199,8 @@ export default function DiscussionForumScreen() {
                   <Text style={styles.emptySectionText}>You have no active discussion threads yet.</Text>
                 )}
 
-                {/* 💬 OTHER ACTIVE DISCUSSIONS */}
-                <Text style={[styles.sectionHeaderTitle, { marginTop: 14 }]}>💬 Other Active Discussions</Text>
+                {/* OTHER ACTIVE DISCUSSIONS */}
+                <Text style={[styles.sectionHeaderTitle, { marginTop: 14 }]}>Other Active Discussions</Text>
                 {otherActivePosts.length > 0 ? (
                   otherActivePosts.map((post) => (
                     <ForumPostCard

@@ -8,13 +8,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
+import { io as ioClient } from "socket.io-client";
 
 import MapViewWrapper, { Marker } from "../components/MapViewWrapper";
-import AppButton from "../components/ui/AppButton";
 import PrimaryButton from "../components/PrimaryButton";
 import { colors } from "../constants/colors.constants";
-import { spacing } from "../constants/spacing.constants";
+import { BASE_URL } from "../constants/config.constants";
 import { useAuth } from "../contexts/AuthContext";
 import { useCall } from "../contexts/CallContext";
 import { useChatApi } from "../hooks/useChatApi";
@@ -24,95 +25,39 @@ import type { LiveTrackingResponse } from "../types/Api";
 
 type Params = {
   requestId?: string | string[];
+  fromProfile?: string | string[];
+  source?: string | string[];
 };
 
 const getFirstParam = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
-/* ──────────────────────────────────────────────
- * Fallback data when the backend is unreachable
- * ────────────────────────────────────────────── */
-const buildFallbackResponse = (requestId: string): LiveTrackingResponse => {
-  const reporterLocation = { latitude: 6.9271, longitude: 79.8612 };
-  const rescuerLocation = { latitude: 6.935, longitude: 79.8725 };
-
-  return {
-    rescueRequestId: requestId,
-    status: "pending",
-    case: {
-      rescueRequestId: requestId,
-      caseId: requestId,
-      status: "pending",
-      animalType: "Rescue case",
-      description: "Tracking the current rescue progress.",
-      photos: [""],
-      createdAt: new Date().toISOString(),
-      completedAt: null,
-      reporter: {
-        id: "reporter-guest",
-        name: "Reporter",
-        location: reporterLocation,
-      },
-      rescuer: {
-        id: "rescuer-guest",
-        name: "Assigned rescuer",
-        phone: "+94771234567",
-        location: rescuerLocation,
-      },
-      location: rescuerLocation,
-      distanceKm: 1.4,
-      etaMinutes: 8,
-      summary: "Live rescue tracking is active.",
-    },
-    reporterLocation,
-    rescuerLocation,
-    distanceKm: 1.4,
-    etaMinutes: 8,
-    lastUpdatedAt: new Date().toISOString(),
-  };
-};
-
-/* ──────────────────────────────────────────────
- * Helper: format relative time ("2m ago", "1h ago")
- * ────────────────────────────────────────────── */
-const timeAgo = (dateString: string): string => {
-  const diff = Date.now() - new Date(dateString).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-};
-
-/* ──────────────────────────────────────────────
- * Helper: first letter of a name for the avatar
- * ────────────────────────────────────────────── */
-const getInitial = (name: string) => (name ? name.charAt(0).toUpperCase() : "?");
-
-/* ═══════════════════════════════════════════════
- *  Main Screen Component
- * ═══════════════════════════════════════════════ */
 export default function LiveTrackingScreen() {
   const router = useRouter();
-  const { requestId } = useLocalSearchParams<Params>();
+  const { requestId, fromProfile, source } = useLocalSearchParams<Params>();
   const requestIdValue = getFirstParam(requestId) ?? "";
+  const isFromProfile = getFirstParam(fromProfile) === "true" || getFirstParam(source) === "profile";
   const { user } = useAuth();
   const { startCall } = useCall();
   const { createConversation } = useChatApi();
 
-  // ── Rescue tracking state ──
   const [tracking, setTracking] = useState<LiveTrackingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isLocationShared, setIsLocationShared] = useState<boolean>(false);
+  const [liveRescuerLocation, setLiveRescuerLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
   const isReporter = useMemo(() => {
     if (!user || !tracking) return false;
-    const currentUserId = (user as any)._id || (user as any).id;
-    const reporterId = tracking.case.reporter?.id;
-    return currentUserId && reporterId && String(currentUserId) === String(reporterId);
-  }, [user, tracking]);
+    const currentUserId = String((user as any)._id || (user as any).id || "");
+    const reporterId = String(
+      tracking.case?.reporter?.id ||
+      (tracking.case as any)?.reporterUserId ||
+      (tracking.case as any)?.userId ||
+      ""
+    );
+    return isFromProfile || (Boolean(currentUserId && reporterId) && currentUserId === reporterId);
+  }, [user, tracking, isFromProfile]);
 
   const isRescuer = useMemo(() => {
     if (!user || !tracking) return false;
@@ -144,6 +89,62 @@ export default function LiveTrackingScreen() {
     return null;
   }, [tracking, isReporter, isRescuer]);
 
+  // ── Real-time Socket Connection for Live Movement Updates ──
+  useEffect(() => {
+    if (!requestIdValue) return;
+
+    const rescueSocket = ioClient(`${BASE_URL}/rescue`, {
+      transports: ["websocket"],
+      autoConnect: true,
+      reconnection: true,
+    });
+
+    const targetCaseId = tracking?.case?.caseId;
+
+    rescueSocket.on("connect", () => {
+      rescueSocket.emit("join_rescue", String(requestIdValue));
+      if (targetCaseId && targetCaseId !== requestIdValue) {
+        rescueSocket.emit("join_rescue", String(targetCaseId));
+      }
+    });
+
+    rescueSocket.on("location_update", (data: any) => {
+      console.log("[LiveTracking] location_update received:", data);
+      if (data?.isSharing === false) {
+        setIsLocationShared(false);
+        setLiveRescuerLocation(null);
+        return;
+      }
+      if (data?.lat && data?.lng) {
+        setLiveRescuerLocation({ latitude: data.lat, longitude: data.lng });
+        setIsLocationShared(true);
+      } else if (data?.location?.latitude && data?.location?.longitude) {
+        setLiveRescuerLocation({ latitude: data.location.latitude, longitude: data.location.longitude });
+        setIsLocationShared(true);
+      }
+      if (typeof data?.isSharing === "boolean") {
+        setIsLocationShared(data.isSharing);
+        if (!data.isSharing) {
+          setLiveRescuerLocation(null);
+        }
+      }
+    });
+
+    rescueSocket.on("location_sharing_status", (data: any) => {
+      console.log("[LiveTracking] location_sharing_status received:", data);
+      if (typeof data?.isSharing === "boolean") {
+        setIsLocationShared(data.isSharing);
+        if (!data.isSharing) {
+          setLiveRescuerLocation(null);
+        }
+      }
+    });
+
+    return () => {
+      rescueSocket.disconnect();
+    };
+  }, [requestIdValue, tracking?.case?.caseId]);
+
   /* ── Load rescue tracking data ── */
   useEffect(() => {
     if (!requestIdValue) {
@@ -169,11 +170,10 @@ export default function LiveTrackingScreen() {
           lastUpdatedAt: response.lastUpdatedAt,
         });
         setError(null);
-      } catch (loadError) {
+      } catch (loadError: any) {
         if (!active) return;
-        console.warn("[LiveTracking] Falling back to local demo data:", loadError);
-        setTracking(buildFallbackResponse(requestIdValue));
-        setError(null);
+        console.error("[LiveTracking] Error loading live tracking data:", loadError);
+        setError("Unable to load live rescue tracking data. Please check your connection.");
       } finally {
         if (active) {
           setLoading(false);
@@ -282,9 +282,13 @@ export default function LiveTrackingScreen() {
     }
   }, [user, otherParty, createConversation, router]);
 
+  const canShowRescuerLiveMovement = isLocationShared && isReporter;
+  const currentRescuerLocation = liveRescuerLocation || (isLocationShared ? tracking?.rescuerLocation : null);
+
   /* ── Map region ── */
   const initialRegion = useMemo(() => {
-    const location = tracking?.case.location ?? tracking?.rescuerLocation ?? tracking?.reporterLocation;
+    const rescuerLoc = canShowRescuerLiveMovement ? currentRescuerLocation : null;
+    const location = tracking?.case.location ?? rescuerLoc ?? tracking?.reporterLocation;
     return location
       ? {
           latitude: location.latitude,
@@ -298,7 +302,7 @@ export default function LiveTrackingScreen() {
           latitudeDelta: 0.03,
           longitudeDelta: 0.03,
         };
-  }, [tracking]);
+  }, [tracking, canShowRescuerLiveMovement, currentRescuerLocation]);
 
   /* ═══════════════════════════════════════════════
    *  Render
@@ -315,7 +319,7 @@ export default function LiveTrackingScreen() {
           </TouchableOpacity>
           <View>
             <Text style={[styles.title, { marginBottom: 0 }]}>Live Tracking</Text>
-            <Text style={styles.subtitle}>Rescue request #{requestIdValue || "—"}</Text>
+            <Text style={styles.subtitle}>Real-time Rescue Tracking</Text>
           </View>
         </View>
 
@@ -333,9 +337,7 @@ export default function LiveTrackingScreen() {
 
         {tracking ? (
           <>
-            {/* ══════════════════════════════════════════
-             *  Map View
-             * ══════════════════════════════════════════ */}
+            {/* Map */}
             <View style={styles.mapCard}>
               <MapViewWrapper style={styles.map} initialRegion={initialRegion}>
                 {tracking.reporterLocation ? (
@@ -346,9 +348,9 @@ export default function LiveTrackingScreen() {
                     pinColor="#2563EB"
                   />
                 ) : null}
-                {tracking.rescuerLocation ? (
+                {canShowRescuerLiveMovement && currentRescuerLocation ? (
                   <Marker
-                    coordinate={tracking.rescuerLocation}
+                    coordinate={currentRescuerLocation}
                     title="Rescuer"
                     description={tracking.case.rescuer?.name ?? "Assigned rescuer"}
                     pinColor={colors.primary}
@@ -357,9 +359,28 @@ export default function LiveTrackingScreen() {
               </MapViewWrapper>
             </View>
 
-            {/* ══════════════════════════════════════════
-             *  Rescue Details Card
-             * ══════════════════════════════════════════ */}
+            {/* Show notice to reporter if rescuer hasn't enabled location sharing */}
+            {isReporter && !canShowRescuerLiveMovement && (
+              <View style={{
+                flexDirection: "row",
+                alignItems: "center",
+                backgroundColor: "#FFFBEB",
+                borderColor: "#FDE68A",
+                borderWidth: 1,
+                borderRadius: 14,
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                marginTop: 10,
+                gap: 8,
+              }}>
+                <Ionicons name="location-outline" size={18} color="#D97706" />
+                <Text style={{ flex: 1, fontSize: 13, color: "#92400E", fontFamily: "Inter-Medium", lineHeight: 18 }}>
+                  Live location sharing is not enabled by the rescuer.
+                </Text>
+              </View>
+            )}
+
+            {/* Rescue Details */}
             <View style={styles.sectionCard}>
               <View style={{ marginBottom: 12, backgroundColor: "#FFF8EA", paddingVertical: 6, paddingHorizontal: 12, borderRadius: 12, alignSelf: "flex-start", borderWidth: 1, borderColor: "rgba(254,185,75,0.4)" }}>
                 <Text style={{ fontWeight: "bold", color: "#B8860B", fontSize: 13 }}>
@@ -369,47 +390,42 @@ export default function LiveTrackingScreen() {
               <Text style={styles.sectionTitle}>{tracking.case.animalType}</Text>
               <Text style={styles.metaText}>{tracking.case.description}</Text>
 
-              <View style={styles.row}>
-                <View style={styles.chip}>
-                  <Text style={styles.chipText}>Distance: {tracking.distanceKm.toFixed(1)} km</Text>
+              {!isFromProfile && (
+                <View style={styles.row}>
+                  <View style={styles.chip}>
+                    <Text style={styles.chipText}>Distance: {tracking.distanceKm.toFixed(1)} km</Text>
+                  </View>
+                  <View style={styles.chip}>
+                    <Text style={styles.chipText}>ETA: {tracking.etaMinutes} min</Text>
+                  </View>
                 </View>
-                <View style={styles.chip}>
-                  <Text style={styles.chipText}>ETA: {tracking.etaMinutes} min</Text>
-                </View>
-              </View>
+              )}
             </View>
 
-            {/* ══════════════════════════════════════════
-             *  Animal & Contact Card
-             * ══════════════════════════════════════════ */}
+            {/* Contact details */}
             <View style={styles.sectionCard}>
               <Text style={styles.sectionTitle}>Animal & Contact</Text>
               <Text style={styles.metaText}>Reporter: {tracking.case.reporter.name}</Text>
               <Text style={styles.metaText}>
                 Rescuer: {tracking.case.rescuer?.name ?? "Awaiting assignment"}
               </Text>
-              {tracking.case.rescuer?.phone ? (
-                <Text style={styles.metaText}>Phone: {tracking.case.rescuer.phone}</Text>
-              ) : null}
               <Text style={styles.metaText}>
                 Updated: {new Date(tracking.lastUpdatedAt).toLocaleString()}
               </Text>
             </View>
 
-            {/* ══════════════════════════════════════════
-             *  📞 & 💬 Call & Message Buttons
-             * ══════════════════════════════════════════ */}
-            {otherParty ? (
+            {/* In-app call and message actions */}
+            {isFromProfile && otherParty ? (
               <View style={{ flexDirection: "row", gap: 12, marginVertical: 12 }}>
                 <View style={{ flex: 1 }}>
                   <PrimaryButton 
-                    title={`📞 Call ${otherParty.role === "rescuer" ? "Rescuer" : "Reporter"}`} 
+                    title={`Call ${otherParty.role === "rescuer" ? "Rescuer" : "Reporter"}`} 
                     onPress={handleCallOtherParty} 
                   />
                 </View>
                 <View style={{ flex: 1 }}>
                   <PrimaryButton 
-                    title="💬 Message" 
+                    title="Message" 
                     onPress={handleMessageOtherParty} 
                     variant="outline"
                   />
@@ -417,13 +433,10 @@ export default function LiveTrackingScreen() {
               </View>
             ) : null}
 
-            {/* ══════════════════════════════════════════
-             *  Rescue Progress Updates & Custom Notes
-             * ══════════════════════════════════════════ */}
+            {/* Progress notes and timeline */}
             <View style={styles.sectionCard}>
               <Text style={styles.sectionTitle}>Rescue Progress Updates</Text>
 
-              {/* 1. Custom Progress Notes (summary) */}
               {tracking.case.summary && tracking.case.summary !== "Pending rescue request" && tracking.case.summary !== "Completed rescue" && tracking.case.summary.trim() !== "" ? (
                 <View style={{ marginTop: 8 }}>
                   {tracking.case.summary.split("\n").filter((line: string) => line.trim() !== "").map((step: string, idx: number) => (
