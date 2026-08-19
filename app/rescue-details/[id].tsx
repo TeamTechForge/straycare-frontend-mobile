@@ -389,7 +389,6 @@ export default function RescueDetailsScreen() {
           <BackButton onPress={() => router.back()} style={{ marginRight: spacing.md }} />
           <View style={styles.headerTitleContainer}>
             <Text style={styles.title}>Rescue Details</Text>
-            <Text style={styles.subtitle}>ID: {idValue}</Text>
           </View>
         </View>
 
