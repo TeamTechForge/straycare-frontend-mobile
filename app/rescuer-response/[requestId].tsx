@@ -514,7 +514,9 @@ export default function RescuerResponseScreen() {
   const description = caseDetails?.description || caseDetails?.notes || "No notes provided.";
   const photos = caseDetails?.photos || [];
   const status = caseDetails?.status || "Under Rescue";
-  const isCaseCompleted = ["completed", "closed", "adopted"].includes((status || "").toLowerCase().trim());
+  const normalizedStatus = (status || "").toLowerCase().trim();
+  const isCaseCompleted = ["completed", "closed", "adopted"].includes(normalizedStatus);
+  const isCaseFailed = normalizedStatus === "failed";
   const locationLat = caseDetails?.rescueLocation?.latitude || caseDetails?.location?.lat;
   const locationLng = caseDetails?.rescueLocation?.longitude || caseDetails?.location?.lng;
   const address = caseDetails?.rescueLocation?.address || caseDetails?.location?.address || "Location on map";
@@ -704,7 +706,7 @@ export default function RescuerResponseScreen() {
         </View>
 
         {/* 📝 RESCUE ACTION BUTTONS */}
-        {isCaseCompleted || status === "Failed" || status === "failed" ? (
+        {isCaseCompleted || isCaseFailed ? (
           <View style={styles.actionSection}>
             <View style={{
               backgroundColor: "#D1FAE5",
@@ -716,10 +718,10 @@ export default function RescuerResponseScreen() {
             }}>
               <Ionicons name="checkmark-circle" size={32} color="#10B981" style={{ marginBottom: 6 }} />
               <Text style={{ fontSize: 16, fontFamily: typography.bold, color: "#047857", marginBottom: 4 }}>
-                {status === "Completed" ? "Rescue Completed" : "Rescue Failed"}
+                {isCaseCompleted ? "Rescue Completed" : "Rescue Failed"}
               </Text>
               <Text style={{ fontSize: 13, fontFamily: typography.medium, color: "#6B7280", textAlign: "center" }}>
-                {status === "Completed" ? "This case has been successfully concluded. No further updates can be made." : "This case could not be completed. It is now recorded in failed rescues."}
+                {isCaseCompleted ? "This case has been successfully concluded. No further updates can be made." : "This case could not be completed. It is now recorded in failed rescues."}
               </Text>
             </View>
           </View>
