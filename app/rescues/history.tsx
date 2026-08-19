@@ -21,6 +21,7 @@ import { spacing } from "../../constants/spacing.constants";
 import {
   fetchAllRescues,
   fetchCompletedRescues,
+  fetchFailedRescues,
   fetchPendingRescues,
 } from "../../services/rescueService";
 import { rescueHistoryStyles as styles } from "../../styles/rescue-history.styles";
@@ -31,6 +32,7 @@ import type { RescueHistoryResponse, RescueHistoryTab } from "../../types/Api";
 const TABS: { key: RescueHistoryTab; label: string; emoji: string }[] = [
   { key: "pending", label: "Pending", emoji: "🕐" },
   { key: "completed", label: "Completed", emoji: "✅" },
+  { key: "failed", label: "Failed", emoji: "⚠️" },
   { key: "all", label: "All", emoji: "📋" },
 ];
 
@@ -39,8 +41,9 @@ const TABS: { key: RescueHistoryTab; label: string; emoji: string }[] = [
 const emptyHistory: RescueHistoryResponse = {
   pending: [],
   completed: [],
+  failed: [],
   all: [],
-  counts: { pending: 0, completed: 0, all: 0 },
+  counts: { pending: 0, completed: 0, failed: 0, all: 0 },
 };
 
 // ── Screen Component ─────────────────────────────────────────────────────────
@@ -59,9 +62,10 @@ export default function RescueHistoryScreen() {
     const loadHistory = async () => {
       try {
         // Fetch all three tabs in parallel for speed
-        const [pending, completed, all] = await Promise.all([
+        const [pending, completed, failed, all] = await Promise.all([
           fetchPendingRescues(),
           fetchCompletedRescues(),
+          fetchFailedRescues(),
           fetchAllRescues(),
         ]);
 
@@ -70,10 +74,12 @@ export default function RescueHistoryScreen() {
         setHistory({
           pending,
           completed,
+          failed,
           all,
           counts: {
             pending: pending.length,
             completed: completed.length,
+            failed: failed.length,
             all: all.length,
           },
         });
@@ -158,6 +164,8 @@ export default function RescueHistoryScreen() {
             <PendingRescues data={history.pending} />
           ) : activeTab === "completed" ? (
             <CompletedRescues data={history.completed} />
+          ) : activeTab === "failed" ? (
+            <CompletedRescues data={history.failed} />
           ) : (
             <AllRescues data={history.all} />
           )}

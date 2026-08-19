@@ -49,6 +49,8 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
   accepted:  { bg: "#E8F5E9", text: "#2E7D32", dot: "#4CAF50" },
   completed: { bg: "#E8F5E9", text: "#1B5E20", dot: "#43A047" },
   rejected:  { bg: "#FFEBEE", text: "#C62828", dot: "#EF5350" },
+  failed:    { bg: "#FFEBEE", text: "#C62828", dot: "#D32F2F" },
+  Failed:    { bg: "#FFEBEE", text: "#C62828", dot: "#D32F2F" },
 };
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────

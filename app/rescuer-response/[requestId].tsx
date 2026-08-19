@@ -320,6 +320,36 @@ export default function RescuerResponseScreen() {
     );
   };
 
+  const handleFailRescue = async () => {
+    Alert.alert(
+      "Mark as Failed",
+      "Are you sure this rescue could not be completed? The case will be removed from the active map.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes, Mark Failed",
+          style: "destructive",
+          onPress: async () => {
+            setUpdatingStatus(true);
+            try {
+              const token = await SecureStore.getItemAsync("authToken");
+              await axios.patch(`${API_URL}/rescue/request/${requestId}/fail`, {}, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              Alert.alert("Case Marked Failed", "The reporter has been notified and the case was removed from the active map.", [
+                { text: "Done", onPress: () => router.replace("/(tabs)/Home") },
+              ]);
+            } catch (err: any) {
+              Alert.alert("Error", err?.response?.data?.error || "Failed to mark the rescue as failed.");
+            } finally {
+              setUpdatingStatus(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -491,7 +521,7 @@ export default function RescuerResponseScreen() {
         </View>
 
         {/* 📝 RESCUE ACTION BUTTONS */}
-        {isCaseCompleted ? (
+        {isCaseCompleted || status === "Failed" || status === "failed" ? (
           <View style={styles.actionSection}>
             <View style={{
               backgroundColor: "#D1FAE5",
@@ -503,10 +533,10 @@ export default function RescuerResponseScreen() {
             }}>
               <Text style={{ fontSize: 28, marginBottom: 6 }}>✅</Text>
               <Text style={{ fontSize: 16, fontFamily: typography.bold, color: "#047857", marginBottom: 4 }}>
-                Rescue Completed
+                {status === "Completed" ? "Rescue Completed" : "Rescue Failed"}
               </Text>
               <Text style={{ fontSize: 13, fontFamily: typography.medium, color: "#6B7280", textAlign: "center" }}>
-                This case has been successfully concluded. No further updates can be made.
+                {status === "Completed" ? "This case has been successfully concluded. No further updates can be made." : "This case could not be completed. It is now recorded in failed rescues."}
               </Text>
             </View>
           </View>
@@ -522,6 +552,12 @@ export default function RescuerResponseScreen() {
               title={updatingStatus ? "Updating..." : "Mark Rescue as Completed"}
               onPress={handleCompleteRescue}
               disabled={updatingStatus}
+            />
+            <PrimaryButton
+              title={updatingStatus ? "Updating..." : "⚠️  Mark Rescue as Failed"}
+              onPress={handleFailRescue}
+              disabled={updatingStatus}
+              variant="outline"
             />
           </View>
         )}
