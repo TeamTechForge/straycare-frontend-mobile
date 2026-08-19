@@ -47,6 +47,8 @@ export default function NgoProfileSetupScreen() {
   const [document, setDocument] = useState(null);
   const [merchantId, setMerchantId] = useState("");
   const [merchantSecret, setMerchantSecret] = useState("");
+  const [payHereAppId, setPayHereAppId] = useState("");
+  const [payHereAppSecret, setPayHereAppSecret] = useState("");
   const [paymentValidationError, setPaymentValidationError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -66,12 +68,13 @@ export default function NgoProfileSetupScreen() {
     phone: string; location: string; bio: string;
     coords: { latitude: number; longitude: number } | null;
     image: string | null; merchantId: string; merchantSecret: string;
+    payHereAppId: string; payHereAppSecret: string;
   } | null>(null);
 
   // Mirror all field changes into the persist ref
   useEffect(() => {
-    formPersistRef.current = { orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret };
-  }, [orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret]);
+    formPersistRef.current = { orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret, payHereAppId, payHereAppSecret };
+  }, [orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret, payHereAppId, payHereAppSecret]);
 
   const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
     if (!uriOrAsset) return null;
@@ -155,6 +158,8 @@ export default function NgoProfileSetupScreen() {
       if (saved.image) setImage(saved.image);
       if (saved.merchantId) setMerchantId(saved.merchantId);
       if (saved.merchantSecret) setMerchantSecret(saved.merchantSecret);
+      if (saved.payHereAppId) setPayHereAppId(saved.payHereAppId);
+      if (saved.payHereAppSecret) setPayHereAppSecret(saved.payHereAppSecret);
     }
 
     const fetchUser = async () => {
@@ -253,6 +258,11 @@ export default function NgoProfileSetupScreen() {
         return;
       }
 
+      if ((payHereAppId && !payHereAppSecret) || (!payHereAppId && payHereAppSecret)) {
+        setPaymentValidationError("Enter both PayHere App ID and App Secret for recurring donations.");
+        return;
+      }
+
       setIsSubmitting(true);
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) throw new Error("No authorization token found");
@@ -278,6 +288,8 @@ export default function NgoProfileSetupScreen() {
           verificationDocument: uploadedDocUrl,
           merchantId,
           merchantSecret,
+          payHereAppId,
+          payHereAppSecret,
           latitude: coords?.latitude,
           longitude: coords?.longitude,
         }),
@@ -408,6 +420,38 @@ export default function NgoProfileSetupScreen() {
           secure={true}
         />
 
+        <View style={styles.recurringSetupNotice}>
+          <Ionicons 
+            name="information-circle-outline" 
+            size={24} 
+            color="#B45309" 
+            style={{ marginTop: 2 }}
+          />
+          <View style={styles.recurringSetupText}>
+            <Text style={styles.recurringSetupTitle}>
+              Want to receive recurring donations?
+            </Text>
+            <Text style={styles.recurringSetupDescription}>
+              One-time donations already work with your Merchant details. For recurring donations, create an API key in PayHere Sandbox under Settings → API Keys, enable Subscription Management API and Automatic Charging API, and enter its App ID and App Secret below.
+            </Text>
+          </View>
+        </View>
+
+        <InputField
+          label="PayHere App ID (For recurring)"
+          placeholder="Enter App ID to enable recurring donations"
+          value={payHereAppId}
+          onChangeText={setPayHereAppId}
+        />
+
+        <InputField
+          label="PayHere App Secret"
+          placeholder="Enter App Secret"
+          value={payHereAppSecret}
+          onChangeText={setPayHereAppSecret}
+          secure={true}
+        />
+
         {paymentValidationError && (
           <Text style={styles.errorText}>{paymentValidationError}</Text>
         )}
@@ -515,6 +559,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 18,
   },
+  recurringSetupNotice: { flexDirection: "row", gap: 10, backgroundColor: "#FFF7E6", borderWidth: 1, borderColor: "#F6DFC0", borderRadius: 12, padding: 12, marginVertical: 12 },
+  recurringSetupText: { flex: 1 },
+  recurringSetupTitle: { fontSize: 13, fontWeight: "700", color: "#7A4A08", marginBottom: 4 },
+  recurringSetupDescription: { fontSize: 11, lineHeight: 17, color: "#705B3E" },
   errorText: {
     color: "red",
     fontSize: 12,
