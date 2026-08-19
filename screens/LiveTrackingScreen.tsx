@@ -388,11 +388,7 @@ export default function LiveTrackingScreen() {
           </TouchableOpacity>
           <View>
             <Text style={[styles.title, { marginBottom: 0 }]}>Live Tracking</Text>
-            {isFromProfile ? (
-              <Text style={styles.subtitle}>Real-time Rescue Tracking</Text>
-            ) : (
-              <Text style={styles.subtitle}>Rescue request #{requestIdValue || "—"}</Text>
-            )}
+            <Text style={styles.subtitle}>Real-time Rescue Tracking</Text>
           </View>
         </View>
 

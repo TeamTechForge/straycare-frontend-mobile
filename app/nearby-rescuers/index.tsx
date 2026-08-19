@@ -38,6 +38,16 @@ import { BASE_URL } from "../../constants/config.constants";
 
 const API_BASE_URL = BASE_URL;
 
+// ─── Helper: Resolve Photo URL (Handles both absolute and relative backend paths) ───
+const resolvePhotoUrl = (url: string | undefined | null): string => {
+  if (!url || typeof url !== "string" || !url.trim()) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("file://") || url.startsWith("data:")) {
+    return url;
+  }
+  const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+  return `${API_BASE_URL}${cleanUrl}`;
+};
+
 // ─── Helper: Haversine distance formula ────────────────────────────────────────
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
   const R = 6371; // Earth's radius in km
@@ -365,7 +375,15 @@ export default function NearbyRescuersScreen() {
 
   const distanceFormatted = selectedRescuer ? selectedRescuer.distance.toFixed(1) : "0";
   const etaMinutes = selectedRescuer ? Math.max(3, Math.round(selectedRescuer.distance * 6)) : 0;
-  const rescuerImg = selectedRescuer ? (selectedRescuer.avatar || selectedRescuer.profileImage) : null;
+  const rawRescuerImg = selectedRescuer ? (
+    selectedRescuer.avatar ||
+    selectedRescuer.profileImage ||
+    selectedRescuer.userId?.profileImage ||
+    selectedRescuer.userId?.avatar ||
+    selectedRescuer.user?.profileImage ||
+    selectedRescuer.user?.avatar
+  ) : null;
+  const rescuerImg = resolvePhotoUrl(rawRescuerImg);
   const hasAvatar = Boolean(rescuerImg && typeof rescuerImg === "string" && rescuerImg.trim().length > 0 && !avatarError);
   const avatarUri = hasAvatar ? rescuerImg : "";
 
