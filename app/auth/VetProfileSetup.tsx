@@ -17,6 +17,7 @@ import * as Location from "expo-location";
 import * as DocumentPicker from "expo-document-picker";
 
 import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
+import BackButton from "../../components/BackButton";
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
@@ -45,6 +46,8 @@ export default function VetProfileSetupScreen() {
   const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [payHereMerchantId, setPayHereMerchantId] = useState("");
   const [merchantSecret, setMerchantSecret] = useState("");
+  const [payHereAppId, setPayHereAppId] = useState("");
+  const [payHereAppSecret, setPayHereAppSecret] = useState("");
   const [paymentValidationError, setPaymentValidationError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -55,12 +58,13 @@ export default function VetProfileSetupScreen() {
     phone: string; shortBio: string; coords: { latitude: number; longitude: number } | null;
     clinicName: string; clinicAddress: string; licenseNumber: string;
     yearsOfExperience: string; payHereMerchantId: string; merchantSecret: string;
+    payHereAppId: string; payHereAppSecret: string;
   } | null>(null);
 
   // Mirror all field changes into the persist ref
   useEffect(() => {
-    formPersistRef.current = { profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret };
-  }, [profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret]);
+    formPersistRef.current = { profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret, payHereAppId, payHereAppSecret };
+  }, [profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret, payHereAppId, payHereAppSecret]);
 
   const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
     if (!uriOrAsset) return null;
@@ -156,6 +160,8 @@ export default function VetProfileSetupScreen() {
       if (saved.yearsOfExperience) setYearsOfExperience(saved.yearsOfExperience);
       if (saved.payHereMerchantId) setPayHereMerchantId(saved.payHereMerchantId);
       if (saved.merchantSecret) setMerchantSecret(saved.merchantSecret);
+      if (saved.payHereAppId) setPayHereAppId(saved.payHereAppId);
+      if (saved.payHereAppSecret) setPayHereAppSecret(saved.payHereAppSecret);
     }
 
     const fetchUser = async () => {
@@ -263,8 +269,8 @@ export default function VetProfileSetupScreen() {
     if (!phone.trim()) {
       newErrors.phone = "Phone number is required";
       valid = false;
-    } else if (phone.trim().length < 8) {
-      newErrors.phone = "Enter a valid phone number";
+    } else if (!/^[0-9]{10}$/.test(phone.trim())) {
+      newErrors.phone = "Must be exactly 10 digits (e.g. 0771234567)";
       valid = false;
     }
 
@@ -313,6 +319,11 @@ export default function VetProfileSetupScreen() {
       return;
     }
 
+    if ((payHereAppId && !payHereAppSecret) || (!payHereAppId && payHereAppSecret)) {
+      setPaymentValidationError("Enter both PayHere App ID and App Secret for recurring donations.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const token = await SecureStore.getItemAsync("authToken");
@@ -329,6 +340,8 @@ export default function VetProfileSetupScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          name,
+          phone,
           primaryLocation,
           bio: shortBio,
           clinicName,
@@ -339,6 +352,8 @@ export default function VetProfileSetupScreen() {
           licenseDocument: uploadedDocUrl,
           merchantId: payHereMerchantId,
           merchantSecret,
+          payHereAppId,
+          payHereAppSecret,
           latitude: coords?.latitude,
           longitude: coords?.longitude,
         }),
@@ -363,9 +378,7 @@ export default function VetProfileSetupScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#000" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.replace("/auth/RescuerTypeSelection")} />
 
         <Text style={styles.headerTitle}>Veterinarian Profile Setup</Text>
 
@@ -412,7 +425,7 @@ export default function VetProfileSetupScreen() {
 
         <InputField
           label="Phone Number *"
-          placeholder="+1 (555) 000-0000"
+          placeholder="e.g. 0771234567"
           value={phone}
           onChangeText={setPhone}
           icon="call-outline"
@@ -500,6 +513,38 @@ export default function VetProfileSetupScreen() {
           placeholder="Enter Merchant Secret"
           value={merchantSecret}
           onChangeText={setMerchantSecret}
+          secure={true}
+        />
+
+        <View style={styles.recurringSetupNotice}>
+          <Ionicons 
+            name="information-circle-outline" 
+            size={24} 
+            color="#B45309" 
+            style={{ marginTop: 2 }}
+          />
+          <View style={styles.recurringSetupText}>
+            <Text style={styles.recurringSetupTitle}>
+              Want to receive recurring donations?
+            </Text>
+            <Text style={styles.recurringSetupDescription}>
+              One-time donations already work with your Merchant details. For recurring donations, create an API key in PayHere Sandbox under Settings → API Keys, enable Subscription Management API and Automatic Charging API, and enter its App ID and App Secret below.
+            </Text>
+          </View>
+        </View>
+
+        <InputField
+          label="PayHere App ID (For recurring)"
+          placeholder="Enter App ID to enable recurring donations"
+          value={payHereAppId}
+          onChangeText={setPayHereAppId}
+        />
+
+        <InputField
+          label="PayHere App Secret"
+          placeholder="Enter App Secret"
+          value={payHereAppSecret}
+          onChangeText={setPayHereAppSecret}
           secure={true}
         />
 
@@ -622,6 +667,10 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 18,
   },
+  recurringSetupNotice: { flexDirection: "row", gap: 10, backgroundColor: "#FFF7E6", borderWidth: 1, borderColor: "#F6DFC0", borderRadius: 12, padding: 12, marginVertical: 12 },
+  recurringSetupText: { flex: 1 },
+  recurringSetupTitle: { fontSize: 13, fontWeight: "700", color: "#7A4A08", marginBottom: 4 },
+  recurringSetupDescription: { fontSize: 11, lineHeight: 17, color: "#705B3E" },
   footerNote: {
     textAlign: "center",
     fontSize: 11,

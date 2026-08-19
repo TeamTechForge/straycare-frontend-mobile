@@ -200,7 +200,7 @@ export default function ProfileScreen() {
   let headerTitle = "MY PROFILE";
   let defaultName = "User";
   let location = profile?.location || "Not set";
-  let bio = profile?.bio || "No bio yet.";
+  let bio = profile?.bio ? profile.bio : "";
 
   if (isVolunteer) {
     headerTitle = "VOLUNTEER PROFILE";
@@ -209,12 +209,23 @@ export default function ProfileScreen() {
     headerTitle = "NGO PROFILE";
     defaultName = "NGO";
     if (profile?.orgName) defaultName = profile.orgName;
+    
+    const extraInfo = [];
+    if (profile?.regNumber) extraInfo.push(`Reg No: ${profile.regNumber}`);
+    if (profile?.contactPerson) extraInfo.push(`Contact: ${profile.contactPerson}`);
+    if (extraInfo.length > 0) bio += (bio ? `\n\n` : "") + extraInfo.join(' | ');
   } else if (isVet) {
     headerTitle = "VET PROFILE";
     defaultName = "Veterinarian";
     location = profile?.clinicAddress || profile?.primaryLocation || location;
-    bio = profile?.bio || `License: ${profile?.licenseNumber || 'N/A'}\nClinic: ${profile?.clinicName || 'N/A'}`;
+    
+    const extraInfo = [];
+    if (profile?.licenseNumber) extraInfo.push(`License: ${profile.licenseNumber}`);
+    if (profile?.clinicName) extraInfo.push(`Clinic: ${profile.clinicName}`);
+    if (extraInfo.length > 0) bio += (bio ? `\n\n` : "") + extraInfo.join(' | ');
   }
+
+  if (!bio) bio = "No bio yet.";
 
   const userData = {
     name: user?.name && isNgo && profile?.orgName ? profile.orgName : (user?.name || defaultName),
@@ -334,7 +345,7 @@ export default function ProfileScreen() {
                   <Text style={styles.noActiveText}>No active rescue cases right now.</Text>
                 )}
 
-                {/* 📜 COMPLETED CASES */}
+                {/* COMPLETED CASES */}
                 <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
                 {rescues.filter((r: any) => isRescueCompleted(r.status)).length > 0 ? (
                   rescues
@@ -402,7 +413,11 @@ export default function ProfileScreen() {
                         } else {
                           router.push({
                             pathname: "/live-tracking/[requestId]",
-                            params: { requestId: report.caseId },
+                            params: {
+                              requestId: report.caseId,
+                              fromProfile: "true",
+                              source: "profile",
+                            },
                           });
                         }
                       }}

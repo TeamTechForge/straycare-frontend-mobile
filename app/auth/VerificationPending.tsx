@@ -69,26 +69,16 @@ export default function VerificationPendingScreen() {
   };
 
   const handleContactSupport = () => {
-    router.push("/profile/contactSupport");
+    router.push("/profile/ContactSupport");
   };
 
-  const handleCheckNotifications = async () => {
-    try {
-      console.log("[VerificationPending] 🔄 Manual refresh triggered via check notifications...");
-      await refreshUser();
-    } catch (e) {
-      console.error(e);
-    }
-    router.push("/modals/Notifications" as any);
-  };
+
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleCheckNotifications}>
-          <Ionicons name="notifications-outline" size={24} color="#000" />
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
         <Text style={styles.headerTitle}>Verification Status</Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -122,28 +112,17 @@ export default function VerificationPendingScreen() {
         <Text style={styles.noteText}>This usually takes 24-48 hours.</Text>
       </View>
 
-      {/* Action Button - Only show if redirected manually, but following requirement to disable home access */}
       <View style={styles.buttonWrapper}>
-        <Text style={{ textAlign: 'center', color: '#888', fontSize: 13, marginBottom: 10 }}>
-          Verification usually takes 24-48 hours.
-        </Text>
         <PrimaryButton
-          title="Check for Notifications"
-          onPress={handleCheckNotifications}
+          title="Contact Support"
+          onPress={handleContactSupport}
+        />
+        <PrimaryButton
+          title="Sign Out"
+          onPress={handleLogout}
+          variant="outline"
         />
       </View>
-
-      {/* Support */}
-      <TouchableOpacity style={styles.supportRow} onPress={handleContactSupport}>
-        <Ionicons name="headset-outline" size={14} color="#666" />
-        <Text style={styles.supportText}>Contact Support</Text>
-      </TouchableOpacity>
-
-      {/* Logout */}
-      <TouchableOpacity style={[styles.supportRow, { marginTop: 30 }]} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={14} color="#EF4444" />
-        <Text style={[styles.supportText, { color: "#EF4444" }]}>Sign Out</Text>
-      </TouchableOpacity>
     </View>
   );
 }

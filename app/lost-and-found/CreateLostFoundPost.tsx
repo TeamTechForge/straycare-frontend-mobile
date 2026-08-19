@@ -527,7 +527,7 @@ const CreatePost = () => {
             <Ionicons name="location-outline" size={18} color={C.textSub} style={s.inputIcon} />
             <TextInput
               style={[s.input, s.inputWithIcon, errors.location && s.inputError]}
-              placeholder="Search address or area"
+              placeholder="Search address or area here"
               placeholderTextColor={C.textPlaceholder}
               onChangeText={t => updateForm('location', t)}
               onBlur={() => validateField('location')}

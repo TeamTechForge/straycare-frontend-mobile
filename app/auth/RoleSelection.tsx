@@ -12,6 +12,7 @@ import {
 } from "react-native";
 
 // ✅ reusable button
+import BackButton from "../../components/BackButton";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
@@ -95,9 +96,7 @@ export default function SelectRoleScreen() {
 
       {/* 🔙 Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleBack}>
-          <Ionicons name="arrow-back" size={22} />
-        </TouchableOpacity>
+        <BackButton onPress={handleBack} />
         <Text style={styles.headerTitle}>StrayCare</Text>
       </View>
 

@@ -32,13 +32,13 @@ export default function RegisterScreen() {
   const params = useLocalSearchParams();
   const { refreshUser } = useAuth();
 
-  const [agree, setAgree] = useState(false);
+  const [agree, setAgree] = useState(params.agreed === "true");
 
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [phone, setPhone] = useState("");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
+  const [name, setName] = useState(params.name ? (params.name as string) : "");
+  const [email, setEmail] = useState(params.email ? (params.email as string) : "");
+  const [phone, setPhone] = useState(params.phone ? (params.phone as string) : "");
+  const [password, setPassword] = useState(params.password ? (params.password as string) : "");
+  const [confirmPassword, setConfirmPassword] = useState(params.confirmPassword ? (params.confirmPassword as string) : "");
 
   const [errors, setErrors] = useState<any>({});
   const [isLoading, setIsLoading] = useState(false);
@@ -80,18 +80,6 @@ export default function RegisterScreen() {
     processGoogleSignIn();
   }, [googleResponse]);
 
-  useEffect(() => {
-    if (params.agreed === "true") {
-      setAgree(true);
-      // Restore typed values from params
-      if (params.name) setName(params.name as string);
-      if (params.email) setEmail(params.email as string);
-      if (params.phone) setPhone(params.phone as string);
-      if (params.password) setPassword(params.password as string);
-      if (params.confirmPassword) setConfirmPassword(params.confirmPassword as string);
-    }
-  }, [params]);
-
   // Validates registration input
   const validateForm = () => {
     let newErrors: any = {};
@@ -106,8 +94,8 @@ export default function RegisterScreen() {
 
     if (!phone.trim()) {
       newErrors.phone = "Phone is required";
-    } else if (phone.length < 10) {
-      newErrors.phone = "Invalid phone number";
+    } else if (!/^[0-9]{10}$/.test(phone.trim())) {
+      newErrors.phone = "Must be exactly 10 digits (e.g. 0771234567)";
     }
 
     if (!password) {
@@ -258,7 +246,7 @@ export default function RegisterScreen() {
           Phone Number <Text style={{ color: "red" }}>*</Text>
         </Text>
         <InputField
-          placeholder="+94 77 555 5555"
+          placeholder="e.g. 0771234567"
           value={phone}
           onChangeText={setPhone}
           editable={!isLoading}

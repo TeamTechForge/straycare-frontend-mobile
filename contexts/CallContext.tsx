@@ -217,7 +217,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   }, [activeCallData, user?._id]);
 
   const startCall = useCallback(async (calleeId: string, calleeName: string, calleeImage?: string) => {
-    if (!socketRef.current || !user) return;
+    if (!socketRef.current || !user || callState !== CallState.IDLE) return;
     isCallerRef.current = true;
     const callee: ICallParticipantDTO = { userId: calleeId, name: calleeName, profileImage: calleeImage };
     setActiveCallData(callee);
@@ -227,7 +227,7 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
       await webrtcService.setupLocalStream();
       webrtcService.createPeerConnection();
       
-      const receiverOverride = calleeName.includes("Case Chat") ? calleeName : undefined;
+      const receiverOverride = (calleeName.includes("Anonymous Reporter") || calleeName.includes("Anonymous Report")) ? calleeName : undefined;
       
       socketRef.current.emit(CallEvents.START, {
         caller: { userId: user._id, name: user.name },

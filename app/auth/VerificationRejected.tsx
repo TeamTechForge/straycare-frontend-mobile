@@ -37,26 +37,16 @@ export default function VerificationRejectedScreen() {
   };
 
   const handleContactSupport = () => {
-    router.push("/profile/contactSupport");
+    router.push("/profile/ContactSupport");
   };
 
-  const handleCheckNotifications = async () => {
-    try {
-      console.log("[VerificationRejected] 🔄 Manual refresh triggered via check notifications...");
-      await refreshUser();
-    } catch (e) {
-      console.error(e);
-    }
-    router.push("/modals/Notifications" as any);
-  };
+
 
   return (
     <View style={styles.container}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={handleCheckNotifications}>
-          <Ionicons name="notifications-outline" size={24} color="#000" />
-        </TouchableOpacity>
+        <View style={styles.headerSpacer} />
         <Text style={styles.headerTitle}>Verification Status</Text>
         <View style={styles.headerSpacer} />
       </View>
@@ -83,7 +73,6 @@ export default function VerificationRejectedScreen() {
         Please review your information and submit the required documents again.
       </Text>
 
-      {/* Action Buttons */}
       <View style={styles.buttonWrapper}>
         <PrimaryButton 
           title="Resubmit Documents" 
@@ -93,23 +82,19 @@ export default function VerificationRejectedScreen() {
         <View style={{ height: 12 }} />
 
         <PrimaryButton 
-          title="Check for Notifications" 
+          title="Contact Support" 
           variant="outline"
-          onPress={handleCheckNotifications} 
+          onPress={handleContactSupport} 
+        />
+
+        <View style={{ height: 12 }} />
+
+        <PrimaryButton 
+          title="Sign Out" 
+          variant="outline"
+          onPress={handleLogout} 
         />
       </View>
-
-      {/* Support */}
-      <TouchableOpacity style={styles.supportRow} onPress={handleContactSupport}>
-        <Ionicons name="headset-outline" size={14} color="#666" />
-        <Text style={styles.supportText}>Contact Support</Text>
-      </TouchableOpacity>
-
-      {/* Logout */}
-      <TouchableOpacity style={[styles.supportRow, { marginTop: 12 }]} onPress={handleLogout}>
-        <Ionicons name="log-out-outline" size={14} color="#EF4444" />
-        <Text style={[styles.supportText, { color: "#EF4444" }]}>Sign Out</Text>
-      </TouchableOpacity>
     </View>
   );
 }

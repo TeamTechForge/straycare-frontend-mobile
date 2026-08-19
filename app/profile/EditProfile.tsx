@@ -1,7 +1,8 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import { Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View, ActivityIndicator } from "react-native";
 import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
@@ -121,63 +122,71 @@ export default function EditProfileScreen() {
     return data.url;
   };
 
-  useEffect(() => {
-    const fetchData = async () => {
-      try {
-        const token = await SecureStore.getItemAsync("authToken");
-        if (!token) return;
+  useFocusEffect(
+    useCallback(() => {
+      let isActive = true;
 
-        const userRes = await fetch(`${API_URL}/auth/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const userData: any = await userRes.json();
-        if (userRes.ok) {
-          setName(userData.name || "");
-          setEmail(userData.email || "");
-          setPhone(userData.phone || "");
-          setRole(userData.role || "general_user");
-        }
+      const fetchData = async () => {
+        try {
+          const token = await SecureStore.getItemAsync("authToken");
+          if (!token) return;
 
-        const profileRes = await fetch(`${API_URL}/profiles/me`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
-        const profileData: any = await profileRes.json();
-        if (profileRes.ok) {
-          setBio(profileData.bio || "");
-          setProfileImage(profileData.profileImage || userData.avatar || null);
-
-          if (userData.role === "vet") {
-            setLocation(profileData.primaryLocation || "");
-            setClinicName(profileData.clinicName || "");
-            setClinicAddress(profileData.clinicAddress || "");
-            setLicenseNumber(profileData.licenseNumber || "");
-            setYearsOfExperience(profileData.yearsOfExperience || "");
-            setLicenseDocument(profileData.licenseDocument || null);
-            setMerchantId(profileData.merchantId || "");
-            setMerchantSecret(profileData.merchantSecret || "");
-            setRecurringPaymentsEnabled(profileData.recurringPaymentsEnabled === true);
-          } else if (userData.role === "ngo") {
-            setLocation(profileData.location || "");
-            setOrgName(profileData.orgName || "");
-            setContactPerson(profileData.contactPerson || "");
-            setRegNumber(profileData.regNumber || "");
-            setFoundedYear(profileData.foundedYear || "");
-            setVerificationDocument(profileData.verificationDocument || null);
-            setMerchantId(profileData.merchantId || "");
-            setMerchantSecret(profileData.merchantSecret || "");
-            setRecurringPaymentsEnabled(profileData.recurringPaymentsEnabled === true);
-          } else {
-            setLocation(profileData.location || "");
+          const userRes = await fetch(`${API_URL}/auth/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const userData: any = await userRes.json();
+          if (userRes.ok && isActive) {
+            setName(userData.name || "");
+            setEmail(userData.email || "");
+            setPhone(userData.phone || "");
+            setRole(userData.role || "general_user");
           }
+
+          const profileRes = await fetch(`${API_URL}/profiles/me`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          const profileData: any = await profileRes.json();
+          if (profileRes.ok && isActive) {
+            setBio(profileData.bio || "");
+            setProfileImage(profileData.profileImage || userData.avatar || null);
+
+            if (userData.role === "vet") {
+              setLocation(profileData.primaryLocation || "");
+              setClinicName(profileData.clinicName || "");
+              setClinicAddress(profileData.clinicAddress || "");
+              setLicenseNumber(profileData.licenseNumber || "");
+              setYearsOfExperience(profileData.yearsOfExperience || "");
+              setLicenseDocument(profileData.licenseDocument || null);
+              setMerchantId(profileData.merchantId || "");
+              setMerchantSecret(profileData.merchantSecret || "");
+              setRecurringPaymentsEnabled(profileData.recurringPaymentsEnabled === true);
+            } else if (userData.role === "ngo") {
+              setLocation(profileData.location || "");
+              setOrgName(profileData.orgName || "");
+              setContactPerson(profileData.contactPerson || "");
+              setRegNumber(profileData.regNumber || "");
+              setFoundedYear(profileData.foundedYear || "");
+              setVerificationDocument(profileData.verificationDocument || null);
+              setMerchantId(profileData.merchantId || "");
+              setMerchantSecret(profileData.merchantSecret || "");
+              setRecurringPaymentsEnabled(profileData.recurringPaymentsEnabled === true);
+            } else {
+              setLocation(profileData.location || "");
+            }
+          }
+        } catch (error) {
+          console.error("Fetch profile edit data error:", error);
+        } finally {
+          if (isActive) setLoading(false);
         }
-      } catch (error) {
-        console.error("Fetch profile edit data error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchData();
-  }, []);
+      };
+      fetchData();
+
+      return () => {
+        isActive = false;
+      };
+    }, [])
+  );
 
   const handlePickProfileImage = async () => {
     const permission = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -230,6 +239,11 @@ export default function EditProfileScreen() {
       return;
     }
 
+    if (phone && !/^[0-9]{10}$/.test(phone.trim())) {
+      Alert.alert("Invalid Phone Number", "Please enter a valid 10-digit phone number (e.g. 0771234567). Only numbers are allowed.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const token = await SecureStore.getItemAsync("authToken");
@@ -242,15 +256,16 @@ export default function EditProfileScreen() {
 
       if (role === "general_user") {
         endpoint = "/profiles/general";
-        body = { name, location, bio, profileImage: uploadedImageUrl };
+        body = { name, phone, location, bio, profileImage: uploadedImageUrl };
       } else if (role === "volunteer") {
         endpoint = "/profiles/volunteer";
-        body = { name, location, bio, profileImage: uploadedImageUrl };
+        body = { name, phone, location, bio, profileImage: uploadedImageUrl };
       } else if (role === "vet") {
         endpoint = "/profiles/vet";
         const uploadedDocUrl = await uploadToCloudinaryIfLocal(licenseDocument, token);
         body = {
           name,
+          phone,
           primaryLocation: location,
           bio,
           clinicName,
@@ -269,6 +284,7 @@ export default function EditProfileScreen() {
         const uploadedDocUrl = await uploadToCloudinaryIfLocal(verificationDocument, token);
         body = {
           orgName,
+          phone,
           contactPerson,
           regNumber,
           foundedYear,
@@ -380,7 +396,7 @@ export default function EditProfileScreen() {
         />
 
         <Text style={styles.label}>Phone Number</Text>
-        <InputField value={phone} onChangeText={setPhone} placeholder="Enter phone" editable={true} />
+        <InputField value={phone} onChangeText={setPhone} placeholder="e.g. 0771234567" editable={true} />
 
         {role === "ngo" && (
           <>
@@ -436,7 +452,7 @@ export default function EditProfileScreen() {
           <>
             <Text style={styles.label}>PayHere Merchant ID</Text>
             <InputField value={merchantId} onChangeText={setMerchantId} placeholder="Enter Merchant ID" />
-            
+
             <Text style={styles.label}>PayHere Merchant Secret</Text>
             <InputField value={merchantSecret} onChangeText={setMerchantSecret} placeholder="Enter Merchant Secret" secure />
 
@@ -481,10 +497,10 @@ export default function EditProfileScreen() {
         </View>
       </ScrollView>
 
-      <ImageViewer 
-        imageUrl={profileImage} 
-        visible={isViewerVisible} 
-        onClose={() => setIsViewerVisible(false)} 
+      <ImageViewer
+        imageUrl={profileImage}
+        visible={isViewerVisible}
+        onClose={() => setIsViewerVisible(false)}
       />
     </SafeAreaView>
   );

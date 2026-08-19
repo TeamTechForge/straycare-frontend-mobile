@@ -10,11 +10,41 @@ import { Platform } from 'react-native';
  * 3. Hardcoded fallback IP
  */
 
-const FALLBACK_IP = '192.168.8.121';
+const FALLBACK_IP = '172.20.10.6';
 const BACKEND_PORT = 5000;
 
+function getMetroHost(): string | null {
+  const c = Constants as any;
+  const raw =
+    c.expoConfig?.hostUri ||
+    c.expoGoConfig?.debuggerHost ||
+    c.manifest2?.extra?.expoGo?.debuggerHost ||
+    c.manifest?.debuggerHost ||
+    c.developerManifest?.hostUri ||
+    c.experienceUrl;
+
+  if (typeof raw === 'string' && raw.trim().length > 0) {
+    const clean = raw.replace(/^[a-zA-Z]+:\/\//, '').split('/')[0];
+    const host = clean.split(':')[0];
+    if (host && !host.includes('localhost') && host !== '127.0.0.1') {
+      const isTunnel = /\.(exp|expo)\.direct$|ngrok|\.ngrok-free\.app/i.test(host);
+      if (!isTunnel) return host;
+    }
+  }
+  return null;
+}
+
 function resolveBaseUrl(): string {
-  // 1. Explicit override. This allows a development build to use the hosted API.
+  // 1. In __DEV__, dynamically match the Metro bundler IP so physical devices connect seamlessly
+  if (__DEV__) {
+    const metroHost = getMetroHost();
+    if (metroHost) {
+      console.log(`[Config] Auto-detected active Metro host IP: ${metroHost}`);
+      return `http://${metroHost}:${BACKEND_PORT}`;
+    }
+  }
+
+  // 2. Explicit environment override
   const envUrl =
     process.env.EXPO_PUBLIC_API_URL ||
     Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL;
@@ -23,29 +53,17 @@ function resolveBaseUrl(): string {
     return envUrl.replace(/\/$/, '');
   }
 
-  // 2. Dynamic auto-detection from Expo Metro bundler in __DEV__
-  const hostUri = Constants.expoConfig?.hostUri || (Constants as any).developerManifest?.hostUri;
-  if (__DEV__ && hostUri) {
-    const host = hostUri.split(':')[0];
-
-    // Reject tunnel hostnames — they can't reach your backend on port 5000
-    const isTunnel = /\.(exp|expo)\.direct$|ngrok|\.ngrok-free\.app/i.test(host);
-
-    if (!isTunnel && host !== 'localhost' && host !== '127.0.0.1') {
-      console.log(`[Config] Auto-detected Expo hostUri IP: ${host}`);
-      return `http://${host}:${BACKEND_PORT}`;
+  // 3. Platform-specific emulator detection
+  if (__DEV__) {
+    if (Platform.OS === 'android') {
+      return `http://10.0.2.2:${BACKEND_PORT}`;
     }
-
-    if (host === 'localhost' || host === '127.0.0.1') {
-      if (Platform.OS === 'android') {
-        console.log(`[Config] Android emulator detected, using 10.0.2.2:${BACKEND_PORT}`);
-        return `http://10.0.2.2:${BACKEND_PORT}`;
-      }
+    if (Platform.OS === 'ios' || Platform.OS === 'web') {
       return `http://localhost:${BACKEND_PORT}`;
     }
   }
 
-  // 3. Fallback to current LAN IP
+  // 4. Fallback IP
   console.warn(`[Config] Using fallback IP: ${FALLBACK_IP}`);
   return `http://${FALLBACK_IP}:${BACKEND_PORT}`;
 }

@@ -13,6 +13,7 @@ import {
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { getAllReports } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type Report = {
@@ -211,8 +212,14 @@ export default function ReportingMapScreen() {
     <View style={styles.container}>
       {/* Header Card */}
       <View style={styles.sectionCard}>
-        <Text style={styles.header}>Rescue Cases Map</Text>
-        <Text style={styles.subtext}>Tap a marker to view case details.</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+          <BackButton onPress={() => router.push("/(tabs)/Home")} />
+          <View style={{ flex: 1 }}>
+            <Text style={styles.header}>Rescue Cases Map</Text>
+            <Text style={styles.subtext}>Tap a marker to view case details.</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
       </View>
 
       {/* Map View */}

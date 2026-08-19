@@ -15,7 +15,7 @@ export const ANIMAL_BREEDS: Record<"Dog" | "Cat", string[]> = {
     "Yorkshire Terrier",
     "Doberman",
     "Husky",
-    "Unknown",
+    "Unknown Breed",
     "Other",
   ],
   Cat: [
@@ -29,7 +29,7 @@ export const ANIMAL_BREEDS: Record<"Dog" | "Cat", string[]> = {
     "Scottish Fold",
     "American Shorthair",
     "Abyssinian",
-    "Unknown",
+    "Unknown Breed",
     "Other",
   ],
 };

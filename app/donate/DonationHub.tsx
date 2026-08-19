@@ -40,7 +40,7 @@ export default function DonationHub() {
       </View>
 
       <View style={styles.content}>
-        {activeTab === 'made' ? <DonationHistory /> : <ReceivedDonations />}
+        {activeTab === 'made' ? <DonationHistory hideHeader /> : <ReceivedDonations />}
       </View>
     </SafeAreaView>
   );

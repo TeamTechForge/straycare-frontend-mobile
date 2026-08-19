@@ -53,6 +53,4 @@ app-example
 # Build logs
 build_log.txt
 *.build_log.txt
-
-# Google Services
-google-services.json
+

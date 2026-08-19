@@ -17,6 +17,7 @@ import {
   Text,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 
 import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
@@ -136,7 +137,7 @@ export default function RescueCaseCard({
         ) : (
           /* Fallback state when image fails to load */
           <View style={styles.imageFallback}>
-            <Text style={styles.fallbackEmoji}>🐾</Text>
+            <Ionicons name="paw-outline" size={36} color="#B8860B" style={{ marginBottom: 6 }} />
             <Text style={styles.fallbackText}>Photo unavailable</Text>
           </View>
         )}
@@ -178,7 +179,7 @@ export default function RescueCaseCard({
         {/* Meta info grid — reporter, rescuer, ETA, distance, location */}
         <View style={styles.metaGrid}>
           <View style={styles.metaRow}>
-            <Text style={styles.metaIcon}>👤</Text>
+            <Ionicons name="person-outline" size={14} color="#6B7280" style={{ width: 20 }} />
             <Text style={styles.metaLabel}>Reporter:</Text>
             <Text style={styles.metaValue} numberOfLines={1}>
               {item.reporter?.name || item.reporterName || "Reporter"}
@@ -187,7 +188,7 @@ export default function RescueCaseCard({
           </View>
 
           <View style={styles.metaRow}>
-            <Text style={styles.metaIcon}>🚑</Text>
+            <Ionicons name="medical-outline" size={14} color="#6B7280" style={{ width: 20 }} />
             <Text style={styles.metaLabel}>Rescuer:</Text>
             <Text style={styles.metaValue} numberOfLines={1}>
               {item.rescuer?.name || item.rescuerName || "Awaiting assignment"}
@@ -197,13 +198,13 @@ export default function RescueCaseCard({
 
           <View style={styles.metaRowCompact}>
             <View style={styles.metaChip}>
-              <Text style={styles.metaChipIcon}>⏱</Text>
+              <Ionicons name="time-outline" size={12} color="#92711B" />
               <Text style={styles.metaChipText}>
                 ETA: {item.etaMinutes ?? "—"} min
               </Text>
             </View>
             <View style={styles.metaChip}>
-              <Text style={styles.metaChipIcon}>📍</Text>
+              <Ionicons name="location-outline" size={12} color="#92711B" />
               <Text style={styles.metaChipText}>
                 {(item.distanceKm ?? 0).toFixed(1)} km
               </Text>
@@ -211,7 +212,7 @@ export default function RescueCaseCard({
           </View>
 
           <View style={styles.metaRow}>
-            <Text style={styles.metaIcon}>📌</Text>
+            <Ionicons name="navigate-outline" size={14} color="#6B7280" style={{ width: 20 }} />
             <Text style={styles.metaValue} numberOfLines={2}>
               {item.location?.address ||
                 `${item.location?.latitude ?? 0}, ${item.location?.longitude ?? 0}`}

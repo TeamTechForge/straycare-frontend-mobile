@@ -53,17 +53,19 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
   // Fetch notifications from backend
   const fetchNotifications = React.useCallback(async () => {
+    let timeoutId: any = null;
     try {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) {
-        console.log("[NOTIFICATION] No auth token found");
         return;
       }
 
       setLoading(true);
       const url = `${API_URL}/stray/notifications`;
-      console.log("[NOTIFICATION] Fetching from:", url);
-      console.log("[NOTIFICATION] Token:", token.substring(0, 20) + "...");
+      const controller = typeof AbortController !== "undefined" ? new AbortController() : null;
+      if (controller) {
+        timeoutId = setTimeout(() => controller.abort(), 10000);
+      }
 
       const response = await fetch(url, {
         method: "GET",
@@ -71,21 +73,23 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json",
         },
+        ...(controller ? { signal: controller.signal as any } : {}),
       });
 
-      console.log("[NOTIFICATION] Response status:", response.status);
+      if (timeoutId) clearTimeout(timeoutId);
 
       if (!response.ok) {
-        const errorText = await response.text();
-        console.error("[NOTIFICATION] Failed to fetch:", response.status, errorText);
+        console.warn("[NOTIFICATION] Fetch responded with status:", response.status);
         return;
       }
 
       const data = (await response.json()) as any;
-      console.log("[NOTIFICATION] Received", data.length || 0, "notifications");
       setNotifications(Array.isArray(data) ? data : []);
     } catch (error: any) {
-      console.error("[NOTIFICATION] Error fetching notifications:", error.message || error);
+      if (timeoutId) clearTimeout(timeoutId);
+      if (error?.name !== "AbortError") {
+        console.warn("[NOTIFICATION] Fetch error:", error?.message || error);
+      }
     } finally {
       setLoading(false);
     }
