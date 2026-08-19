@@ -90,8 +90,9 @@ function InitialLayout() {
             segments[1] === "CompletedProfileSetup" ||
             (user.profileStatus === "Rejected" && onProfileSetup);
           const isNotificationsScreen = segments[0] === "modals" && segments[1] === "Notifications";
+          const isSupportScreen = segments[0] === "profile" && (segments[1] === "HelpSupport" || segments[1] === "ContactSupport" || segments[1] === "contactSupport");
 
-          if (!isAllowedScreen && !isNotificationsScreen) {
+          if (!isAllowedScreen && !isNotificationsScreen && !isSupportScreen) {
             if (user.profileStatus === "Rejected") {
               router.replace("/auth/VerificationRejected");
             } else {
