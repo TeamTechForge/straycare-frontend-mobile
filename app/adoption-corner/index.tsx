@@ -292,7 +292,7 @@ export default function AdoptionPostMain() {
           />
           <TextInput
             style={styles.searchInput}
-            placeholder="Search by breed or name..."
+            placeholder="Search by breed, name or area..."
             placeholderTextColor="#717878"
             value={search}
             onChangeText={setSearch}
