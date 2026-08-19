@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
@@ -38,7 +37,7 @@ import { BASE_URL } from "../../constants/config.constants";
 
 const API_BASE_URL = BASE_URL;
 
-// ─── Helper: Resolve Photo URL (Handles both absolute and relative backend paths) ───
+// Resolve photo URL (handles absolute and relative backend paths)
 const resolvePhotoUrl = (url: string | undefined | null): string => {
   if (!url || typeof url !== "string" || !url.trim()) return "";
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("file://") || url.startsWith("data:")) {
@@ -48,9 +47,9 @@ const resolvePhotoUrl = (url: string | undefined | null): string => {
   return `${API_BASE_URL}${cleanUrl}`;
 };
 
-// ─── Helper: Haversine distance formula ────────────────────────────────────────
+// Haversine distance formula (in km)
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
@@ -68,18 +67,15 @@ export default function NearbyRescuersScreen() {
 
   const { caseId, animalType, animalPhoto, description } = params;
 
-  // ── Coordinates and Rescuer states ──────────────────────────────────────────
   const [centerCoords, setCenterCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [rescuers, setRescuers] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [excludeIds, setExcludeIds] = useState<string[]>([]);
   
-  // ── State Machine and Active Request ────────────────────────────────────────
   const [workflowState, setWorkflowState] = useState<WorkflowState>("selecting");
   const [requestId, setRequestId] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(30);
 
-  // ── UI / Loading States ─────────────────────────────────────────────────────
   const [loadingLocation, setLoadingLocation] = useState<boolean>(true);
   const [loadingRescuers, setLoadingRescuers] = useState<boolean>(false);
   const [sendingRequest, setSendingRequest] = useState<boolean>(false);
@@ -87,7 +83,7 @@ export default function NearbyRescuersScreen() {
 
   const hasRequestedLocation = useRef(false);
 
-  // ── Parse input coordinates or request device GPS ───────────────────────────
+  // Parse input coordinates or request device GPS
   useEffect(() => {
     const latParam = Array.isArray(params.lat) ? params.lat[0] : params.lat;
     const lngParam = Array.isArray(params.lng) ? params.lng[0] : params.lng;
