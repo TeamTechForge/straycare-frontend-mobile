@@ -1,10 +1,12 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -119,6 +121,7 @@ export default function AdoptionPostMain() {
   const [draftFilters, setDraftFilters] = useState<AdvancedFilters>(EMPTY_FILTERS);
   const [appliedFilters, setAppliedFilters] = useState<AdvancedFilters>(EMPTY_FILTERS);
   const [openFilter, setOpenFilter] = useState<keyof AdvancedFilters | null>(null);
+  const filterScrollRef = useRef<ScrollView>(null);
 
   // ── Fetch posts from backend ──────────────────────────────────────────────
 
@@ -255,7 +258,7 @@ export default function AdoptionPostMain() {
   // ── Main render ───────────────────────────────────────────────────────────
 
   return (
-    <View style={styles.screen}>
+    <KeyboardAvoidingView style={styles.screen} behavior={Platform.OS === "ios" ? "padding" : "height"} keyboardVerticalOffset={Platform.OS === "ios" ? 0 : 12}>
       {/* ── Header ── */}
       <View style={styles.header}>
         <TouchableOpacity
@@ -301,7 +304,7 @@ export default function AdoptionPostMain() {
       </View>
 
       {showFilters && (
-        <View style={styles.filterPanel}>
+        <ScrollView ref={filterScrollRef} style={styles.filterPanel} contentContainerStyle={styles.filterPanelContent} keyboardShouldPersistTaps="handled" nestedScrollEnabled showsVerticalScrollIndicator={false}>
           {filterFields.map(({ key, label, options }) => (
             <View key={key} style={styles.filterGroup}>
               <Text style={styles.filterLabel}>{label}</Text>
@@ -336,13 +339,13 @@ export default function AdoptionPostMain() {
           ))}
           <View style={styles.filterGroup}>
             <Text style={styles.filterLabel}>Location</Text>
-            <TextInput style={styles.locationFilterInput} placeholder="Type a city or area" placeholderTextColor="#A8A497" value={draftFilters.location} onChangeText={(location) => setDraftFilters((current) => ({ ...current, location }))} />
+            <TextInput style={styles.locationFilterInput} placeholder="Type a city or area" placeholderTextColor="#A8A497" value={draftFilters.location} onFocus={() => setTimeout(() => filterScrollRef.current?.scrollToEnd({ animated: true }), 250)} onChangeText={(location) => setDraftFilters((current) => ({ ...current, location }))} />
           </View>
           <View style={styles.filterActions}>
             <View style={styles.filterAction}><PrimaryButton title="Clear" variant="outline" onPress={() => { setDraftFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); setOpenFilter(null); }} /></View>
             <View style={styles.filterAction}><PrimaryButton title="Apply" disabled={draftFilters.breed === "Other" && !draftFilters.customBreed.trim()} onPress={() => { setAppliedFilters(draftFilters); setShowFilters(false); setOpenFilter(null); }} /></View>
           </View>
-        </View>
+        </ScrollView>
       )}
 
       {/* ── Filter Chips ── */}
@@ -418,7 +421,7 @@ export default function AdoptionPostMain() {
           </View>
         )}
       />
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -509,7 +512,8 @@ const styles = StyleSheet.create({
   },
   filterButton: { width: 48, height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: "#F5A623", alignItems: "center", justifyContent: "center", backgroundColor: "#FFF7E6" },
   filterButtonActive: { backgroundColor: "#F5A623" },
-  filterPanel: { marginHorizontal: 20, marginBottom: 14, padding: 14, borderRadius: 16, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E2E0D6", gap: 10 },
+  filterPanel: { marginHorizontal: 20, marginBottom: 14, maxHeight:800, borderRadius: 16, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E2E0D6" },
+  filterPanelContent: { padding: 14, gap: 10 },
   filterGroup: { gap: 6 },
   inlineConditionalField: { gap: 6, marginTop: 4 },
   filterLabel: { fontSize: 12, fontWeight: "700", color: "#191C1D" },

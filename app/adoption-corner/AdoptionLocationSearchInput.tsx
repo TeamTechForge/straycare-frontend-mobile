@@ -85,7 +85,7 @@ export default function AdoptionLocationSearchInput({ value, hasError, hasValidC
         <Ionicons name="location-outline" size={18} color="#717878" />
         <TextInput
           style={styles.input}
-          placeholder="Search address or area"
+          placeholder="Search address or area here"
           placeholderTextColor="#A8A497"
           value={value}
           autoCorrect={false}

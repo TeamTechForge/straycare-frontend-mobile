@@ -785,6 +785,7 @@ export default function CreateAdoptionPost() {
       {/* SECTION 4: Location */}
       <View style={s.card}>
         <Text style={s.sectionTitle}>Location</Text>
+        <Text style={s.sectionSubtitle}>Select location on map or search for your address</Text>
         <TouchableOpacity style={s.mapBox} onPress={() => setShowLocationPicker(true)} activeOpacity={0.85}>
           {selectedRegion ? (
             <View style={s.mapPreview}>
