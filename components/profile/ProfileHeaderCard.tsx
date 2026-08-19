@@ -7,6 +7,7 @@ const BRAND_COLOR = "#F5A623";
 
 type Props = {
   name: string;
+  phone?: string;
   location: string;
   bio: string;
   memberSince: string;
@@ -18,6 +19,7 @@ type Props = {
 
 export default function ProfileHeaderCard({
   name,
+  phone,
   location,
   bio,
   memberSince,
@@ -70,6 +72,13 @@ export default function ProfileHeaderCard({
         <Ionicons name="location-outline" size={12} color="#888" />
         <Text style={styles.locationText}>{location}</Text>
       </View>
+
+      {phone ? (
+        <View style={styles.phoneRow}>
+          <Ionicons name="call-outline" size={12} color="#888" />
+          <Text style={styles.phoneText}>{phone}</Text>
+        </View>
+      ) : null}
 
       <Text style={styles.bio}>{bio}</Text>
 
@@ -142,6 +151,16 @@ const styles = StyleSheet.create({
     gap: 3,
   },
   locationText: {
+    color: "#888",
+    fontSize: 12,
+  },
+  phoneRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 4,
+    gap: 4,
+  },
+  phoneText: {
     color: "#888",
     fontSize: 12,
   },

@@ -23,6 +23,7 @@ import {
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 import CommunityPostCard from "../../components/CommunityPostCard";
+import BackButton from "../../components/BackButton";
 
 import {
   CommunityPost,
@@ -302,22 +303,9 @@ export default function CommunityPostMain() {
       {/* HEADER */}
 
       <View style={styles.header}>
-        <TouchableOpacity
-          activeOpacity={0.7}
-          onPress={() =>
-            router.push("/")
-          }
-        >
-          <Ionicons
-            name="chevron-back"
-            size={26}
-            color={C.onSurface}
-          />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
 
-        <Text
-          style={styles.headerTitle}
-        >
+        <Text style={[styles.headerTitle, { flex: 1, textAlign: 'center' }]}>
           Community Feed
         </Text>
 
@@ -328,6 +316,7 @@ export default function CommunityPostMain() {
               "/community-feed/CreateCommunityPost"
             )
           }
+          style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons
             name="add"

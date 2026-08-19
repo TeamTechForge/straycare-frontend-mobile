@@ -112,15 +112,19 @@ export default function ChatsScreen() {
             if (!extractedId && conversation.relatedEntity.kind && conversation.relatedEntity.kind.includes('_')) {
                 extractedId = conversation.relatedEntity.kind.split('_')[1];
             }
-            let displayId = extractedId || conversation.relatedEntity.item?.toString().slice(-4) || 'Anon';
+            let displayId = extractedId || (conversation.relatedEntity.item ? conversation.relatedEntity.item.toString().slice(-4) : 'Anon');
             if (displayId.length === 24) {
                 displayId = displayId.slice(-4);
             }
+            const isOtherRescuer = other?.role && ["rescuer", "ngo", "vet", "admin"].includes(other.role);
+            const displayName = isOtherRescuer ? `Anonymous Report (${displayId})` : `Anonymous Reporter (${displayId})`;
+            const displayAvatarName = isOtherRescuer ? `Anonymous+Report` : `Anonymous+Reporter`;
+
             return {
                 _id: other?._id || "anon",
-                name: `Case Chat (${displayId})`,
+                name: displayName,
                 role: "anonymous",
-                profileImage: "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff"
+                profileImage: `https://ui-avatars.com/api/?name=${displayAvatarName}&background=FEB94B&color=fff`
             };
         }
 

@@ -16,7 +16,6 @@ export default function SettingsScreen() {
   const router = useRouter();
   const { logout } = useAuth();
 
-  const [locationEnabled, setLocationEnabled] = useState(true);
   const [pushEnabled, setPushEnabled] = useState(true);
   const [deleteModalVisible, setDeleteModalVisible] = useState(false);
 
@@ -26,11 +25,6 @@ export default function SettingsScreen() {
       const savedPush = await SecureStore.getItemAsync("pushEnabled");
       if (savedPush !== null) {
         setPushEnabled(savedPush === "true");
-      }
-      
-      const savedLocation = await SecureStore.getItemAsync("locationEnabled");
-      if (savedLocation !== null) {
-        setLocationEnabled(savedLocation === "true");
       }
     };
     loadPreferences();
@@ -45,12 +39,6 @@ export default function SettingsScreen() {
     } else {
       await pushNotificationService.removeTokenFromBackend();
     }
-  };
-
-  const handleLocationToggle = async (enabled: boolean) => {
-    setLocationEnabled(enabled);
-    await SecureStore.setItemAsync("locationEnabled", enabled ? "true" : "false");
-    // In future: update location tracking logic based on this preference
   };
 
   const handleDeleteAccount = async () => {
@@ -117,13 +105,6 @@ export default function SettingsScreen() {
 
       <Text style={styles.sectionTitle}>APP PREFERENCES</Text>
       <View style={styles.card}>
-        <SettingsRow
-          icon="location-outline"
-          title="Location Services"
-          showSwitch
-          switchValue={locationEnabled}
-          onSwitchChange={handleLocationToggle}
-        />
         <SettingsRow
           icon="send-outline"
           title="Enable Push Notifications"

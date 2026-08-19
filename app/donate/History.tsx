@@ -29,7 +29,11 @@ type RecurringDonation = {
   installmentsPaid: number;
 };
 
-export default function DonationHistory() {
+type Props = {
+  hideHeader?: boolean;
+};
+
+export default function DonationHistory({ hideHeader = false }: Props) {
   const router = useRouter();
 
   const [donations, setDonations] = useState<Donation[]>([]);
@@ -172,11 +176,13 @@ export default function DonationHistory() {
   }
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
-        <BackButton onPress={() => router.back()} />
-        <Text style={[styles.title, { marginBottom: 0, marginLeft: 12 }]}>Donation History</Text>
-      </View>
+    <SafeAreaView style={styles.container} edges={hideHeader ? [] : ["top"]}>
+      {!hideHeader && (
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 20 }}>
+          <BackButton onPress={() => router.back()} />
+          <Text style={[styles.title, { marginBottom: 0, marginLeft: 12 }]}>Donation History</Text>
+        </View>
+      )}
       {donations.length === 0 && recurringDonations.length === 0 ? (
         <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations yet</Text>
       ) : (

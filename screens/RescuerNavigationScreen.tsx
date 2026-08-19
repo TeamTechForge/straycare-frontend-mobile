@@ -12,6 +12,7 @@ import * as Location from "expo-location";
 import axios from "axios";
 
 import MapViewWrapper, { Marker } from "../components/MapViewWrapper";
+import BackButton from "../components/BackButton";
 import { colors } from "../constants/colors.constants";
 import { API_URL } from "../constants/config.constants";
 import { fetchRescueById } from "../services/rescueService";
@@ -212,12 +213,7 @@ export default function RescuerNavigationScreen() {
 
       {/* OVERLAY HEADER (Back Button) */}
       <SafeAreaView style={styles.headerOverlay} pointerEvents="box-none">
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => router.back()}
-        >
-          <Text style={styles.backIcon}>←</Text>
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} style={styles.backButton} />
       </SafeAreaView>
 
       {/* OVERLAY FOOTER (Distance & ETA) */}
@@ -290,11 +286,7 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     elevation: 4,
   },
-  backIcon: {
-    fontSize: 24,
-    color: "#333",
-    lineHeight: 28,
-  },
+
   footerOverlay: {
     position: "absolute",
     bottom: 0,
