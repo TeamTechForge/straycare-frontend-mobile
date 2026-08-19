@@ -219,7 +219,10 @@ export default function CommunityFeed() {
     const matchesSearch =
       searchText.trim() === "" ||
       post.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchText.toLowerCase());
+      post.content.toLowerCase().includes(searchText.toLowerCase()) ||
+      (post.username || post.authorName || "")
+        .toLowerCase()
+        .includes(searchText.toLowerCase());
 
     // Check if the post belongs to the selected category
     // Empty string means "All" — no category filter applied

@@ -277,6 +277,9 @@ export default function CommunityPostMain() {
         .includes(search) ||
       (post.content || "")
         .toLowerCase()
+        .includes(search) ||
+      (post.username || post.authorName || "")
+        .toLowerCase()
         .includes(search);
 
     const matchesCategory =
@@ -352,7 +355,7 @@ export default function CommunityPostMain() {
             style={
               styles.searchInput
             }
-            placeholder="Search posts..."
+            placeholder="Search titles, content or authors..."
             placeholderTextColor={
               C.outline
             }
