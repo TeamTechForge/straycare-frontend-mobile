@@ -24,7 +24,7 @@ export default function PendingRescues({ data }: Props) {
   if (!data.length) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
-        <Text style={styles.emptyText}>🕐 No pending rescues right now.</Text>
+        <Text style={styles.emptyText}>No pending rescues right now.</Text>
       </View>
     );
   }

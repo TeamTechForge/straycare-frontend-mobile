@@ -59,7 +59,13 @@ export default function ThreadMessageCard({
 
       <View style={styles.msgActionsRow}>
         <Pressable onPress={onToggleLike} style={[styles.msgLikeBtn, message.likedByMe && styles.msgLikeBtnActive]}>
-          <Text style={styles.msgLikeText}>👍 {message.likes}</Text>
+          <Ionicons
+            name={message.likedByMe ? "thumbs-up" : "thumbs-up-outline"}
+            size={13}
+            color={message.likedByMe ? "#111827" : "#4B5563"}
+            style={{ marginRight: 4 }}
+          />
+          <Text style={styles.msgLikeText}>{message.likes}</Text>
         </Pressable>
 
         {/* 🔒 Delete Comment Button — ONLY for the person who posted that comment */}

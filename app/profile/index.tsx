@@ -345,7 +345,7 @@ export default function ProfileScreen() {
                   <Text style={styles.noActiveText}>No active rescue cases right now.</Text>
                 )}
 
-                {/* 📜 COMPLETED CASES */}
+                {/* COMPLETED CASES */}
                 <Text style={[styles.subSectionTitle, { marginTop: 16 }]}>Completed Cases</Text>
                 {rescues.filter((r: any) => isRescueCompleted(r.status)).length > 0 ? (
                   rescues
@@ -413,7 +413,11 @@ export default function ProfileScreen() {
                         } else {
                           router.push({
                             pathname: "/live-tracking/[requestId]",
-                            params: { requestId: report.caseId },
+                            params: {
+                              requestId: report.caseId,
+                              fromProfile: "true",
+                              source: "profile",
+                            },
                           });
                         }
                       }}
