@@ -10,6 +10,7 @@
 
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, SafeAreaView, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import AllRescues from "../../components/rescue-history/AllRescues";
@@ -28,10 +29,10 @@ import type { RescueHistoryResponse, RescueHistoryTab } from "../../types/Api";
 
 // ── Tab configuration ────────────────────────────────────────────────────────
 
-const TABS: { key: RescueHistoryTab; label: string; emoji: string }[] = [
-  { key: "pending", label: "Pending", emoji: "🕐" },
-  { key: "completed", label: "Completed", emoji: "✅" },
-  { key: "all", label: "All", emoji: "📋" },
+const TABS: { key: RescueHistoryTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: "pending", label: "Pending", icon: "time-outline" },
+  { key: "completed", label: "Completed", icon: "checkmark-circle-outline" },
+  { key: "all", label: "All", icon: "list-outline" },
 ];
 
 // ── Initial empty state ──────────────────────────────────────────────────────
@@ -132,9 +133,16 @@ export default function RescueHistoryScreen() {
                 style={[styles.tabButton, isActive && styles.tabButtonActive]}
                 onPress={() => setActiveTab(tab.key)}
               >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {tab.emoji} {tab.label}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons
+                    name={tab.icon}
+                    size={14}
+                    color={isActive ? "#111827" : "#6B7280"}
+                  />
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                    {tab.label}
+                  </Text>
+                </View>
               </Pressable>
             );
           })}
@@ -151,7 +159,7 @@ export default function RescueHistoryScreen() {
           ) : error ? (
             /* Error state */
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-              <Text style={{ fontSize: 40, marginBottom: 8 }}>⚠️</Text>
+              <Ionicons name="alert-circle-outline" size={38} color="#9CA3AF" style={{ marginBottom: 8 }} />
               <Text style={styles.emptyText}>{error}</Text>
             </View>
           ) : activeTab === "pending" ? (

@@ -36,6 +36,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import axios from "axios"; // axios v1 — uses AbortController, NOT CancelToken
 import { useCall } from "../../contexts/CallContext";
@@ -703,7 +704,7 @@ export default function RequestStatusScreen() {
                     activeOpacity={0.7}
                     style={styles.phoneButton}
                   >
-                    <Text style={styles.phoneIcon}>📞</Text>
+                    <Ionicons name="call-outline" size={14} color={colors.primary} />
                     <Text style={styles.phoneText}>{rescuer.phone}</Text>
                   </TouchableOpacity>
                 ) : null}
@@ -711,7 +712,7 @@ export default function RequestStatusScreen() {
                 {/* ETA badge — shown when accepted */}
                 {status === "accepted" && (
                   <View style={styles.etaBadge}>
-                    <Text style={styles.etaIcon}>🕐</Text>
+                    <Ionicons name="time-outline" size={14} color="#B8860B" />
                     <Text style={styles.etaText}>ETA: ~10 min</Text>
                   </View>
                 )}

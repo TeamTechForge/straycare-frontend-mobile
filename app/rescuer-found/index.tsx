@@ -20,6 +20,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import BackButton from "../../components/BackButton";
 
@@ -159,29 +160,29 @@ export default function RescuerFoundScreen() {
               />
             ) : (
               <View style={[styles.avatar, styles.emptyAvatar]}>
-                <Text style={styles.emptyAvatarText}>👤</Text>
+                <Ionicons name="person" size={40} color="#9CA3AF" />
               </View>
             )}
             <View style={styles.avatarBadge}>
-              <Text style={styles.avatarBadgeIcon}>🐾</Text>
+              <Ionicons name="shield-checkmark" size={14} color={colors.primary} />
             </View>
           </View>
 
           <Text style={styles.rescuerName}>{rescuerName}</Text>
-          <Text style={styles.rescuerRole}>Local Hero 🐾</Text>
+          <Text style={styles.rescuerRole}>Certified Rescuer</Text>
 
           {/* ── Stats Chips ── */}
           <View style={styles.chipsRow}>
             <View style={styles.chip}>
-              <Text style={styles.chipEmoji}>📍</Text>
+              <Ionicons name="location-outline" size={12} color={colors.primary} />
               <Text style={styles.chipText}>{distanceFormatted} km</Text>
             </View>
             <View style={styles.chip}>
-              <Text style={styles.chipEmoji}>⏱</Text>
+              <Ionicons name="time-outline" size={12} color={colors.primary} />
               <Text style={styles.chipText}>~{etaMinutes} min</Text>
             </View>
             <View style={styles.chip}>
-              <Text style={styles.chipEmoji}>✅</Text>
+              <Ionicons name="checkmark-circle-outline" size={12} color="#10B981" />
               <Text style={styles.chipText}>Available</Text>
             </View>
           </View>
@@ -193,7 +194,7 @@ export default function RescuerFoundScreen() {
               activeOpacity={0.7}
               style={styles.phoneButton}
             >
-              <Text style={styles.phoneIcon}>📞</Text>
+              <Ionicons name="call" size={14} color={colors.primary} />
               <Text style={styles.phoneText}>{rescuerPhone}</Text>
             </TouchableOpacity>
           ) : null}
@@ -205,7 +206,7 @@ export default function RescuerFoundScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <View style={styles.cardHeaderIconCircle}>
-              <Text style={styles.cardHeaderEmoji}>🐕</Text>
+              <Ionicons name="paw-outline" size={16} color={colors.primary} />
             </View>
             <Text style={styles.cardHeaderTitle}>Rescue Details</Text>
           </View>
@@ -248,7 +249,7 @@ export default function RescuerFoundScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeaderRow}>
             <View style={styles.cardHeaderIconCircle}>
-              <Text style={styles.cardHeaderEmoji}>📍</Text>
+              <Ionicons name="location-outline" size={16} color={colors.primary} />
             </View>
             <Text style={styles.cardHeaderTitle}>Location Info</Text>
           </View>
@@ -279,12 +280,10 @@ export default function RescuerFoundScreen() {
           </View>
         </TouchableOpacity>
 
-
-
         {/* ── Footer Note ── */}
         <View style={styles.footerBanner}>
           <View style={styles.footerIconCircle}>
-            <Text style={styles.footerIcon}>🐾</Text>
+            <Ionicons name="heart-outline" size={14} color={colors.primary} />
           </View>
           <View style={styles.footerTextWrap}>
             <Text style={styles.footerTitle}>

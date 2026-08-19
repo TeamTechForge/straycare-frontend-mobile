@@ -21,7 +21,7 @@ export default function CompletedRescues({ data }: Props) {
   if (!data.length) {
     return (
       <View style={{ flex: 1, justifyContent: "center" }}>
-        <Text style={styles.emptyText}>✅ No completed rescues yet.</Text>
+        <Text style={styles.emptyText}>No completed rescues yet.</Text>
       </View>
     );
   }

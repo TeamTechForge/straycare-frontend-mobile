@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
@@ -253,7 +254,7 @@ export default function RescueDetailsScreen() {
       });
       if (respondRes.ok) {
         if (action === "accept") {
-          Alert.alert("Request Accepted! 🚑", "Case has been added to your profile under Rescue Cases.", [
+          Alert.alert("Request Accepted", "Case has been added to your profile under Rescue Cases.", [
             {
               text: "Go to Home",
               onPress: () => router.replace("/(tabs)/Home"),
@@ -364,7 +365,7 @@ export default function RescueDetailsScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centerContainer}>
-          <Text style={{ fontSize: 40 }}>⚠️</Text>
+          <Ionicons name="alert-circle-outline" size={38} color="#9CA3AF" style={{ marginBottom: 8 }} />
           <Text style={styles.errorText}>{error || "Unable to display details."}</Text>
           <AppButton title="Go Back" onPress={() => router.back()} style={{ width: "100%" }} />
         </View>
@@ -408,7 +409,7 @@ export default function RescueDetailsScreen() {
               />
             ) : (
               <View style={styles.imageFallback}>
-                <Text style={styles.fallbackEmoji}>🐾</Text>
+                <Ionicons name="paw-outline" size={36} color="#B8860B" style={{ marginBottom: 6 }} />
                 <Text style={styles.fallbackText}>Image unavailable</Text>
               </View>
             )}
@@ -463,7 +464,7 @@ export default function RescueDetailsScreen() {
 
         {/* ── 2. Timeline Tracker Card ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>⏱ Rescue Journey Timeline</Text>
+          <Text style={styles.cardTitle}>Rescue Journey Timeline</Text>
           <View style={styles.timelineContainer}>
             {timelineData.map((step: any, index: number) => {
               const isLast = index === timelineData.length - 1;
@@ -502,10 +503,12 @@ export default function RescueDetailsScreen() {
 
         {/* ── 3. Description & Date Cards ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📝 Case Information</Text>
+          <Text style={styles.cardTitle}>Case Information</Text>
           <View style={styles.grid}>
             <View style={styles.detailRow}>
-              <Text style={styles.detailIcon}>🕐</Text>
+              <View style={{ width: 28, alignItems: "center" }}>
+                <Ionicons name="time-outline" size={18} color="#B8860B" />
+              </View>
               <View style={styles.detailInfo}>
                 <Text style={styles.detailLabel}>Reported At</Text>
                 <Text style={styles.detailValue}>{formatFullDate(details.createdAt)}</Text>
@@ -513,7 +516,9 @@ export default function RescueDetailsScreen() {
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailIcon}>🐾</Text>
+              <View style={{ width: 28, alignItems: "center" }}>
+                <Ionicons name="paw-outline" size={18} color="#B8860B" />
+              </View>
               <View style={styles.detailInfo}>
                 <Text style={styles.detailLabel}>Case Type</Text>
                 <Text style={styles.detailValue}>{details.animalType || "Unspecified"}</Text>
@@ -521,7 +526,9 @@ export default function RescueDetailsScreen() {
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailIcon}>📄</Text>
+              <View style={{ width: 28, alignItems: "center" }}>
+                <Ionicons name="document-text-outline" size={18} color="#B8860B" />
+              </View>
               <View style={styles.detailInfo}>
                 <Text style={styles.detailLabel}>Description</Text>
                 <Text style={styles.detailValue}>{details.description || "No description provided."}</Text>
@@ -551,7 +558,7 @@ export default function RescueDetailsScreen() {
         {/* ── 4. Location & Map Preview Card ── */}
         <View style={[styles.card, styles.mapPreviewCard]}>
           <View style={styles.mapPreviewHeader}>
-            <Text style={styles.cardTitle}>📍 Rescue Location</Text>
+            <Text style={styles.cardTitle}>Rescue Location</Text>
             <Text style={styles.helperText}>
               {details.location?.address || "Location coordinates specified on map"}
             </Text>
@@ -580,7 +587,7 @@ export default function RescueDetailsScreen() {
 
         {/* ── 5. Contact Profiles & Call Buttons ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📞 Contact & Rescuers</Text>
+          <Text style={styles.cardTitle}>Contact & Rescuers</Text>
 
           {/* Reporter row */}
           <View style={styles.profileSection}>
@@ -604,7 +611,7 @@ export default function RescueDetailsScreen() {
                 activeOpacity={0.8}
                 onPress={() => handleCall(details.reporter?.phone || details.reporterPhone, details.reporterName || details.reporter?.name)}
               >
-                <Text style={styles.callIconText}>📞</Text>
+                <Ionicons name="call" size={16} color="#FFFFFF" />
               </TouchableOpacity>
             ) : null}
           </View>
