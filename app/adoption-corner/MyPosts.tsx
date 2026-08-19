@@ -60,22 +60,6 @@ export default function MyAdoptionPostsScreen() {
     loadPosts();
   };
 
-  const getDisplayDate = (post: Post) => {
-    if (post.createdAt) {
-      try {
-        const d = new Date(post.createdAt);
-        return d.toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-          year: "numeric",
-        });
-      } catch {
-        return "Recently Posted";
-      }
-    }
-    return "Recently Posted";
-  };
-
   const renderItem = ({ item }: { item: Post }) => {
     const imageUri =
       item.images && item.images.length > 0
@@ -132,7 +116,6 @@ export default function MyAdoptionPostsScreen() {
             <Text style={styles.breedText}>
               {item.breed}
               {item.customCategory ? ` (${item.customCategory})` : ""}
-              {item.age ? ` • ${item.ageValue && item.ageUnit ? `${item.ageValue} ${item.ageUnit}` : item.age}` : ""}
               {item.gender ? ` • ${item.gender}` : ""}
             </Text>
 
@@ -149,8 +132,6 @@ export default function MyAdoptionPostsScreen() {
               {item.description}
             </Text>
 
-            {/* Date */}
-            <Text style={styles.dateText}>{getDisplayDate(item)}</Text>
           </View>
         </TouchableOpacity>
       </View>

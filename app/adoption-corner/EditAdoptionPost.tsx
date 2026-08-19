@@ -21,6 +21,7 @@ import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { useAuth } from "../../contexts/AuthContext";
 import { getPostById, updatePost } from "../../services/adoptionService";
 import { ANIMAL_BREEDS, AnimalCategory } from "../../constants/breeds.constants";
+import AdoptionLocationSearchInput from "./AdoptionLocationSearchInput";
 
 // Centralized color tokens matching Lost & Found
 const C = {
@@ -91,7 +92,6 @@ export default function EditAdoptionPost() {
   const [otherBreed, setOtherBreed] = useState("");
   const [breedDropdownOpen, setBreedDropdownOpen] = useState(false);
   const [age, setAge] = useState("");
-  const [ageUnit, setAgeUnit] = useState<"Months" | "Years" | "">("");
   const [gender, setGender] = useState<Gender>("Male");
   const [genderDropdownOpen, setGenderDropdownOpen] = useState(false);
   const [name, setName] = useState("");
@@ -111,7 +111,7 @@ export default function EditAdoptionPost() {
   // ── UI State ──────────────────────────────────────────────────────────────
   const [showLocationPicker, setShowLocationPicker] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [descriptionHeight, setDescriptionHeight] = useState(110);
+  const [descriptionHeight, setDescriptionHeight] = useState(96);
   const [errors, setErrors] = useState<Errors>({});
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -138,9 +138,7 @@ export default function EditAdoptionPost() {
           setOtherBreed(post.breed || "");
         }
 
-        const legacyAge = post.age?.match(/^(\d+(?:\.\d+)?)\s*(months?|years?)$/i);
-        setAge(String(post.ageValue ?? legacyAge?.[1] ?? ""));
-        setAgeUnit(post.ageUnit ?? (legacyAge?.[2]?.toLowerCase().startsWith("month") ? "Months" : legacyAge?.[2] ? "Years" : ""));
+        setAge(post.age || "");
         setGender((post.gender as Gender) ?? "Male");
         setName(post.name || "");
         setStatus((post.status as Status) ?? "Available");
@@ -149,6 +147,9 @@ export default function EditAdoptionPost() {
         setSelectedTraits(post.traits ?? []);
         setNotes(post.notes ?? "");
         setLocation(post.location ?? "");
+        if (Number.isFinite(post.latitude) && Number.isFinite(post.longitude)) {
+          setSelectedRegion({ latitude: Number(post.latitude), longitude: Number(post.longitude) });
+        }
         setExistingImages(post.images ?? []);
       })
       .catch(() => setFetchError("Could not load post for editing."))
@@ -218,9 +219,8 @@ export default function EditAdoptionPost() {
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
     if (!name.trim()) newErrors.name = "Pet name is required.";
-    const numericAge = Number(age);
-    if (!Number.isFinite(numericAge) || numericAge <= 0 || !ageUnit) {
-      newErrors.age = "Enter a positive age and select Months or Years.";
+    if (age.trim() && !/^\d+(\s*(year|years|month|months|week|weeks))?$/i.test(age.trim())) {
+      newErrors.age = "Enter a valid age (e.g. 2 years, 6 months).";
     }
     if (!description.trim()) {
       newErrors.description = "Please add a description.";
@@ -238,7 +238,7 @@ export default function EditAdoptionPost() {
         newErrors.otherBreed = "Please specify the breed.";
       }
     }
-    if (!location.trim()) newErrors.location = "Location is required.";
+    if (!location.trim() || !selectedRegion) newErrors.location = "Select a valid location suggestion or choose a location on the map.";
 
     setErrors(newErrors);
     const firstErr = Object.values(newErrors).find(Boolean);
@@ -270,9 +270,7 @@ export default function EditAdoptionPost() {
           category,
           customCategory: customCategory.trim() || undefined,
           breed: finalBreed,
-          age: `${Number(age)} ${ageUnit}`,
-          ageValue: Number(age),
-          ageUnit: ageUnit as "Months" | "Years",
+          age,
           gender,
           name: name.trim(),
           status,
@@ -280,6 +278,8 @@ export default function EditAdoptionPost() {
           description: description.trim(),
           traits: selectedTraits,
           location: location.trim(),
+          latitude: selectedRegion?.latitude,
+          longitude: selectedRegion?.longitude,
           posterName: user?.name || "Anonymous",
           contact: user?.phone || user?.email || "N/A",
           notes: notes.trim() || undefined,
@@ -508,26 +508,18 @@ export default function EditAdoptionPost() {
           </View>
 
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <FieldLabel text="Age *" />
+            <FieldLabel text="Age" />
             <TextInput
               style={[s.input, errors.age && s.inputError]}
-              placeholder="e.g. 6"
-              keyboardType="decimal-pad"
+              placeholder="e.g. 2 years (optional)"
               placeholderTextColor={C.textPlaceholder}
               value={age}
               onChangeText={(v) => {
-                setAge(v.replace(/[^0-9.]/g, ""));
-                if (Number(v) > 0 && ageUnit)
+                setAge(v);
+                if (v.trim())
                   setErrors((prev) => ({ ...prev, age: undefined }));
               }}
             />
-            <View style={s.ageUnits}>
-              {(["Months", "Years"] as const).map((unit) => (
-                <TouchableOpacity key={unit} style={[s.ageUnit, ageUnit === unit && s.ageUnitActive]} onPress={() => { setAgeUnit(unit); if (Number(age) > 0) setErrors((prev) => ({ ...prev, age: undefined })); }}>
-                  <Text style={[s.ageUnitText, ageUnit === unit && s.ageUnitTextActive]}>{unit}</Text>
-                </TouchableOpacity>
-              ))}
-            </View>
             <FieldError field="age" />
           </View>
         </View>
@@ -706,7 +698,7 @@ export default function EditAdoptionPost() {
             placeholderTextColor={C.textPlaceholder}
             multiline
             scrollEnabled={descriptionHeight >= 180}
-            onContentSizeChange={(event) => setDescriptionHeight(Math.min(180, Math.max(110, event.nativeEvent.contentSize.height + 24)))}
+            onContentSizeChange={(event) => setDescriptionHeight(Math.min(180, Math.max(96, event.nativeEvent.contentSize.height + 24)))}
             textAlignVertical="top"
             value={description}
             onChangeText={(v) => {
@@ -804,30 +796,27 @@ export default function EditAdoptionPost() {
       {/* SECTION 4: Location */}
       <View style={s.card}>
         <Text style={s.sectionTitle}>Location</Text>
-        <View style={s.fieldGroup}>
-          <FieldLabel text="Adoption Location *" />
-          <View style={s.inputIconWrapper}>
-            <Ionicons name="location-outline" size={18} color={C.textSub} style={s.inputIcon} />
-            <TextInput
-              style={[s.input, s.inputWithIcon, errors.location && s.inputError]}
-              placeholder="Search address or area"
-              placeholderTextColor={C.textPlaceholder}
-              value={location}
-              onChangeText={(v) => { setLocation(v); if (v.trim()) setErrors((prev) => ({ ...prev, location: undefined })); }}
-            />
-          </View>
-          <FieldError field="location" />
-        </View>
         <TouchableOpacity style={s.mapBox} onPress={() => setShowLocationPicker(true)} activeOpacity={0.85}>
           {selectedRegion ? (
-            <View style={{ width: "100%", height: 120, borderRadius: 10, overflow: "hidden" }}>
-              <MapViewWrapper style={{ width: "100%", height: "100%" }} region={{ ...selectedRegion, latitudeDelta: 0.01, longitudeDelta: 0.01 }} scrollEnabled={false} zoomEnabled={false} pitchEnabled={false} rotateEnabled={false}>
+            <View style={s.mapPreview}>
+              <MapViewWrapper style={s.mapPreview} region={{ ...selectedRegion, latitudeDelta: 0.01, longitudeDelta: 0.01 }} scrollEnabled={false} zoomEnabled={false} pitchEnabled={false} rotateEnabled={false}>
                 <Marker coordinate={selectedRegion} />
               </MapViewWrapper>
             </View>
-          ) : <><Ionicons name="map-outline" size={32} color={C.textPlaceholder} /><Text style={s.mapText}>Tap to choose on map</Text></>}
+          ) : <><View style={s.mapIconCircle}><Ionicons name="location-outline" size={28} color={C.amber} /></View><Text style={s.mapTitle}>Select Location</Text><Text style={s.mapText}>Tap here to select location</Text></>}
         </TouchableOpacity>
-        <ChatLocationPicker visible={showLocationPicker} onCancel={() => setShowLocationPicker(false)} onSelect={({ address, latitude, longitude }) => { if (address) { setLocation(address); setErrors((prev) => ({ ...prev, location: undefined })); } setSelectedRegion({ latitude, longitude }); setShowLocationPicker(false); }} />
+        <View style={s.fieldGroup}>
+          <FieldLabel text="Adoption Location *" />
+          <AdoptionLocationSearchInput
+            value={location}
+            hasError={Boolean(errors.location)}
+            hasValidCoordinates={Boolean(selectedRegion)}
+            onTextChange={(text) => { setLocation(text); setSelectedRegion(null); }}
+            onPlaceSelected={(description, coordinates) => { setLocation(description); setSelectedRegion(coordinates); setErrors((prev) => ({ ...prev, location: undefined })); }}
+          />
+          <FieldError field="location" />
+        </View>
+        <ChatLocationPicker visible={showLocationPicker} onCancel={() => setShowLocationPicker(false)} onSelect={({ address, latitude, longitude }) => { if (address) setLocation(address); setSelectedRegion({ latitude, longitude }); setErrors((prev) => ({ ...prev, location: undefined })); setShowLocationPicker(false); }} />
       </View>
 
       {/* SECTION 5: Action Buttons */}
@@ -1038,15 +1027,10 @@ const s = StyleSheet.create({
     fontSize: 14,
   },
   textArea: {
-    minHeight: 110,
+    minHeight: 96,
     maxHeight: 180,
     paddingTop: 13,
   },
-  ageUnits: { flexDirection: "row", gap: 6, marginTop: 6 },
-  ageUnit: { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: "center", backgroundColor: C.surfaceLow, borderWidth: 1, borderColor: C.outline },
-  ageUnitActive: { backgroundColor: C.primaryContainer, borderColor: C.primary },
-  ageUnitText: { fontSize: 11, color: C.textSub, fontWeight: "600" },
-  ageUnitTextActive: { color: C.onPrimaryContainer },
 
   inputIconWrapper: {
     position: "relative",
@@ -1197,16 +1181,21 @@ const s = StyleSheet.create({
 
   // Location
   mapBox: {
-    height: 120,
-    borderRadius: 10,
-    borderWidth: 1.5,
+    minHeight: 150,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderStyle: "dashed",
     borderColor: C.outline,
-    backgroundColor: C.surfaceLow,
+    backgroundColor: C.amberDim,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     overflow: "hidden",
+    marginBottom: 16,
   },
+  mapPreview: { width: "100%", height: 150 },
+  mapIconCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#FFF3DC", alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  mapTitle: { fontSize: 14, fontWeight: "700", color: C.textMain },
   mapText: {
     fontSize: 13,
     fontWeight: "600",

@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -83,6 +83,16 @@ const getStatusConfig = (status: string) => {
   }
 };
 
+const getHealthStatusColors = (healthStatus: Post["healthStatus"]) => {
+  switch (healthStatus) {
+    case "Healthy": return { backgroundColor: "#E8F5E9", color: "#2E7D32" };
+    case "Needs Care": return { backgroundColor: "#FFF3E0", color: "#E65100" };
+    case "Under Treatment": return { backgroundColor: "#E3F2FD", color: "#1565C0" };
+    case "Special Needs": return { backgroundColor: "#F3E5F5", color: "#7B1FA2" };
+    default: return { backgroundColor: "#F3F4F5", color: "#191C1D" };
+  }
+};
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function ViewAdoptionPost() {
@@ -99,7 +109,6 @@ export default function ViewAdoptionPost() {
   const [activeImage, setActiveImage] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [viewerVisible, setViewerVisible] = useState(false);
-  const heroListRef = useRef<FlatList<string>>(null);
 
   // ── Fetch post from backend with auto-reload on focus ─────────────────────
 
@@ -175,12 +184,13 @@ export default function ViewAdoptionPost() {
     (user._id === post.userId?._id || user._id === (post.userId as any));
 
   const statusCfg = getStatusConfig(post.status);
+  const healthColors = getHealthStatusColors(post.healthStatus);
 
   // ── Build info chips ──────────────────────────────────────────────────────
 
   const chips: { icon: keyof typeof MaterialIcons.glyphMap; label: string }[] = [
     { icon: post.gender === "Male" ? "male" : "female", label: post.gender },
-    ...(post.age ? [{ icon: "cake" as keyof typeof MaterialIcons.glyphMap, label: post.ageValue && post.ageUnit ? `${post.ageValue} ${post.ageUnit}` : post.age }] : []),
+    ...(post.age ? [{ icon: "cake" as keyof typeof MaterialIcons.glyphMap, label: post.age }] : []),
     { icon: "pets", label: post.category },
   ];
 
@@ -294,7 +304,6 @@ export default function ViewAdoptionPost() {
         {/* ── Hero Image & Back Button ── */}
         <View style={styles.heroWrapper}>
           <FlatList
-            ref={heroListRef}
             data={images}
             horizontal
             pagingEnabled
@@ -322,32 +331,6 @@ export default function ViewAdoptionPost() {
           )}
           <View style={styles.imageCounter}><Text style={styles.imageCounterText}>{activeImage + 1} / {images.length}</Text></View>
         </View>
-
-        {/* ── Thumbnail Strip ── */}
-        {images.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.thumbStrip}
-          >
-            {images.map((uri, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => { setActiveImage(index); heroListRef.current?.scrollToIndex({ index, animated: true }); }}
-                activeOpacity={0.8}
-              >
-                <Image
-                  source={{ uri }}
-                  style={[
-                    styles.thumb,
-                    index === activeImage && styles.thumbActive,
-                  ]}
-                  resizeMode="cover"
-                />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
 
         {/* ── Identity Card ── */}
         <View style={styles.identityCardWrapper}>
@@ -400,8 +383,8 @@ export default function ViewAdoptionPost() {
             {/* Health Status */}
             <View style={styles.healthStatusRow}>
               <Text style={styles.traitsHeading}>Health Status</Text>
-              <View style={styles.healthBadge}>
-                <Text style={styles.healthBadgeText}>{post.healthStatus}</Text>
+              <View style={[styles.healthBadge, { backgroundColor: healthColors.backgroundColor }]}>
+                <Text style={[styles.healthBadgeText, { color: healthColors.color }]}>{post.healthStatus}</Text>
               </View>
             </View>
 
@@ -569,7 +552,7 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   heroImage: { width: "100%", height: "100%" },
-  imageCounter: { position: "absolute", right: 14, bottom: 12, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.58)" },
+  imageCounter: { position: "absolute", right: 14, top: 54, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.68)" },
   imageCounterText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
   viewer: { flex: 1, backgroundColor: "#000000" },
   viewerImage: { width: "100%", height: "100%" },
@@ -601,7 +584,7 @@ const styles = StyleSheet.create({
   },
   dotsRow: {
     position: "absolute",
-    bottom: 12,
+    bottom: 48,
     left: 0,
     right: 0,
     flexDirection: "row",
@@ -616,22 +599,6 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: "rgba(255,255,255,0.7)",
   },
-
-  thumbStrip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  thumb: {
-    width: 56,
-    height: 56,
-    borderRadius: 10,
-    backgroundColor: "#F3F4F5",
-    marginRight: 8,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  thumbActive: { borderColor: "#F5A623" },
 
   identityCardWrapper: { paddingHorizontal: 16, marginTop: -36, zIndex: 10 },
   identityCard: {
@@ -713,17 +680,15 @@ const styles = StyleSheet.create({
   traitText: { fontSize: 12, fontWeight: "600", color: "#D48806" },
 
   healthStatusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 8,
   },
   healthBadge: {
-    backgroundColor: "#F3F4F5",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
-  healthBadgeText: { fontSize: 12, fontWeight: "600", color: "#191C1D" },
+  healthBadgeText: { fontSize: 12, fontWeight: "700" },
 
   locationInlineRow: {
     flexDirection: "row",

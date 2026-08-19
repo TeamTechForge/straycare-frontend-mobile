@@ -63,8 +63,6 @@ export interface Post {
   customCategory?: string;
   breed: string;
   age?: string;
-  ageValue?: number;
-  ageUnit?: "Months" | "Years";
   gender: string;
   name: string;
   status: "Available" | "Pending" | "Adopted";
@@ -73,6 +71,8 @@ export interface Post {
   traits: string[];
   images: string[];       // Cloudinary URLs
   location: string;
+  latitude?: number;
+  longitude?: number;
   posterName: string;
   contact: string;
   notes?: string;
@@ -85,9 +85,7 @@ export interface CreatePostPayload {
   category: string;
   customCategory?: string;
   breed: string;
-  age: string;
-  ageValue: number;
-  ageUnit: "Months" | "Years";
+  age?: string;
   gender: string;
   name: string;
   status: string;
@@ -96,6 +94,8 @@ export interface CreatePostPayload {
   traits: string[];
   images?: string[];
   location: string;
+  latitude?: number;
+  longitude?: number;
   posterName: string;
   contact: string;
   notes?: string;
