@@ -14,10 +14,13 @@ import {
 } from "react-native";
 import { getAllPosts, Post, toggleLikePost } from "../../services/adoptionService";
 import { useAuth } from "../../contexts/AuthContext";
+import PrimaryButton from "../../components/PrimaryButton";
 
 // ─── Filters ──────────────────────────────────────────────────────────────────
 
 const FILTERS = ["All", "Favorites", "Dogs", "Cats", "Rabbits", "Birds"];
+type AdvancedFilters = { animalType: string; gender: string; breed: string; age: string; ageUnit: "" | "Months" | "Years"; location: string };
+const EMPTY_FILTERS: AdvancedFilters = { animalType: "", gender: "", breed: "", age: "", ageUnit: "", location: "" };
 
 // ─── Pet Card ─────────────────────────────────────────────────────────────────
 
@@ -64,6 +67,8 @@ function PetCard({
         <Text style={styles.cardBreed} numberOfLines={1}>
           {item.breed}
         </Text>
+        {item.age ? <Text style={styles.cardAge}>{item.ageValue && item.ageUnit ? `${item.ageValue} ${item.ageUnit}` : item.age}</Text> : null}
+        <Text style={styles.cardDate}>{new Date(item.createdAt).toLocaleDateString()}</Text>
         <View style={styles.cardLocation}>
           <MaterialIcons name="location-on" size={13} color="#717878" />
           <Text style={styles.cardLocationText} numberOfLines={1}>
@@ -86,6 +91,9 @@ export default function AdoptionPostMain() {
   const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [activeFilter, setActiveFilter] = useState("All");
+  const [showFilters, setShowFilters] = useState(false);
+  const [draftFilters, setDraftFilters] = useState<AdvancedFilters>(EMPTY_FILTERS);
+  const [appliedFilters, setAppliedFilters] = useState<AdvancedFilters>(EMPTY_FILTERS);
 
   // ── Fetch posts from backend ──────────────────────────────────────────────
 
@@ -142,11 +150,12 @@ export default function AdoptionPostMain() {
   // ── Filter logic (uses category field from API) ───────────────────────────
 
   const filteredPosts = posts.filter((post) => {
+    const query = search.trim().toLowerCase();
     const matchesSearch =
-      search === "" ||
-      post.name.toLowerCase().includes(search.toLowerCase()) ||
-      post.breed.toLowerCase().includes(search.toLowerCase()) ||
-      post.location.toLowerCase().includes(search.toLowerCase());
+      query === "" ||
+      (post.name || "").toLowerCase().includes(query) ||
+      (post.breed || "").toLowerCase().includes(query) ||
+      (post.location || "").toLowerCase().includes(query);
 
     const matchesFilter =
       activeFilter === "All" ||
@@ -165,8 +174,26 @@ export default function AdoptionPostMain() {
               (post.customCategory.toLowerCase().includes("bird") ||
                 post.customCategory.toLowerCase().includes("parrot"))))));
 
-    return matchesSearch && matchesFilter;
+    const ageValue = post.ageValue ?? Number(post.age?.match(/\d+(?:\.\d+)?/)?.[0] || 0);
+    const ageUnit = post.ageUnit ?? (post.age?.toLowerCase().includes("year") ? "Years" : "Months");
+    const postAgeMonths = ageUnit === "Years" ? ageValue * 12 : ageValue;
+    const filterAgeMonths = appliedFilters.ageUnit === "Years" ? Number(appliedFilters.age) * 12 : Number(appliedFilters.age);
+    const matchesAdvanced =
+      (!appliedFilters.animalType || post.category === appliedFilters.animalType) &&
+      (!appliedFilters.gender || post.gender === appliedFilters.gender) &&
+      (!appliedFilters.breed || (post.breed || "").toLowerCase().includes(appliedFilters.breed.toLowerCase())) &&
+      (!appliedFilters.location || (post.location || "").toLowerCase().includes(appliedFilters.location.toLowerCase())) &&
+      (!appliedFilters.age || (postAgeMonths > 0 && postAgeMonths <= filterAgeMonths));
+
+    return matchesSearch && matchesFilter && matchesAdvanced;
   });
+
+  const filterOptions = {
+    animalType: Array.from(new Set(posts.map((post) => post.category).filter(Boolean))),
+    gender: Array.from(new Set(posts.map((post) => post.gender).filter(Boolean))),
+    breed: Array.from(new Set(posts.map((post) => post.breed).filter(Boolean))).sort(),
+  };
+  const hasAdvancedFilters = Object.values(appliedFilters).some(Boolean);
 
   // ── Loading state ─────────────────────────────────────────────────────────
 
@@ -236,7 +263,39 @@ export default function AdoptionPostMain() {
             onChangeText={setSearch}
           />
         </View>
+        <TouchableOpacity style={[styles.filterButton, (showFilters || hasAdvancedFilters) && styles.filterButtonActive]} onPress={() => setShowFilters((value) => !value)} accessibilityLabel="Open adoption filters">
+          <MaterialIcons name="tune" size={22} color={(showFilters || hasAdvancedFilters) ? "#FFFFFF" : "#D48806"} />
+        </TouchableOpacity>
       </View>
+
+      {showFilters && (
+        <View style={styles.filterPanel}>
+          {(["animalType", "gender", "breed"] as const).map((field) => (
+            <View key={field} style={styles.filterGroup}>
+              <Text style={styles.filterLabel}>{field === "animalType" ? "Animal type" : field[0].toUpperCase() + field.slice(1)}</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View style={styles.filterOptions}>
+                  {filterOptions[field].map((option) => (
+                    <TouchableOpacity key={option} style={[styles.filterOption, draftFilters[field] === option && styles.filterOptionActive]} onPress={() => setDraftFilters((current) => ({ ...current, [field]: current[field] === option ? "" : option }))}>
+                      <Text style={[styles.filterOptionText, draftFilters[field] === option && styles.filterOptionTextActive]}>{option}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </ScrollView>
+            </View>
+          ))}
+          <View style={styles.filterInputsRow}>
+            <TextInput style={styles.filterInput} placeholder="Maximum age" keyboardType="decimal-pad" value={draftFilters.age} onChangeText={(age) => setDraftFilters((current) => ({ ...current, age: age.replace(/[^0-9.]/g, "") }))} />
+            <TextInput style={styles.filterInput} placeholder="Location" value={draftFilters.location} onChangeText={(location) => setDraftFilters((current) => ({ ...current, location }))} />
+          </View>
+          <View style={styles.ageUnitFilters}>{(["Months", "Years"] as const).map((unit) => <TouchableOpacity key={unit} style={[styles.filterOption, draftFilters.ageUnit === unit && styles.filterOptionActive]} onPress={() => setDraftFilters((current) => ({ ...current, ageUnit: unit }))}><Text style={[styles.filterOptionText, draftFilters.ageUnit === unit && styles.filterOptionTextActive]}>{unit}</Text></TouchableOpacity>)}</View>
+          <Text style={styles.ageHint}>Choose an age unit when filtering by maximum age.</Text>
+          <View style={styles.filterActions}>
+            <View style={styles.filterAction}><PrimaryButton title="Clear" variant="outline" onPress={() => { setDraftFilters(EMPTY_FILTERS); setAppliedFilters(EMPTY_FILTERS); }} /></View>
+            <View style={styles.filterAction}><PrimaryButton title="Apply" disabled={Boolean(draftFilters.age && !draftFilters.ageUnit)} onPress={() => { setAppliedFilters(draftFilters); setShowFilters(false); }} /></View>
+          </View>
+        </View>
+      )}
 
       {/* ── Filter Chips ── */}
       <View style={styles.chipsScrollWrapper}>
@@ -400,6 +459,22 @@ const styles = StyleSheet.create({
     color: "#1a1c1c",
     paddingVertical: 14,
   },
+  filterButton: { width: 48, height: 48, borderRadius: 14, borderWidth: 1.5, borderColor: "#F5A623", alignItems: "center", justifyContent: "center", backgroundColor: "#FFF7E6" },
+  filterButtonActive: { backgroundColor: "#F5A623" },
+  filterPanel: { marginHorizontal: 20, marginBottom: 14, padding: 14, borderRadius: 16, backgroundColor: "#FFFFFF", borderWidth: 1, borderColor: "#E2E0D6", gap: 10 },
+  filterGroup: { gap: 6 },
+  filterLabel: { fontSize: 12, fontWeight: "700", color: "#191C1D" },
+  filterOptions: { flexDirection: "row", gap: 7 },
+  filterOption: { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 18, backgroundColor: "#F3F4F5" },
+  filterOptionActive: { backgroundColor: "#F5A623" },
+  filterOptionText: { fontSize: 12, color: "#717878" },
+  filterOptionTextActive: { color: "#FFFFFF", fontWeight: "700" },
+  filterInputsRow: { flexDirection: "row", gap: 8 },
+  filterInput: { flex: 1, minHeight: 44, borderWidth: 1, borderColor: "#E2E0D6", borderRadius: 10, paddingHorizontal: 12, color: "#191C1D" },
+  ageHint: { fontSize: 10, color: "#717878" },
+  ageUnitFilters: { flexDirection: "row", gap: 7 },
+  filterActions: { flexDirection: "row", gap: 8 },
+  filterAction: { flex: 1 },
 
   // Filter Chips
   chipsScrollWrapper: {
@@ -492,6 +567,8 @@ const styles = StyleSheet.create({
     color: "#414848",
     fontWeight: "400",
   },
+  cardAge: { fontSize: 12, color: "#D48806", fontWeight: "600", marginTop: 2 },
+  cardDate: { fontSize: 11, color: "#717878", marginTop: 2 },
   cardLocation: {
     flexDirection: "row",
     alignItems: "center",

@@ -132,7 +132,7 @@ export default function MyAdoptionPostsScreen() {
             <Text style={styles.breedText}>
               {item.breed}
               {item.customCategory ? ` (${item.customCategory})` : ""}
-              {item.age ? ` • ${item.age}` : ""}
+              {item.age ? ` • ${item.ageValue && item.ageUnit ? `${item.ageValue} ${item.ageUnit}` : item.age}` : ""}
               {item.gender ? ` • ${item.gender}` : ""}
             </Text>
 

@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,9 +15,9 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import PrimaryButton from "../../components/PrimaryButton";
 import ChatLocationPicker from "../../components/chat/ChatLocationPicker";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
-import PrimaryButton from "../../components/PrimaryButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { getReportByCaseId } from "../../api/strayApiService";
 import { createPost } from "../../services/adoptionService";
@@ -96,6 +98,7 @@ export default function CreateAdoptionPost() {
   const [otherBreed, setOtherBreed] = useState("");
   const [breedDropdownOpen, setBreedDropdownOpen] = useState(false);
   const [age, setAge] = useState("");
+  const [ageUnit, setAgeUnit] = useState<"Months" | "Years" | "">("");
   const [gender, setGender] = useState<Gender>("Male");
   const [genderDropdownOpen, setGenderDropdownOpen] = useState(false);
   const [name, setName] = useState("");
@@ -111,10 +114,8 @@ export default function CreateAdoptionPost() {
 
   // ── UI / Picker State ─────────────────────────────────────────────────────
   const [showLocationPicker, setShowLocationPicker] = useState(false);
-  const [selectedRegion, setSelectedRegion] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [descriptionHeight, setDescriptionHeight] = useState(110);
   const [errors, setErrors] = useState<Errors>({});
   const [errorMessage, setErrorMessage] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -224,11 +225,9 @@ export default function CreateAdoptionPost() {
 
     if (!name.trim()) newErrors.name = "Pet name is required.";
 
-    if (
-      age.trim() &&
-      !/^\d+(\s*(year|years|month|months|week|weeks))?$/i.test(age.trim())
-    ) {
-      newErrors.age = "Enter a valid age (e.g. 2 years, 6 months).";
+    const numericAge = Number(age);
+    if (!Number.isFinite(numericAge) || numericAge <= 0 || !ageUnit) {
+      newErrors.age = "Enter a positive age and select Months or Years.";
     }
 
     if (!description.trim()) {
@@ -269,6 +268,7 @@ export default function CreateAdoptionPost() {
 
   // ── Submit ────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
+    if (submitting) return;
     if (!validateForm()) return;
 
     try {
@@ -285,7 +285,9 @@ export default function CreateAdoptionPost() {
           category,
           customCategory: customCategory.trim() || undefined,
           breed: finalBreed,
-          age,
+          age: `${Number(age)} ${ageUnit}`,
+          ageValue: Number(age),
+          ageUnit: ageUnit as "Months" | "Years",
           gender,
           name: name.trim(),
           status,
@@ -303,8 +305,9 @@ export default function CreateAdoptionPost() {
       router.push(`/adoption-corner/AdoptionSubmitSuccess?postId=${post._id}`);
     } catch (err: any) {
       const msg =
-        err?.message ||
+        err?.response?.data?.error ||
         err?.response?.data?.message ||
+        err?.message ||
         "Could not submit your post. Please check your connection and try again.";
       setErrorMessage(msg);
       Alert.alert("Submission Failed", msg);
@@ -330,6 +333,7 @@ export default function CreateAdoptionPost() {
     errors[field] ? <Text style={s.fieldError}>{errors[field]}</Text> : null;
 
   return (
+    <KeyboardAvoidingView style={s.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <ScrollView
       style={s.container}
       showsVerticalScrollIndicator={false}
@@ -497,18 +501,26 @@ export default function CreateAdoptionPost() {
           </View>
 
           <View style={{ flex: 1, marginLeft: 12 }}>
-            <FieldLabel text="Age" />
+            <FieldLabel text="Age *" />
             <TextInput
               style={[s.input, errors.age && s.inputError]}
-              placeholder="e.g. 2 years (optional)"
+              placeholder="e.g. 6"
+              keyboardType="decimal-pad"
               placeholderTextColor={C.textPlaceholder}
               value={age}
               onChangeText={(v) => {
-                setAge(v);
-                if (v.trim())
+                setAge(v.replace(/[^0-9.]/g, ""));
+                if (Number(v) > 0 && ageUnit)
                   setErrors((prev) => ({ ...prev, age: undefined }));
               }}
             />
+            <View style={s.ageUnits}>
+              {(["Months", "Years"] as const).map((unit) => (
+                <TouchableOpacity key={unit} style={[s.ageUnit, ageUnit === unit && s.ageUnitActive]} onPress={() => { setAgeUnit(unit); if (Number(age) > 0) setErrors((prev) => ({ ...prev, age: undefined })); }}>
+                  <Text style={[s.ageUnitText, ageUnit === unit && s.ageUnitTextActive]}>{unit}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
             <FieldError field="age" />
           </View>
         </View>
@@ -682,10 +694,12 @@ export default function CreateAdoptionPost() {
         <View style={s.fieldGroup}>
           <FieldLabel text="Description *" />
           <TextInput
-            style={[s.input, s.textArea, errors.description && s.inputError]}
+            style={[s.input, s.textArea, { height: descriptionHeight }, errors.description && s.inputError]}
             placeholder="Describe your pet's personality, habits, and needs..."
             placeholderTextColor={C.textPlaceholder}
             multiline
+            scrollEnabled={descriptionHeight >= 180}
+            onContentSizeChange={(event) => setDescriptionHeight(Math.min(180, Math.max(110, event.nativeEvent.contentSize.height + 24)))}
             textAlignVertical="top"
             value={description}
             onChangeText={(v) => {
@@ -780,89 +794,30 @@ export default function CreateAdoptionPost() {
       {/* SECTION 4: Location */}
       <View style={s.card}>
         <Text style={s.sectionTitle}>Location</Text>
-
         <View style={s.fieldGroup}>
           <FieldLabel text="Adoption Location *" />
           <View style={s.inputIconWrapper}>
-            <Ionicons
-              name="location-outline"
-              size={18}
-              color={C.textSub}
-              style={s.inputIcon}
-            />
+            <Ionicons name="location-outline" size={18} color={C.textSub} style={s.inputIcon} />
             <TextInput
-              style={[
-                s.input,
-                s.inputWithIcon,
-                errors.location && s.inputError,
-              ]}
+              style={[s.input, s.inputWithIcon, errors.location && s.inputError]}
               placeholder="Search address or area"
               placeholderTextColor={C.textPlaceholder}
               value={location}
-              onChangeText={(v) => {
-                setLocation(v);
-                if (v.trim())
-                  setErrors((prev) => ({ ...prev, location: undefined }));
-              }}
+              onChangeText={(v) => { setLocation(v); if (v.trim()) setErrors((prev) => ({ ...prev, location: undefined })); }}
             />
           </View>
           <FieldError field="location" />
         </View>
-
-        {/* Map integration using ChatLocationPicker */}
-        <TouchableOpacity
-          style={s.mapBox}
-          onPress={() => setShowLocationPicker(true)}
-          activeOpacity={0.85}
-        >
+        <TouchableOpacity style={s.mapBox} onPress={() => setShowLocationPicker(true)} activeOpacity={0.85}>
           {selectedRegion ? (
-            <View
-              style={{
-                width: "100%",
-                height: 120,
-                borderRadius: 10,
-                overflow: "hidden",
-              }}
-            >
-              <MapViewWrapper
-                style={{ width: "100%", height: "100%" }}
-                region={{
-                  ...selectedRegion,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }}
-                scrollEnabled={false}
-                zoomEnabled={false}
-                pitchEnabled={false}
-                rotateEnabled={false}
-              >
+            <View style={{ width: "100%", height: 120, borderRadius: 10, overflow: "hidden" }}>
+              <MapViewWrapper style={{ width: "100%", height: "100%" }} region={{ ...selectedRegion, latitudeDelta: 0.01, longitudeDelta: 0.01 }} scrollEnabled={false} zoomEnabled={false} pitchEnabled={false} rotateEnabled={false}>
                 <Marker coordinate={selectedRegion} />
               </MapViewWrapper>
             </View>
-          ) : (
-            <>
-              <Ionicons
-                name="map-outline"
-                size={32}
-                color={C.textPlaceholder}
-              />
-              <Text style={s.mapText}>Tap to choose on map</Text>
-            </>
-          )}
+          ) : <><Ionicons name="map-outline" size={32} color={C.textPlaceholder} /><Text style={s.mapText}>Tap to choose on map</Text></>}
         </TouchableOpacity>
-
-        <ChatLocationPicker
-          visible={showLocationPicker}
-          onCancel={() => setShowLocationPicker(false)}
-          onSelect={({ address, latitude, longitude }) => {
-            if (address) {
-              setLocation(address);
-              setErrors((prev) => ({ ...prev, location: undefined }));
-            }
-            setSelectedRegion({ latitude, longitude });
-            setShowLocationPicker(false);
-          }}
-        />
+        <ChatLocationPicker visible={showLocationPicker} onCancel={() => setShowLocationPicker(false)} onSelect={({ address, latitude, longitude }) => { if (address) { setLocation(address); setErrors((prev) => ({ ...prev, location: undefined })); } setSelectedRegion({ latitude, longitude }); setShowLocationPicker(false); }} />
       </View>
 
       {/* SECTION 5: Action Buttons */}
@@ -887,6 +842,7 @@ export default function CreateAdoptionPost() {
       {/* Bottom spacer */}
       <View style={{ height: 40 }} />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1042,9 +998,15 @@ const s = StyleSheet.create({
     fontSize: 14,
   },
   textArea: {
-    height: 110,
+    minHeight: 110,
+    maxHeight: 180,
     paddingTop: 13,
   },
+  ageUnits: { flexDirection: "row", gap: 6, marginTop: 6 },
+  ageUnit: { flex: 1, paddingVertical: 7, borderRadius: 8, alignItems: "center", backgroundColor: C.surfaceLow, borderWidth: 1, borderColor: C.outline },
+  ageUnitActive: { backgroundColor: C.primaryContainer, borderColor: C.primary },
+  ageUnitText: { fontSize: 11, color: C.textSub, fontWeight: "600" },
+  ageUnitTextActive: { color: C.onPrimaryContainer },
 
   inputIconWrapper: {
     position: "relative",

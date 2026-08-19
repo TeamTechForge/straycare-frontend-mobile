@@ -10,7 +10,7 @@ import { Platform } from 'react-native';
  * 3. Hardcoded fallback IP
  */
 
-const FALLBACK_IP = '192.168.8.121';
+const FALLBACK_IP = '192.168.1.7';
 const BACKEND_PORT = 5000;
 
 function resolveBaseUrl(): string {

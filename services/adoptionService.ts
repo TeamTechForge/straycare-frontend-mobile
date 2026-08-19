@@ -63,6 +63,8 @@ export interface Post {
   customCategory?: string;
   breed: string;
   age?: string;
+  ageValue?: number;
+  ageUnit?: "Months" | "Years";
   gender: string;
   name: string;
   status: "Available" | "Pending" | "Adopted";
@@ -83,7 +85,9 @@ export interface CreatePostPayload {
   category: string;
   customCategory?: string;
   breed: string;
-  age?: string;
+  age: string;
+  ageValue: number;
+  ageUnit: "Months" | "Years";
   gender: string;
   name: string;
   status: string;

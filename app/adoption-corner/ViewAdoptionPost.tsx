@@ -1,11 +1,15 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
+  Dimensions,
+  FlatList,
   Image,
   Linking,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -13,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { getPostById, Post } from "../../services/adoptionService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useCall } from "../../contexts/CallContext";
@@ -93,6 +98,8 @@ export default function ViewAdoptionPost() {
   const [error, setError] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [viewerVisible, setViewerVisible] = useState(false);
+  const heroListRef = useRef<FlatList<string>>(null);
 
   // ── Fetch post from backend with auto-reload on focus ─────────────────────
 
@@ -127,6 +134,15 @@ export default function ViewAdoptionPost() {
       fetchPost();
     }, [fetchPost])
   );
+
+  useEffect(() => {
+    if (!viewerVisible) return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      setViewerVisible(false);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [viewerVisible]);
 
   // ── Loading state ─────────────────────────────────────────────────────────
 
@@ -164,7 +180,7 @@ export default function ViewAdoptionPost() {
 
   const chips: { icon: keyof typeof MaterialIcons.glyphMap; label: string }[] = [
     { icon: post.gender === "Male" ? "male" : "female", label: post.gender },
-    ...(post.age ? [{ icon: "cake" as keyof typeof MaterialIcons.glyphMap, label: post.age }] : []),
+    ...(post.age ? [{ icon: "cake" as keyof typeof MaterialIcons.glyphMap, label: post.ageValue && post.ageUnit ? `${post.ageValue} ${post.ageUnit}` : post.age }] : []),
     { icon: "pets", label: post.category },
   ];
 
@@ -277,10 +293,19 @@ export default function ViewAdoptionPost() {
       >
         {/* ── Hero Image & Back Button ── */}
         <View style={styles.heroWrapper}>
-          <Image
-            source={{ uri: images[activeImage] }}
-            style={styles.heroImage}
-            resizeMode="cover"
+          <FlatList
+            ref={heroListRef}
+            data={images}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(uri, index) => `${uri}-${index}`}
+            onMomentumScrollEnd={(event) => setActiveImage(Math.round(event.nativeEvent.contentOffset.x / Dimensions.get("window").width))}
+            renderItem={({ item }) => (
+              <TouchableOpacity activeOpacity={0.95} onPress={() => setViewerVisible(true)}>
+                <Image source={{ uri: item }} style={[styles.heroImage, { width: Dimensions.get("window").width }]} resizeMode="cover" />
+              </TouchableOpacity>
+            )}
           />
           <View style={styles.heroScrim} />
 
@@ -295,6 +320,7 @@ export default function ViewAdoptionPost() {
           {images.length > 1 && (
             <PagingDots total={images.length} active={activeImage} />
           )}
+          <View style={styles.imageCounter}><Text style={styles.imageCounterText}>{activeImage + 1} / {images.length}</Text></View>
         </View>
 
         {/* ── Thumbnail Strip ── */}
@@ -307,7 +333,7 @@ export default function ViewAdoptionPost() {
             {images.map((uri, index) => (
               <TouchableOpacity
                 key={index}
-                onPress={() => setActiveImage(index)}
+                onPress={() => { setActiveImage(index); heroListRef.current?.scrollToIndex({ index, animated: true }); }}
                 activeOpacity={0.8}
               >
                 <Image
@@ -333,6 +359,7 @@ export default function ViewAdoptionPost() {
                   {post.breed}
                   {post.customCategory ? ` (${post.customCategory})` : ""}
                 </Text>
+                <Text style={styles.postDate}>Posted {new Date(post.createdAt).toLocaleDateString()}</Text>
               </View>
               <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
                 <MaterialIcons name={statusCfg.icon} size={14} color={statusCfg.color} />
@@ -488,6 +515,23 @@ export default function ViewAdoptionPost() {
           }}
         />
       )}
+      <Modal visible={viewerVisible} animationType="fade" onRequestClose={() => setViewerVisible(false)} statusBarTranslucent>
+        <SafeAreaView style={styles.viewer} edges={["top", "bottom"]}>
+          <FlatList
+            data={images}
+            horizontal
+            pagingEnabled
+            initialScrollIndex={activeImage}
+            getItemLayout={(_, index) => ({ length: Dimensions.get("window").width, offset: Dimensions.get("window").width * index, index })}
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(uri, index) => `viewer-${uri}-${index}`}
+            onMomentumScrollEnd={(event) => setActiveImage(Math.round(event.nativeEvent.contentOffset.x / Dimensions.get("window").width))}
+            renderItem={({ item }) => <View style={{ width: Dimensions.get("window").width, flex: 1, justifyContent: "center" }}><Image source={{ uri: item }} style={styles.viewerImage} resizeMode="contain" /></View>}
+          />
+          <TouchableOpacity style={styles.viewerClose} onPress={() => setViewerVisible(false)} accessibilityLabel="Close image viewer"><Ionicons name="close" size={28} color="#FFFFFF" /></TouchableOpacity>
+          <Text style={styles.viewerCounter}>{activeImage + 1} / {images.length}</Text>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
@@ -525,6 +569,12 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   heroImage: { width: "100%", height: "100%" },
+  imageCounter: { position: "absolute", right: 14, bottom: 12, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.58)" },
+  imageCounterText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  viewer: { flex: 1, backgroundColor: "#000000" },
+  viewerImage: { width: "100%", height: "100%" },
+  viewerClose: { position: "absolute", top: 16, right: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(40,40,40,0.75)", alignItems: "center", justifyContent: "center" },
+  viewerCounter: { position: "absolute", bottom: 24, alignSelf: "center", color: "#FFFFFF", fontSize: 14, fontWeight: "700", backgroundColor: "rgba(40,40,40,0.75)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
   heroScrim: {
     position: "absolute",
     top: 0,
@@ -602,6 +652,7 @@ const styles = StyleSheet.create({
   },
   petName: { fontSize: 22, fontWeight: "700", color: "#191C1D" },
   petBreed: { fontSize: 14, color: "#717878", marginTop: 2 },
+  postDate: { fontSize: 12, color: "#717878", marginTop: 4 },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
