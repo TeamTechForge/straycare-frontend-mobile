@@ -3,12 +3,12 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
@@ -167,6 +167,7 @@ export default function RescueDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const idValue = id ?? "";
+  const insets = useSafeAreaInsets();
   const { user, token } = useAuth();
   const { startCall } = useCall();
   
@@ -381,8 +382,14 @@ export default function RescueDetailsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <ScrollView 
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: ((!details?.status || details?.status === "pending" || details?.status === "Needs Help") ? 110 : 40) + insets.bottom }
+        ]} 
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── Custom Header Row ── */}
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} style={{ marginRight: spacing.md }} />
@@ -584,32 +591,58 @@ export default function RescueDetailsScreen() {
 
           {/* Reporter row */}
           <View style={styles.profileSection}>
-            {(details.reporter?.avatar || details.reporterAvatar) ? (
-              <Image
-                source={{ uri: resolvePhotoUrl(details.reporter?.avatar || details.reporterAvatar) }}
-                style={styles.avatarImage}
-              />
-            ) : (
-              <View style={styles.avatarInitials}>
-                <Text style={styles.avatarInitialsText}>{getInitial(details.reporterName || details.reporter?.name)}</Text>
-              </View>
-            )}
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{details.reporterName || details.reporter?.name || "Reporter"}</Text>
-              <Text style={styles.profileRole}>Case Reporter</Text>
-              {(details.reporter?.phone || details.reporterPhone) ? (
-                <Text style={styles.profilePhone}>{details.reporter?.phone || details.reporterPhone}</Text>
-              ) : null}
-            </View>
-            {(details.reporter?.phone || details.reporterPhone) ? (
-              <TouchableOpacity
-                style={styles.callIconBtn}
-                activeOpacity={0.8}
-                onPress={() => handleCall(details.reporter?.phone || details.reporterPhone, details.reporterName || details.reporter?.name)}
-              >
-                <Text style={styles.callIconText}>📞</Text>
-              </TouchableOpacity>
-            ) : null}
+            {(() => {
+              const isAnonymous = details.reporterName === "Anonymous Reporter" || details.anonymous;
+              const fullCaseId = (details.caseId || idValue || 'Anon').toString();
+              const displayCaseId = fullCaseId.slice(-4);
+              
+              const uiDisplayName = isAnonymous 
+                ? `Anonymous Reporter (${fullCaseId})` 
+                : (details.reporterName || details.reporter?.name || "Reporter");
+
+              const callDisplayName = isAnonymous 
+                ? uiDisplayName 
+                : uiDisplayName;
+              
+              const displayAvatar = isAnonymous 
+                ? "https://ui-avatars.com/api/?name=Anonymous+Reporter&background=FEB94B&color=fff"
+                : (details.reporter?.avatar || details.reporterAvatar);
+                
+              const displayPhone = isAnonymous 
+                ? null 
+                : (details.reporter?.phone || details.reporterPhone);
+
+              return (
+                <>
+                  {displayAvatar ? (
+                    <Image
+                      source={{ uri: resolvePhotoUrl(displayAvatar) }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <View style={styles.avatarInitials}>
+                      <Text style={styles.avatarInitialsText}>{getInitial(uiDisplayName)}</Text>
+                    </View>
+                  )}
+                  <View style={styles.profileInfo}>
+                    <Text style={styles.profileName}>{uiDisplayName}</Text>
+                    <Text style={styles.profileRole}>Case Reporter</Text>
+                    {displayPhone ? (
+                      <Text style={styles.profilePhone}>{displayPhone}</Text>
+                    ) : null}
+                  </View>
+                  {(details.reporter?.id || details.userId || details.reporterUserId) ? (
+                    <TouchableOpacity
+                      style={styles.callIconBtn}
+                      activeOpacity={0.8}
+                      onPress={() => handleCall(details.reporter?.id || details.userId || details.reporterUserId, callDisplayName, displayAvatar)}
+                    >
+                      <Text style={styles.callIconText}>📞</Text>
+                    </TouchableOpacity>
+                  ) : null}
+                </>
+              );
+            })()}
           </View>
 
           {/* Rescuer row */}
@@ -670,7 +703,7 @@ export default function RescueDetailsScreen() {
 
       {/* ── Fixed Bottom Action Bar at bottom of page to Accept or Reject ── */}
       {(!details?.status || details?.status === "pending" || details?.status === "Needs Help") && (
-        <View style={styles.actionBar}>
+        <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, 20) + 10, paddingTop: 16 }]}>
           <TouchableOpacity
             style={[styles.actionBtn, styles.rejectButton, responding && { opacity: 0.6 }]}
             onPress={() => respondToRequest("reject")}

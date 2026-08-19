@@ -168,17 +168,14 @@ export default function RescuerResponseScreen() {
 
     const isAnonymous = caseDetails?.reporterName === "Anonymous Reporter" || caseDetails?.anonymous;
     const caseMongoId = caseDetails?.rescueRequestId;
-    let displayCaseId = caseDetails?.caseId || caseMongoId?.toString().slice(-4) || 'Anon';
-    if (displayCaseId.length === 24) {
-      displayCaseId = displayCaseId.slice(-4);
-    }
+    let fullCaseId = caseDetails?.caseId || caseMongoId?.toString() || 'Anon';
 
     const reporterName = isAnonymous
-      ? `Case Chat (${displayCaseId})`
+      ? `Anonymous Reporter (${fullCaseId})`
       : (caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter");
 
     const reporterAvatar = isAnonymous
-      ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff"
+      ? "https://ui-avatars.com/api/?name=Anonymous+Reporter&background=FEB94B&color=fff"
       : (caseDetails?.reporter?.avatar || caseDetails?.reporterAvatar || DEFAULT_AVATAR);
 
     console.log(`[RescuerResponse] Initiating in-app voice call to reporter: ${reporterName} (${reporterUserId})`);
@@ -213,17 +210,14 @@ export default function RescuerResponseScreen() {
         (p: any) => p._id !== user?._id
       );
 
-      let displayCaseId = caseDetails?.caseId || caseMongoId?.toString().slice(-4) || 'Anon';
-      if (displayCaseId.length === 24) {
-        displayCaseId = displayCaseId.slice(-4);
-      }
+      let fullCaseId = caseDetails?.caseId || caseMongoId?.toString() || 'Anon';
 
       const reporterName = isAnonymous
-        ? `Case Chat (${displayCaseId})`
+        ? `Anonymous Reporter (${fullCaseId})`
         : (otherParticipant?.name || caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter");
 
       const reporterImage = isAnonymous
-        ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff"
+        ? "https://ui-avatars.com/api/?name=Anonymous+Reporter&background=FEB94B&color=fff"
         : (otherParticipant?.profileImage || caseDetails?.reporter?.avatar || caseDetails?.reporterAvatar || "");
 
       router.push({

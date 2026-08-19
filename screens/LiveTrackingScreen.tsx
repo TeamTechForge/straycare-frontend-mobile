@@ -13,6 +13,7 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import MapViewWrapper, { Marker } from "../components/MapViewWrapper";
 import AppButton from "../components/ui/AppButton";
 import PrimaryButton from "../components/PrimaryButton";
+import BackButton from "../components/BackButton";
 import { colors } from "../constants/colors.constants";
 import { spacing } from "../constants/spacing.constants";
 import { useAuth } from "../contexts/AuthContext";
@@ -214,11 +215,11 @@ export default function LiveTrackingScreen() {
     }
 
     const calleeName = isAnonymous 
-      ? `Case Chat (${displayCaseId})` 
-      : (otherParty.name || (otherParty.role === "rescuer" ? "Rescuer" : "Reporter"));
+      ? `Anonymous Reporter (${displayCaseId})` 
+      : ((tracking?.case as any)?.reporter?.name || (tracking?.case as any)?.reporterName || "Reporter");
       
     const calleeAvatar = isAnonymous 
-      ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff" 
+      ? "https://ui-avatars.com/api/?name=Anonymous+Reporter&background=FEB94B&color=fff" 
       : (otherParty.avatar || undefined);
 
     startCall(String(otherParty.id), calleeName, calleeAvatar);
@@ -243,7 +244,7 @@ export default function LiveTrackingScreen() {
 
     setLoading(true);
     try {
-      const isAnonymous = tracking?.case?.reporterName === "Anonymous Reporter";
+      const isAnonymous = (tracking?.case as any)?.reporterName === "Anonymous Reporter";
       const conversationType = isAnonymous ? "rescue" : "direct";
       const caseId = tracking?.case?.caseId;
       const caseMongoId = tracking?.case?.rescueRequestId;
@@ -266,9 +267,9 @@ export default function LiveTrackingScreen() {
         pathname: "/chat/[conversationId]",
         params: {
           conversationId: conversation._id,
-          recipientName: isAnonymous ? `Case Chat (${displayCaseId})` : (otherParticipant?.name || otherParty.name || "Chat"),
+          recipientName: isAnonymous ? `Anonymous Reporter (${displayCaseId})` : (otherParticipant?.name || otherParty.name || "Chat"),
           recipientId: String(otherParty.id),
-          recipientImage: isAnonymous ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff" : (otherParticipant?.profileImage || otherParty.avatar || ""),
+          recipientImage: isAnonymous ? "https://ui-avatars.com/api/?name=Anonymous+Reporter&background=FEB94B&color=fff" : (otherParticipant?.profileImage || otherParty.avatar || ""),
         },
       });
     } catch (chatError: any) {
@@ -307,12 +308,7 @@ export default function LiveTrackingScreen() {
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.page} showsVerticalScrollIndicator={false}>
         <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12 }}>
-          <TouchableOpacity 
-            style={{ padding: 8, backgroundColor: "#F3F4F6", borderRadius: 8, marginRight: 12 }} 
-            onPress={() => router.back()}
-          >
-            <Text style={{ fontSize: 20, color: "#111827" }}>←</Text>
-          </TouchableOpacity>
+          <BackButton onPress={() => router.back()} style={{ marginRight: 12 }} />
           <View>
             <Text style={[styles.title, { marginBottom: 0 }]}>Live Tracking</Text>
             <Text style={styles.subtitle}>Rescue request #{requestIdValue || "—"}</Text>
