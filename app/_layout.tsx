@@ -65,7 +65,10 @@ function InitialLayout() {
             router.replace("/auth/RoleSelection");
           }
         } else {
-          if (user.role === "ngo" && segments[1] !== "NgoProfileSetup") {
+          // If they explicitly navigate back to RoleSelection or RescuerTypeSelection to change their role, allow it
+          if (onRoleSelection) {
+            // Do nothing, let them stay on the selection screen
+          } else if (user.role === "ngo" && segments[1] !== "NgoProfileSetup") {
             router.replace("/auth/NgoProfileSetup");
           } else if (user.role === "vet" && segments[1] !== "VetProfileSetup") {
             router.replace("/auth/VetProfileSetup");

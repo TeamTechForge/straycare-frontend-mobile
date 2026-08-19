@@ -17,7 +17,7 @@ import * as ImagePicker from "expo-image-picker";
 import * as Location from "expo-location";
 
 import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
-
+import BackButton from "../../components/BackButton";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
@@ -221,6 +221,7 @@ export default function VolunteerProfileSetupScreen() {
         },
         body: JSON.stringify({
           name,
+          phone,
           location,
           bio,
           profileImage: uploadedImageUrl,
@@ -246,9 +247,7 @@ export default function VolunteerProfileSetupScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#000" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.replace("/auth/RescuerTypeSelection")} />
 
         <Text style={styles.headerTitle}>Volunteer{"\n"}Profile Setup</Text>
       </View>

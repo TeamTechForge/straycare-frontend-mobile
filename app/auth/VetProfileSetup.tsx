@@ -17,6 +17,7 @@ import * as Location from "expo-location";
 import * as DocumentPicker from "expo-document-picker";
 
 import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
+import BackButton from "../../components/BackButton";
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
@@ -339,6 +340,8 @@ export default function VetProfileSetupScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          name,
+          phone,
           primaryLocation,
           bio: shortBio,
           clinicName,
@@ -375,9 +378,7 @@ export default function VetProfileSetupScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#000" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.replace("/auth/RescuerTypeSelection")} />
 
         <Text style={styles.headerTitle}>Veterinarian Profile Setup</Text>
 

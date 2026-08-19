@@ -19,6 +19,7 @@ import * as DocumentPicker from "expo-document-picker";
 
 import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
 
+import BackButton from "../../components/BackButton";
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
@@ -282,6 +283,7 @@ export default function NgoProfileSetupScreen() {
           contactPerson,
           regNumber,
           foundedYear: year,
+          phone,
           location,
           bio,
           profileImage: uploadedImageUrl,
@@ -315,9 +317,7 @@ export default function NgoProfileSetupScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#000" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.replace("/auth/RescuerTypeSelection")} />
 
         <Text style={styles.headerTitle}>NGO{"\n"}Profile Setup</Text>
 
