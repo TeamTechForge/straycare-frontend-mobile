@@ -12,6 +12,7 @@ import {
   View,
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 
 export default function UploadPhotos() {
   const router = useRouter();
@@ -116,7 +117,13 @@ export default function UploadPhotos() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <Text style={styles.header}>Upload Photos</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+          <BackButton onPress={() => router.back()} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.header, { marginBottom: 0, paddingTop: 0, textAlign: 'center' }]}>Upload Photos</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
         <Text style={styles.photoLabel}>
           Report Photos <Text style={styles.requiredMark}>*</Text>
         </Text>

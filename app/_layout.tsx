@@ -437,20 +437,41 @@ export default function RootLayout() {
   // Set global default font once fonts are loaded
   useEffect(() => {
     if (fontsLoaded) {
-      const oldTextRender = (Text as any).render;
-      (Text as any).render = function (...args: any) {
-        const origin = oldTextRender.call(this, ...args);
-        return React.cloneElement(origin, {
-          style: [{ fontFamily: "Inter-Regular" }, origin.props.style],
-        });
-      };
-      const oldTextInputRender = (TextInput as any).render;
-      (TextInput as any).render = function (...args: any) {
-        const origin = oldTextInputRender.call(this, ...args);
-        return React.cloneElement(origin, {
-          style: [{ fontFamily: "Inter-Regular" }, origin.props.style],
-        });
-      };
+      const customTextProps = { style: { fontFamily: "Inter-Regular" } };
+
+      // For older RN / React versions
+      if ((Text as any).render) {
+        const oldTextRender = (Text as any).render;
+        (Text as any).render = function (...args: any) {
+          const origin = oldTextRender.call(this, ...args);
+          return React.cloneElement(origin, {
+            style: [{ fontFamily: "Inter-Regular" }, origin.props.style],
+          });
+        };
+      } else {
+        // For React Native 0.74+ / React 19
+        (Text as any).defaultProps = (Text as any).defaultProps || {};
+        (Text as any).defaultProps.style = [
+          (Text as any).defaultProps.style,
+          { fontFamily: "Inter-Regular" },
+        ];
+      }
+
+      if ((TextInput as any).render) {
+        const oldTextInputRender = (TextInput as any).render;
+        (TextInput as any).render = function (...args: any) {
+          const origin = oldTextInputRender.call(this, ...args);
+          return React.cloneElement(origin, {
+            style: [{ fontFamily: "Inter-Regular" }, origin.props.style],
+          });
+        };
+      } else {
+        (TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
+        (TextInput as any).defaultProps.style = [
+          (TextInput as any).defaultProps.style,
+          { fontFamily: "Inter-Regular" },
+        ];
+      }
     }
   }, [fontsLoaded]);
 

@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 type MapRegion = {
   latitude: number;
@@ -185,6 +187,10 @@ export default function LocationPicker() {
       <MapViewWrapper style={styles.map} region={region}>
         <Marker coordinate={region} draggable onDragEnd={onMarkerDragEnd} />
       </MapViewWrapper>
+
+      <SafeAreaView style={{ position: "absolute", top: 0, left: 0, right: 0, paddingHorizontal: 16, paddingTop: 16 }} pointerEvents="box-none">
+        <BackButton onPress={() => router.back()} style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 }} />
+      </SafeAreaView>
 
       <View style={[styles.addressBox, locationError && styles.errorBorder]}>
         <Text style={styles.label}>

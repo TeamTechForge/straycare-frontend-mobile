@@ -41,8 +41,8 @@ export default function ResetPasswordScreen() {
     if (!newPassword.trim()) {
       newErrors.newPassword = "New password is required";
       valid = false;
-    } else if (newPassword.length < 8) {
-      newErrors.newPassword = "Password must be at least 8 characters";
+    } else if (newPassword.length < 6) {
+      newErrors.newPassword = "Password must be at least 6 characters";
       valid = false;
     }
 
@@ -128,14 +128,14 @@ export default function ResetPasswordScreen() {
 
       <Text style={styles.label}>New Password</Text>
       <InputField
-        placeholder="At least 8 characters"
+        placeholder="At least 6 characters"
         value={newPassword}
         onChangeText={setNewPassword}
         secure
         error={errors.newPassword}
       />
 
-      <Text style={styles.helper}>ⓘ Minimum 8 characters, including a number.</Text>
+      <Text style={styles.helper}>ⓘ Minimum 6 characters.</Text>
 
       <Text style={styles.label}>Confirm New Password</Text>
       <InputField

@@ -103,7 +103,6 @@ export default function SettingsScreen() {
         />
       </View>
 
-      {/* 
       <Text style={styles.sectionTitle}>APP PREFERENCES</Text>
       <View style={styles.card}>
         <SettingsRow
@@ -114,7 +113,6 @@ export default function SettingsScreen() {
           onSwitchChange={handlePushToggle}
         />
       </View>
-      */}
 
       <Text style={styles.sectionTitle}>SUPPORT & INFORMATION</Text>
       <View style={styles.card}>

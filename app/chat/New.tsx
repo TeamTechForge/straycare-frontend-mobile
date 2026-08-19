@@ -176,7 +176,7 @@ export default function NewChatScreen() {
       <View style={styles.searchBox}>
         <Feather name="search" size={18} color="#555" />
         <TextInput
-          placeholder="Search by name or email..."
+          placeholder="Search by name..."
           value={search}
           onChangeText={setSearch}
           style={styles.searchInput}
@@ -212,7 +212,7 @@ export default function NewChatScreen() {
         /* INITIAL STATE */
         <View style={styles.emptyContainer}>
           <Ionicons name="search-outline" size={36} color="#9CA3AF" style={{ marginBottom: 12 }} />
-          <Text style={styles.emptyText}>Type a name or email to search registered users.</Text>
+          <Text style={styles.emptyText}>Type a name to search registered users.</Text>
         </View>
       ) : (
         <FlatList
