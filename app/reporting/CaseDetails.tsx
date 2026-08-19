@@ -14,6 +14,7 @@ import {
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { getReportByCaseId, updateCaseStatus } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { API_URL } from "../../constants/config.constants";
 import axios from "axios";
@@ -250,7 +251,12 @@ export default function CaseDetailsScreen() {
         </View>
       )}
 
-      <Text style={styles.caseId}>Case ID: {report.caseId}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12, justifyContent: "center" }}>
+        <View style={{ position: "absolute", left: 0, zIndex: 1 }}>
+          <BackButton onPress={() => router.back()} />
+        </View>
+        <Text style={[styles.caseId, { marginBottom: 0, textAlign: "center" }]}>Case ID: {report.caseId}</Text>
+      </View>
 
       <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
         <Text style={[styles.statusText, { color: getStatusTextColor(report.status) }]}>

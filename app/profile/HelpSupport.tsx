@@ -42,11 +42,11 @@ const HELP_TOPICS = [
   },
   {
     title: "How rescue status updates work",
-    content: "When a rescuer accepts your report, its status changes to 'In Progress'. Once rescued and treated, the status will be marked as 'Resolved'.",
+    content: "When a rescuer accepts your report, its status changes to 'Accepted'. Once rescued and treated, the status will be marked as 'Completed'.",
   },
   {
     title: "How adoption requests work",
-    content: "Browse animals available for adoption. When you submit a request, the shelter will review it and contact you for the next steps.",
+    content: "Browse animals available for adoption and contact the owner directly to express your interest.",
   },
   {
     title: "How donations are tracked",

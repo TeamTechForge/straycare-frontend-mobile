@@ -11,6 +11,7 @@ import {
   Text,
   View,
 } from "react-native";
+import BackButton from "../../components/BackButton";
 
 const { width } = Dimensions.get("window");
 
@@ -25,15 +26,7 @@ export default function LostAndFoundScreen() {
       {/* Header */}
       <View style={styles.header}>
         {/* Back Button */}
-        <Pressable
-          onPress={() => router.replace('/(tabs)/Home')}
-          style={({ pressed }) => [
-            styles.backButton,
-            pressed && styles.backButtonPressed,
-          ]}
-        >
-          <Ionicons name="chevron-back" size={24} color="#0f3a3a" />
-        </Pressable>
+        <BackButton onPress={() => router.replace('/(tabs)/Home')} />
 
         {/* PLUS BUTTON (NEW) */}
         <Pressable

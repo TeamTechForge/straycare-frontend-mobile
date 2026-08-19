@@ -1,10 +1,14 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
+
 export default function TermsPrivacyScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
+  const isFromRegister = Object.keys(params).length > 0;
 
   const handleAgree = () => {
     // go back to signup with param and restore typed values
@@ -18,8 +22,12 @@ export default function TermsPrivacyScreen() {
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.header}>Terms & Privacy Policy</Text>
+    <SafeAreaView style={styles.container}>
+      <View style={styles.headerContainer}>
+        <BackButton onPress={() => router.back()} />
+        <Text style={styles.header}>Terms & Privacy Policy</Text>
+        <View style={{ width: 40 }} />
+      </View>
 
       <ScrollView showsVerticalScrollIndicator={false}>
         {/* Section */}
@@ -80,11 +88,13 @@ export default function TermsPrivacyScreen() {
         </View>
       </ScrollView>
 
-      <PrimaryButton
-        title="I Agree and Continue"
-        onPress={handleAgree}
-      />
-    </View>
+      {isFromRegister && (
+        <PrimaryButton
+          title="I Agree and Continue"
+          onPress={handleAgree}
+        />
+      )}
+    </SafeAreaView>
   );
 }
 
@@ -92,14 +102,18 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    padding: 16,
-    paddingTop: 45,
+    paddingHorizontal: 16,
+  },
+  headerContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 18,
+    marginTop: 10,
   },
   header: {
     fontSize: 18,
     fontWeight: "bold",
-    textAlign: "center",
-    marginBottom: 18,
   },
   card: {
     backgroundColor: "#f5f5f5",
@@ -116,5 +130,4 @@ const styles = StyleSheet.create({
     fontSize: 13,
     color: "#333",
   },
-
 });

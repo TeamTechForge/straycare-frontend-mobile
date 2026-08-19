@@ -3,7 +3,6 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Linking,
   Modal,
   Platform,
   SafeAreaView,
@@ -45,11 +44,6 @@ const resolvePhotoUrl = (url: string | undefined): string => {
   }
   const cleanUrl = url.startsWith("/") ? url : `/${url}`;
   return `${API_URL}${cleanUrl}`;
-};
-
-const getInitial = (name?: string): string => {
-  if (!name || name.trim().length === 0) return "U";
-  return name.trim().charAt(0).toUpperCase();
 };
 
 const timeAgo = (timestamp?: string): string => {
@@ -306,17 +300,14 @@ export default function RescuerResponseScreen() {
 
     const isAnonymous = caseDetails?.reporterName === "Anonymous Reporter" || caseDetails?.anonymous;
     const caseMongoId = caseDetails?.rescueRequestId;
-    let displayCaseId = caseDetails?.caseId || caseMongoId?.toString().slice(-4) || 'Anon';
-    if (displayCaseId.length === 24) {
-      displayCaseId = displayCaseId.slice(-4);
-    }
+    let fullCaseId = caseDetails?.caseId || caseMongoId?.toString() || 'Anon';
 
     const reporterName = isAnonymous
-      ? `Case Chat (${displayCaseId})`
+      ? `Anonymous Reporter (${fullCaseId})`
       : (caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter");
 
     const reporterAvatar = isAnonymous
-      ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff"
+      ? "https://ui-avatars.com/api/?name=Anonymous+Reporter&background=FEB94B&color=fff"
       : (caseDetails?.reporter?.avatar || caseDetails?.reporterAvatar || DEFAULT_AVATAR);
 
     console.log(`[RescuerResponse] Initiating in-app voice call to reporter: ${reporterName} (${reporterUserId})`);
@@ -351,17 +342,14 @@ export default function RescuerResponseScreen() {
         (p: any) => p._id !== user?._id
       );
 
-      let displayCaseId = caseDetails?.caseId || caseMongoId?.toString().slice(-4) || 'Anon';
-      if (displayCaseId.length === 24) {
-        displayCaseId = displayCaseId.slice(-4);
-      }
+      let fullCaseId = caseDetails?.caseId || caseMongoId?.toString() || 'Anon';
 
       const reporterName = isAnonymous
-        ? `Case Chat (${displayCaseId})`
+        ? `Anonymous Reporter (${fullCaseId})`
         : (otherParticipant?.name || caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter");
 
       const reporterImage = isAnonymous
-        ? "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff"
+        ? "https://ui-avatars.com/api/?name=Anonymous+Reporter&background=FEB94B&color=fff"
         : (otherParticipant?.profileImage || caseDetails?.reporter?.avatar || caseDetails?.reporterAvatar || "");
 
       router.push({
@@ -469,6 +457,23 @@ export default function RescuerResponseScreen() {
         <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Loading response workflow...</Text>
       </View>
+    );
+  }
+
+  if (!caseDetails) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.centerContainer}>
+          <Ionicons name="alert-circle-outline" size={40} color="#9CA3AF" style={{ marginBottom: 10 }} />
+          <Text style={{ fontSize: 15, color: "#4B5563", fontFamily: typography.semibold, textAlign: "center", marginBottom: 16 }}>
+            Unable to load rescue case details.
+          </Text>
+          <View style={{ width: 220, gap: 10 }}>
+            <PrimaryButton title="Try Again" onPress={() => { setLoading(true); void fetchDetails(); }} />
+            <PrimaryButton title="Go Back" onPress={() => router.back()} variant="outline" />
+          </View>
+        </View>
+      </SafeAreaView>
     );
   }
 

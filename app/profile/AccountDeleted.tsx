@@ -17,14 +17,7 @@ export default function AccountDeletedScreen() {
 
   return (
     <View style={styles.container}>
-      {/* HEADER */}
-      <View style={styles.header}>
-        <TouchableOpacity onPress={handleReturnWelcome}>
-          <Ionicons name="arrow-back" size={22} color="#222" />
-        </TouchableOpacity>
-        <Text style={styles.headerTitle}>Settings</Text>
-        <View style={{ width: 22 }} />
-      </View>
+
 
       {/* LOGO */}
       <View style={styles.logoBox}>

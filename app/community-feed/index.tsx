@@ -14,6 +14,7 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getCommunityFeed } from "../../api/apiService"; // API call to fetch posts
+import BackButton from "../../components/BackButton";
 
 
 const C = {
@@ -219,7 +220,10 @@ export default function CommunityFeed() {
     const matchesSearch =
       searchText.trim() === "" ||
       post.title.toLowerCase().includes(searchText.toLowerCase()) ||
-      post.content.toLowerCase().includes(searchText.toLowerCase());
+      post.content.toLowerCase().includes(searchText.toLowerCase()) ||
+      (post.username || post.authorName || "")
+        .toLowerCase()
+        .includes(searchText.toLowerCase());
 
     // Check if the post belongs to the selected category
     // Empty string means "All" — no category filter applied
@@ -236,15 +240,14 @@ export default function CommunityFeed() {
       <View style={styles.header}>
 
         {/* Back button — goes to the home screen */}
-        <TouchableOpacity onPress={() => router.push("/")}>
-          <Ionicons name="chevron-back" size={26} color={C.onSurface} />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.back()} />
 
-        <Text style={styles.headerTitle}>Community Feed</Text>
+        <Text style={[styles.headerTitle, { flex: 1, textAlign: 'center' }]}>Community Feed</Text>
 
         {/* Add button — navigates to the create post screen */}
         <TouchableOpacity
           onPress={() => router.push("/community-feed/CreateCommunityPost")}
+          style={{ width: 40, alignItems: 'center', justifyContent: 'center' }}
         >
           <Ionicons name="add" size={26} color="#000000" />
         </TouchableOpacity>
