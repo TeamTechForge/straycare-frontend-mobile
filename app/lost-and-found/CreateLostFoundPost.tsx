@@ -3,6 +3,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import React, { useState, useEffect } from 'react';
 import {
   Alert,
@@ -21,7 +22,6 @@ import ChatLocationPicker from '../../components/chat/ChatLocationPicker';
 import PrimaryButton from '../../components/PrimaryButton';
 import MapViewWrapper, { Marker } from '../../components/MapViewWrapper';
 import { ANIMAL_BREEDS } from '../../constants/breeds.constants';
-import BackButton from '../../components/BackButton';
 
 // Centralized color tokens used across all components and styles
 const C = {
@@ -43,6 +43,7 @@ const C = {
 
 const CreatePost = () => {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
   const { postId } = useLocalSearchParams<{ postId: string }>();
   const isEditMode = !!postId;
 
@@ -108,7 +109,7 @@ const CreatePost = () => {
   // Sets the global error banner text and shows a native Alert dialog
   const showValidationError = (message: string) => {
     setErrorMessage(message);
-    Alert.alert('Validation', message);
+    Alert.alert('Missing Information', message);
   };
 
   // Requests media library permission, opens the picker with crop UI, then resizes the result to 1200px wide
@@ -313,14 +314,13 @@ const CreatePost = () => {
   return (
     <ScrollView style={s.container} showsVerticalScrollIndicator={false}>
 
-      {/* Back arrow — navigates to the previous screen */}
-      <View style={{ marginBottom: 12 }}>
-        <BackButton onPress={() => router.back()} />
-      </View>
-
       {/* Page title and subtitle */}
-      <View style={s.titleBlock}>
-        <Text style={s.headerTitle}>{isEditMode ? 'Edit Post' : 'Lost or Found a Pet?'}</Text>
+      <View style={[s.titleBlock, { paddingTop: insets.top + 16 }]}>
+        <Text style={s.headerTitle}>
+          {isEditMode
+            ? form.status === 'found' ? 'Edit Found Animal Post' : 'Edit Lost Pet Post'
+            : form.status === 'found' ? 'Report a Found Animal' : 'Report a Lost Pet'}
+        </Text>
         <Text style={s.headerSub}>
           {isEditMode
             ? 'Update the details of your reported post.'
@@ -516,12 +516,12 @@ const CreatePost = () => {
         </View>
       </View>
 
-      {/* SECTION 3 — Location: address input, map placeholder, and date picker */}
+      {/* SECTION 3 — Location search and map selection */}
       <View style={s.card}>
         <Text style={s.sectionTitle}>Location</Text>
 
         <View style={s.fieldGroup}>
-          <FieldLabel text="Last Seen Location *" />
+          <FieldLabel text={form.status === 'found' ? 'Found Location *' : 'Last Seen Location *'} />
           {/* Location icon overlaid on the left side of the input */}
           <View style={s.inputIconWrapper}>
             <Ionicons name="location-outline" size={18} color={C.textSub} style={s.inputIcon} />
@@ -568,10 +568,17 @@ const CreatePost = () => {
             setShowLocationPicker(false);
           }}
         />
+      </View>
+
+      {/* SECTION 4 — Lost/found date */}
+      <View style={s.card}>
+        <Text style={s.sectionTitle}>
+          {form.status === 'found' ? 'Found Date' : 'Date'}
+        </Text>
 
         {/* Date picker trigger — tapping opens the native date picker */}
         <View style={s.fieldGroup}>
-          <FieldLabel text="Date *" />
+          <FieldLabel text={form.status === 'found' ? 'Found Date *' : 'Last Seen Date *'} />
           <TouchableOpacity
             style={[s.input, s.dropdownTrigger, errors.date && s.inputError]}
             onPress={() => setShowDatePicker(true)}
@@ -632,17 +639,9 @@ const s = StyleSheet.create({
     backgroundColor: C.bg,
   },
 
-  // Top-left back arrow button
-  backIconBtn: {
-    padding: 16,
-    paddingBottom: 4,
-    alignSelf: 'flex-start',
-  },
-
   // Page title and subtitle block
   titleBlock: {
     paddingHorizontal: 20,
-    paddingTop: 6,
     paddingBottom: 20,
   },
   headerTitle: {

@@ -13,6 +13,7 @@ import {
 } from "react-native";
 import { AnimalPost } from "../../services/lostAndFoundService";
 import BackButton from "../../components/BackButton";
+import { getAnimalPostTitle } from "../../utils/lostAndFoundDisplay";
 
 interface BaseAnimalListViewProps {
   mode: "lost" | "found";
@@ -23,6 +24,7 @@ interface BaseAnimalListViewProps {
 }
 
 export default function BaseAnimalListView({
+  mode,
   fetchPostsFn,
   badgeLabel,
   badgeTextColor,
@@ -57,7 +59,12 @@ export default function BaseAnimalListView({
   };
 
   const getDisplayDate = (pet: AnimalPost) => {
-    return pet.date || pet.createdAt || "Recently Posted";
+    if (!pet.createdAt) return "Recently Posted";
+
+    const createdDate = new Date(pet.createdAt);
+    return Number.isNaN(createdDate.getTime())
+      ? "Recently Posted"
+      : createdDate.toLocaleDateString();
   };
 
   const filteredPets = pets.filter((pet) => {
@@ -67,7 +74,7 @@ export default function BaseAnimalListView({
 
     const text = `${pet.breed || ""} ${pet.name || ""} ${
       pet.description || ""
-    }`.toLowerCase();
+    } ${pet.location || ""}`.toLowerCase();
 
     const matchesSearch =
       search === "" || text.includes(search.toLowerCase());
@@ -78,6 +85,8 @@ export default function BaseAnimalListView({
   const FILTERS = ["All", "Dog", "Cat", "Other"];
 
   const renderPet = ({ item }: { item: AnimalPost }) => {
+    const postTitle = getAnimalPostTitle(item.breed, item.name);
+    const animalType = formatType(item.type);
     const imageUri =
       item.imageUrl ||
       (item.images && item.images.length > 0
@@ -109,10 +118,7 @@ export default function BaseAnimalListView({
             </View>
           </View>
 
-          <Text style={styles.cardTitle}>
-            {item.breed || "Unknown"}
-            {item.name && item.name !== "Unknown" ? ` - ${item.name}` : ""}
-          </Text>
+          {postTitle ? <Text style={styles.cardTitle}>{postTitle}</Text> : null}
 
           <View style={styles.locationRow}>
             <MaterialIcons
@@ -141,7 +147,7 @@ export default function BaseAnimalListView({
             <View
               style={{
                 backgroundColor:
-                  formatType(item.type) === "Dog" ? "#F5A623" : "#ffb700",
+                  animalType === "Dog" ? "#F5A623" : "#ffb700",
                 paddingHorizontal: 12,
                 paddingVertical: 5,
                 borderRadius: 20,
@@ -154,7 +160,7 @@ export default function BaseAnimalListView({
                   fontSize: 11,
                 }}
               >
-                {formatType(item.type)}
+                {animalType}
               </Text>
             </View>
           </View>
@@ -186,11 +192,13 @@ export default function BaseAnimalListView({
           <>
             <View style={styles.hero}>
               <Text style={styles.heroTitle}>
-                Help Bring{"\n"}Them Home
+                {mode === "found" ? <>Animals We{"\n"}Have Found</> : <>Help Bring{"\n"}Them Home</>}
               </Text>
 
               <Text style={styles.heroSub}>
-                Help us find our missing furry friends.
+                {mode === "found"
+                  ? "Recognize one? Help reunite them with their family."
+                  : "Help us find our missing furry friends."}
               </Text>
             </View>
 
@@ -205,7 +213,7 @@ export default function BaseAnimalListView({
 
                 <TextInput
                   style={styles.searchInput}
-                  placeholder="Search by breed or name..."
+                  placeholder="Search by breed, name, or area..."
                   placeholderTextColor="#717878"
                   value={search}
                   onChangeText={setSearch}
@@ -237,6 +245,25 @@ export default function BaseAnimalListView({
               ))}
             </ScrollView>
           </>
+        }
+        ListEmptyComponent={
+          <View style={styles.emptyState}>
+            <MaterialIcons name="pets" size={48} color="#717878" />
+            <Text style={styles.emptyText}>
+              {search.trim() || filter !== "All"
+                ? "No matching animals found"
+                : mode === "found"
+                  ? "No found animals posted yet"
+                  : "No lost pets posted yet"}
+            </Text>
+            <Text style={styles.emptySubtext}>
+              {search.trim() || filter !== "All"
+                ? "Try adjusting your search or filters"
+                : mode === "found"
+                  ? "New found-animal reports will appear here"
+                  : "New lost-pet reports will appear here"}
+            </Text>
+          </View>
         }
       />
     </View>
@@ -390,5 +417,25 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     marginBottom: 14,
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 48,
+  },
+  emptyText: {
+    color: "#062425",
+    fontSize: 18,
+    fontWeight: "700",
+    marginTop: 12,
+    textAlign: "center",
+  },
+  emptySubtext: {
+    color: "#717878",
+    fontSize: 14,
+    lineHeight: 20,
+    marginTop: 6,
+    textAlign: "center",
   },
 });

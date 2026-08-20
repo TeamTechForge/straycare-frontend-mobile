@@ -13,6 +13,7 @@ import {
 import { AnimalPost, getMyAnimalPosts } from "../../services/lostAndFoundService";
 import { useAuth } from "../../contexts/AuthContext";
 import BackButton from "../../components/BackButton";
+import { getAnimalPostTitle } from "../../utils/lostAndFoundDisplay";
 
 export default function MyPostsScreen() {
   const router = useRouter();
@@ -50,10 +51,17 @@ export default function MyPostsScreen() {
   };
 
   const getDisplayDate = (pet: AnimalPost) => {
-    return pet.date || pet.createdAt || "Recently Posted";
+    if (!pet.createdAt) return "Recently Posted";
+
+    const createdDate = new Date(pet.createdAt);
+    return Number.isNaN(createdDate.getTime())
+      ? "Recently Posted"
+      : createdDate.toLocaleDateString();
   };
 
   const renderPet = ({ item }: { item: AnimalPost }) => {
+    const postTitle = getAnimalPostTitle(item.breed, item.name);
+    const animalType = formatType(item.type);
     const imageUri =
       item.imageUrl ||
       (item.images && item.images.length > 0
@@ -86,10 +94,7 @@ export default function MyPostsScreen() {
               </View>
             </View>
 
-            <Text style={styles.cardTitle}>
-              {item.breed || "Unknown"}
-              {item.name && item.name !== "Unknown" ? ` - ${item.name}` : ""}
-            </Text>
+            {postTitle ? <Text style={styles.cardTitle}>{postTitle}</Text> : null}
 
             <View style={styles.locationRow}>
               <MaterialIcons name="location-on" size={15} color="#717878" />
@@ -104,14 +109,14 @@ export default function MyPostsScreen() {
               <Text style={{ fontSize: 12, color: "#717878" }}>{getDisplayDate(item)}</Text>
               <View
                 style={{
-                  backgroundColor: formatType(item.type) === "Dog" ? "#F5A623" : "#ffb700",
+                  backgroundColor: animalType === "Dog" ? "#F5A623" : "#ffb700",
                   paddingHorizontal: 12,
                   paddingVertical: 5,
                   borderRadius: 20,
                 }}
               >
                 <Text style={{ color: "#fff", fontWeight: "700", fontSize: 11 }}>
-                  {formatType(item.type)}
+                  {animalType}
                 </Text>
               </View>
             </View>
