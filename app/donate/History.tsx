@@ -34,6 +34,7 @@ type RecurringDonation = {
 };
 
 type Props = {
+  // The donation hub already provides its own page header.
   hideHeader?: boolean;
 };
 
@@ -43,6 +44,7 @@ export default function DonationHistory({ hideHeader = false }: Props) {
   const [donations, setDonations] = useState<Donation[]>([]);
   const [recurringDonations, setRecurringDonations] = useState<RecurringDonation[]>([]);
   const [loading, setLoading] = useState(true);
+  // The selected plan is shown in the cancellation confirmation modal.
   const [selectedRecurring, setSelectedRecurring] = useState<RecurringDonation | null>(null);
   const [cancelling, setCancelling] = useState(false);
   const [cancellationError, setCancellationError] = useState("");
@@ -56,11 +58,13 @@ export default function DonationHistory({ hideHeader = false }: Props) {
       const token = await SecureStore.getItemAsync("authToken");
 
       const config = { headers: { Authorization: `Bearer ${token}` } };
+      // Load one-time and recurring records together to reduce waiting time.
       const [historyResult, recurringResult] = await Promise.allSettled([
         axios.get(`${BASE_URL}/api/donations/history`, config),
         axios.get(`${BASE_URL}/api/donations/recurring`, config),
       ]);
 
+      // One failed request should not hide the data returned by the other request.
       if (historyResult.status === "fulfilled") setDonations(historyResult.value.data as Donation[]);
       if (recurringResult.status === "fulfilled") {
         setRecurringDonations(recurringResult.value.data as RecurringDonation[]);
@@ -83,6 +87,7 @@ export default function DonationHistory({ hideHeader = false }: Props) {
         {},
         { headers: { Authorization: `Bearer ${token}` }, timeout: 15000 }
       );
+      // Update the card immediately after the backend confirms cancellation.
       setRecurringDonations((current) =>
         current.map((item) =>
           item._id === selectedRecurring._id ? { ...item, status: "CANCELLED" } : item
@@ -98,6 +103,7 @@ export default function DonationHistory({ hideHeader = false }: Props) {
     }
   };
 
+  // Recurring plans appear before individual one-time payments.
   const recurringHeader = (
     <View>
       {recurringDonations.length > 0 && (
@@ -119,12 +125,14 @@ export default function DonationHistory({ hideHeader = false }: Props) {
                   <Text style={styles.recurringStatusText}>{item.status}</Text>
                 </View>
                 <View style={styles.recurringActions}>
+                  {/* A receipt is available only after at least one completed charge. */}
                   {(item.installmentsPaid || 0) > 0 && (
                     <TouchableOpacity
                       style={styles.receiptBtn}
                       onPress={() => router.push({
                         pathname: "/donate/Receipt",
                         params: {
+                          // Use the latest payment record when it is available.
                           donation: JSON.stringify(item.latestPayment || {
                             _id: item._id,
                             orderId: item.orderId,
@@ -142,6 +150,7 @@ export default function DonationHistory({ hideHeader = false }: Props) {
                       <Text style={styles.receiptText}>Receipt</Text>
                     </TouchableOpacity>
                   )}
+                  {/* Only active plans can be cancelled. */}
                   {item.status === "ACTIVE" && (
                     <TouchableOpacity
                       style={styles.cancelSubscriptionButton}
@@ -165,6 +174,7 @@ export default function DonationHistory({ hideHeader = false }: Props) {
     </View>
   );
 
+  // Render a single completed or failed one-time donation.
   const renderItem = ({ item }: { item: Donation }) => (
     <View style={styles.card}>
       <Text style={styles.org}>{item.organization || "StrayCare"}</Text>
@@ -222,6 +232,7 @@ export default function DonationHistory({ hideHeader = false }: Props) {
         <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations yet</Text>
       ) : (
         <FlatList
+          // Recurring plans are displayed separately above this list.
           data={donations.filter((item) => item.frequency !== "Recurring")}
           keyExtractor={(donation) => donation._id}
           renderItem={renderItem}

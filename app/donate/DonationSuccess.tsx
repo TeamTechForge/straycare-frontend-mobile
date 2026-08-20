@@ -16,6 +16,7 @@ export default function DonationSuccess() {
   const router = useRouter();
   const { user } = useAuth();
   const { transactionId, amount, organization, recurring } = useLocalSearchParams();
+  // Recurring payments stay pending until PayHere sends confirmation.
   const [recurringStatus, setRecurringStatus] = useState(recurring === "true" ? "PENDING" : "ACTIVE");
 
   useEffect(() => {
@@ -23,6 +24,7 @@ export default function DonationSuccess() {
     let cancelled = false;
     let attempts = 0;
 
+    // Wait briefly for PayHere to confirm a recurring payment.
     const checkStatus = async () => {
       try {
         const token = await SecureStore.getItemAsync("authToken");
@@ -31,6 +33,7 @@ export default function DonationSuccess() {
           { headers: { Authorization: `Bearer ${token}` }, timeout: 10000 }
         );
         if (!cancelled) setRecurringStatus(response.data.status);
+        // Retry a few times because the PayHere notification may arrive later.
         if (response.data.status === "PENDING" && attempts++ < 5 && !cancelled) {
           setTimeout(checkStatus, 2000);
         }
@@ -40,9 +43,11 @@ export default function DonationSuccess() {
     };
 
     checkStatus();
+    // Stop state updates if the donor leaves this screen.
     return () => { cancelled = true; };
   }, [recurring, transactionId]);
 
+  // These values control the icon and message shown to the donor.
   const isRecurringPending = recurring === "true" && recurringStatus === "PENDING";
   const recurringFailed = recurring === "true" && ["FAILED", "CANCELLED"].includes(recurringStatus);
 
@@ -56,6 +61,7 @@ export default function DonationSuccess() {
   const canReceiveDonations = user?.role === "vet" || user?.role === "ngo";
 
   const handleViewHistory = () => {
+    // Organizations use the donation hub while donors use their history page.
     if (canReceiveDonations) {
       router.push("/donate/DonationHub");
     } else {

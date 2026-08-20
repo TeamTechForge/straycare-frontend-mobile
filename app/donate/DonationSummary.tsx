@@ -9,7 +9,9 @@ export default function DonationSummary() {
     useLocalSearchParams();
 
   const router = useRouter();
+  // Format the amount once so the summary and checkout use the same value.
   const formattedAmount = parseFloat(amount as string).toFixed(2);
+  // Convert PayHere codes into names that donors recognize.
   const paymentMethodLabel =
     paymentMethod === "MASTER"
       ? "Mastercard"
@@ -18,6 +20,7 @@ export default function DonationSummary() {
         : "Visa";
 
   useEffect(() => {
+    // Display the failure returned from a cancelled or unsuccessful checkout.
     if (paymentFailed === "true") {
       Alert.alert("Payment Failed", "Your payment was not successful. Please try again.");
     }
@@ -33,9 +36,10 @@ export default function DonationSummary() {
 
       <View style={styles.summaryBox}>
         <Text style={styles.label}>Donation Type: {category}</Text>
-        {/* Show display name to user, not the _id */}
+        {/* Show the organization name instead of its database ID. */}
         <Text style={styles.label}>Organization: {organizationName}</Text>
         <Text style={styles.label}>Frequency: {frequency}</Text>
+        {/* A plan is required only for recurring donations. */}
         {frequency === "Recurring" && plan ? (
           <Text style={styles.label}>Donation Plan: {plan}</Text>
         ) : null}
@@ -43,6 +47,7 @@ export default function DonationSummary() {
         <Text style={styles.label}>Payment Method: {paymentMethodLabel}</Text>
       </View>
 
+      {/* Continue with the same values that the donor reviewed above. */}
       <PrimaryButton
         title="Pay with PayHere"
         onPress={() =>
@@ -51,8 +56,8 @@ export default function DonationSummary() {
             params: {
               amount: formattedAmount,
               category,
-              organization,         // _id for merchant ID lookup
-              organizationName,     // display name for saving in donation record
+              organization,         // Used by the backend to find PayHere details.
+              organizationName,     // Saved as the readable organization name.
               frequency,
               plan,
               paymentMethod,

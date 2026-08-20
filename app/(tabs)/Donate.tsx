@@ -16,6 +16,7 @@ type FormErrors = {
   paymentMethod?: string;
 };
 
+// These values are sent to the backend and displayed as readable labels.
 const CATEGORY_OPTIONS = [
   { label: 'Support Vet Clinic', value: 'Support Vet Clinic' },
   { label: 'Support Shelter', value: 'Support Shelter' },
@@ -34,6 +35,7 @@ const PAYMENT_OPTIONS = [
 
 export default function DonateScreen() {
   const router = useRouter();
+  // Store the form values until the donor continues to the summary.
   const [category, setCategory] = useState('');
   const [organization, setOrganization] = useState('');
   const [organizationName, setOrganizationName] = useState('');
@@ -43,11 +45,13 @@ export default function DonateScreen() {
   const [paymentMethod, setPaymentMethod] = useState('');
   const [organizations, setOrganizations] = useState<any[]>([]);
   const [errors, setErrors] = useState<FormErrors>({});
+  // Controls the confirmation shown before a recurring checkout.
   const [showRecurringConfirmation, setShowRecurringConfirmation] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
 
+    // Load only the organizations that match the selected category.
     const fetchData = async () => {
       try {
         const url = category
@@ -59,6 +63,7 @@ export default function DonateScreen() {
 
         if (isMounted) {
           setOrganizations(Array.isArray(data) ? data : []);
+          // Clear the previous choice when the category changes.
           setOrganization('');
           setOrganizationName('');
         }
@@ -75,20 +80,24 @@ export default function DonateScreen() {
     };
   }, [category]);
 
+  // Convert API records into values supported by the shared select field.
   const organizationOptions = organizations.map((org) => ({
     label: org.clinicName || org.orgName || org.name,
     value: org._id,
   }));
   const selectedOrganization = organizations.find((org) => org._id === organization);
+  // Recurring is enabled only when the organization completed PayHere setup.
   const recurringAvailable = selectedOrganization?.recurringEnabled === true;
 
   const clearError = (field: keyof FormErrors) => {
+    // Remove only the error for the field the donor corrected.
     setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
   const validate = (): boolean => {
     const nextErrors: FormErrors = {};
 
+    // Validate all fields together so every error is shown at once.
     if (!category) nextErrors.category = "Please select a donation category.";
     if (!organization) nextErrors.organization = "Please select an organization.";
     if (!frequency) nextErrors.frequency = "Please select a donation frequency.";
@@ -113,6 +122,7 @@ export default function DonateScreen() {
   };
 
   const openSummary = () => {
+    // Pass the reviewed form values to the summary screen.
     router.push({
       pathname: '/donate/DonationSummary',
       params: {
@@ -130,6 +140,7 @@ export default function DonateScreen() {
   const handleDonate = () => {
     if (!validate()) return;
 
+    // Ask for confirmation before starting a recurring plan.
     if (frequency === 'Recurring') {
       setShowRecurringConfirmation(true);
       return;
@@ -139,6 +150,7 @@ export default function DonateScreen() {
   };
 
   useEffect(() => {
+    // PayHere recurring payments support Visa and Mastercard only.
     if (frequency === 'Recurring' && paymentMethod === 'AMEX') {
       setPaymentMethod('');
     }
@@ -176,6 +188,7 @@ export default function DonateScreen() {
           setOrganization(val);
           const selected = organizations.find(org => org._id === val);
           setOrganizationName(selected?.clinicName || selected?.orgName || selected?.name || '');
+          // Reset recurring choices if the new organization cannot receive them.
           if (!selected?.recurringEnabled && frequency === 'Recurring') {
             setFrequency('One-time');
             setPlan('');
@@ -187,7 +200,7 @@ export default function DonateScreen() {
         error={errors.organization}
       />
 
-      {/* Frequency toggle (inline, not a shared component since it's only used here) */}
+      {/* Choose between a single payment and a recurring plan. */}
       <View style={styles.fieldGroup}>
         <Text style={styles.label}>
           Donation Frequency <Text style={styles.requiredStar}>*</Text>
@@ -260,6 +273,7 @@ export default function DonateScreen() {
         selectedValue={paymentMethod}
         onValueChange={(val: string) => { setPaymentMethod(val); clearError('paymentMethod'); }}
         options={frequency === 'Recurring'
+          // American Express is available only for one-time donations.
           ? PAYMENT_OPTIONS.filter((option) => option.value !== 'AMEX')
           : PAYMENT_OPTIONS}
         error={errors.paymentMethod}
@@ -268,6 +282,7 @@ export default function DonateScreen() {
         <PrimaryButton title="Donate Now" onPress={handleDonate} />
       </ScrollView>
 
+      {/* The donor can review the charge interval before opening PayHere. */}
       <Modal
         visible={showRecurringConfirmation}
         transparent

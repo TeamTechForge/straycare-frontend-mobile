@@ -1,19 +1,20 @@
 import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
-import React, { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, View } from "react-native";
 import { WebView } from "react-native-webview";
 import { BASE_URL } from "../../constants/config.constants";
 
+// Keep the hosted PayHere page background consistent with the app.
 const INJECTED_JS = ` 
 (function() { 
   try { 
     const style = document.createElement('style'); 
     style.innerHTML = 'body, html { background-color: #ffffff !important; background: #ffffff !important; }'; 
     document.head.appendChild(style); 
-  } catch (e) { 
-    console.log("CSS injection error:", e); 
+  } catch {
+    // The payment page remains usable if this cosmetic style injection fails.
   } 
 })(); 
 true; 
@@ -24,26 +25,24 @@ const PayHereCheckout = () => {
   const [paymentUrl, setPaymentUrl] = useState<string | null>(null); 
   const [loading, setLoading] = useState(true); 
   const [orderData, setOrderData] = useState<any>(null); 
+  // PayHere can trigger the same redirect more than once in a WebView.
   const paymentHandledRef = useRef(false); 
 
-  // organization = _id, organizationName = display name
+  // Keep the database ID separate from the name shown to the donor.
   const { amount, category, organization, organizationName, frequency, plan, paymentMethod } = useLocalSearchParams();
 
-  useEffect(() => { 
-    initiatePayment(); 
-  }, []); 
-
   const getAuthHeaders = async () => { 
+    // The backend requires the logged-in donor's token.
     const token = await SecureStore.getItemAsync("authToken"); 
     return { headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` } }; 
   }; 
 
-  const initiatePayment = async () => { 
+  const initiatePayment = useCallback(async () => {
     try { 
       setLoading(true); 
-      console.log("SENDING organizationId to Live Host:", organization); 
       const config = await getAuthHeaders(); 
       
+      // The backend selects the merchant and creates the secure PayHere hash.
       const res = await axios.post( 
         `${BASE_URL}/api/donations/initiate`, 
         { 
@@ -62,6 +61,7 @@ const PayHereCheckout = () => {
       const data: any = res.data; 
       setOrderData(data); 
 
+      // Build the hosted checkout URL using values signed by the backend.
       const url = 
         `${BASE_URL}/api/donations/pay?` + 
         `merchant_id=${encodeURIComponent(data.merchant_id)}&` + 
@@ -86,14 +86,19 @@ const PayHereCheckout = () => {
 
       setPaymentUrl(url); 
     } catch (error: any) { 
-      console.log("AXIOS ERROR:", error?.message || error); 
+      console.error("Unable to initiate PayHere checkout:", error?.message || error);
       router.replace("/donate/DonationSummary"); 
     } finally { 
       setLoading(false); 
     } 
-  }; 
+  }, [amount, category, frequency, organization, organizationName, paymentMethod, plan, router]);
+
+  useEffect(() => {
+    void initiatePayment();
+  }, [initiatePayment]);
 
   const saveDonation = async (status: string) => { 
+    // Save the final result for one-time payments.
     try { 
       const config = await getAuthHeaders(); 
       await axios.post( 
@@ -110,16 +115,15 @@ const PayHereCheckout = () => {
         }, 
         config 
       ); 
-    } catch (err) { 
-      console.log("Failed to save donation:", err); 
+    } catch (err) {
+      console.error("Unable to save donation result:", err);
     } 
   }; 
 
   const handleNavigationChange = async (navState: any) => { 
     const url = navState.url; 
-    console.log("NAV URL CHANGED:", url); 
-
     if (url.includes("/payhere/return") || url.includes("/return")) { 
+      // Prevent the WebView from processing the same return URL twice.
       if (paymentHandledRef.current) return; 
       paymentHandledRef.current = true; 
       
@@ -127,6 +131,7 @@ const PayHereCheckout = () => {
       const orderId = urlParams.get("order_id") || orderData?.order_id; 
       
       const isRecurring = orderData?.frequency === "Recurring";
+      // Recurring records are confirmed by the PayHere notification endpoint.
       if (!isRecurring) {
         await saveDonation("SUCCESS");
       }
@@ -144,6 +149,7 @@ const PayHereCheckout = () => {
     if (url.includes("/payhere/cancel") || url.includes("/cancel")) { 
       if (paymentHandledRef.current) return; 
       paymentHandledRef.current = true; 
+      // Do not create a failed installment for a cancelled recurring checkout.
       if (orderData?.frequency !== "Recurring") {
         await saveDonation("FAILED");
       }
@@ -161,6 +167,7 @@ const PayHereCheckout = () => {
 
   return ( 
     <View style={{ flex: 1, backgroundColor: "#fff" }}> 
+      {/* Open the hosted PayHere checkout inside the mobile application. */}
       <WebView 
         source={{ uri: paymentUrl }} 
         onNavigationStateChange={handleNavigationChange} 
