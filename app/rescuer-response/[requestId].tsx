@@ -20,6 +20,17 @@ import * as SecureStore from "expo-secure-store";
 import * as Location from "expo-location";
 import axios from "axios";
 
+// RescuerResponseScreen ([requestId].tsx)
+//
+// Rescuer-Side Direct Rescue Request & Active Rescue Management Screen.
+// Features:
+// 1. Accept and Reject actions for incoming direct rescue requests.
+// 2. Rejection reason selection with automated status updates.
+// 3. "Navigate to Location" button opening in-app navigation to the stray animal's GPS coordinates.
+// 4. Live location sharing toggle (emitting real-time coordinates over Socket.io).
+// 5. Direct case discussion comments and replies.
+// 6. Direct in-app messaging and calling with the reporter.
+
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";
 import BackButton from "../../components/BackButton";
@@ -37,6 +48,9 @@ import type { RescueComment } from "../../types/Api";
 
 const DEFAULT_AVATAR = "https://images.unsplash.com/photo-1535930749574-1399327ce78f?w=200&h=200&fit=crop&q=80";
 
+/**
+ * Resolves full photo URLs for avatars and animal pictures.
+ */
 const resolvePhotoUrl = (url: string | undefined): string => {
   if (!url) return DEFAULT_AVATAR;
   if (url.startsWith("http://") || url.startsWith("https://")) {
@@ -45,6 +59,7 @@ const resolvePhotoUrl = (url: string | undefined): string => {
   const cleanUrl = url.startsWith("/") ? url : `/${url}`;
   return `${API_URL}${cleanUrl}`;
 };
+
 
 const timeAgo = (timestamp?: string): string => {
   if (!timestamp) return "Just now";
