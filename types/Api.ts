@@ -46,7 +46,7 @@ export interface RescueStatusResponse {
   rescuer: Rescuer | null;
 }
 
-export type RescueHistoryTab = "pending" | "completed" | "all";
+export type RescueHistoryTab = "pending" | "completed" | "failed" | "all";
 
 export type RescueMarker = {
   latitude: number;
@@ -69,7 +69,7 @@ export type RescueLocation = RescueMarker & {
   longitude?: number;
 };
 
-export type RescueCaseStatus = "pending" | "accepted" | "rejected" | "completed";
+export type RescueCaseStatus = "pending" | "accepted" | "rejected" | "completed" | "failed";
 
 export type RescueTimelineEntry = {
   status?: string;
@@ -106,10 +106,12 @@ export type RescueCaseRecord = {
 export interface RescueHistoryResponse {
   pending: RescueCaseRecord[];
   completed: RescueCaseRecord[];
+  failed: RescueCaseRecord[];
   all: RescueCaseRecord[];
   counts: {
     pending: number;
     completed: number;
+    failed: number;
     all: number;
   };
 }

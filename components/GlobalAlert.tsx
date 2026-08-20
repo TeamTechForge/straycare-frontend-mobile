@@ -84,6 +84,27 @@ export function AlertProvider({ children }: AlertProviderProps) {
   // Determine theme style (Success, Error, Warning, Info) based on keywords in title & message
   const getTheme = () => {
     const combined = (displayTitle + " " + message).toLowerCase();
+    const isFailure =
+      combined.includes("error") ||
+      combined.includes("fail") ||
+      combined.includes("could not") ||
+      combined.includes("unable") ||
+      combined.includes("denied") ||
+      combined.includes("timeout") ||
+      combined.includes("invalid") ||
+      combined.includes("cannot") ||
+      combined.includes("limit");
+
+    // Check failure phrases before success phrases. For example,
+    // "could not be uploaded" contains "uploaded" but must remain an error.
+    if (isFailure) {
+      return {
+        icon: "close-circle-outline" as const,
+        color: "#EF4444", // Red
+        backgroundColor: "#FEF2F2",
+      };
+    }
+
     if (
       combined.includes("success") ||
       combined.includes("complete") ||
@@ -95,21 +116,6 @@ export function AlertProvider({ children }: AlertProviderProps) {
         icon: "checkmark-circle-outline" as const,
         color: "#10B981", // Green
         backgroundColor: "#ECFDF5",
-      };
-    }
-    if (
-      combined.includes("error") ||
-      combined.includes("fail") ||
-      combined.includes("denied") ||
-      combined.includes("timeout") ||
-      combined.includes("invalid") ||
-      combined.includes("cannot") ||
-      combined.includes("limit")
-    ) {
-      return {
-        icon: "close-circle-outline" as const,
-        color: "#EF4444", // Red
-        backgroundColor: "#FEF2F2",
       };
     }
     if (

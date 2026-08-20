@@ -451,6 +451,36 @@ export default function RescuerResponseScreen() {
     );
   };
 
+  const handleFailRescue = async () => {
+    Alert.alert(
+      "Mark as Failed",
+      "Are you sure this rescue could not be completed? The case will be removed from the active map.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Yes, Mark Failed",
+          style: "destructive",
+          onPress: async () => {
+            setUpdatingStatus(true);
+            try {
+              const token = await SecureStore.getItemAsync("authToken");
+              await axios.patch(`${API_URL}/rescue/request/${requestId}/fail`, {}, {
+                headers: { Authorization: `Bearer ${token}` },
+              });
+              Alert.alert("Case Marked Failed", "The reporter has been notified and the case was removed from the active map.", [
+                { text: "Done", onPress: () => router.replace("/(tabs)/Home") },
+              ]);
+            } catch (err: any) {
+              Alert.alert("Error", err?.response?.data?.error || "Failed to mark the rescue as failed.");
+            } finally {
+              setUpdatingStatus(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
   if (loading) {
     return (
       <View style={styles.centerContainer}>
@@ -484,7 +514,9 @@ export default function RescuerResponseScreen() {
   const description = caseDetails?.description || caseDetails?.notes || "No notes provided.";
   const photos = caseDetails?.photos || [];
   const status = caseDetails?.status || "Under Rescue";
-  const isCaseCompleted = ["completed", "closed", "adopted"].includes((status || "").toLowerCase().trim());
+  const normalizedStatus = (status || "").toLowerCase().trim();
+  const isCaseCompleted = ["completed", "closed", "adopted"].includes(normalizedStatus);
+  const isCaseFailed = normalizedStatus === "failed";
   const locationLat = caseDetails?.rescueLocation?.latitude || caseDetails?.location?.lat;
   const locationLng = caseDetails?.rescueLocation?.longitude || caseDetails?.location?.lng;
   const address = caseDetails?.rescueLocation?.address || caseDetails?.location?.address || "Location on map";
@@ -673,8 +705,8 @@ export default function RescuerResponseScreen() {
           </View>
         </View>
 
-        {/* RESCUE ACTION BUTTONS */}
-        {isCaseCompleted ? (
+        {/* 📝 RESCUE ACTION BUTTONS */}
+        {isCaseCompleted || isCaseFailed ? (
           <View style={styles.actionSection}>
             <View style={{
               backgroundColor: "#D1FAE5",
@@ -686,10 +718,10 @@ export default function RescuerResponseScreen() {
             }}>
               <Ionicons name="checkmark-circle" size={32} color="#10B981" style={{ marginBottom: 6 }} />
               <Text style={{ fontSize: 16, fontFamily: typography.bold, color: "#047857", marginBottom: 4 }}>
-                Rescue Completed
+                {isCaseCompleted ? "Rescue Completed" : "Rescue Failed"}
               </Text>
               <Text style={{ fontSize: 13, fontFamily: typography.medium, color: "#6B7280", textAlign: "center" }}>
-                This case has been successfully concluded. No further updates can be made.
+                {isCaseCompleted ? "This case has been successfully concluded. No further updates can be made." : "This case could not be completed. It is now recorded in failed rescues."}
               </Text>
             </View>
           </View>
@@ -705,6 +737,12 @@ export default function RescuerResponseScreen() {
               title={updatingStatus ? "Updating..." : "Mark Rescue as Completed"}
               onPress={handleCompleteRescue}
               disabled={updatingStatus}
+            />
+            <PrimaryButton
+              title={updatingStatus ? "Updating..." : "⚠️  Mark Rescue as Failed"}
+              onPress={handleFailRescue}
+              disabled={updatingStatus}
+              variant="outline"
             />
           </View>
         )}
