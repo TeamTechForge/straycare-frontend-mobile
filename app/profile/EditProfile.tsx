@@ -469,7 +469,7 @@ export default function EditProfileScreen() {
                 <Text style={styles.recurringSetupDescription}>
                   {recurringPaymentsEnabled
                     ? "Your API credentials are saved securely and are hidden here. Enter both fields below only if you want to replace them."
-                    : "One-time donations already work with your Merchant details. For recurring donations, create an API key in PayHere Sandbox under Settings → API Keys, enable Subscription Management API and Automatic Charging API, and enter its App ID and App Secret below."}
+                    : "Add your PayHere API App ID and App Secret below to enable recurring donation management."}
                 </Text>
               </View>
             </View>
@@ -482,6 +482,13 @@ export default function EditProfileScreen() {
             <Text style={styles.helperText}>
               Required for donor-controlled recurring cancellation. Leave both blank to keep the existing setup.
             </Text>
+            <TouchableOpacity
+              style={styles.payHereHelpLink}
+              onPress={() => router.push({ pathname: "/profile/HelpSupport", params: { topic: "payhere" } })}
+            >
+              <Ionicons name="help-circle-outline" size={16} color="#B45309" />
+              <Text style={styles.payHereHelpText}>How to get PayHere credentials</Text>
+            </TouchableOpacity>
           </>
         )}
 
@@ -532,4 +539,6 @@ const styles = StyleSheet.create({
   recurringSetupTitle: { fontSize: 13, fontWeight: "700", color: "#7A4A08", marginBottom: 4 },
   recurringEnabledTitle: { color: "#166534" },
   recurringSetupDescription: { fontSize: 11, lineHeight: 17, color: "#705B3E" },
+  payHereHelpLink: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginBottom: 12 },
+  payHereHelpText: { color: "#B45309", fontSize: 12, fontWeight: "700" },
 });

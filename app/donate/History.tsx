@@ -15,6 +15,8 @@ type Donation = {
   status: string;
   category: string;
   orderId: string;
+  frequency?: string;
+  plan?: string;
 };
 
 type RecurringDonation = {
@@ -27,6 +29,8 @@ type RecurringDonation = {
   recurrence: string;
   status: "PENDING" | "ACTIVE" | "FAILED" | "CANCELLED" | "COMPLETED";
   installmentsPaid: number;
+  createdAt?: string;
+  latestPayment?: Donation | null;
 };
 
 type Props = {
@@ -100,33 +104,64 @@ export default function DonationHistory({ hideHeader = false }: Props) {
         <View style={styles.recurringSection}>
           <Text style={styles.sectionTitle}>Recurring Donations</Text>
           {recurringDonations.map((item) => (
-            <View key={item._id} style={styles.recurringCard}>
-              <View style={styles.recurringTopRow}>
-                <View style={styles.recurringInfo}>
-                  <Text style={styles.org}>{item.organization || "StrayCare"}</Text>
-                  <Text style={styles.category}>{item.plan} · Rs. {item.amount.toFixed(2)}</Text>
-                  <Text style={styles.recurringMeta}>{item.installmentsPaid || 0} payment(s) completed</Text>
-                </View>
-                <View style={[styles.recurringStatus, styles[`recurring${item.status}`]]}>
+            <View key={item._id} style={styles.card}>
+              <Text style={styles.org}>{item.organization || "StrayCare"}</Text>
+              <Text style={styles.category}>{item.plan} recurring donation</Text>
+              <Text style={styles.amount}>Rs. {item.amount.toFixed(2)}</Text>
+              {item.createdAt ? (
+                <Text style={styles.date}>{new Date(item.createdAt).toLocaleDateString()}</Text>
+              ) : null}
+              <Text style={styles.orderId}>Order: {item.orderId}</Text>
+              <Text style={styles.recurringMeta}>{item.installmentsPaid || 0} payment(s) completed</Text>
+
+              <View style={styles.row}>
+                <View style={[styles.statusPill, styles[`recurring${item.status}`]]}>
                   <Text style={styles.recurringStatusText}>{item.status}</Text>
                 </View>
+                <View style={styles.recurringActions}>
+                  {(item.installmentsPaid || 0) > 0 && (
+                    <TouchableOpacity
+                      style={styles.receiptBtn}
+                      onPress={() => router.push({
+                        pathname: "/donate/Receipt",
+                        params: {
+                          donation: JSON.stringify(item.latestPayment || {
+                            _id: item._id,
+                            orderId: item.orderId,
+                            organization: item.organization || "StrayCare",
+                            amount: item.amount,
+                            timestamp: item.createdAt || new Date().toISOString(),
+                            status: "SUCCESS",
+                            category: `${item.plan} recurring donation`,
+                            frequency: "Recurring",
+                            plan: item.plan,
+                          }),
+                        },
+                      })}
+                    >
+                      <Text style={styles.receiptText}>Receipt</Text>
+                    </TouchableOpacity>
+                  )}
+                  {item.status === "ACTIVE" && (
+                    <TouchableOpacity
+                      style={styles.cancelSubscriptionButton}
+                      onPress={() => {
+                        setCancellationError("");
+                        setSelectedRecurring(item);
+                      }}
+                    >
+                      <Text style={styles.cancelSubscriptionText}>Cancel Plan</Text>
+                    </TouchableOpacity>
+                  )}
+                </View>
               </View>
-              {item.status === "ACTIVE" && (
-                <TouchableOpacity
-                  style={styles.cancelSubscriptionButton}
-                  onPress={() => {
-                    setCancellationError("");
-                    setSelectedRecurring(item);
-                  }}
-                >
-                  <Text style={styles.cancelSubscriptionText}>Cancel recurring donation</Text>
-                </TouchableOpacity>
-              )}
             </View>
           ))}
         </View>
       )}
-      {donations.length > 0 && <Text style={styles.sectionTitle}>Payment History</Text>}
+      {donations.some((item) => item.frequency !== "Recurring") && (
+        <Text style={styles.sectionTitle}>One-time Donations</Text>
+      )}
     </View>
   );
 
@@ -187,7 +222,7 @@ export default function DonationHistory({ hideHeader = false }: Props) {
         <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations yet</Text>
       ) : (
         <FlatList
-          data={donations}
+          data={donations.filter((item) => item.frequency !== "Recurring")}
           keyExtractor={(donation) => donation._id}
           renderItem={renderItem}
           ListHeaderComponent={recurringHeader}
@@ -254,18 +289,15 @@ const styles = StyleSheet.create({
   receiptText: { fontSize: 12, fontWeight: "600", color: "#fff" },
   sectionTitle: { fontSize: 16, fontWeight: "700", color: "#2D211C", marginBottom: 10 },
   recurringSection: { marginBottom: 18 },
-  recurringCard: { backgroundColor: "#FFF9ED", borderWidth: 1, borderColor: "#F6DFC0", borderRadius: 12, padding: 14, marginBottom: 10 },
-  recurringTopRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", gap: 10 },
-  recurringInfo: { flex: 1 },
   recurringMeta: { fontSize: 11, color: "#7C6F64", marginTop: 5 },
-  recurringStatus: { paddingVertical: 4, paddingHorizontal: 8, borderRadius: 999 },
   recurringACTIVE: { backgroundColor: "#DCFCE7" },
   recurringPENDING: { backgroundColor: "#FEF3C7" },
   recurringFAILED: { backgroundColor: "#FEE2E2" },
   recurringCANCELLED: { backgroundColor: "#E5E7EB" },
   recurringCOMPLETED: { backgroundColor: "#DBEAFE" },
   recurringStatusText: { color: "#374151", fontSize: 10, fontWeight: "700" },
-  cancelSubscriptionButton: { alignSelf: "flex-start", marginTop: 12, paddingVertical: 7, paddingHorizontal: 10, borderWidth: 1, borderColor: "#DC2626", borderRadius: 8 },
+  recurringActions: { flexDirection: "row", alignItems: "center", gap: 8 },
+  cancelSubscriptionButton: { paddingVertical: 5, paddingHorizontal: 10, borderWidth: 1, borderColor: "#DC2626", borderRadius: 6 },
   cancelSubscriptionText: { color: "#B91C1C", fontSize: 12, fontWeight: "600" },
   modalBackdrop: { flex: 1, backgroundColor: "rgba(0,0,0,0.48)", alignItems: "center", justifyContent: "center", padding: 24 },
   cancelModal: { width: "100%", maxWidth: 390, backgroundColor: "#fff", borderRadius: 18, padding: 22 },

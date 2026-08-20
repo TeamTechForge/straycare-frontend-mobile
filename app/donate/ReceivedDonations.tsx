@@ -14,6 +14,8 @@ type Donation = {
   donor: string;
   amount: string;
   date: string;
+  frequency: "Recurring" | "One-time";
+  plan?: string;
 };
 
 export default function ReceivedDonations() {
@@ -55,6 +57,8 @@ export default function ReceivedDonations() {
         donor: d.donorName || "Anonymous",
         amount: `Rs. ${parseFloat(d.amount).toFixed(2)}`,
         date: new Date(d.timestamp).toLocaleDateString(),
+        frequency: d.frequency === "Recurring" ? "Recurring" : "One-time",
+        plan: d.plan,
       }));
 
       const calculatedTotal = donRes.data.reduce((sum: number, d: any) => sum + parseFloat(d.amount), 0);
@@ -99,7 +103,22 @@ export default function ReceivedDonations() {
 
   const renderItem = ({ item }: { item: Donation }) => (
     <View style={styles.card}>
-      <Text style={styles.donor}>Donor: {item.donor}</Text>
+      <View style={styles.cardHeader}>
+        <Text style={styles.donor}>Donor: {item.donor}</Text>
+        <View style={[
+          styles.frequencyBadge,
+          item.frequency === "Recurring" ? styles.recurringBadge : styles.oneTimeBadge,
+        ]}>
+          <Text style={[
+            styles.frequencyText,
+            item.frequency === "Recurring" ? styles.recurringText : styles.oneTimeText,
+          ]}>
+            {item.frequency === "Recurring"
+              ? `${item.plan || "Recurring"}${item.plan ? " Recurring" : ""}`
+              : "One-time"}
+          </Text>
+        </View>
+      </View>
       <Text style={styles.amount}>Amount: {item.amount}</Text>
       <Text style={styles.date}>Date: {item.date}</Text>
 
@@ -191,6 +210,13 @@ const styles = StyleSheet.create({
     marginBottom: 15,
   },
   donor: { fontSize: 16, fontWeight: "bold" },
+  cardHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: 10 },
+  frequencyBadge: { flexDirection: "row", alignItems: "center", gap: 4, paddingVertical: 4, paddingHorizontal: 8, borderRadius: 20 },
+  recurringBadge: { backgroundColor: "#DCFCE7" },
+  oneTimeBadge: { backgroundColor: "#FEF3C7" },
+  frequencyText: { fontSize: 10, fontWeight: "700" },
+  recurringText: { color: "#166534" },
+  oneTimeText: { color: "#92400E" },
   amount: { fontSize: 14, marginTop: 5, fontWeight: "600" },
   date: { fontSize: 12, color: "#555", marginTop: 5 },
   messageBtn: {
