@@ -8,10 +8,15 @@ require('dotenv').config({ path: path.resolve(__dirname, '.env') });
 
 const existingPlugins = appJson.expo?.plugins || [];
 const easProjectId = process.env.EXPO_PUBLIC_EAS_PROJECT_ID || appJson.expo?.extra?.eas?.projectId;
+const googleServicesFile = process.env.GOOGLE_SERVICES_JSON || appJson.expo?.android?.googleServicesFile;
 
 module.exports = {
   expo: {
     ...(appJson.expo || {}),
+    android: {
+      ...(appJson.expo?.android || {}),
+      ...(googleServicesFile ? { googleServicesFile } : {}),
+    },
     updates: {
       enabled: false,
       checkAutomatically: "NEVER",
