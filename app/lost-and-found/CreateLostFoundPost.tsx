@@ -4,8 +4,9 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
+  ActivityIndicator,
   Alert,
   Image,
   Platform,
@@ -22,6 +23,7 @@ import ChatLocationPicker from '../../components/chat/ChatLocationPicker';
 import PrimaryButton from '../../components/PrimaryButton';
 import MapViewWrapper, { Marker } from '../../components/MapViewWrapper';
 import { ANIMAL_BREEDS } from '../../constants/breeds.constants';
+import { getPlaceDetails, PlacePrediction, searchPlaces } from '../../services/places.service';
 
 // Centralized color tokens used across all components and styles
 const C = {
@@ -65,6 +67,12 @@ const CreatePost = () => {
   const [showDatePicker, setShowDatePicker] = useState(false);       // Controls date picker visibility
   const [showLocationPicker, setShowLocationPicker] = useState(false); // Controls location picker modal
   const [selectedRegion, setSelectedRegion] = useState<{ latitude: number, longitude: number } | null>(null); // For map preview
+  const [descriptionHeight, setDescriptionHeight] = useState(110);
+  const [locationPredictions, setLocationPredictions] = useState<PlacePrediction[]>([]);
+  const [isSearchingLocation, setIsSearchingLocation] = useState(false);
+  const [locationSearchError, setLocationSearchError] = useState('');
+  const locationSessionToken = useRef(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const skipNextLocationSearch = useRef(false);
   const [dateObj, setDateObj] = useState(new Date());                // Date object used by DateTimePicker
   const [errors, setErrors] = useState<Record<string, string>>({});  // Per-field validation error messages
   const [errorMessage, setErrorMessage] = useState('');              // Global error banner message
@@ -80,6 +88,7 @@ const CreatePost = () => {
   const loadPost = async () => {
     try {
       const post = await getAnimalPostById(postId as string);
+      skipNextLocationSearch.current = true;
       setForm({
         status: post.status,
         type: post.type || 'other',
@@ -92,6 +101,26 @@ const CreatePost = () => {
         date: post.date || '',
         images: post.imageUrl ? [post.imageUrl] : (post.images || []),
       });
+      const savedLatitude = Number(post.latitude);
+      const savedLongitude = Number(post.longitude);
+      if (
+        post.latitude != null &&
+        post.longitude != null &&
+        Number.isFinite(savedLatitude) &&
+        Number.isFinite(savedLongitude)
+      ) {
+        setSelectedRegion({ latitude: savedLatitude, longitude: savedLongitude });
+      } else if (post.location?.trim()) {
+        try {
+          const predictions = await searchPlaces(post.location.trim(), locationSessionToken.current);
+          if (predictions[0]) {
+            const place = await getPlaceDetails(predictions[0].placeId, locationSessionToken.current);
+            setSelectedRegion({ latitude: place.latitude, longitude: place.longitude });
+          }
+        } catch {
+          setSelectedRegion(null);
+        }
+      }
     } catch (err) {
       console.error(err);
       Alert.alert("Error", "Could not load post");
@@ -104,6 +133,59 @@ const CreatePost = () => {
     setForm(prev => ({ ...prev, [key]: value }));
     setErrors(prev => ({ ...prev, [key]: '' }));
     if (errorMessage) setErrorMessage('');
+  };
+
+  useEffect(() => {
+    if (skipNextLocationSearch.current) {
+      skipNextLocationSearch.current = false;
+      return;
+    }
+
+    const query = form.location.trim();
+    if (query.length < 3) {
+      setLocationPredictions([]);
+      setLocationSearchError('');
+      setIsSearchingLocation(false);
+      return;
+    }
+
+    let active = true;
+    const timer = setTimeout(async () => {
+      setIsSearchingLocation(true);
+      setLocationSearchError('');
+      try {
+        const predictions = await searchPlaces(query, locationSessionToken.current);
+        if (active) setLocationPredictions(predictions.slice(0, 5));
+      } catch (error: any) {
+        if (active) {
+          setLocationPredictions([]);
+          setLocationSearchError(error?.message || 'Could not search for that location.');
+        }
+      } finally {
+        if (active) setIsSearchingLocation(false);
+      }
+    }, 450);
+
+    return () => {
+      active = false;
+      clearTimeout(timer);
+    };
+  }, [form.location]);
+
+  const handleSelectPlace = async (prediction: PlacePrediction) => {
+    setIsSearchingLocation(true);
+    setLocationSearchError('');
+    try {
+      const place = await getPlaceDetails(prediction.placeId, locationSessionToken.current);
+      skipNextLocationSearch.current = true;
+      updateForm('location', place.description || prediction.description);
+      setSelectedRegion({ latitude: place.latitude, longitude: place.longitude });
+      setLocationPredictions([]);
+    } catch (error: any) {
+      setLocationSearchError(error?.message || 'Could not preview that location.');
+    } finally {
+      setIsSearchingLocation(false);
+    }
   };
 
   // Sets the global error banner text and shows a native Alert dialog
@@ -252,6 +334,8 @@ const CreatePost = () => {
     try {
       const submitPayload = {
         ...form,
+        latitude: selectedRegion?.latitude ?? null,
+        longitude: selectedRegion?.longitude ?? null,
         breed: form.breed === 'Other' ? form.otherBreed : form.breed,
         contactName: user?.name || '',
         contactNumber: user?.phone || '',
@@ -474,10 +558,19 @@ const CreatePost = () => {
         <View style={s.fieldGroup}>
           <FieldLabel text="Description *" />
           <TextInput
-            style={[s.input, s.textArea, errors.description && s.inputError]}
+            style={[
+              s.input,
+              s.textArea,
+              { height: descriptionHeight },
+              errors.description && s.inputError,
+            ]}
             placeholder="Identifying marks, collar colour, personality…"
             placeholderTextColor={C.textPlaceholder}
             multiline
+            scrollEnabled={false}
+            onContentSizeChange={({ nativeEvent }) =>
+              setDescriptionHeight(Math.max(110, nativeEvent.contentSize.height + 24))
+            }
             textAlignVertical="top" // Keeps cursor at the top of the multiline input
             onChangeText={t => updateForm('description', t)}
             onBlur={() => validateField('description')}
@@ -519,28 +612,14 @@ const CreatePost = () => {
       {/* SECTION 3 — Location search and map selection */}
       <View style={s.card}>
         <Text style={s.sectionTitle}>Location</Text>
-
-        <View style={s.fieldGroup}>
-          <FieldLabel text={form.status === 'found' ? 'Found Location *' : 'Last Seen Location *'} />
-          {/* Location icon overlaid on the left side of the input */}
-          <View style={s.inputIconWrapper}>
-            <Ionicons name="location-outline" size={18} color={C.textSub} style={s.inputIcon} />
-            <TextInput
-              style={[s.input, s.inputWithIcon, errors.location && s.inputError]}
-              placeholder="Search address or area"
-              placeholderTextColor={C.textPlaceholder}
-              onChangeText={t => updateForm('location', t)}
-              onBlur={() => validateField('location')}
-              value={form.location}
-            />
-          </View>
-          <FieldError field="location" />
-        </View>
+        <Text style={s.sectionSubtitle}>
+          Select location on map or search for your address.
+        </Text>
 
         {/* Map integration using ChatLocationPicker */}
-        <TouchableOpacity style={s.mapBox} onPress={() => setShowLocationPicker(true)}>
+        <TouchableOpacity style={s.mapBox} onPress={() => setShowLocationPicker(true)} activeOpacity={0.85}>
           {selectedRegion ? (
-            <View style={{ width: '100%', height: 120, borderRadius: 10, overflow: 'hidden' }}>
+            <View style={s.mapPreview}>
               <MapViewWrapper
                 style={{ width: '100%', height: '100%' }}
                 region={{ ...selectedRegion, latitudeDelta: 0.01, longitudeDelta: 0.01 }}
@@ -554,17 +633,63 @@ const CreatePost = () => {
             </View>
           ) : (
             <>
-              <Ionicons name="map-outline" size={32} color={C.textPlaceholder} />
-              <Text style={s.mapText}>Tap to choose on map</Text>
+              <View style={s.locationIconCircle}>
+                <Ionicons name="location-outline" size={28} color={C.amber} />
+              </View>
+              <Text style={s.mapTitle}>Select a location</Text>
+              <Text style={s.mapText}>Tap here to select location</Text>
             </>
           )}
         </TouchableOpacity>
+
+        <View style={[s.fieldGroup, s.locationSearchGroup]}>
+          <FieldLabel text={form.status === 'found' ? 'Found Location *' : 'Last Seen Location *'} />
+          <View style={s.inputIconWrapper}>
+            <Ionicons name="search-outline" size={18} color={C.textSub} style={s.inputIcon} />
+            <TextInput
+              style={[s.input, s.inputWithIcon, s.locationInput, errors.location && s.inputError]}
+              placeholder="Search address or area"
+              placeholderTextColor={C.textPlaceholder}
+              onChangeText={text => {
+                updateForm('location', text);
+                setSelectedRegion(null);
+              }}
+              onBlur={() => validateField('location')}
+              value={form.location}
+            />
+            {isSearchingLocation ? <ActivityIndicator size="small" color={C.amber} style={s.locationSpinner} /> : null}
+          </View>
+
+          {locationPredictions.length > 0 ? (
+            <View style={s.locationSuggestions}>
+              {locationPredictions.map(prediction => (
+                <TouchableOpacity
+                  key={prediction.placeId}
+                  style={s.locationSuggestion}
+                  onPress={() => handleSelectPlace(prediction)}
+                >
+                  <Ionicons name="location-outline" size={18} color={C.amber} />
+                  <Text style={s.locationSuggestionText}>{prediction.description}</Text>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : null}
+
+          {locationSearchError ? <Text style={s.locationSearchError}>{locationSearchError}</Text> : null}
+          <Text style={s.locationSearchHint}>Choose a suggestion to preview it on the map.</Text>
+          <FieldError field="location" />
+        </View>
+
         <ChatLocationPicker
           visible={showLocationPicker}
           onCancel={() => setShowLocationPicker(false)}
           onSelect={({ address, latitude, longitude }) => {
-            if (address) updateForm('location', address);
+            if (address) {
+              skipNextLocationSearch.current = true;
+              updateForm('location', address);
+            }
             setSelectedRegion({ latitude, longitude });
+            setLocationPredictions([]);
             setShowLocationPicker(false);
           }}
         />
@@ -950,19 +1075,94 @@ const s = StyleSheet.create({
     alignItems: 'center' as const,
   },
 
-  // Grey placeholder box where a map preview would appear
+  // Dashed location picker matching the photo selection treatment
   mapBox: {
-    height: 130,
-    backgroundColor: C.surfaceLow,
-    borderRadius: 12,
+    minHeight: 160,
+    width: '100%',
+    backgroundColor: C.amberDim,
+    borderWidth: 2,
+    borderColor: C.outline,
+    borderStyle: 'dashed',
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
     gap: 6,
     marginTop: 4,
+    overflow: 'hidden',
+  },
+  sectionSubtitle: {
+    color: C.textSub,
+    fontSize: 13,
+    lineHeight: 18,
+    marginTop: -8,
+    marginBottom: 16,
+  },
+  mapPreview: {
+    width: '100%',
+    height: 160,
+    overflow: 'hidden',
+  },
+  locationIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: '#FFF3DC',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 4,
+  },
+  mapTitle: {
+    color: C.textMain,
+    fontSize: 14,
+    fontWeight: '600',
   },
   mapText: {
+    fontSize: 12,
+    color: C.textSub,
+  },
+  locationSearchGroup: {
+    marginTop: 20,
+  },
+  locationInput: {
+    paddingRight: 42,
+  },
+  locationSpinner: {
+    position: 'absolute',
+    right: 13,
+    top: 13,
+  },
+  locationSuggestions: {
+    marginTop: 6,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: C.outline,
+    borderRadius: 10,
+    backgroundColor: C.surface,
+  },
+  locationSuggestion: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: C.surfaceLow,
+  },
+  locationSuggestionText: {
+    flex: 1,
+    color: C.textMain,
     fontSize: 13,
-    color: C.textPlaceholder,
+    lineHeight: 18,
+  },
+  locationSearchHint: {
+    marginTop: 6,
+    color: C.textSub,
+    fontSize: 11,
+  },
+  locationSearchError: {
+    marginTop: 6,
+    color: C.error,
+    fontSize: 12,
   },
 
   // Horizontal row holding the Back and Submit buttons
