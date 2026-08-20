@@ -276,7 +276,11 @@ const ViewAnimalPost = () => {
     }
     
     try {
-      const conversation = (await createConversation(String(ownerId), "direct")) as any;
+      const conversation = (await createConversation(
+        String(ownerId), 
+        "lost_found", 
+        { kind: "LostFoundPost", item: post._id }
+      )) as any;
       const otherParticipant = conversation.participants?.find(
         (p: any) => p._id !== user?._id
       );

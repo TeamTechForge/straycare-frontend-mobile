@@ -598,7 +598,7 @@ export const rescueDetailsStyles = StyleSheet.create({
     paddingVertical: spacing.md,
     alignItems: "center",
   },
-  
+
   // ── Rescuer Action Bar ──
   actionBar: {
     position: "absolute",

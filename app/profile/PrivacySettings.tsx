@@ -12,7 +12,6 @@ const BRAND_COLOR = "#F5A623";
 const PRIVACY_OPTIONS = [
   { label: "Everyone", value: "everyone" },
   { label: "People involved in my active cases", value: "relatedOnly" },
-  { label: "Nobody", value: "none" },
 ];
 
 export default function PrivacySettingsScreen() {
@@ -32,21 +31,17 @@ export default function PrivacySettingsScreen() {
     if (!user?._id) return;
     try {
       const token = await SecureStore.getItemAsync("authToken");
-      const response = await fetch(`${API_URL}/users/${user._id}/public-profile`, {
+      const response = await fetch(`${API_URL}/auth/me`, {
         headers: { Authorization: `Bearer ${token}` },
       });
       if (response.ok) {
-        // We can't actually get our own raw privacy string from public profile.
-        // Wait, public profile might only return the boolean permissions, not the raw strings!
-        // To fix this without adding a new GET endpoint, we can temporarily assume 'everyone'
-        // or add a GET /api/auth/me to return it. StrayCare usually has /auth/me or similar.
+        const data = await response.json();
+        if (data.messagingPrivacy) setMessagingPrivacy(data.messagingPrivacy);
+        if (data.callingPrivacy) setCallingPrivacy(data.callingPrivacy);
       }
     } catch (err) {
-      console.error(err);
+      console.error("Failed to fetch privacy settings:", err);
     } finally {
-      // For now, if we don't have a dedicated GET, we default to everyone, 
-      // but the ideal is updating the auth context or fetching from a proper endpoint.
-      // Assuming user object in context might have it if populated, else we let the user just set it.
       setLoading(false);
     }
   };
