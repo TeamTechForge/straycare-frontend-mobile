@@ -537,9 +537,6 @@ export default function RescueDetailsScreen() {
                   <View style={styles.profileInfo}>
                     <Text style={styles.profileName}>{uiDisplayName}</Text>
                     <Text style={styles.profileRole}>Case Reporter</Text>
-                    {displayPhone ? (
-                      <Text style={styles.profilePhone}>{displayPhone}</Text>
-                    ) : null}
                   </View>
                   {(details.reporter?.id || details.userId || details.reporterUserId) ? (
                     <TouchableOpacity
@@ -572,9 +569,6 @@ export default function RescueDetailsScreen() {
                 <View style={styles.profileInfo}>
                   <Text style={styles.profileName}>{details.rescuer.name}</Text>
                   <Text style={styles.profileRole}>Assigned Rescuer</Text>
-                  {details.rescuer.phone ? (
-                    <Text style={styles.profilePhone}>{details.rescuer.phone}</Text>
-                  ) : null}
                 </View>
               </>
             ) : (

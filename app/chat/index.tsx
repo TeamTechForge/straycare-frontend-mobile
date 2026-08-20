@@ -105,7 +105,7 @@ export default function ChatsScreen() {
 
     const getOtherParticipant = (conversation: any) => {
         let other = conversation.participants?.find((p: any) => p && p._id !== user?._id);
-        
+
         console.log(`[ChatList] Checking conv: type=${conversation.conversationType}, relatedEntity=`, conversation.relatedEntity);
         if (conversation.conversationType === "rescue" && conversation.relatedEntity) {
             let extractedId = conversation.relatedEntity.referenceId;
@@ -176,7 +176,7 @@ export default function ChatsScreen() {
                 lastMessage={item.lastMessage?.text || ""}
                 time={formatTime(item.lastMessage?.createdAt)}
                 unreadCount={unreadCount}
-                isOnline={onlineUsers.has(other._id)}
+                isOnline={!user?.blockedUsers?.includes(other._id) && !other.isBlockingMe && onlineUsers.has(other._id)}
                 profileImage={other.profileImage}
                 role={other.role}
                 onPress={() =>

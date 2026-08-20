@@ -219,21 +219,29 @@ export function CallProvider({ children }: { children: React.ReactNode }) {
   const startCall = useCallback(async (calleeId: string, calleeName: string, calleeImage?: string) => {
     if (!socketRef.current || !user || callState !== CallState.IDLE) return;
     isCallerRef.current = true;
-    const callee: ICallParticipantDTO = { userId: calleeId, name: calleeName, profileImage: calleeImage };
-    setActiveCallData(callee);
-    setCallState(CallState.OUTGOING);
-    
-    try {
-      await webrtcService.setupLocalStream();
-      webrtcService.createPeerConnection();
+      const isAnonymousCall = calleeName.includes("Anonymous Reporter") || calleeName.includes("Anonymous Report");
+      const receiverOverride = isAnonymousCall ? calleeName : undefined;
       
-      const receiverOverride = (calleeName.includes("Anonymous Reporter") || calleeName.includes("Anonymous Report")) ? calleeName : undefined;
+      const finalCalleeImage = isAnonymousCall ? undefined : calleeImage;
+      const finalCallerImage = isAnonymousCall ? "" : (user.profileImage || user.avatar || "");
       
-      socketRef.current.emit(CallEvents.START, {
-        caller: { userId: user._id, name: user.name },
-        calleeId,
-        receiverNameOverride: receiverOverride,
-      });
+      const callee: ICallParticipantDTO = { userId: calleeId, name: calleeName, profileImage: finalCalleeImage };
+      setActiveCallData(callee);
+      setCallState(CallState.OUTGOING);
+      
+      try {
+        await webrtcService.setupLocalStream();
+        webrtcService.createPeerConnection();
+        
+        socketRef.current.emit(CallEvents.START, {
+          caller: { 
+            userId: user._id, 
+            name: user.name,
+            profileImage: finalCallerImage
+          },
+          calleeId,
+          receiverNameOverride: receiverOverride,
+        });
       
       callAudioService.playOutgoing();
 
