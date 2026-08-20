@@ -50,7 +50,7 @@ export default function LostAndFoundScreen() {
             {" pets with\ntheir families."}
           </Text>
           <Text style={styles.heroSubtitle}>
-            We're here to help you every step of the way.
+            {"We're here to help you every step of the way."}
           </Text>
         </View>
 

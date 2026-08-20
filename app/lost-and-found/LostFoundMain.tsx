@@ -3,7 +3,6 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  Dimensions,
   Image,
   Pressable,
   SafeAreaView,
@@ -12,8 +11,6 @@ import {
   View,
 } from "react-native";
 import BackButton from "../../components/BackButton";
-
-const { width } = Dimensions.get("window");
 
 const dogImage = require("../../assets/images/dog main.webp");
 const catImage = require("../../assets/images/cat main.jpeg");
@@ -47,7 +44,7 @@ export default function HomeScreen() {
           {" pets with\ntheir families."}
         </Text>
         <Text style={styles.heroSubtitle}>
-          We're here to help you every step of the way.
+          {"We're here to help you every step of the way."}
         </Text>
       </View>
 

@@ -1,7 +1,4 @@
-// services/lostAndFoundService.ts
-// Single file for all Lost & Found animal post API calls
-
-import axios from "axios";
+import { create } from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
 import Constants from "expo-constants";
@@ -21,7 +18,7 @@ const CLOUDINARY_UPLOAD_PRESET =
 
 // ─── Axios Instance ───────────────────────────────────────────────────────────
 
-const api = axios.create({
+const api = create({
     baseURL: `${API_URL}`,
     timeout: 10000,
     headers: {
@@ -34,14 +31,14 @@ api.interceptors.request.use(async (config: any) => {
     let token: string | null = null;
     try {
         token = await SecureStore.getItemAsync("authToken");
-    } catch (_err) {
+    } catch {
         // SecureStore unsupported or failed on web
     }
 
     if (!token) {
         try {
             token = (await AsyncStorage.getItem("authToken")) ?? (await AsyncStorage.getItem("token"));
-        } catch (_err) {
+        } catch {
             // AsyncStorage fallback check
         }
     }
@@ -157,7 +154,7 @@ const uploadSingleImage = async (
             if (json?.message) {
                 errorText = json.message;
             }
-        } catch (_e) {
+        } catch {
             // ignore JSON parse errors
         }
         throw new Error(errorText);
@@ -249,11 +246,3 @@ export const deleteAnimalPost = async (id: string): Promise<{ message: string }>
     const { data } = await api.delete<{ message: string }>(`/animals/${id}`);
     return data;
 };
-
-// POST report an animal post
-export const reportAnimalPost = async (id: string): Promise<{ message: string; reportCount: number }> => {
-    const { data } = await api.post<{ message: string; reportCount: number }>(`/animals/${id}/report`);
-    return data;
-};
-
-export default api;

@@ -4,7 +4,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -79,13 +79,7 @@ const CreatePost = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);           // Disables submit button while API call is in progress
   const { user } = useAuth();                                        // Authenticated user
 
-  useEffect(() => {
-    if (isEditMode) {
-      loadPost();
-    }
-  }, [postId]);
-
-  const loadPost = async () => {
+  const loadPost = useCallback(async () => {
     try {
       const post = await getAnimalPostById(postId as string);
       skipNextLocationSearch.current = true;
@@ -121,12 +115,17 @@ const CreatePost = () => {
           setSelectedRegion(null);
         }
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       Alert.alert("Error", "Could not load post");
       router.back();
     }
-  };
+  }, [postId, router]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      loadPost();
+    }
+  }, [isEditMode, loadPost]);
 
   // Updates a single form field and clears its error and the global banner
   const updateForm = (key: string, value: any) => {
