@@ -9,6 +9,7 @@ import {
   Platform,
   Image,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { colors } from "../constants/colors.constants";
 import { spacing } from "../constants/spacing.constants";
 import { typography } from "../constants/typography.constants";
@@ -52,7 +53,7 @@ export default function ActivitiesDiscussionScreen() {
             <View style={styles.heroLeft}>
               <Text style={styles.heroTitle}>
                 Together,{"\n"}
-                <Text style={styles.heroHighlight}>we save lives. 🧡</Text>
+                <Text style={styles.heroHighlight}>we save lives.</Text>
               </Text>
               <Text style={styles.heroSubtitle}>
                 Track rescues, explore stories, and connect with fellow animal lovers.
@@ -72,7 +73,7 @@ export default function ActivitiesDiscussionScreen() {
             onPress={() => router.push(nearbyRescuersRoute)}
           >
             <View style={styles.findIconCircle}>
-              <Text style={styles.findIcon}>📍</Text>
+              <Ionicons name="location-sharp" size={16} color={colors.primary} />
             </View>
             <Text style={styles.findText}>Find Nearby Rescuers</Text>
             <Text style={styles.findArrow}>❯</Text>
@@ -85,7 +86,7 @@ export default function ActivitiesDiscussionScreen() {
         <View style={styles.card}>
           <View style={styles.cardHeader}>
             <View style={styles.headerIconCircle}>
-              <Text style={styles.headerIcon}>🐾</Text>
+              <Ionicons name="shield-checkmark-outline" size={18} color={colors.primary} />
             </View>
             <View style={styles.headerTextColumn}>
               <Text style={styles.cardTitle}>Rescue Journey</Text>
@@ -145,7 +146,7 @@ export default function ActivitiesDiscussionScreen() {
             <View style={styles.forumLeft}>
               <View style={styles.cardHeaderForum}>
                 <View style={styles.headerIconCircle}>
-                  <Text style={styles.headerIcon}>💬</Text>
+                  <Ionicons name="chatbubbles-outline" size={18} color={colors.primary} />
                 </View>
                 <Text style={styles.cardTitle}>Discussion Forum</Text>
               </View>
@@ -179,7 +180,7 @@ export default function ActivitiesDiscussionScreen() {
         <View style={styles.footerBanner}>
           <View style={styles.footerLeft}>
             <View style={styles.footerIconCircle}>
-              <Text style={styles.footerIcon}>🐾</Text>
+              <Ionicons name="heart-outline" size={16} color={colors.primary} />
             </View>
             <View style={styles.footerTextWrap}>
               <Text style={styles.footerTitle}>Every small action creates a big change.</Text>

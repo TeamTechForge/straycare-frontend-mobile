@@ -264,7 +264,7 @@ export default function CreateCommunityPost() {
                 style={styles.removeImageButton}
                 onPress={handleRemoveImage}
               >
-                <Ionicons name="close-circle" size={28} color="#ef4444" />
+                <Ionicons name="close-circle" size={28} color="#eab308" />
               </TouchableOpacity>
             </View>
           ) : (

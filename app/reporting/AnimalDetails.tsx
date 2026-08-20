@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 
 type Category = "Injured" | "Abandoned" | "Aggressive";
 type AnimalTypeOption = "Dog" | "Cat" | "Other" | "";
@@ -165,7 +166,13 @@ export default function AnimalDetails() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
-        <Text style={styles.header}>Animal Details</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+          <BackButton onPress={() => router.back()} />
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.header, { marginBottom: 0, textAlign: 'center' }]}>Animal Details</Text>
+          </View>
+          <View style={{ width: 40 }} />
+        </View>
         <Text style={styles.requiredHint}>
           <Text style={styles.requiredMark}>*</Text> Required fields
         </Text>
@@ -313,7 +320,7 @@ export default function AnimalDetails() {
 
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
-          title={isEditing ? "Save Changes →" : "Next Step →"}
+          title={isEditing ? "Save Changes" : "Next Step"}
           onPress={handleNext}
         />
       </View>

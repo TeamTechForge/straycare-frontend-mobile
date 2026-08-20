@@ -10,6 +10,7 @@
 
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Pressable, SafeAreaView, Text, View } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 
 import AllRescues from "../../components/rescue-history/AllRescues";
@@ -21,6 +22,7 @@ import { spacing } from "../../constants/spacing.constants";
 import {
   fetchAllRescues,
   fetchCompletedRescues,
+  fetchFailedRescues,
   fetchPendingRescues,
 } from "../../services/rescueService";
 import { rescueHistoryStyles as styles } from "../../styles/rescue-history.styles";
@@ -28,10 +30,11 @@ import type { RescueHistoryResponse, RescueHistoryTab } from "../../types/Api";
 
 // ── Tab configuration ────────────────────────────────────────────────────────
 
-const TABS: { key: RescueHistoryTab; label: string; emoji: string }[] = [
-  { key: "pending", label: "Pending", emoji: "🕐" },
-  { key: "completed", label: "Completed", emoji: "✅" },
-  { key: "all", label: "All", emoji: "📋" },
+const TABS: { key: RescueHistoryTab; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+  { key: "pending", label: "Pending", icon: "time-outline" },
+  { key: "completed", label: "Completed", icon: "checkmark-circle-outline" },
+  { key: "failed", label: "Failed", icon: "close-circle-outline" },
+  { key: "all", label: "All", icon: "list-outline" },
 ];
 
 // ── Initial empty state ──────────────────────────────────────────────────────
@@ -39,8 +42,9 @@ const TABS: { key: RescueHistoryTab; label: string; emoji: string }[] = [
 const emptyHistory: RescueHistoryResponse = {
   pending: [],
   completed: [],
+  failed: [],
   all: [],
-  counts: { pending: 0, completed: 0, all: 0 },
+  counts: { pending: 0, completed: 0, failed: 0, all: 0 },
 };
 
 // ── Screen Component ─────────────────────────────────────────────────────────
@@ -59,9 +63,10 @@ export default function RescueHistoryScreen() {
     const loadHistory = async () => {
       try {
         // Fetch all three tabs in parallel for speed
-        const [pending, completed, all] = await Promise.all([
+        const [pending, completed, failed, all] = await Promise.all([
           fetchPendingRescues(),
           fetchCompletedRescues(),
+          fetchFailedRescues(),
           fetchAllRescues(),
         ]);
 
@@ -70,10 +75,12 @@ export default function RescueHistoryScreen() {
         setHistory({
           pending,
           completed,
+          failed,
           all,
           counts: {
             pending: pending.length,
             completed: completed.length,
+            failed: failed.length,
             all: all.length,
           },
         });
@@ -132,9 +139,16 @@ export default function RescueHistoryScreen() {
                 style={[styles.tabButton, isActive && styles.tabButtonActive]}
                 onPress={() => setActiveTab(tab.key)}
               >
-                <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
-                  {tab.emoji} {tab.label}
-                </Text>
+                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                  <Ionicons
+                    name={tab.icon}
+                    size={14}
+                    color={isActive ? "#111827" : "#6B7280"}
+                  />
+                  <Text style={[styles.tabText, isActive && styles.tabTextActive]}>
+                    {tab.label}
+                  </Text>
+                </View>
               </Pressable>
             );
           })}
@@ -151,13 +165,15 @@ export default function RescueHistoryScreen() {
           ) : error ? (
             /* Error state */
             <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
-              <Text style={{ fontSize: 40, marginBottom: 8 }}>⚠️</Text>
+              <Ionicons name="alert-circle-outline" size={38} color="#9CA3AF" style={{ marginBottom: 8 }} />
               <Text style={styles.emptyText}>{error}</Text>
             </View>
           ) : activeTab === "pending" ? (
             <PendingRescues data={history.pending} />
           ) : activeTab === "completed" ? (
             <CompletedRescues data={history.completed} />
+          ) : activeTab === "failed" ? (
+            <CompletedRescues data={history.failed} />
           ) : (
             <AllRescues data={history.all} />
           )}

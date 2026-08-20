@@ -36,6 +36,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, router } from "expo-router";
 import axios from "axios"; // axios v1 — uses AbortController, NOT CancelToken
 import { useCall } from "../../contexts/CallContext";
@@ -86,6 +87,15 @@ const isAbortError = (err: unknown): boolean => {
     );
   }
   return false;
+};
+
+const normalizeStatus = (s: any): RescueStatus => {
+  if (!s) return "pending";
+  const str = String(s).toLowerCase();
+  if (str === "accepted" || str === "under rescue" || str === "in progress" || str === "treated") return "accepted";
+  if (str === "completed") return "completed";
+  if (str === "rejected" || str === "cancelled" || str === "failed") return "rejected";
+  return "pending";
 };
 
 // ─── Status color mapping ──────────────────────────────────────────────────────
@@ -303,7 +313,7 @@ export default function RequestStatusScreen() {
         console.log("[RequestStatus] Response:", data);
 
         if (mountedRef.current) {
-          setStatus(data.status ?? "pending");
+          setStatus(normalizeStatus(data.status));
           setRescuer(data.rescuer ?? null);
           setRequestId(data.requestId ?? null);
         }
@@ -375,10 +385,10 @@ export default function RequestStatusScreen() {
 
           if (cancelledRef.current || !mountedRef.current) return; // cancelled or unmounted while awaiting
 
-          const responseData: RescueStatusResponse = res.data;
-          const newStatus: RescueStatus = responseData.status;
+          const responseData: any = res.data;
+          const newStatus: RescueStatus = normalizeStatus(responseData.status);
 
-          console.log("[RequestStatus] Poll result:", newStatus);
+          console.log("[RequestStatus] Poll result:", newStatus, "raw:", responseData.status);
 
           // Always update rescuer details if returned
           if (responseData.rescuer) {
@@ -694,7 +704,7 @@ export default function RequestStatusScreen() {
                     activeOpacity={0.7}
                     style={styles.phoneButton}
                   >
-                    <Text style={styles.phoneIcon}>📞</Text>
+                    <Ionicons name="call-outline" size={14} color={colors.primary} />
                     <Text style={styles.phoneText}>{rescuer.phone}</Text>
                   </TouchableOpacity>
                 ) : null}
@@ -702,7 +712,7 @@ export default function RequestStatusScreen() {
                 {/* ETA badge — shown when accepted */}
                 {status === "accepted" && (
                   <View style={styles.etaBadge}>
-                    <Text style={styles.etaIcon}>🕐</Text>
+                    <Ionicons name="time-outline" size={14} color="#B8860B" />
                     <Text style={styles.etaText}>ETA: ~10 min</Text>
                   </View>
                 )}

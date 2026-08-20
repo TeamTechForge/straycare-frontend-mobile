@@ -3,12 +3,13 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  SafeAreaView,
   ScrollView,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView, useSafeAreaInsets } from "react-native-safe-area-context";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
@@ -26,95 +27,6 @@ import { rescueDetailsStyles as styles } from "../../styles/rescue-details.style
 import { BASE_URL } from "../../constants/config.constants";
 import { io as ioClient } from "socket.io-client";
 
-/* ─────────────────────────────────────────────────────────────
- * Fallback static details when the backend is down or mock data
- * is accessed (e.g. for default test IDs '001', '002', '003')
- * ───────────────────────────────────────────────────────────── */
-const FALLBACK_DETAILS: Record<string, any> = {
-  "001": {
-    rescueRequestId: "001",
-    caseId: "001",
-    status: "completed",
-    animalType: "Dog (Injury)",
-    description: "Found a stray dog with an injured paw near the junction.",
-    photos: ["https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&h=400&fit=crop&q=80"],
-    photoUrl: "https://images.unsplash.com/photo-1543466835-00a7907e9de1?w=600&h=400&fit=crop&q=80",
-    createdAt: new Date("2026-01-12T10:00:00Z").toISOString(),
-    completedAt: new Date("2026-01-12T11:30:00Z").toISOString(),
-    reporter: {
-      id: "reporter-01",
-      name: "Dinesh Perera",
-      phone: "+94771234561",
-      avatar: "",
-    },
-    rescuer: {
-      id: "rescuer-01",
-      name: "Embark NGO Team",
-      phone: "+94779876541",
-      avatar: "",
-    },
-    location: { latitude: 6.9271, longitude: 79.8612, address: "Borella Junction, Colombo" },
-    distanceKm: 1.2,
-    etaMinutes: 10,
-    summary: "Successfully caught, treated at veterinary clinic, and admitted to Embark shelter.",
-    outcomes: ["Treated and released", "Admitted to shelter", "Transferred to veterinary clinic"],
-  },
-  "002": {
-    rescueRequestId: "002",
-    caseId: "002",
-    status: "accepted",
-    animalType: "Cat (Sick)",
-    description: "Stray kitten appears weak and is not eating.",
-    photos: ["https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&h=400&fit=crop&q=80"],
-    photoUrl: "https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?w=600&h=400&fit=crop&q=80",
-    createdAt: new Date("2026-01-08T14:20:00Z").toISOString(),
-    completedAt: null,
-    reporter: {
-      id: "reporter-02",
-      name: "Sarah Silva",
-      phone: "+94771234562",
-      avatar: "",
-    },
-    rescuer: {
-      id: "rescuer-02",
-      name: "Hope Paws NGO",
-      phone: "+94779876542",
-      avatar: "",
-    },
-    location: { latitude: 7.2906, longitude: 80.6337, address: "Peradeniya Road, Kandy" },
-    distanceKm: 2.5,
-    etaMinutes: 15,
-    summary: "Rescuer is currently on their way to check the kitten.",
-    outcomes: ["Checked by vet", "Medicine given"],
-  },
-  "003": {
-    rescueRequestId: "003",
-    caseId: "003",
-    status: "pending",
-    animalType: "Dog (Accident)",
-    description: "Dog hit by a vehicle. Unable to walk.",
-    photos: ["https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&h=400&fit=crop&q=80"],
-    photoUrl: "https://images.unsplash.com/photo-1583511655857-d19b40a7a54e?w=600&h=400&fit=crop&q=80",
-    createdAt: new Date("2026-01-02T09:15:00Z").toISOString(),
-    completedAt: null,
-    reporter: {
-      id: "reporter-03",
-      name: "Kamal Gunaratne",
-      phone: "+94771234563",
-      avatar: "",
-    },
-    rescuer: null,
-    location: { latitude: 6.0535, longitude: 80.2112, address: "Main Street, Galle" },
-    distanceKm: 0.0,
-    etaMinutes: 0,
-    summary: "Rescue request has been sent. Waiting for a rescuer to accept.",
-    outcomes: ["Admitted to clinic", "Under observation"],
-  },
-};
-
-const DEFAULT_FALLBACK_IMAGE =
-  "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&h=400&fit=crop&q=80";
-
 /** Status badge styles consistent with the design system */
 const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> = {
   pending: { bg: "#FFF7E6", text: "#B8860B", dot: "#FEB94B" },
@@ -127,12 +39,17 @@ const STATUS_COLORS: Record<string, { bg: string; text: string; dot: string }> =
  * Helper Functions
  * ───────────────────────────────────────────────────────────── */
 const resolvePhotoUrl = (url: string | undefined): string => {
-  if (!url) return DEFAULT_FALLBACK_IMAGE;
+  if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://")) {
     return url;
   }
   const baseUrl = getApiBaseUrl();
   return `${baseUrl}${url.startsWith("/") ? "" : "/"}${url}`;
+};
+
+const getInitial = (name?: string): string => {
+  if (!name || name.trim().length === 0) return "?";
+  return name.trim().charAt(0).toUpperCase();
 };
 
 const formatFullDate = (value: string | undefined): string => {
@@ -150,23 +67,11 @@ const formatFullDate = (value: string | undefined): string => {
   }
 };
 
-const timeAgo = (dateString: string): string => {
-  const diff = Date.now() - new Date(dateString).getTime();
-  const mins = Math.floor(diff / 60000);
-  if (mins < 1) return "just now";
-  if (mins < 60) return `${mins}m ago`;
-  const hours = Math.floor(mins / 60);
-  if (hours < 24) return `${hours}h ago`;
-  const days = Math.floor(hours / 24);
-  return `${days}d ago`;
-};
-
-const getInitial = (name: string) => (name ? name.charAt(0).toUpperCase() : "?");
-
 export default function RescueDetailsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const idValue = id ?? "";
+  const insets = useSafeAreaInsets();
   const { user, token } = useAuth();
   const { startCall } = useCall();
   
@@ -192,11 +97,8 @@ export default function RescueDetailsScreen() {
       setDetails(data);
       setError(null);
     } catch (err) {
-      console.warn("[RescueDetails] Failed to load from backend, using fallbacks:", err);
-      // Fallback to static mock details for specific IDs, or default to mock '001'
-      const fallback = FALLBACK_DETAILS[idValue] || FALLBACK_DETAILS["001"];
-      setDetails(fallback);
-      setError(null);
+      console.error("[RescueDetails] Failed to load rescue details:", err);
+      setError("Unable to load rescue details. Please check your connection.");
     } finally {
       setLoading(false);
     }
@@ -253,7 +155,7 @@ export default function RescueDetailsScreen() {
       });
       if (respondRes.ok) {
         if (action === "accept") {
-          Alert.alert("Request Accepted! 🚑", "Case has been added to your profile under Rescue Cases.", [
+          Alert.alert("Request Accepted", "Case has been added to your profile under Rescue Cases.", [
             {
               text: "Go to Home",
               onPress: () => router.replace("/(tabs)/Home"),
@@ -304,16 +206,17 @@ export default function RescueDetailsScreen() {
   // ── Memoized Resolved Values ──
   const photosList = useMemo(() => {
     if (Array.isArray(details?.photos) && details.photos.length > 0) {
-      return details.photos.map((p: string) => resolvePhotoUrl(p));
+      return details.photos.map((p: string) => resolvePhotoUrl(p)).filter(Boolean);
     }
     if (details?.photoUrl) {
-      return [resolvePhotoUrl(details.photoUrl)];
+      const resolved = resolvePhotoUrl(details.photoUrl);
+      return resolved ? [resolved] : [];
     }
-    return [DEFAULT_FALLBACK_IMAGE];
+    return [];
   }, [details]);
 
   const photoUrl = useMemo(() => {
-    return photosList[selectedPhotoIndex] || photosList[0] || DEFAULT_FALLBACK_IMAGE;
+    return photosList[selectedPhotoIndex] || photosList[0] || "";
   }, [photosList, selectedPhotoIndex]);
 
   const statusStyle = useMemo(
@@ -364,9 +267,12 @@ export default function RescueDetailsScreen() {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.centerContainer}>
-          <Text style={{ fontSize: 40 }}>⚠️</Text>
-          <Text style={styles.errorText}>{error || "Unable to display details."}</Text>
-          <AppButton title="Go Back" onPress={() => router.back()} style={{ width: "100%" }} />
+          <Ionicons name="alert-circle-outline" size={38} color="#9CA3AF" style={{ marginBottom: 8 }} />
+          <Text style={styles.errorText}>{error || "Unable to display rescue details."}</Text>
+          <View style={{ width: "100%", gap: 10, marginTop: 12 }}>
+            <AppButton title="Try Again" onPress={() => { setLoading(true); void loadDetails(); }} style={{ width: "100%" }} />
+            <AppButton title="Go Back" onPress={() => router.back()} variant="outline" style={{ width: "100%" }} />
+          </View>
         </View>
       </SafeAreaView>
     );
@@ -381,14 +287,19 @@ export default function RescueDetailsScreen() {
   };
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+    <SafeAreaView style={styles.safe} edges={["top", "bottom"]}>
+      <ScrollView 
+        contentContainerStyle={[
+          styles.scrollContent,
+          { paddingBottom: ((!details?.status || details?.status === "pending" || details?.status === "Needs Help") ? 110 : 40) + insets.bottom }
+        ]} 
+        showsVerticalScrollIndicator={false}
+      >
         {/* ── Custom Header Row ── */}
         <View style={styles.header}>
           <BackButton onPress={() => router.back()} style={{ marginRight: spacing.md }} />
           <View style={styles.headerTitleContainer}>
             <Text style={styles.title}>Rescue Details</Text>
-            <Text style={styles.subtitle}>ID: {idValue}</Text>
           </View>
         </View>
 
@@ -408,7 +319,7 @@ export default function RescueDetailsScreen() {
               />
             ) : (
               <View style={styles.imageFallback}>
-                <Text style={styles.fallbackEmoji}>🐾</Text>
+                <Ionicons name="paw-outline" size={36} color="#B8860B" style={{ marginBottom: 6 }} />
                 <Text style={styles.fallbackText}>Image unavailable</Text>
               </View>
             )}
@@ -463,7 +374,7 @@ export default function RescueDetailsScreen() {
 
         {/* ── 2. Timeline Tracker Card ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>⏱ Rescue Journey Timeline</Text>
+          <Text style={styles.cardTitle}>Rescue Journey Timeline</Text>
           <View style={styles.timelineContainer}>
             {timelineData.map((step: any, index: number) => {
               const isLast = index === timelineData.length - 1;
@@ -502,10 +413,12 @@ export default function RescueDetailsScreen() {
 
         {/* ── 3. Description & Date Cards ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📝 Case Information</Text>
+          <Text style={styles.cardTitle}>Case Information</Text>
           <View style={styles.grid}>
             <View style={styles.detailRow}>
-              <Text style={styles.detailIcon}>🕐</Text>
+              <View style={{ width: 28, alignItems: "center" }}>
+                <Ionicons name="time-outline" size={18} color="#B8860B" />
+              </View>
               <View style={styles.detailInfo}>
                 <Text style={styles.detailLabel}>Reported At</Text>
                 <Text style={styles.detailValue}>{formatFullDate(details.createdAt)}</Text>
@@ -513,7 +426,9 @@ export default function RescueDetailsScreen() {
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailIcon}>🐾</Text>
+              <View style={{ width: 28, alignItems: "center" }}>
+                <Ionicons name="paw-outline" size={18} color="#B8860B" />
+              </View>
               <View style={styles.detailInfo}>
                 <Text style={styles.detailLabel}>Case Type</Text>
                 <Text style={styles.detailValue}>{details.animalType || "Unspecified"}</Text>
@@ -521,7 +436,9 @@ export default function RescueDetailsScreen() {
             </View>
 
             <View style={styles.detailRow}>
-              <Text style={styles.detailIcon}>📄</Text>
+              <View style={{ width: 28, alignItems: "center" }}>
+                <Ionicons name="document-text-outline" size={18} color="#B8860B" />
+              </View>
               <View style={styles.detailInfo}>
                 <Text style={styles.detailLabel}>Description</Text>
                 <Text style={styles.detailValue}>{details.description || "No description provided."}</Text>
@@ -551,7 +468,7 @@ export default function RescueDetailsScreen() {
         {/* ── 4. Location & Map Preview Card ── */}
         <View style={[styles.card, styles.mapPreviewCard]}>
           <View style={styles.mapPreviewHeader}>
-            <Text style={styles.cardTitle}>📍 Rescue Location</Text>
+            <Text style={styles.cardTitle}>Rescue Location</Text>
             <Text style={styles.helperText}>
               {details.location?.address || "Location coordinates specified on map"}
             </Text>
@@ -580,36 +497,59 @@ export default function RescueDetailsScreen() {
 
         {/* ── 5. Contact Profiles & Call Buttons ── */}
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>📞 Contact & Rescuers</Text>
+          <Text style={styles.cardTitle}>Contact & Rescuers</Text>
 
           {/* Reporter row */}
           <View style={styles.profileSection}>
-            {(details.reporter?.avatar || details.reporterAvatar) ? (
-              <Image
-                source={{ uri: resolvePhotoUrl(details.reporter?.avatar || details.reporterAvatar) }}
-                style={styles.avatarImage}
-              />
-            ) : (
-              <View style={styles.avatarInitials}>
-                <Text style={styles.avatarInitialsText}>{getInitial(details.reporterName || details.reporter?.name)}</Text>
-              </View>
-            )}
-            <View style={styles.profileInfo}>
-              <Text style={styles.profileName}>{details.reporterName || details.reporter?.name || "Reporter"}</Text>
-              <Text style={styles.profileRole}>Case Reporter</Text>
-              {(details.reporter?.phone || details.reporterPhone) ? (
-                <Text style={styles.profilePhone}>{details.reporter?.phone || details.reporterPhone}</Text>
-              ) : null}
-            </View>
-            {(details.reporter?.phone || details.reporterPhone) ? (
-              <TouchableOpacity
-                style={styles.callIconBtn}
-                activeOpacity={0.8}
-                onPress={() => handleCall(details.reporter?.phone || details.reporterPhone, details.reporterName || details.reporter?.name)}
-              >
-                <Text style={styles.callIconText}>📞</Text>
-              </TouchableOpacity>
-            ) : null}
+            {(() => {
+              const isAnonymous = details.reporterName === "Anonymous Reporter" || details.anonymous;
+              const fullCaseId = (details.caseId || idValue || 'Anon').toString();
+              const displayCaseId = fullCaseId.slice(-4);
+              
+              const uiDisplayName = isAnonymous 
+                ? `Anonymous Reporter (${fullCaseId})` 
+                : (details.reporterName || details.reporter?.name || "Reporter");
+
+              const callDisplayName = isAnonymous 
+                ? uiDisplayName 
+                : uiDisplayName;
+              
+              const displayAvatar = isAnonymous 
+                ? "https://ui-avatars.com/api/?name=Anonymous+Reporter&background=FEB94B&color=fff"
+                : (details.reporter?.avatar || details.reporterAvatar);
+                
+              const displayPhone = isAnonymous 
+                ? null 
+                : (details.reporter?.phone || details.reporterPhone);
+
+              return (
+                <>
+                  {displayAvatar ? (
+                    <Image
+                      source={{ uri: resolvePhotoUrl(displayAvatar) }}
+                      style={styles.avatarImage}
+                    />
+                  ) : (
+                    <View style={styles.avatarInitials}>
+                      <Text style={styles.avatarInitialsText}>{getInitial(uiDisplayName)}</Text>
+                    </View>
+                  )}
+                  <View style={styles.profileInfo}>
+                    <Text style={styles.profileName}>{uiDisplayName}</Text>
+                    <Text style={styles.profileRole}>Case Reporter</Text>
+                  </View>
+                  {(details.reporter?.id || details.userId || details.reporterUserId) ? (
+                    <TouchableOpacity
+                      style={styles.callIconBtn}
+                      activeOpacity={0.8}
+                      onPress={() => handleCall(details.reporter?.id || details.userId || details.reporterUserId, callDisplayName, displayAvatar)}
+                    >
+                      <Ionicons name="call" size={16} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  ) : null}
+                </>
+              );
+            })()}
           </View>
 
           {/* Rescuer row */}
@@ -629,9 +569,6 @@ export default function RescueDetailsScreen() {
                 <View style={styles.profileInfo}>
                   <Text style={styles.profileName}>{details.rescuer.name}</Text>
                   <Text style={styles.profileRole}>Assigned Rescuer</Text>
-                  {details.rescuer.phone ? (
-                    <Text style={styles.profilePhone}>{details.rescuer.phone}</Text>
-                  ) : null}
                 </View>
               </>
             ) : (
@@ -670,7 +607,7 @@ export default function RescueDetailsScreen() {
 
       {/* ── Fixed Bottom Action Bar at bottom of page to Accept or Reject ── */}
       {(!details?.status || details?.status === "pending" || details?.status === "Needs Help") && (
-        <View style={styles.actionBar}>
+        <View style={[styles.actionBar, { paddingBottom: Math.max(insets.bottom, 20) + 10, paddingTop: 16 }]}>
           <TouchableOpacity
             style={[styles.actionBtn, styles.rejectButton, responding && { opacity: 0.6 }]}
             onPress={() => respondToRequest("reject")}

@@ -6,6 +6,8 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  KeyboardAvoidingView,
+  Platform,
   ScrollView,
   StyleSheet,
   Text,
@@ -13,12 +15,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import PrimaryButton from "../../components/PrimaryButton";
 import ChatLocationPicker from "../../components/chat/ChatLocationPicker";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
-import PrimaryButton from "../../components/PrimaryButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { getPostById, updatePost } from "../../services/adoptionService";
 import { ANIMAL_BREEDS, AnimalCategory } from "../../constants/breeds.constants";
+import AdoptionLocationSearchInput from "./AdoptionLocationSearchInput";
 
 // Centralized color tokens matching Lost & Found
 const C = {
@@ -107,10 +110,8 @@ export default function EditAdoptionPost() {
 
   // ── UI State ──────────────────────────────────────────────────────────────
   const [showLocationPicker, setShowLocationPicker] = useState(false);
-  const [selectedRegion, setSelectedRegion] = useState<{
-    latitude: number;
-    longitude: number;
-  } | null>(null);
+  const [selectedRegion, setSelectedRegion] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [descriptionHeight, setDescriptionHeight] = useState(96);
   const [errors, setErrors] = useState<Errors>({});
   const [errorMessage, setErrorMessage] = useState("");
 
@@ -146,6 +147,9 @@ export default function EditAdoptionPost() {
         setSelectedTraits(post.traits ?? []);
         setNotes(post.notes ?? "");
         setLocation(post.location ?? "");
+        if (Number.isFinite(post.latitude) && Number.isFinite(post.longitude)) {
+          setSelectedRegion({ latitude: Number(post.latitude), longitude: Number(post.longitude) });
+        }
         setExistingImages(post.images ?? []);
       })
       .catch(() => setFetchError("Could not load post for editing."))
@@ -215,10 +219,7 @@ export default function EditAdoptionPost() {
   const validateForm = (): boolean => {
     const newErrors: Errors = {};
     if (!name.trim()) newErrors.name = "Pet name is required.";
-    if (
-      age.trim() &&
-      !/^\d+(\s*(year|years|month|months|week|weeks))?$/i.test(age.trim())
-    ) {
+    if (age.trim() && !/^\d+(\s*(year|years|month|months|week|weeks))?$/i.test(age.trim())) {
       newErrors.age = "Enter a valid age (e.g. 2 years, 6 months).";
     }
     if (!description.trim()) {
@@ -237,7 +238,7 @@ export default function EditAdoptionPost() {
         newErrors.otherBreed = "Please specify the breed.";
       }
     }
-    if (!location.trim()) newErrors.location = "Location is required.";
+    if (!location.trim() || !selectedRegion) newErrors.location = "Select a valid location suggestion or choose a location on the map.";
 
     setErrors(newErrors);
     const firstErr = Object.values(newErrors).find(Boolean);
@@ -251,6 +252,7 @@ export default function EditAdoptionPost() {
 
   // ── Submit Update ─────────────────────────────────────────────────────────
   const handleUpdate = async () => {
+    if (submitting) return;
     if (!validateForm()) return;
 
     try {
@@ -276,6 +278,8 @@ export default function EditAdoptionPost() {
           description: description.trim(),
           traits: selectedTraits,
           location: location.trim(),
+          latitude: selectedRegion?.latitude,
+          longitude: selectedRegion?.longitude,
           posterName: user?.name || "Anonymous",
           contact: user?.phone || user?.email || "N/A",
           notes: notes.trim() || undefined,
@@ -289,8 +293,9 @@ export default function EditAdoptionPost() {
       ]);
     } catch (err: any) {
       const msg =
-        err?.message ||
+        err?.response?.data?.error ||
         err?.response?.data?.message ||
+        err?.message ||
         "Could not update your post. Please check your connection and try again.";
       setErrorMessage(msg);
       Alert.alert("Update Failed", msg);
@@ -338,6 +343,7 @@ export default function EditAdoptionPost() {
   const totalImages = existingImages.length + newImages.length;
 
   return (
+    <KeyboardAvoidingView style={s.container} behavior={Platform.OS === "ios" ? "padding" : "height"}>
     <ScrollView
       style={s.container}
       showsVerticalScrollIndicator={false}
@@ -687,10 +693,12 @@ export default function EditAdoptionPost() {
         <View style={s.fieldGroup}>
           <FieldLabel text="Description *" />
           <TextInput
-            style={[s.input, s.textArea, errors.description && s.inputError]}
+            style={[s.input, s.textArea, { height: descriptionHeight }, errors.description && s.inputError]}
             placeholder="Describe your pet's personality, habits, and needs..."
             placeholderTextColor={C.textPlaceholder}
             multiline
+            scrollEnabled={descriptionHeight >= 180}
+            onContentSizeChange={(event) => setDescriptionHeight(Math.min(180, Math.max(96, event.nativeEvent.contentSize.height + 24)))}
             textAlignVertical="top"
             value={description}
             onChangeText={(v) => {
@@ -788,89 +796,28 @@ export default function EditAdoptionPost() {
       {/* SECTION 4: Location */}
       <View style={s.card}>
         <Text style={s.sectionTitle}>Location</Text>
-
-        <View style={s.fieldGroup}>
-          <FieldLabel text="Adoption Location *" />
-          <View style={s.inputIconWrapper}>
-            <Ionicons
-              name="location-outline"
-              size={18}
-              color={C.textSub}
-              style={s.inputIcon}
-            />
-            <TextInput
-              style={[
-                s.input,
-                s.inputWithIcon,
-                errors.location && s.inputError,
-              ]}
-              placeholder="Search address or area"
-              placeholderTextColor={C.textPlaceholder}
-              value={location}
-              onChangeText={(v) => {
-                setLocation(v);
-                if (v.trim())
-                  setErrors((prev) => ({ ...prev, location: undefined }));
-              }}
-            />
-          </View>
-          <FieldError field="location" />
-        </View>
-
-        {/* Map integration using ChatLocationPicker */}
-        <TouchableOpacity
-          style={s.mapBox}
-          onPress={() => setShowLocationPicker(true)}
-          activeOpacity={0.85}
-        >
+        <Text style={s.sectionSubtitle}>Select location on map or search for your address</Text>
+        <TouchableOpacity style={s.mapBox} onPress={() => setShowLocationPicker(true)} activeOpacity={0.85}>
           {selectedRegion ? (
-            <View
-              style={{
-                width: "100%",
-                height: 120,
-                borderRadius: 10,
-                overflow: "hidden",
-              }}
-            >
-              <MapViewWrapper
-                style={{ width: "100%", height: "100%" }}
-                region={{
-                  ...selectedRegion,
-                  latitudeDelta: 0.01,
-                  longitudeDelta: 0.01,
-                }}
-                scrollEnabled={false}
-                zoomEnabled={false}
-                pitchEnabled={false}
-                rotateEnabled={false}
-              >
+            <View style={s.mapPreview}>
+              <MapViewWrapper style={s.mapPreview} region={{ ...selectedRegion, latitudeDelta: 0.01, longitudeDelta: 0.01 }} scrollEnabled={false} zoomEnabled={false} pitchEnabled={false} rotateEnabled={false}>
                 <Marker coordinate={selectedRegion} />
               </MapViewWrapper>
             </View>
-          ) : (
-            <>
-              <Ionicons
-                name="map-outline"
-                size={32}
-                color={C.textPlaceholder}
-              />
-              <Text style={s.mapText}>Tap to choose on map</Text>
-            </>
-          )}
+          ) : <><View style={s.mapIconCircle}><Ionicons name="location-outline" size={28} color={C.amber} /></View><Text style={s.mapTitle}>Select Location</Text><Text style={s.mapText}>Tap here to select location</Text></>}
         </TouchableOpacity>
-
-        <ChatLocationPicker
-          visible={showLocationPicker}
-          onCancel={() => setShowLocationPicker(false)}
-          onSelect={({ address, latitude, longitude }) => {
-            if (address) {
-              setLocation(address);
-              setErrors((prev) => ({ ...prev, location: undefined }));
-            }
-            setSelectedRegion({ latitude, longitude });
-            setShowLocationPicker(false);
-          }}
-        />
+        <View style={s.fieldGroup}>
+          <FieldLabel text="Adoption Location *" />
+          <AdoptionLocationSearchInput
+            value={location}
+            hasError={Boolean(errors.location)}
+            hasValidCoordinates={Boolean(selectedRegion)}
+            onTextChange={(text) => { setLocation(text); setSelectedRegion(null); }}
+            onPlaceSelected={(description, coordinates) => { setLocation(description); setSelectedRegion(coordinates); setErrors((prev) => ({ ...prev, location: undefined })); }}
+          />
+          <FieldError field="location" />
+        </View>
+        <ChatLocationPicker visible={showLocationPicker} onCancel={() => setShowLocationPicker(false)} onSelect={({ address, latitude, longitude }) => { if (address) setLocation(address); setSelectedRegion({ latitude, longitude }); setErrors((prev) => ({ ...prev, location: undefined })); setShowLocationPicker(false); }} />
       </View>
 
       {/* SECTION 5: Action Buttons */}
@@ -895,6 +842,7 @@ export default function EditAdoptionPost() {
       {/* Bottom spacer */}
       <View style={{ height: 40 }} />
     </ScrollView>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -1080,7 +1028,8 @@ const s = StyleSheet.create({
     fontSize: 14,
   },
   textArea: {
-    height: 110,
+    minHeight: 96,
+    maxHeight: 180,
     paddingTop: 13,
   },
 
@@ -1233,16 +1182,21 @@ const s = StyleSheet.create({
 
   // Location
   mapBox: {
-    height: 120,
-    borderRadius: 10,
-    borderWidth: 1.5,
+    minHeight: 150,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderStyle: "dashed",
     borderColor: C.outline,
-    backgroundColor: C.surfaceLow,
+    backgroundColor: C.amberDim,
     alignItems: "center",
     justifyContent: "center",
     gap: 6,
     overflow: "hidden",
+    marginBottom: 16,
   },
+  mapPreview: { width: "100%", height: 150 },
+  mapIconCircle: { width: 52, height: 52, borderRadius: 26, backgroundColor: "#FFF3DC", alignItems: "center", justifyContent: "center", marginBottom: 4 },
+  mapTitle: { fontSize: 14, fontWeight: "700", color: C.textMain },
   mapText: {
     fontSize: 13,
     fontWeight: "600",

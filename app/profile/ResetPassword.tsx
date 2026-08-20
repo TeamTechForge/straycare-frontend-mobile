@@ -41,8 +41,8 @@ export default function ResetPasswordScreen() {
     if (!newPassword.trim()) {
       newErrors.newPassword = "New password is required";
       valid = false;
-    } else if (newPassword.length < 8) {
-      newErrors.newPassword = "Password must be at least 8 characters";
+    } else if (newPassword.length < 6) {
+      newErrors.newPassword = "Password must be at least 6 characters";
       valid = false;
     }
 
@@ -76,15 +76,16 @@ export default function ResetPasswordScreen() {
         },
         body: JSON.stringify({
           currentPassword,
-          newPassword,
+          newPassword: newPassword.trim(),
         }),
       });
 
       const data: any = await response.json();
 
       if (response.ok) {
-        Alert.alert("Success", "Password updated successfully");
-        router.back();
+        Alert.alert("Success", "Password updated successfully", [
+          { text: "OK", onPress: () => router.back() }
+        ]);
       } else {
         if (data.message === "Incorrect current password") {
           setErrors((prev) => ({ ...prev, currentPassword: "The password you entered is incorrect" }));
@@ -115,7 +116,7 @@ export default function ResetPasswordScreen() {
       <Text style={styles.subtitle}>
         Create a secure new password for your account to get back to helping pets.
       </Text>
-      
+
       <Text style={styles.label}>Current Password</Text>
       <InputField
         placeholder="Your current password"
@@ -127,14 +128,14 @@ export default function ResetPasswordScreen() {
 
       <Text style={styles.label}>New Password</Text>
       <InputField
-        placeholder="At least 8 characters"
+        placeholder="At least 6 characters"
         value={newPassword}
         onChangeText={setNewPassword}
         secure
         error={errors.newPassword}
       />
 
-      <Text style={styles.helper}>ⓘ Minimum 8 characters, including a number.</Text>
+      <Text style={styles.helper}>ⓘ Minimum 6 characters.</Text>
 
       <Text style={styles.label}>Confirm New Password</Text>
       <InputField
@@ -146,7 +147,7 @@ export default function ResetPasswordScreen() {
       />
 
       <View style={{ marginTop: 18 }}>
-        <PrimaryButton title="Update Password  🔑" onPress={handleUpdatePassword} />
+        <PrimaryButton title="Update Password" onPress={handleUpdatePassword} />
       </View>
     </View>
   );
@@ -197,10 +198,10 @@ const styles = StyleSheet.create({
     marginTop: -2,
     marginBottom: 8,
   },
-    label: {
-  fontSize: 13,
-  marginBottom: 6,
-  fontWeight: "500",
-  color: "#333",
-},
+  label: {
+    fontSize: 13,
+    marginBottom: 6,
+    fontWeight: "500",
+    color: "#333",
+  },
 });

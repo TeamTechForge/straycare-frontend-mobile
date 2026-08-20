@@ -13,6 +13,7 @@ import { useNotification, Notification } from "../../contexts/NotificationContex
 import * as SecureStore from "expo-secure-store";
 import { API_URL } from "../../constants/config.constants";
 import { useRouter } from "expo-router";
+import BackButton from "../../components/BackButton";
 
 export default function NotificationCenter() {
   const router = useRouter();
@@ -142,21 +143,13 @@ export default function NotificationCenter() {
     );
   }
 
-  if (notifications.length === 0) {
-    return (
-      <View style={styles.centerContainer}>
-        <Text style={styles.emptyText}>No notifications yet</Text>
-        <Text style={styles.emptySubtext}>
-          You{"'"}ll receive updates about your case status here
-        </Text>
-      </View>
-    );
-  }
-
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Notifications</Text>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <BackButton onPress={() => router.back()} />
+          <Text style={styles.headerTitle}>Notifications</Text>
+        </View>
         {unreadCount > 0 && (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{unreadCount}</Text>
@@ -164,16 +157,25 @@ export default function NotificationCenter() {
         )}
       </View>
 
-      <FlatList
-        data={notifications}
-        renderItem={renderNotification}
-        keyExtractor={(item) => item._id}
-        contentContainerStyle={styles.listContent}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
-        }
-        scrollEnabled={true}
-      />
+      {notifications.length === 0 ? (
+        <View style={styles.centerContainer}>
+          <Text style={styles.emptyText}>No notifications yet</Text>
+          <Text style={styles.emptySubtext}>
+            You{"'"}ll receive updates about your case status here
+          </Text>
+        </View>
+      ) : (
+        <FlatList
+          data={notifications}
+          renderItem={renderNotification}
+          keyExtractor={(item) => item._id}
+          contentContainerStyle={styles.listContent}
+          refreshControl={
+            <RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />
+          }
+          scrollEnabled={true}
+        />
+      )}
     </View>
   );
 }

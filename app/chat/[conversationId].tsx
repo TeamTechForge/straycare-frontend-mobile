@@ -89,6 +89,10 @@ export default function ChatRoomScreen() {
           const data: any = await response.json();
           setCanMessage(data.permissions?.canMessage ?? true);
           setCanCall(data.permissions?.canCall ?? true);
+        } else if (response.status === 403) {
+          // Blocked by user
+          setCanMessage(false);
+          setCanCall(false);
         }
       } catch (err) {
         console.error("Failed to fetch permissions", err);
@@ -424,7 +428,7 @@ export default function ChatRoomScreen() {
     );
   };
 
-  const isRecipientOnline = recipientId ? onlineUsers.has(recipientId) : false;
+  const isRecipientOnline = (recipientId && canMessage) ? onlineUsers.has(recipientId) : false;
 
   return (
     <View style={styles.container}>
@@ -455,8 +459,8 @@ export default function ChatRoomScreen() {
             onTitlePress={() => {
               if (recipientId === "deleted") {
                 Alert.alert("Account Deleted", "This user's profile is no longer available because they have deleted their account.");
-              } else if (recipientName?.includes("Case Chat")) {
-                Alert.alert("Anonymous Case", "This is an anonymous case. The reporter's profile is hidden for privacy.");
+              } else if (recipientName?.includes("Anonymous Reporter") || recipientName?.includes("Anonymous Report")) {
+                Alert.alert("Anonymous Case", "This is an anonymous case. Participant profiles are hidden for privacy.");
               } else if (recipientId) {
                 router.push(`/profile/${recipientId}`);
               }

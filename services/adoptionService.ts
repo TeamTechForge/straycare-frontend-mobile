@@ -71,6 +71,8 @@ export interface Post {
   traits: string[];
   images: string[];       // Cloudinary URLs
   location: string;
+  latitude?: number;
+  longitude?: number;
   posterName: string;
   contact: string;
   notes?: string;
@@ -92,6 +94,8 @@ export interface CreatePostPayload {
   traits: string[];
   images?: string[];
   location: string;
+  latitude?: number;
+  longitude?: number;
   posterName: string;
   contact: string;
   notes?: string;

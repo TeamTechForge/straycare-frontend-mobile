@@ -19,10 +19,12 @@ import * as DocumentPicker from "expo-document-picker";
 
 import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
 
+import BackButton from "../../components/BackButton";
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
+import PayHereSetupGuideModal from "../../components/PayHereSetupGuideModal";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
 import { API_URL } from "../../constants/config.constants";
 
@@ -42,13 +44,17 @@ export default function NgoProfileSetupScreen() {
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geocodedLocationText, setGeocodedLocationText] = useState("");
 
   const [image, setImage] = useState<string | null>(null);
   const [document, setDocument] = useState(null);
   const [merchantId, setMerchantId] = useState("");
   const [merchantSecret, setMerchantSecret] = useState("");
+  const [payHereAppId, setPayHereAppId] = useState("");
+  const [payHereAppSecret, setPayHereAppSecret] = useState("");
   const [paymentValidationError, setPaymentValidationError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPayHereGuide, setShowPayHereGuide] = useState(false);
 
   const [errors, setErrors] = useState({
     orgName: "",
@@ -66,12 +72,14 @@ export default function NgoProfileSetupScreen() {
     phone: string; location: string; bio: string;
     coords: { latitude: number; longitude: number } | null;
     image: string | null; merchantId: string; merchantSecret: string;
+    payHereAppId: string; payHereAppSecret: string;
+    geocodedLocationText: string;
   } | null>(null);
 
   // Mirror all field changes into the persist ref
   useEffect(() => {
-    formPersistRef.current = { orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret };
-  }, [orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret]);
+    formPersistRef.current = { orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret, payHereAppId, payHereAppSecret, geocodedLocationText };
+  }, [orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret, payHereAppId, payHereAppSecret, geocodedLocationText]);
 
   const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
     if (!uriOrAsset) return null;
@@ -155,6 +163,9 @@ export default function NgoProfileSetupScreen() {
       if (saved.image) setImage(saved.image);
       if (saved.merchantId) setMerchantId(saved.merchantId);
       if (saved.merchantSecret) setMerchantSecret(saved.merchantSecret);
+      if (saved.payHereAppId) setPayHereAppId(saved.payHereAppId);
+      if (saved.payHereAppSecret) setPayHereAppSecret(saved.payHereAppSecret);
+      if (saved.geocodedLocationText) setGeocodedLocationText(saved.geocodedLocationText);
     }
 
     const fetchUser = async () => {
@@ -199,7 +210,9 @@ export default function NgoProfileSetupScreen() {
     const address = await Location.reverseGeocodeAsync(loc.coords);
 
     if (address.length > 0) {
-      setLocation(`${address[0].city}, ${address[0].country}`);
+      const place = `${address[0].city}, ${address[0].country}`;
+      setLocation(place);
+      setGeocodedLocationText(place);
     }
   };
 
@@ -230,6 +243,7 @@ export default function NgoProfileSetupScreen() {
     if (!regNumber.trim()) { newErrors.regNumber = "Registration number is required"; valid = false; }
     if (!year.trim()) { newErrors.year = "Founded year is required"; valid = false; }
     if (!phone.trim()) { newErrors.phone = "Phone number is required"; valid = false; }
+    else if (!/^[0-9]{10}$/.test(phone.trim())) { newErrors.phone = "Must be exactly 10 digits (e.g. 0771234567)"; valid = false; }
     if (!location.trim()) { newErrors.location = "Address is required"; valid = false; }
 
     setErrors(newErrors);
@@ -252,9 +266,28 @@ export default function NgoProfileSetupScreen() {
         return;
       }
 
+      if ((payHereAppId && !payHereAppSecret) || (!payHereAppId && payHereAppSecret)) {
+        setPaymentValidationError("Enter both PayHere App ID and App Secret for recurring donations.");
+        return;
+      }
+
       setIsSubmitting(true);
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) throw new Error("No authorization token found");
+
+      let finalCoords = coords;
+      if (location.trim() !== geocodedLocationText.trim()) {
+        try {
+          const geo = await Location.geocodeAsync(location);
+          if (geo.length > 0) {
+            finalCoords = { latitude: geo[0].latitude, longitude: geo[0].longitude };
+            setCoords(finalCoords);
+            setGeocodedLocationText(location);
+          }
+        } catch (e) {
+          console.warn("Geocoding failed:", e);
+        }
+      }
 
       // Upload local files to Cloudinary first
       const uploadedImageUrl = await uploadToCloudinaryIfLocal(image, token);
@@ -271,14 +304,17 @@ export default function NgoProfileSetupScreen() {
           contactPerson,
           regNumber,
           foundedYear: year,
+          phone,
           location,
           bio,
           profileImage: uploadedImageUrl,
           verificationDocument: uploadedDocUrl,
           merchantId,
           merchantSecret,
-          latitude: coords?.latitude,
-          longitude: coords?.longitude,
+          payHereAppId,
+          payHereAppSecret,
+          latitude: finalCoords?.latitude,
+          longitude: finalCoords?.longitude,
         }),
       });
 
@@ -302,9 +338,7 @@ export default function NgoProfileSetupScreen() {
 
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#000" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.replace("/auth/RescuerTypeSelection")} />
 
         <Text style={styles.headerTitle}>NGO{"\n"}Profile Setup</Text>
 
@@ -340,7 +374,7 @@ export default function NgoProfileSetupScreen() {
       <FormSection title="Contact & Location">
         <InputField
           label="Phone Number *"
-          placeholder="e.g. +94 11 234 5678"
+          placeholder="e.g. 0771234567"
           value={phone}
           onChangeText={setPhone}
           icon="call-outline"
@@ -407,6 +441,25 @@ export default function NgoProfileSetupScreen() {
           secure={true}
         />
 
+        <Text style={styles.donationDescription}>
+          To receive recurring donations, provide the App ID and App Secret from your PayHere API key below.
+        </Text>
+
+        <InputField
+          label="PayHere App ID (For recurring)"
+          placeholder="Enter App ID to enable recurring donations"
+          value={payHereAppId}
+          onChangeText={setPayHereAppId}
+        />
+
+        <InputField
+          label="PayHere App Secret"
+          placeholder="Enter App Secret"
+          value={payHereAppSecret}
+          onChangeText={setPayHereAppSecret}
+          secure={true}
+        />
+
         {paymentValidationError && (
           <Text style={styles.errorText}>{paymentValidationError}</Text>
         )}
@@ -414,6 +467,13 @@ export default function NgoProfileSetupScreen() {
         <Text style={styles.helperText}>
           Optional. Required only if you wish to receive donations through your merchant account.
         </Text>
+        <TouchableOpacity
+          style={styles.payHereHelpLink}
+          onPress={() => setShowPayHereGuide(true)}
+        >
+          <Ionicons name="help-circle-outline" size={16} color="#B45309" />
+          <Text style={styles.payHereHelpText}>How to get PayHere credentials</Text>
+        </TouchableOpacity>
       </FormSection>
 
       {/* BUTTON */}
@@ -422,6 +482,7 @@ export default function NgoProfileSetupScreen() {
         onPress={handleSubmit}
         disabled={isSubmitting}
       />
+      <PayHereSetupGuideModal visible={showPayHereGuide} onClose={() => setShowPayHereGuide(false)} />
 
       <View style={{ height: 40 }} />
     </ScrollView>
@@ -514,6 +575,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 18,
   },
+  payHereHelpLink: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginTop: 4 },
+  payHereHelpText: { color: "#B45309", fontSize: 12, fontWeight: "700" },
   errorText: {
     color: "red",
     fontSize: 12,

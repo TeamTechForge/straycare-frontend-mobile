@@ -12,7 +12,7 @@ export default function CallScreen() {
   const router = useRouter();
   const { callId } = useLocalSearchParams();
   const { callState, activeCallData, endCall, toggleMute, toggleSpeaker, isMuted, isSpeakerOn } = useCall();
-  
+
   const [callDuration, setCallDuration] = useState(0);
 
   // If call ended or no active call data, go back
@@ -65,9 +65,9 @@ export default function CallScreen() {
   return (
     <SafeAreaView style={styles.container}>
       <Stack.Screen options={{ headerShown: false }} />
-      
+
       <View style={styles.header}>
-        <TouchableOpacity style={styles.backButton} onPress={() => {}}>
+        <TouchableOpacity style={styles.backButton} onPress={() => { }}>
           {/* We shouldn't allow simple back during an active call without ending it, or maybe pip? Keep it simple */}
         </TouchableOpacity>
       </View>
@@ -80,15 +80,15 @@ export default function CallScreen() {
             <Ionicons name="person" size={60} color="#999" />
           </View>
         )}
-        
+
         <Text style={styles.name}>{activeCallData.name}</Text>
         <Text style={styles.status}>{getStatusText()}</Text>
       </View>
 
       <View style={styles.controlsContainer}>
         <View style={styles.controlsRow}>
-          <TouchableOpacity 
-            style={[styles.controlButton, isMuted && styles.controlButtonActive]} 
+          <TouchableOpacity
+            style={[styles.controlButton, isMuted && styles.controlButtonActive]}
             onPress={toggleMute}
           >
             <Ionicons name={isMuted ? "mic-off" : "mic"} size={28} color={isMuted ? "#fff" : "#111"} />
@@ -98,8 +98,8 @@ export default function CallScreen() {
             <Ionicons name="call" size={32} color="#fff" style={{ transform: [{ rotate: "135deg" }] }} />
           </TouchableOpacity>
 
-          <TouchableOpacity 
-            style={[styles.controlButton, isSpeakerOn && styles.controlButtonActive]} 
+          <TouchableOpacity
+            style={[styles.controlButton, isSpeakerOn && styles.controlButtonActive]}
             onPress={toggleSpeaker}
           >
             <Ionicons name={isSpeakerOn ? "volume-high" : "volume-medium"} size={28} color={isSpeakerOn ? "#fff" : "#111"} />
@@ -150,6 +150,9 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#111",
     marginBottom: 12,
+    textAlign: "center",
+    width: "100%",
+    paddingHorizontal: 24,
   },
   status: {
     fontSize: 18,

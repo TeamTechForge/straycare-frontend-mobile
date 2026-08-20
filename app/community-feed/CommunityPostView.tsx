@@ -315,14 +315,10 @@ export default function CommunityPostView() {
     }
 
     Alert.alert(
-      "Delete Comment",
+      "Delete comment?",
       "Are you sure you want to delete this comment? This will also remove any replies.",
       [
         { text: "Cancel", style: "cancel" },
-        {
-          text: "Reply",
-          onPress: () => handleStartReply(comment),
-        },
         {
           text: "Delete",
           style: "destructive",

@@ -3,13 +3,13 @@ import {
   ActivityIndicator,
   Alert,
   Image,
-  Platform,
   SafeAreaView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
 import axios from "axios";
@@ -37,16 +37,26 @@ import { BASE_URL } from "../../constants/config.constants";
 
 const API_BASE_URL = BASE_URL;
 
-// ─── Helper: Haversine distance formula ────────────────────────────────────────
+// Resolve photo URL (handles absolute and relative backend paths)
+const resolvePhotoUrl = (url: string | undefined | null): string => {
+  if (!url || typeof url !== "string" || !url.trim()) return "";
+  if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("file://") || url.startsWith("data:")) {
+    return url;
+  }
+  const cleanUrl = url.startsWith("/") ? url : `/${url}`;
+  return `${API_BASE_URL}${cleanUrl}`;
+};
+
+// Haversine distance formula (in km)
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371; // Earth's radius in km
+  const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -57,18 +67,15 @@ export default function NearbyRescuersScreen() {
 
   const { caseId, animalType, animalPhoto, description } = params;
 
-  // ── Coordinates and Rescuer states ──────────────────────────────────────────
   const [centerCoords, setCenterCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [rescuers, setRescuers] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [excludeIds, setExcludeIds] = useState<string[]>([]);
-  
-  // ── State Machine and Active Request ────────────────────────────────────────
+
   const [workflowState, setWorkflowState] = useState<WorkflowState>("selecting");
   const [requestId, setRequestId] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(30);
 
-  // ── UI / Loading States ─────────────────────────────────────────────────────
   const [loadingLocation, setLoadingLocation] = useState<boolean>(true);
   const [loadingRescuers, setLoadingRescuers] = useState<boolean>(false);
   const [sendingRequest, setSendingRequest] = useState<boolean>(false);
@@ -76,7 +83,7 @@ export default function NearbyRescuersScreen() {
 
   const hasRequestedLocation = useRef(false);
 
-  // ── Parse input coordinates or request device GPS ───────────────────────────
+  // Parse input coordinates or request device GPS
   useEffect(() => {
     const latParam = Array.isArray(params.lat) ? params.lat[0] : params.lat;
     const lngParam = Array.isArray(params.lng) ? params.lng[0] : params.lng;
@@ -135,7 +142,7 @@ export default function NearbyRescuersScreen() {
       try {
         console.log("[NearbyHelpMap] Fetching rescuers from:", `${API_BASE_URL}/api/rescue/rescuers`);
         const response = await axios.get(`${API_BASE_URL}/api/rescue/rescuers`);
-        
+
         const rawRescuers = (response.data as any).rescuers || [];
         console.log(`[NearbyHelpMap] Found ${rawRescuers.length} total rescuers in DB`);
 
@@ -217,13 +224,13 @@ export default function NearbyRescuersScreen() {
       try {
         const response = await axios.get(`${API_BASE_URL}/api/rescue/status/${requestId}`);
         const responseData = response.data as any;
-        const status = responseData.status;
-        console.log("[NearbyHelpMap] Polled status:", status);
+        const rawStatus = String(responseData.status || "").toLowerCase();
+        console.log("[NearbyHelpMap] Polled status:", responseData.status);
 
-        if (status === "accepted") {
+        if (rawStatus === "accepted" || rawStatus === "under rescue") {
           clearInterval(pollInterval);
           setWorkflowState("accepted");
-        } else if (status === "rejected") {
+        } else if (rawStatus === "rejected" || rawStatus === "failed") {
           clearInterval(pollInterval);
           const rejectedRescuerName = selectedRescuer.name;
           const rejectedRescuerId = selectedRescuer._id;
@@ -320,7 +327,7 @@ export default function NearbyRescuersScreen() {
     try {
       console.log(`[NearbyHelpMap] Cancelling request ID: ${requestId}`);
       await axios.patch(`${API_BASE_URL}/api/rescue/request/${requestId}/cancel`);
-      
+
       Alert.alert(
         "Request Cancelled",
         "Your request was cancelled successfully. Finding the next nearest rescuer...",
@@ -364,7 +371,15 @@ export default function NearbyRescuersScreen() {
 
   const distanceFormatted = selectedRescuer ? selectedRescuer.distance.toFixed(1) : "0";
   const etaMinutes = selectedRescuer ? Math.max(3, Math.round(selectedRescuer.distance * 6)) : 0;
-  const rescuerImg = selectedRescuer ? (selectedRescuer.avatar || selectedRescuer.profileImage) : null;
+  const rawRescuerImg = selectedRescuer ? (
+    selectedRescuer.avatar ||
+    selectedRescuer.profileImage ||
+    selectedRescuer.userId?.profileImage ||
+    selectedRescuer.userId?.avatar ||
+    selectedRescuer.user?.profileImage ||
+    selectedRescuer.user?.avatar
+  ) : null;
+  const rescuerImg = resolvePhotoUrl(rawRescuerImg);
   const hasAvatar = Boolean(rescuerImg && typeof rescuerImg === "string" && rescuerImg.trim().length > 0 && !avatarError);
   const avatarUri = hasAvatar ? rescuerImg : "";
 
@@ -372,7 +387,7 @@ export default function NearbyRescuersScreen() {
     <SafeAreaView style={styles.container}>
       {/* HEADER BAR */}
       <View style={styles.header}>
-        <BackButton 
+        <BackButton
           onPress={() => {
             if (workflowState !== "waiting" && workflowState !== "sending") {
               router.back();
@@ -434,33 +449,29 @@ export default function NearbyRescuersScreen() {
                       />
                     ) : (
                       <View style={[styles.avatar, styles.emptyAvatar]}>
-                        <Text style={styles.emptyAvatarText}>👤</Text>
+                        <Ionicons name="person" size={26} color="#9CA3AF" />
                       </View>
                     )}
                     <View style={styles.avatarBadge}>
-                      <Text style={styles.avatarBadgeIcon}>🐾</Text>
+                      <Ionicons name="shield-checkmark" size={10} color={colors.primary} />
                     </View>
                   </View>
 
                   <View style={styles.profileInfo}>
                     <Text style={styles.rescuerName}>{selectedRescuer.name}</Text>
-                    <Text style={styles.rescuerRole}>Professional Rescuer</Text>
+                    <Text style={styles.rescuerRole}>Certified Rescuer</Text>
                   </View>
                 </View>
 
                 {/* Stats Row */}
                 <View style={styles.chipsRow}>
                   <View style={styles.chip}>
-                    <Text style={styles.chipEmoji}>📍</Text>
+                    <Ionicons name="location-outline" size={13} color={colors.primary} />
                     <Text style={styles.chipText}>{distanceFormatted} km</Text>
                   </View>
                   <View style={styles.chip}>
-                    <Text style={styles.chipEmoji}>⏱</Text>
+                    <Ionicons name="time-outline" size={13} color={colors.primary} />
                     <Text style={styles.chipText}>~{etaMinutes} min</Text>
-                  </View>
-                  <View style={styles.chip}>
-                    <Text style={styles.chipEmoji}>✅</Text>
-                    <Text style={styles.chipText}>Available</Text>
                   </View>
                 </View>
 
@@ -470,7 +481,7 @@ export default function NearbyRescuersScreen() {
                     title="Send Request to Nearest Rescuer"
                     onPress={handleSendRequest}
                   />
-                  
+
                   {filteredRescuers.length > 1 && (
                     <PrimaryButton
                       title="Find Next Nearest"
@@ -480,7 +491,7 @@ export default function NearbyRescuersScreen() {
                   )}
 
                   <PrimaryButton
-                    title="📢  Publish Case to Rescue Map"
+                    title="Publish Case to Rescue Map"
                     onPress={() => {
                       Alert.alert(
                         "Publish to Rescue Map",
@@ -500,14 +511,14 @@ export default function NearbyRescuersScreen() {
               </>
             ) : (
               <View style={styles.emptyContainer}>
-                <Text style={{ fontSize: 40, marginBottom: 8 }}>🔍</Text>
+                <Ionicons name="search-outline" size={38} color="#9CA3AF" style={{ marginBottom: 8 }} />
                 <Text style={styles.emptyText}>No nearby rescuers are currently available.</Text>
                 <Text style={styles.emptySubtext}>
                   You can publish your case directly to the public rescue map so any available rescuer or volunteer across the platform can see and accept it.
                 </Text>
                 <View style={styles.buttonGroup}>
                   <PrimaryButton
-                    title="📢  Publish Case to Rescue Map"
+                    title="Publish Case to Rescue Map"
                     onPress={() => {
                       Alert.alert(
                         "Published to Map",
@@ -544,17 +555,17 @@ export default function NearbyRescuersScreen() {
                     />
                   ) : (
                     <View style={[styles.avatar, styles.emptyAvatar]}>
-                      <Text style={styles.emptyAvatarText}>👤</Text>
+                      <Ionicons name="person" size={26} color="#9CA3AF" />
                     </View>
                   )}
                   <View style={styles.avatarBadge}>
-                    <Text style={styles.avatarBadgeIcon}>🐾</Text>
+                    <Ionicons name="shield-checkmark" size={10} color={colors.primary} />
                   </View>
                 </View>
 
                 <View style={styles.profileInfo}>
                   <Text style={styles.rescuerName}>{selectedRescuer.name}</Text>
-                  <Text style={styles.rescuerRole}>Professional Rescuer</Text>
+                  <Text style={styles.rescuerRole}>Certified Rescuer</Text>
                 </View>
               </View>
 
@@ -568,8 +579,8 @@ export default function NearbyRescuersScreen() {
               <View style={styles.timerRow}>
                 <Text style={styles.timerText}>
                   {countdown > 0
-                    ? `⏱ Rescuer has ${countdown}s to respond`
-                    : "⚠️ Rescuer is taking too long to respond."}
+                    ? `Rescuer has ${countdown}s to respond`
+                    : "Rescuer is taking too long to respond."}
                 </Text>
               </View>
 
@@ -601,17 +612,17 @@ export default function NearbyRescuersScreen() {
                     />
                   ) : (
                     <View style={[styles.avatar, styles.emptyAvatar]}>
-                      <Text style={styles.emptyAvatarText}>👤</Text>
+                      <Ionicons name="person" size={26} color="#9CA3AF" />
                     </View>
                   )}
                   <View style={styles.avatarBadge}>
-                    <Text style={styles.avatarBadgeIcon}>🐾</Text>
+                    <Ionicons name="shield-checkmark" size={10} color={colors.primary} />
                   </View>
                 </View>
 
                 <View style={styles.profileInfo}>
                   <Text style={styles.rescuerName}>{selectedRescuer.name}</Text>
-                  <Text style={styles.rescuerRole}>Professional Rescuer</Text>
+                  <Text style={styles.rescuerRole}>Certified Rescuer</Text>
                 </View>
               </View>
 

@@ -121,6 +121,10 @@ export async function fetchCompletedRescues(): Promise<RescueCaseRecord[]> {
   return requestJson<RescueCaseRecord[]>("/api/rescues/completed");
 }
 
+export async function fetchFailedRescues(): Promise<RescueCaseRecord[]> {
+  return requestJson<RescueCaseRecord[]>("/api/rescues/failed");
+}
+
 export async function fetchAllRescues(): Promise<RescueCaseRecord[]> {
   return requestJson<RescueCaseRecord[]>("/api/rescues/all");
 }
@@ -174,4 +178,4 @@ export async function postReply(
     `/api/rescues/${encodeURIComponent(rescueId)}/comments/${encodeURIComponent(commentId)}/reply`,
     { text, userName, userId }
   );
-}
+}

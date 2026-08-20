@@ -5,6 +5,7 @@ import * as SecureStore from "expo-secure-store";
 import {
   ActivityIndicator,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -12,8 +13,9 @@ import {
   Alert,
 } from "react-native";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
-import { getReportByCaseId, updateCaseStatus } from "../../api/strayApiService";
+import { getReportByCaseId, updateCaseStatus, deleteReport } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
+import BackButton from "../../components/BackButton";
 import { useAuth } from "../../contexts/AuthContext";
 import { API_URL } from "../../constants/config.constants";
 import axios from "axios";
@@ -28,7 +30,7 @@ type Report = {
   anonymous?: boolean;
   reportedBy?: string;
   isOwner?: boolean;
-  permissions?: { canAccept: boolean; canUpdate: boolean };
+  permissions?: { canAccept: boolean; canUpdate: boolean; canDelete?: boolean; isSelfReported?: boolean };
   location: {
     lat: number;
     lng: number;
@@ -88,16 +90,10 @@ export default function CaseDetailsScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [acceptingRescue, setAcceptingRescue] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [statusUpdateY, setStatusUpdateY] = useState<number | null>(null);
-
-  // 🔔 Notification States
-  const [showNotification, setShowNotification] = useState(false);
-  const [notificationMessage, setNotificationMessage] = useState("");
-
-  // 🔒 Check if user is a rescuer
-  const isRescuer = user && ["volunteer", "ngo", "vet", "rescuer"].includes(user.role);
-  const isReporter = user && !isRescuer;
 
   // 📡 Real-time updates via Socket.io
   const loadCase = useCallback(async () => {
@@ -112,6 +108,51 @@ export default function CaseDetailsScreen() {
         setLoading(false);
       }
   }, [caseId]);
+
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadCase();
+    setRefreshing(false);
+  }, [loadCase]);
+
+  const handleDeleteReport = () => {
+    if (!report) return;
+    Alert.alert(
+      "Delete Report?",
+      "Are you sure you want to delete this report? It will be permanently removed from the map.",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: async () => {
+            setDeleting(true);
+            try {
+              await deleteReport(report.caseId);
+              Alert.alert("Report Deleted", "Your report has been deleted.", [
+                { text: "OK", onPress: returnToPreviousScreen },
+              ]);
+            } catch (err: any) {
+              Alert.alert(
+                "Delete Failed",
+                err?.message || "Failed to delete report. A rescuer may have accepted it."
+              );
+            } finally {
+              setDeleting(false);
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // 🔔 Notification States
+  const [showNotification, setShowNotification] = useState(false);
+  const [notificationMessage, setNotificationMessage] = useState("");
+
+  // 🔒 Check if user is a rescuer
+  const isRescuer = user && ["volunteer", "ngo", "vet", "rescuer"].includes(user.role);
+  const isReporter = user && !isRescuer;
 
   useFocusEffect(
     useCallback(() => {
@@ -150,17 +191,28 @@ export default function CaseDetailsScreen() {
       await loadCase();
 
       if (next === "Ready for Adoption") {
-        router.push({
-          pathname: "/adoption-corner/CreateAdoptionPost",
-          params: { caseId: report.caseId },
-        } as never);
-        return;
+        Alert.alert(
+          "Ready for Adoption",
+          "Case marked as Ready for Adoption! Would you like to create an adoption listing now?",
+          [
+            { text: "Later", style: "cancel" },
+            {
+              text: "Create Listing",
+              onPress: () => {
+                router.push({
+                  pathname: "/adoption-corner/CreateAdoptionPost",
+                  params: { caseId: report.caseId },
+                } as never);
+              },
+            },
+          ]
+        );
+      } else {
+        // 🔔 Show banner immediately when status changes
+        setNotificationMessage(`Case updated: ${next}`);
+        setShowNotification(true);
+        setTimeout(() => setShowNotification(false), 3000);
       }
-
-      // 🔔 Show banner immediately when status changes
-      setNotificationMessage(`Case updated: ${next}`);
-      setShowNotification(true);
-      setTimeout(() => setShowNotification(false), 3000);
     } catch (err: any) {
       console.log("Failed to update status:", err);
 
@@ -241,7 +293,12 @@ export default function CaseDetailsScreen() {
   };
 
   return (
-    <ScrollView ref={scrollViewRef} style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
+    <ScrollView
+      ref={scrollViewRef}
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 80 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
 
       {/* 🔔 Notification Banner */}
       {showNotification && (
@@ -250,7 +307,12 @@ export default function CaseDetailsScreen() {
         </View>
       )}
 
-      <Text style={styles.caseId}>Case ID: {report.caseId}</Text>
+      <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12, justifyContent: "center" }}>
+        <View style={{ position: "absolute", left: 0, zIndex: 1 }}>
+          <BackButton onPress={() => router.back()} />
+        </View>
+        <Text style={[styles.caseId, { marginBottom: 0, textAlign: "center" }]}>Case ID: {report.caseId}</Text>
+      </View>
 
       <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
         <Text style={[styles.statusText, { color: getStatusTextColor(report.status) }]}>
@@ -338,11 +400,25 @@ export default function CaseDetailsScreen() {
         />
       )}
 
+      {/* Delete Report Button - Reporter only before acceptance */}
+      {report.permissions?.canDelete && (
+        <View style={{ marginTop: 12 }}>
+          <PrimaryButton
+            title={deleting ? "Deleting..." : "Delete Report"}
+            onPress={handleDeleteReport}
+            disabled={deleting}
+            variant="outline"
+          />
+        </View>
+      )}
+
       {/* 🔒 Info Message for Non-Rescuers / Case Reporter */}
       {nextStatus && !report.permissions?.canUpdate && (!report.permissions?.canAccept || report.isOwner) && (
         <View style={styles.restrictedMessage}>
           <Text style={styles.restrictedText}>
-            {isReporter || report.isOwner
+            {report.permissions?.isSelfReported && isRescuer && report.status === "Needs Help"
+              ? "You reported this case. Rescuers cannot accept cases reported by themselves. Another rescuer will handle this case."
+              : isReporter || report.isOwner
               ? "You can track this case here. Only the assigned rescuer can update the rescue status."
               : "Only the assigned rescuer can change the status of this case."}
           </Text>

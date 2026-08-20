@@ -105,22 +105,26 @@ export default function ChatsScreen() {
 
     const getOtherParticipant = (conversation: any) => {
         let other = conversation.participants?.find((p: any) => p && p._id !== user?._id);
-        
+
         console.log(`[ChatList] Checking conv: type=${conversation.conversationType}, relatedEntity=`, conversation.relatedEntity);
         if (conversation.conversationType === "rescue" && conversation.relatedEntity) {
             let extractedId = conversation.relatedEntity.referenceId;
             if (!extractedId && conversation.relatedEntity.kind && conversation.relatedEntity.kind.includes('_')) {
                 extractedId = conversation.relatedEntity.kind.split('_')[1];
             }
-            let displayId = extractedId || conversation.relatedEntity.item?.toString().slice(-4) || 'Anon';
+            let displayId = extractedId || (conversation.relatedEntity.item ? conversation.relatedEntity.item.toString().slice(-4) : 'Anon');
             if (displayId.length === 24) {
                 displayId = displayId.slice(-4);
             }
+            const isOtherRescuer = other?.role && ["rescuer", "ngo", "vet", "admin"].includes(other.role);
+            const displayName = isOtherRescuer ? `Anonymous Report (${displayId})` : `Anonymous Reporter (${displayId})`;
+            const displayAvatarName = isOtherRescuer ? `Anonymous+Report` : `Anonymous+Reporter`;
+
             return {
                 _id: other?._id || "anon",
-                name: `Case Chat (${displayId})`,
+                name: displayName,
                 role: "anonymous",
-                profileImage: "https://ui-avatars.com/api/?name=Case+Chat&background=FEB94B&color=fff"
+                profileImage: `https://ui-avatars.com/api/?name=${displayAvatarName}&background=FEB94B&color=fff`
             };
         }
 
@@ -172,7 +176,7 @@ export default function ChatsScreen() {
                 lastMessage={item.lastMessage?.text || ""}
                 time={formatTime(item.lastMessage?.createdAt)}
                 unreadCount={unreadCount}
-                isOnline={onlineUsers.has(other._id)}
+                isOnline={!user?.blockedUsers?.includes(other._id) && !other.isBlockingMe && onlineUsers.has(other._id)}
                 profileImage={other.profileImage}
                 role={other.role}
                 onPress={() =>

@@ -4,8 +4,12 @@ import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
+  BackHandler,
+  Dimensions,
+  FlatList,
   Image,
   Linking,
+  Modal,
   RefreshControl,
   ScrollView,
   StyleSheet,
@@ -13,6 +17,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { getPostById, Post } from "../../services/adoptionService";
 import { useAuth } from "../../contexts/AuthContext";
 import { useCall } from "../../contexts/CallContext";
@@ -78,6 +83,16 @@ const getStatusConfig = (status: string) => {
   }
 };
 
+const getHealthStatusColors = (healthStatus: Post["healthStatus"]) => {
+  switch (healthStatus) {
+    case "Healthy": return { backgroundColor: "#E8F5E9", color: "#2E7D32" };
+    case "Needs Care": return { backgroundColor: "#FFF3E0", color: "#E65100" };
+    case "Under Treatment": return { backgroundColor: "#E3F2FD", color: "#1565C0" };
+    case "Special Needs": return { backgroundColor: "#F3E5F5", color: "#7B1FA2" };
+    default: return { backgroundColor: "#F3F4F5", color: "#191C1D" };
+  }
+};
+
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
 export default function ViewAdoptionPost() {
@@ -93,6 +108,7 @@ export default function ViewAdoptionPost() {
   const [error, setError] = useState<string | null>(null);
   const [activeImage, setActiveImage] = useState(0);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [viewerVisible, setViewerVisible] = useState(false);
 
   // ── Fetch post from backend with auto-reload on focus ─────────────────────
 
@@ -128,6 +144,15 @@ export default function ViewAdoptionPost() {
     }, [fetchPost])
   );
 
+  useEffect(() => {
+    if (!viewerVisible) return;
+    const subscription = BackHandler.addEventListener("hardwareBackPress", () => {
+      setViewerVisible(false);
+      return true;
+    });
+    return () => subscription.remove();
+  }, [viewerVisible]);
+
   // ── Loading state ─────────────────────────────────────────────────────────
 
   if (loading && !post) {
@@ -159,6 +184,7 @@ export default function ViewAdoptionPost() {
     (user._id === post.userId?._id || user._id === (post.userId as any));
 
   const statusCfg = getStatusConfig(post.status);
+  const healthColors = getHealthStatusColors(post.healthStatus);
 
   // ── Build info chips ──────────────────────────────────────────────────────
 
@@ -219,7 +245,11 @@ export default function ViewAdoptionPost() {
     }
 
     try {
-      const conversation = (await createConversation(String(ownerId), "direct")) as any;
+      const conversation = (await createConversation(
+        String(ownerId), 
+        "adoption", 
+        { kind: "AdoptionPost", item: post._id }
+      )) as any;
       const otherParticipant = conversation.participants?.find(
         (p: any) => p._id !== user?._id
       );
@@ -277,10 +307,18 @@ export default function ViewAdoptionPost() {
       >
         {/* ── Hero Image & Back Button ── */}
         <View style={styles.heroWrapper}>
-          <Image
-            source={{ uri: images[activeImage] }}
-            style={styles.heroImage}
-            resizeMode="cover"
+          <FlatList
+            data={images}
+            horizontal
+            pagingEnabled
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(uri, index) => `${uri}-${index}`}
+            onMomentumScrollEnd={(event) => setActiveImage(Math.round(event.nativeEvent.contentOffset.x / Dimensions.get("window").width))}
+            renderItem={({ item }) => (
+              <TouchableOpacity activeOpacity={0.95} onPress={() => setViewerVisible(true)}>
+                <Image source={{ uri: item }} style={[styles.heroImage, { width: Dimensions.get("window").width }]} resizeMode="cover" />
+              </TouchableOpacity>
+            )}
           />
           <View style={styles.heroScrim} />
 
@@ -295,33 +333,8 @@ export default function ViewAdoptionPost() {
           {images.length > 1 && (
             <PagingDots total={images.length} active={activeImage} />
           )}
+          <View style={styles.imageCounter}><Text style={styles.imageCounterText}>{activeImage + 1} / {images.length}</Text></View>
         </View>
-
-        {/* ── Thumbnail Strip ── */}
-        {images.length > 1 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.thumbStrip}
-          >
-            {images.map((uri, index) => (
-              <TouchableOpacity
-                key={index}
-                onPress={() => setActiveImage(index)}
-                activeOpacity={0.8}
-              >
-                <Image
-                  source={{ uri }}
-                  style={[
-                    styles.thumb,
-                    index === activeImage && styles.thumbActive,
-                  ]}
-                  resizeMode="cover"
-                />
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        )}
 
         {/* ── Identity Card ── */}
         <View style={styles.identityCardWrapper}>
@@ -333,6 +346,7 @@ export default function ViewAdoptionPost() {
                   {post.breed}
                   {post.customCategory ? ` (${post.customCategory})` : ""}
                 </Text>
+                <Text style={styles.postDate}>Posted {new Date(post.createdAt).toLocaleDateString()}</Text>
               </View>
               <View style={[styles.statusBadge, { backgroundColor: statusCfg.bg }]}>
                 <MaterialIcons name={statusCfg.icon} size={14} color={statusCfg.color} />
@@ -373,8 +387,8 @@ export default function ViewAdoptionPost() {
             {/* Health Status */}
             <View style={styles.healthStatusRow}>
               <Text style={styles.traitsHeading}>Health Status</Text>
-              <View style={styles.healthBadge}>
-                <Text style={styles.healthBadgeText}>{post.healthStatus}</Text>
+              <View style={[styles.healthBadge, { backgroundColor: healthColors.backgroundColor }]}>
+                <Text style={[styles.healthBadgeText, { color: healthColors.color }]}>{post.healthStatus}</Text>
               </View>
             </View>
 
@@ -488,6 +502,23 @@ export default function ViewAdoptionPost() {
           }}
         />
       )}
+      <Modal visible={viewerVisible} animationType="fade" onRequestClose={() => setViewerVisible(false)} statusBarTranslucent>
+        <SafeAreaView style={styles.viewer} edges={["top", "bottom"]}>
+          <FlatList
+            data={images}
+            horizontal
+            pagingEnabled
+            initialScrollIndex={activeImage}
+            getItemLayout={(_, index) => ({ length: Dimensions.get("window").width, offset: Dimensions.get("window").width * index, index })}
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(uri, index) => `viewer-${uri}-${index}`}
+            onMomentumScrollEnd={(event) => setActiveImage(Math.round(event.nativeEvent.contentOffset.x / Dimensions.get("window").width))}
+            renderItem={({ item }) => <View style={{ width: Dimensions.get("window").width, flex: 1, justifyContent: "center" }}><Image source={{ uri: item }} style={styles.viewerImage} resizeMode="contain" /></View>}
+          />
+          <TouchableOpacity style={styles.viewerClose} onPress={() => setViewerVisible(false)} accessibilityLabel="Close image viewer"><Ionicons name="close" size={28} color="#FFFFFF" /></TouchableOpacity>
+          <Text style={styles.viewerCounter}>{activeImage + 1} / {images.length}</Text>
+        </SafeAreaView>
+      </Modal>
     </View>
   );
 }
@@ -525,6 +556,12 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   heroImage: { width: "100%", height: "100%" },
+  imageCounter: { position: "absolute", right: 14, top: 54, paddingHorizontal: 9, paddingVertical: 4, borderRadius: 12, backgroundColor: "rgba(0,0,0,0.68)" },
+  imageCounterText: { color: "#FFFFFF", fontSize: 12, fontWeight: "700" },
+  viewer: { flex: 1, backgroundColor: "#000000" },
+  viewerImage: { width: "100%", height: "100%" },
+  viewerClose: { position: "absolute", top: 16, right: 16, width: 44, height: 44, borderRadius: 22, backgroundColor: "rgba(40,40,40,0.75)", alignItems: "center", justifyContent: "center" },
+  viewerCounter: { position: "absolute", bottom: 24, alignSelf: "center", color: "#FFFFFF", fontSize: 14, fontWeight: "700", backgroundColor: "rgba(40,40,40,0.75)", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 14 },
   heroScrim: {
     position: "absolute",
     top: 0,
@@ -551,7 +588,7 @@ const styles = StyleSheet.create({
   },
   dotsRow: {
     position: "absolute",
-    bottom: 12,
+    bottom: 48,
     left: 0,
     right: 0,
     flexDirection: "row",
@@ -566,22 +603,6 @@ const styles = StyleSheet.create({
     height: 6,
     backgroundColor: "rgba(255,255,255,0.7)",
   },
-
-  thumbStrip: {
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    gap: 8,
-  },
-  thumb: {
-    width: 56,
-    height: 56,
-    borderRadius: 10,
-    backgroundColor: "#F3F4F5",
-    marginRight: 8,
-    borderWidth: 2,
-    borderColor: "transparent",
-  },
-  thumbActive: { borderColor: "#F5A623" },
 
   identityCardWrapper: { paddingHorizontal: 16, marginTop: -36, zIndex: 10 },
   identityCard: {
@@ -602,6 +623,7 @@ const styles = StyleSheet.create({
   },
   petName: { fontSize: 22, fontWeight: "700", color: "#191C1D" },
   petBreed: { fontSize: 14, color: "#717878", marginTop: 2 },
+  postDate: { fontSize: 12, color: "#717878", marginTop: 4 },
   statusBadge: {
     flexDirection: "row",
     alignItems: "center",
@@ -662,17 +684,15 @@ const styles = StyleSheet.create({
   traitText: { fontSize: 12, fontWeight: "600", color: "#D48806" },
 
   healthStatusRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: 8,
   },
   healthBadge: {
-    backgroundColor: "#F3F4F5",
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
   },
-  healthBadgeText: { fontSize: 12, fontWeight: "600", color: "#191C1D" },
+  healthBadgeText: { fontSize: 12, fontWeight: "700" },
 
   locationInlineRow: {
     flexDirection: "row",

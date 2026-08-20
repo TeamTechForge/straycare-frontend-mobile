@@ -11,6 +11,7 @@ import {
   View,
 } from "react-native";
 
+import BackButton from "../../components/BackButton";
 import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
@@ -89,9 +90,7 @@ export default function RescuerTypeScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.replace("/auth/RoleSelection")}>
-          <Ionicons name="arrow-back" size={22} />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.replace("/auth/RoleSelection")} />
         <Text style={styles.headerTitle}>StrayCare</Text>
       </View>
 

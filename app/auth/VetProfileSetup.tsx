@@ -17,11 +17,13 @@ import * as Location from "expo-location";
 import * as DocumentPicker from "expo-document-picker";
 
 import { cacheDirectory, makeDirectoryAsync, copyAsync } from "expo-file-system/legacy";
+import BackButton from "../../components/BackButton";
 import FileUploadField from "../../components/FileUploadField";
 import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
+import PayHereSetupGuideModal from "../../components/PayHereSetupGuideModal";
 import { API_URL } from "../../constants/config.constants";
 
 const BRAND_COLOR = "#F5A623";
@@ -38,6 +40,7 @@ export default function VetProfileSetupScreen() {
   const [phone, setPhone] = useState("");
   const [shortBio, setShortBio] = useState("");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geocodedLocationText, setGeocodedLocationText] = useState("");
 
   const [clinicName, setClinicName] = useState("");
   const [clinicAddress, setClinicAddress] = useState("");
@@ -45,8 +48,11 @@ export default function VetProfileSetupScreen() {
   const [yearsOfExperience, setYearsOfExperience] = useState("");
   const [payHereMerchantId, setPayHereMerchantId] = useState("");
   const [merchantSecret, setMerchantSecret] = useState("");
+  const [payHereAppId, setPayHereAppId] = useState("");
+  const [payHereAppSecret, setPayHereAppSecret] = useState("");
   const [paymentValidationError, setPaymentValidationError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPayHereGuide, setShowPayHereGuide] = useState(false);
 
   // Persist form state in a ref so it survives Android Activity recreation
   // (which can happen when ImagePicker opens the system gallery)
@@ -55,12 +61,14 @@ export default function VetProfileSetupScreen() {
     phone: string; shortBio: string; coords: { latitude: number; longitude: number } | null;
     clinicName: string; clinicAddress: string; licenseNumber: string;
     yearsOfExperience: string; payHereMerchantId: string; merchantSecret: string;
+    payHereAppId: string; payHereAppSecret: string;
+    geocodedLocationText: string;
   } | null>(null);
 
   // Mirror all field changes into the persist ref
   useEffect(() => {
-    formPersistRef.current = { profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret };
-  }, [profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret]);
+    formPersistRef.current = { profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret, payHereAppId, payHereAppSecret, geocodedLocationText };
+  }, [profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret, payHereAppId, payHereAppSecret, geocodedLocationText]);
 
   const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
     if (!uriOrAsset) return null;
@@ -156,6 +164,9 @@ export default function VetProfileSetupScreen() {
       if (saved.yearsOfExperience) setYearsOfExperience(saved.yearsOfExperience);
       if (saved.payHereMerchantId) setPayHereMerchantId(saved.payHereMerchantId);
       if (saved.merchantSecret) setMerchantSecret(saved.merchantSecret);
+      if (saved.payHereAppId) setPayHereAppId(saved.payHereAppId);
+      if (saved.payHereAppSecret) setPayHereAppSecret(saved.payHereAppSecret);
+      if (saved.geocodedLocationText) setGeocodedLocationText(saved.geocodedLocationText);
     }
 
     const fetchUser = async () => {
@@ -233,6 +244,7 @@ export default function VetProfileSetupScreen() {
     if (address.length > 0) {
       const place = `${address[0].city || ""}, ${address[0].country || ""}`;
       setPrimaryLocation(place);
+      setGeocodedLocationText(place);
     }
   };
 
@@ -263,8 +275,8 @@ export default function VetProfileSetupScreen() {
     if (!phone.trim()) {
       newErrors.phone = "Phone number is required";
       valid = false;
-    } else if (phone.trim().length < 8) {
-      newErrors.phone = "Enter a valid phone number";
+    } else if (!/^[0-9]{10}$/.test(phone.trim())) {
+      newErrors.phone = "Must be exactly 10 digits (e.g. 0771234567)";
       valid = false;
     }
 
@@ -313,10 +325,29 @@ export default function VetProfileSetupScreen() {
       return;
     }
 
+    if ((payHereAppId && !payHereAppSecret) || (!payHereAppId && payHereAppSecret)) {
+      setPaymentValidationError("Enter both PayHere App ID and App Secret for recurring donations.");
+      return;
+    }
+
     try {
       setIsSubmitting(true);
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) throw new Error("No authorization token found");
+
+      let finalCoords = coords;
+      if (primaryLocation.trim() !== geocodedLocationText.trim()) {
+        try {
+          const geo = await Location.geocodeAsync(primaryLocation);
+          if (geo.length > 0) {
+            finalCoords = { latitude: geo[0].latitude, longitude: geo[0].longitude };
+            setCoords(finalCoords);
+            setGeocodedLocationText(primaryLocation);
+          }
+        } catch (e) {
+          console.warn("Geocoding failed:", e);
+        }
+      }
 
       // Upload local files to Cloudinary first
       const uploadedImageUrl = await uploadToCloudinaryIfLocal(profileImage, token);
@@ -329,6 +360,8 @@ export default function VetProfileSetupScreen() {
           Authorization: `Bearer ${token}`,
         },
         body: JSON.stringify({
+          name,
+          phone,
           primaryLocation,
           bio: shortBio,
           clinicName,
@@ -339,8 +372,10 @@ export default function VetProfileSetupScreen() {
           licenseDocument: uploadedDocUrl,
           merchantId: payHereMerchantId,
           merchantSecret,
-          latitude: coords?.latitude,
-          longitude: coords?.longitude,
+          payHereAppId,
+          payHereAppSecret,
+          latitude: finalCoords?.latitude,
+          longitude: finalCoords?.longitude,
         }),
       });
 
@@ -363,9 +398,7 @@ export default function VetProfileSetupScreen() {
     <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
       {/* Header */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={22} color="#000" />
-        </TouchableOpacity>
+        <BackButton onPress={() => router.replace("/auth/RescuerTypeSelection")} />
 
         <Text style={styles.headerTitle}>Veterinarian Profile Setup</Text>
 
@@ -412,7 +445,7 @@ export default function VetProfileSetupScreen() {
 
         <InputField
           label="Phone Number *"
-          placeholder="+1 (555) 000-0000"
+          placeholder="e.g. 0771234567"
           value={phone}
           onChangeText={setPhone}
           icon="call-outline"
@@ -503,6 +536,25 @@ export default function VetProfileSetupScreen() {
           secure={true}
         />
 
+        <Text style={styles.donationDescription}>
+          To receive recurring donations, provide the App ID and App Secret from your PayHere API key below.
+        </Text>
+
+        <InputField
+          label="PayHere App ID (For recurring)"
+          placeholder="Enter App ID to enable recurring donations"
+          value={payHereAppId}
+          onChangeText={setPayHereAppId}
+        />
+
+        <InputField
+          label="PayHere App Secret"
+          placeholder="Enter App Secret"
+          value={payHereAppSecret}
+          onChangeText={setPayHereAppSecret}
+          secure={true}
+        />
+
         {paymentValidationError && (
           <Text style={styles.errorText}>{paymentValidationError}</Text>
         )}
@@ -510,6 +562,13 @@ export default function VetProfileSetupScreen() {
         <Text style={styles.helperText}>
           Optional. Required only if you wish to receive donations through your merchant account.
         </Text>
+        <TouchableOpacity
+          style={styles.payHereHelpLink}
+          onPress={() => setShowPayHereGuide(true)}
+        >
+          <Ionicons name="help-circle-outline" size={16} color="#B45309" />
+          <Text style={styles.payHereHelpText}>How to get PayHere credentials</Text>
+        </TouchableOpacity>
       </FormSection>
 
       {/* Footer note */}
@@ -523,6 +582,7 @@ export default function VetProfileSetupScreen() {
         onPress={handleSubmit}
         disabled={isSubmitting}
       />
+      <PayHereSetupGuideModal visible={showPayHereGuide} onClose={() => setShowPayHereGuide(false)} />
     </ScrollView>
   );
 }
@@ -622,6 +682,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 18,
   },
+  payHereHelpLink: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginTop: 4 },
+  payHereHelpText: { color: "#B45309", fontSize: 12, fontWeight: "700" },
   footerNote: {
     textAlign: "center",
     fontSize: 11,

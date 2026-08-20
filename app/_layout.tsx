@@ -10,6 +10,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { Ionicons } from "@expo/vector-icons";
 import * as SecureStore from "expo-secure-store";
 import { AuthProvider, useAuth } from "../contexts/AuthContext";
 import { SocketProvider } from "../contexts/SocketContext";
@@ -64,7 +65,10 @@ function InitialLayout() {
             router.replace("/auth/RoleSelection");
           }
         } else {
-          if (user.role === "ngo" && segments[1] !== "NgoProfileSetup") {
+          // If they explicitly navigate back to RoleSelection or RescuerTypeSelection to change their role, allow it
+          if (onRoleSelection) {
+            // Do nothing, let them stay on the selection screen
+          } else if (user.role === "ngo" && segments[1] !== "NgoProfileSetup") {
             router.replace("/auth/NgoProfileSetup");
           } else if (user.role === "vet" && segments[1] !== "VetProfileSetup") {
             router.replace("/auth/VetProfileSetup");
@@ -86,8 +90,9 @@ function InitialLayout() {
             segments[1] === "CompletedProfileSetup" ||
             (user.profileStatus === "Rejected" && onProfileSetup);
           const isNotificationsScreen = segments[0] === "modals" && segments[1] === "Notifications";
+          const isSupportScreen = segments[0] === "profile" && (segments[1] === "HelpSupport" || segments[1] === "ContactSupport" || segments[1] === "contactSupport");
 
-          if (!isAllowedScreen && !isNotificationsScreen) {
+          if (!isAllowedScreen && !isNotificationsScreen && !isSupportScreen) {
             if (user.profileStatus === "Rejected") {
               router.replace("/auth/VerificationRejected");
             } else {
@@ -138,11 +143,17 @@ function InitialLayout() {
           // Handle incoming push notification
           if (notification.request.content.data) {
             const data = notification.request.content.data as Record<string, any>;
+            const title = notification.request.content.title || "Notification";
+            const message = notification.request.content.body || "";
+
+            // Present OS banner alert natively
+            void pushNotificationService.presentLocalNotification(title, message, data);
+
             addNotification({
               _id: `push-${Date.now()}`,
               userId: user._id || "",
-              title: notification.request.content.title || "Notification",
-              message: notification.request.content.body || "",
+              title,
+              message,
               type: (data.type as any) || "info",
               read: false,
               caseId: typeof data.caseId === "string" ? data.caseId : undefined,
@@ -340,8 +351,10 @@ function InitialLayout() {
       >
         <View style={overlayStyles.backdrop}>
           <View style={overlayStyles.card}>
-            <Text style={overlayStyles.emoji}>🚨</Text>
-            <Text style={overlayStyles.title}>New Rescue Request!</Text>
+            <View style={{ marginBottom: 12 }}>
+              <Ionicons name="notifications-circle" size={48} color="#F5A623" />
+            </View>
+            <Text style={overlayStyles.title}>New Rescue Request</Text>
             <Text style={overlayStyles.body}>
               {rescueNotif?.reporterName ?? "A reporter"} reported a{" "}
               {rescueNotif?.animalType ?? "stray animal"} needing rescue near your location.
@@ -430,20 +443,41 @@ export default function RootLayout() {
   // Set global default font once fonts are loaded
   useEffect(() => {
     if (fontsLoaded) {
-      const oldTextRender = (Text as any).render;
-      (Text as any).render = function (...args: any) {
-        const origin = oldTextRender.call(this, ...args);
-        return React.cloneElement(origin, {
-          style: [{ fontFamily: "Inter-Regular" }, origin.props.style],
-        });
-      };
-      const oldTextInputRender = (TextInput as any).render;
-      (TextInput as any).render = function (...args: any) {
-        const origin = oldTextInputRender.call(this, ...args);
-        return React.cloneElement(origin, {
-          style: [{ fontFamily: "Inter-Regular" }, origin.props.style],
-        });
-      };
+      const customTextProps = { style: { fontFamily: "Inter-Regular" } };
+
+      // For older RN / React versions
+      if ((Text as any).render) {
+        const oldTextRender = (Text as any).render;
+        (Text as any).render = function (...args: any) {
+          const origin = oldTextRender.call(this, ...args);
+          return React.cloneElement(origin, {
+            style: [{ fontFamily: "Inter-Regular" }, origin.props.style],
+          });
+        };
+      } else {
+        // For React Native 0.74+ / React 19
+        (Text as any).defaultProps = (Text as any).defaultProps || {};
+        (Text as any).defaultProps.style = [
+          (Text as any).defaultProps.style,
+          { fontFamily: "Inter-Regular" },
+        ];
+      }
+
+      if ((TextInput as any).render) {
+        const oldTextInputRender = (TextInput as any).render;
+        (TextInput as any).render = function (...args: any) {
+          const origin = oldTextInputRender.call(this, ...args);
+          return React.cloneElement(origin, {
+            style: [{ fontFamily: "Inter-Regular" }, origin.props.style],
+          });
+        };
+      } else {
+        (TextInput as any).defaultProps = (TextInput as any).defaultProps || {};
+        (TextInput as any).defaultProps.style = [
+          (TextInput as any).defaultProps.style,
+          { fontFamily: "Inter-Regular" },
+        ];
+      }
     }
   }, [fontsLoaded]);
 
