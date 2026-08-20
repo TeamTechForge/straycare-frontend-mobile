@@ -8,21 +8,19 @@ import { API_URL } from "../constants/config.constants";
 const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-// Configure notification handler safely when supported
-if (!isExpoGo) {
-  try {
-    Notifications.setNotificationHandler({
-      handleNotification: async () => ({
-        shouldShowAlert: true,
-        shouldPlaySound: true,
-        shouldSetBadge: true,
-        shouldShowBanner: true,
-        shouldShowList: true,
-      }),
-    });
-  } catch (_err) {
-    // Ignore notification handler setup error in constrained environments
-  }
+// Configure notification handler safely so local notification banners show alerts and sounds
+try {
+  Notifications.setNotificationHandler({
+    handleNotification: async () => ({
+      shouldShowAlert: true,
+      shouldPlaySound: true,
+      shouldSetBadge: true,
+      shouldShowBanner: true,
+      shouldShowList: true,
+    }),
+  });
+} catch (_err) {
+  // Ignore notification handler setup error in constrained environments
 }
 
 let tokenRegistrationPromise: Promise<void> | null = null;
@@ -47,11 +45,6 @@ export type CaseNotificationData = {
 export const pushNotificationService = {
   // Request notification permissions and setup push notifications
   async setupPushNotifications(): Promise<string | null> {
-    if (isExpoGo) {
-      console.log("[PUSH] Running in Expo Go: Remote push notifications skipped for testing.");
-      return null;
-    }
-
     try {
       await Notifications.setNotificationCategoryAsync(CASE_UPDATE_CATEGORY_ID, [
         {
@@ -68,6 +61,18 @@ export const pushNotificationService = {
           vibrationPattern: [0, 250, 250, 250],
           lightColor: "#F5A623",
           sound: "default",
+          enableVibrate: true,
+          showBadge: true,
+        });
+
+        await Notifications.setNotificationChannelAsync("default", {
+          name: "Default Notifications",
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#F5A623",
+          sound: "default",
+          enableVibrate: true,
+          showBadge: true,
         });
       }
 
@@ -90,14 +95,10 @@ export const pushNotificationService = {
         Constants?.expoConfig?.extra?.eas?.projectId ??
         Constants?.easConfig?.projectId;
 
-      if (!projectId) {
-        console.log("[PUSH] Remote push token generation skipped (No EAS projectId configured)");
-        return null;
-      }
-
       try {
-        const token = await Notifications.getExpoPushTokenAsync({ projectId });
-        console.log("[PUSH] Expo push token:", token.data);
+        const tokenOptions = projectId ? { projectId } : undefined;
+        const token = await Notifications.getExpoPushTokenAsync(tokenOptions);
+        console.log("[PUSH] Expo push token generated:", token.data);
         return token.data;
       } catch (tokenErr: any) {
         console.warn("[PUSH] Could not generate Expo push token:", tokenErr?.message || tokenErr);
@@ -209,11 +210,6 @@ export const pushNotificationService = {
   async initializePushNotifications(
     onNotification?: (notification: Notifications.Notification) => void
   ): Promise<void> {
-    if (isExpoGo) {
-      console.log("[PUSH] Expo Go environment detected: Skipping remote push notification initialization.");
-      return;
-    }
-
     try {
       const pushPref = await SecureStore.getItemAsync("pushEnabled");
       if (pushPref === "false") {
@@ -282,5 +278,33 @@ export const pushNotificationService = {
 
   clearLastNotificationResponse(): void {
     Notifications.clearLastNotificationResponse();
+  },
+
+  // Trigger local OS banner notification fallback
+  async presentLocalNotification(title: string, body: string, data?: Record<string, any>): Promise<void> {
+    try {
+      if (Platform.OS === "android") {
+        await Notifications.setNotificationChannelAsync("rescue-alerts", {
+          name: "Rescue Alerts",
+          importance: Notifications.AndroidImportance.MAX,
+          vibrationPattern: [0, 250, 250, 250],
+          lightColor: "#F5A623",
+          sound: "default",
+        });
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        content: {
+          title,
+          body,
+          sound: "default",
+          data: data || {},
+        },
+        trigger: null, // trigger immediately
+      });
+      console.log("[PUSH] Presented local notification:", title);
+    } catch (err: any) {
+      console.warn("[PUSH] Failed to present local notification:", err?.message || err);
+    }
   },
 };

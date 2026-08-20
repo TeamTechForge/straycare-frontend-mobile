@@ -143,11 +143,17 @@ function InitialLayout() {
           // Handle incoming push notification
           if (notification.request.content.data) {
             const data = notification.request.content.data as Record<string, any>;
+            const title = notification.request.content.title || "Notification";
+            const message = notification.request.content.body || "";
+
+            // Present OS banner alert natively
+            void pushNotificationService.presentLocalNotification(title, message, data);
+
             addNotification({
               _id: `push-${Date.now()}`,
               userId: user._id || "",
-              title: notification.request.content.title || "Notification",
-              message: notification.request.content.body || "",
+              title,
+              message,
               type: (data.type as any) || "info",
               read: false,
               caseId: typeof data.caseId === "string" ? data.caseId : undefined,
