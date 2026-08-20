@@ -44,6 +44,7 @@ export default function NgoProfileSetupScreen() {
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geocodedLocationText, setGeocodedLocationText] = useState("");
 
   const [image, setImage] = useState<string | null>(null);
   const [document, setDocument] = useState(null);
@@ -72,12 +73,13 @@ export default function NgoProfileSetupScreen() {
     coords: { latitude: number; longitude: number } | null;
     image: string | null; merchantId: string; merchantSecret: string;
     payHereAppId: string; payHereAppSecret: string;
+    geocodedLocationText: string;
   } | null>(null);
 
   // Mirror all field changes into the persist ref
   useEffect(() => {
-    formPersistRef.current = { orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret, payHereAppId, payHereAppSecret };
-  }, [orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret, payHereAppId, payHereAppSecret]);
+    formPersistRef.current = { orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret, payHereAppId, payHereAppSecret, geocodedLocationText };
+  }, [orgName, contactPerson, regNumber, year, phone, location, bio, coords, image, merchantId, merchantSecret, payHereAppId, payHereAppSecret, geocodedLocationText]);
 
   const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
     if (!uriOrAsset) return null;
@@ -163,6 +165,7 @@ export default function NgoProfileSetupScreen() {
       if (saved.merchantSecret) setMerchantSecret(saved.merchantSecret);
       if (saved.payHereAppId) setPayHereAppId(saved.payHereAppId);
       if (saved.payHereAppSecret) setPayHereAppSecret(saved.payHereAppSecret);
+      if (saved.geocodedLocationText) setGeocodedLocationText(saved.geocodedLocationText);
     }
 
     const fetchUser = async () => {
@@ -207,7 +210,9 @@ export default function NgoProfileSetupScreen() {
     const address = await Location.reverseGeocodeAsync(loc.coords);
 
     if (address.length > 0) {
-      setLocation(`${address[0].city}, ${address[0].country}`);
+      const place = `${address[0].city}, ${address[0].country}`;
+      setLocation(place);
+      setGeocodedLocationText(place);
     }
   };
 
@@ -270,6 +275,20 @@ export default function NgoProfileSetupScreen() {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) throw new Error("No authorization token found");
 
+      let finalCoords = coords;
+      if (location.trim() !== geocodedLocationText.trim()) {
+        try {
+          const geo = await Location.geocodeAsync(location);
+          if (geo.length > 0) {
+            finalCoords = { latitude: geo[0].latitude, longitude: geo[0].longitude };
+            setCoords(finalCoords);
+            setGeocodedLocationText(location);
+          }
+        } catch (e) {
+          console.warn("Geocoding failed:", e);
+        }
+      }
+
       // Upload local files to Cloudinary first
       const uploadedImageUrl = await uploadToCloudinaryIfLocal(image, token);
       const uploadedDocUrl = await uploadToCloudinaryIfLocal(document, token);
@@ -294,8 +313,8 @@ export default function NgoProfileSetupScreen() {
           merchantSecret,
           payHereAppId,
           payHereAppSecret,
-          latitude: coords?.latitude,
-          longitude: coords?.longitude,
+          latitude: finalCoords?.latitude,
+          longitude: finalCoords?.longitude,
         }),
       });
 
