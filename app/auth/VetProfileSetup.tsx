@@ -23,6 +23,7 @@ import FormSection from "../../components/FormSection";
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import ProfileImageUpload from "../../components/ProfileImageUpload";
+import PayHereSetupGuideModal from "../../components/PayHereSetupGuideModal";
 import { API_URL } from "../../constants/config.constants";
 
 const BRAND_COLOR = "#F5A623";
@@ -50,6 +51,7 @@ export default function VetProfileSetupScreen() {
   const [payHereAppSecret, setPayHereAppSecret] = useState("");
   const [paymentValidationError, setPaymentValidationError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [showPayHereGuide, setShowPayHereGuide] = useState(false);
 
   // Persist form state in a ref so it survives Android Activity recreation
   // (which can happen when ImagePicker opens the system gallery)
@@ -516,22 +518,9 @@ export default function VetProfileSetupScreen() {
           secure={true}
         />
 
-        <View style={styles.recurringSetupNotice}>
-          <Ionicons 
-            name="information-circle-outline" 
-            size={24} 
-            color="#B45309" 
-            style={{ marginTop: 2 }}
-          />
-          <View style={styles.recurringSetupText}>
-            <Text style={styles.recurringSetupTitle}>
-              Want to receive recurring donations?
-            </Text>
-            <Text style={styles.recurringSetupDescription}>
-              One-time donations already work with your Merchant details. For recurring donations, create an API key in PayHere Sandbox under Settings → API Keys, enable Subscription Management API and Automatic Charging API, and enter its App ID and App Secret below.
-            </Text>
-          </View>
-        </View>
+        <Text style={styles.donationDescription}>
+          To receive recurring donations, provide the App ID and App Secret from your PayHere API key below.
+        </Text>
 
         <InputField
           label="PayHere App ID (For recurring)"
@@ -555,6 +544,13 @@ export default function VetProfileSetupScreen() {
         <Text style={styles.helperText}>
           Optional. Required only if you wish to receive donations through your merchant account.
         </Text>
+        <TouchableOpacity
+          style={styles.payHereHelpLink}
+          onPress={() => setShowPayHereGuide(true)}
+        >
+          <Ionicons name="help-circle-outline" size={16} color="#B45309" />
+          <Text style={styles.payHereHelpText}>How to get PayHere credentials</Text>
+        </TouchableOpacity>
       </FormSection>
 
       {/* Footer note */}
@@ -568,6 +564,7 @@ export default function VetProfileSetupScreen() {
         onPress={handleSubmit}
         disabled={isSubmitting}
       />
+      <PayHereSetupGuideModal visible={showPayHereGuide} onClose={() => setShowPayHereGuide(false)} />
     </ScrollView>
   );
 }
@@ -667,10 +664,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     lineHeight: 18,
   },
-  recurringSetupNotice: { flexDirection: "row", gap: 10, backgroundColor: "#FFF7E6", borderWidth: 1, borderColor: "#F6DFC0", borderRadius: 12, padding: 12, marginVertical: 12 },
-  recurringSetupText: { flex: 1 },
-  recurringSetupTitle: { fontSize: 13, fontWeight: "700", color: "#7A4A08", marginBottom: 4 },
-  recurringSetupDescription: { fontSize: 11, lineHeight: 17, color: "#705B3E" },
+  payHereHelpLink: { flexDirection: "row", alignItems: "center", gap: 6, alignSelf: "flex-start", marginTop: 4 },
+  payHereHelpText: { color: "#B45309", fontSize: 12, fontWeight: "700" },
   footerNote: {
     textAlign: "center",
     fontSize: 11,

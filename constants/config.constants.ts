@@ -35,22 +35,25 @@ function getMetroHost(): string | null {
 }
 
 function resolveBaseUrl(): string {
-  // 1. In __DEV__, dynamically match the Metro bundler IP so physical devices connect seamlessly
-  if (__DEV__) {
-    const metroHost = getMetroHost();
-    if (metroHost) {
-      console.log(`[Config] Auto-detected active Metro host IP: ${metroHost}`);
-      return `http://${metroHost}:${BACKEND_PORT}`;
-    }
-  }
-
-  // 2. Explicit environment override
+  // 1. Explicit environment override. PayHere checkout credentials are tied to
+  // the hosted integration domain, so a configured URL must not be replaced by
+  // Metro's local IP during development.
   const envUrl =
     process.env.EXPO_PUBLIC_API_URL ||
     Constants.expoConfig?.extra?.EXPO_PUBLIC_API_URL;
   if (envUrl) {
     console.log('[Config] Using EXPO_PUBLIC_API_URL:', envUrl);
     return envUrl.replace(/\/$/, '');
+  }
+
+  // 2. Without an explicit override, dynamically match the Metro host so
+  // physical devices can reach a locally running backend.
+  if (__DEV__) {
+    const metroHost = getMetroHost();
+    if (metroHost) {
+      console.log(`[Config] Auto-detected active Metro host IP: ${metroHost}`);
+      return `http://${metroHost}:${BACKEND_PORT}`;
+    }
   }
 
   // 3. Platform-specific emulator detection

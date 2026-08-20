@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from "react-native";
 import { useState } from "react";
 import BackButton from "../../components/BackButton";
@@ -56,11 +56,18 @@ const HELP_TOPICS = [
     title: "How NGO/Vet verification works",
     content: "NGOs and Vets must submit their registration details. Our admin team verifies these details to ensure authenticity before approving the account.",
   },
+  {
+    title: "How to set up PayHere donations",
+    content: "1. In PayHere Sandbox, open Integrations. Copy your Merchant ID, add onrender.com as the website domain, then copy its Merchant Secret.\n\n2. For recurring donation management, open Settings > API Keys and create an API key. For sandbox testing, set Allowed Domains to *, then enable Subscription Management API and Automatic Charging API. Open View Credentials to copy the App ID and App Secret.\n\nMerchant Secret and App Secret are different. Keep both private.",
+  },
 ];
 
 export default function HelpSupportScreen() {
   const router = useRouter();
-  const [expandedTopicIndex, setExpandedTopicIndex] = useState<number | null>(null);
+  const { topic } = useLocalSearchParams<{ topic?: string }>();
+  const [expandedTopicIndex, setExpandedTopicIndex] = useState<number | null>(
+    topic === "payhere" ? HELP_TOPICS.length - 1 : null
+  );
 
   const toggleTopic = (index: number) => {
     setExpandedTopicIndex(expandedTopicIndex === index ? null : index);
