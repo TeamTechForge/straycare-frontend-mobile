@@ -15,6 +15,9 @@ import { getAllReports } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 import BackButton from "../../components/BackButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { io } from "socket.io-client";
+import { Ionicons } from "@expo/vector-icons";
+import { BASE_URL } from "../../constants/config.constants";
 
 type Report = {
   caseId: string;
@@ -163,6 +166,44 @@ export default function ReportingMapScreen() {
     }, [loadReports])
   );
 
+  // 📡 Real-time live socket listener for map marker status updates
+  useEffect(() => {
+    const socket = io(`${BASE_URL}/rescue`, {
+      transports: ["websocket"],
+      reconnection: true,
+    });
+
+    socket.on("status_update", (data: any) => {
+      if (data?.caseId && data?.status) {
+        setReports((prevReports) =>
+          prevReports.map((r) =>
+            r.caseId === data.caseId ? { ...r, status: data.status } : r
+          )
+        );
+      }
+    });
+
+    socket.on("report_updated", (data: any) => {
+      if (data?.caseId && data?.status) {
+        setReports((prevReports) =>
+          prevReports.map((r) =>
+            r.caseId === data.caseId ? { ...r, status: data.status } : r
+          )
+        );
+      }
+    });
+
+    socket.on("report_deleted", (data: any) => {
+      if (data?.caseId) {
+        setReports((prevReports) => prevReports.filter((r) => r.caseId !== data.caseId));
+      }
+    });
+
+    return () => {
+      socket.disconnect();
+    };
+  }, []);
+
   // The map's initialRegion only applies on first mount and never recenters,
   // so it was hiding every case outside that fixed Colombo box (including new
   // ones reported elsewhere). Refit the viewport whenever the report list changes.
@@ -218,7 +259,13 @@ export default function ReportingMapScreen() {
             <Text style={styles.header}>Rescue Cases Map</Text>
             <Text style={styles.subtext}>Tap a marker to view case details.</Text>
           </View>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity
+            onPress={() => void loadReports()}
+            style={{ width: 40, alignItems: "center", justifyContent: "center" }}
+            accessibilityLabel="Refresh Map"
+          >
+            <Ionicons name="refresh" size={22} color="#333" />
+          </TouchableOpacity>
         </View>
       </View>
 
