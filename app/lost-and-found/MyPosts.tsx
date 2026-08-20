@@ -105,15 +105,15 @@ export default function MyPostsScreen() {
               {item.description}
             </Text>
 
-            <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
-              <Text style={{ fontSize: 12, color: "#717878" }}>{getDisplayDate(item)}</Text>
+            <View style={styles.cardMetaRow}>
+              <Text style={styles.cardDate}>{getDisplayDate(item)}</Text>
               <View
-                style={{
+                style={[
+                  styles.typeBadge,
+                  {
                   backgroundColor: animalType === "Dog" ? "#F5A623" : "#ffb700",
-                  paddingHorizontal: 12,
-                  paddingVertical: 5,
-                  borderRadius: 20,
-                }}
+                  },
+                ]}
               >
                 <Text style={{ color: "#fff", fontWeight: "700", fontSize: 11 }}>
                   {animalType}
@@ -201,6 +201,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   card: {
+    width: "100%",
+    minWidth: 0,
     backgroundColor: "#fff",
     borderRadius: 24,
     overflow: "hidden",
@@ -239,6 +241,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#062425",
     marginBottom: 8,
+    flexShrink: 1,
+    flexWrap: "wrap",
   },
   locationRow: {
     flexDirection: "row",
@@ -246,6 +250,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   locationText: {
+    flex: 1,
+    minWidth: 0,
     marginLeft: 4,
     color: "#414848",
     fontSize: 13,
@@ -255,6 +261,24 @@ const styles = StyleSheet.create({
     fontSize: 13,
     lineHeight: 20,
     marginBottom: 14,
+  },
+  cardMetaRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "space-between",
+    alignItems: "center",
+    gap: 8,
+  },
+  cardDate: {
+    color: "#717878",
+    fontSize: 12,
+    flexShrink: 1,
+  },
+  typeBadge: {
+    flexShrink: 0,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 20,
   },
   actionRow: {
     flexDirection: "row",

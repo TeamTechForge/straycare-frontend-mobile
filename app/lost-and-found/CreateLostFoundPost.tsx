@@ -573,7 +573,7 @@ const CreatePost = () => {
       {/* SECTION 4 — Lost/found date */}
       <View style={s.card}>
         <Text style={s.sectionTitle}>
-          {form.status === 'found' ? 'Found Date' : 'Date'}
+          {form.status === 'found' ? 'Date' : 'Date'}
         </Text>
 
         {/* Date picker trigger — tapping opens the native date picker */}
