@@ -1,13 +1,17 @@
 # StrayCare Mobile
 
-The StrayCare mobile client is a React Native application built with Expo and Expo Router. It connects users with rescue reporting, live tracking, community discussions, donations, notifications, chat, and audio/video calls.
+The StrayCare mobile client is a React Native application built with Expo and Expo Router. It connects users with rescue reporting, live tracking, community discussions, donations, notifications, chat, and audio calls.
+
+## Project overview
+
+StrayCare is an animal-welfare platform that helps people report stray animals, request and coordinate rescues, connect with rescuers and veterinary professionals, and support organizations through donations. The platform includes this mobile client, an administrative web dashboard, and a shared Node.js backend API with MongoDB and Socket.IO real-time services.
 
 ## Requirements
 
 - Node.js and npm
 - Expo CLI through the local project dependencies
 - Android Studio and an Android device/emulator for Android development
-- Xcode and a macOS environment for iOS development
+
 
 ## Setup
 
@@ -28,10 +32,7 @@ Expo will show shortcuts for opening the app in a development build, Android, iO
 
 | Command | Purpose |
 | --- | --- |
-| `npm run android` | Build and open the Android native project |
-| `npm run ios` | Build and open the iOS native project |
-| `npm run web` | Start the Expo web target |
-| `npm run lint` | Run Expo ESLint checks |
+| `npx expo run:android` | Build and open the Android native project |
 | `npm test` | Run Jest tests |
 | `npm run test:watch` | Run Jest in watch mode |
 
