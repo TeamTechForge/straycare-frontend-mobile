@@ -115,8 +115,8 @@ export default function MessageBubble({
           <Text style={[styles.time, isMine && styles.timeMine]}>{time}</Text>
           {isMine && (
             <Ionicons
-              name={isRead ? "checkmark-done" : "checkmark"}
-              size={14}
+              name="checkmark-done"
+              size={15}
               color={isRead ? "#60A5FA" : isMine ? "rgba(255,255,255,0.6)" : "#999"}
               style={styles.checkmark}
             />

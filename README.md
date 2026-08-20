@@ -1,48 +1,48 @@
-# 🐾 StrayCare
+# StrayCare Mobile
 
-StrayCare is a comprehensive platform designed to bridge the gap between compassionate individuals, veterinary professionals, and NGOs to provide better care for stray animals. 
+The StrayCare mobile client is a React Native application built with Expo and Expo Router. It connects users with rescue reporting, live tracking, community discussions, donations, notifications, chat, and audio calls.
 
-Whether it's reporting an animal in need of rescue, seeking medical help, or coordinating donations, StrayCare provides the necessary tools to make a positive impact on animal welfare.
+## Project overview
 
-## 🌟 Key Features
+StrayCare is an animal-welfare platform that helps people report stray animals, request and coordinate rescues, connect with rescuers and veterinary professionals, and support organizations through donations. The platform includes this mobile client, an administrative web dashboard, and a shared Node.js backend API with MongoDB and Socket.IO real-time services.
 
-- **Role-Based Profiles:** Tailored experiences for General Users, NGOs, and Vets.
-- **Rescue Reporting:** Users can quickly report stray animals in need of medical attention or rescue.
-- **Real-Time Communication:** Integrated Socket.IO chat allows seamless communication between users, NGOs, and Vets.
-- **Donation Management:** Facilitates donations to verified NGOs to support rescue efforts.
-- **Community Forum:** A space for users to discuss, share advice, and build a supportive community.
-- **In-App Notifications:** Real-time updates on rescue status, profile verification, and messages.
+## Requirements
 
-## 🏗️ Project Structure
+- Node.js and npm
+- Expo CLI through the local project dependencies
+- Android Studio and an Android device/emulator for Android development
 
-The project is divided into a Node.js backend and a React Native mobile application.
 
-### Backend (`straycare-backend`)
-- **Tech Stack:** Node.js, Express, TypeScript, MongoDB (Mongoose), Socket.IO.
-- **Responsibilities:** Handles API requests, user authentication, role management, real-time web sockets for chat/notifications, and database operations.
+## Setup
 
-### Frontend (`straycare-frontend-mobile`)
-- **Tech Stack:** React Native, Expo, TypeScript.
-- **Responsibilities:** Delivers a smooth, cross-platform mobile experience for users to interact with the StrayCare ecosystem.
-
-## 🚀 Getting Started
-
-### 1. Backend Setup
-Navigate to the backend directory, install dependencies, and start the development server:
 ```bash
-cd straycare-backend
 npm install
-npm run dev
-```
-*(Make sure to set up your `.env` file based on `.env.example` before running)*
-
-### 2. Frontend Setup
-Navigate to the frontend directory, install dependencies, and start Expo:
-```bash
-cd straycare-frontend-mobile
-npm install
-npx expo start
+copy .env.example .env
 ```
 
-## 🤝 Contributing
-Contributions, issues, and feature requests are welcome! Let's work together to make the world a better place for our furry friends.
+Set `EXPO_PUBLIC_API_URL` to the backend URL. For a physical device, use the computer's LAN IP, for example `http://192.168.1.10:5000`, and keep the device and computer on the same network. Add the Firebase, Google OAuth, and optional Cloudinary values described in `.env.example` when those features are needed.
+
+## Development
+
+```bash
+npm start
+```
+
+Expo will show shortcuts for opening the app in a development build, Android, iOS, or a browser.
+
+| Command | Purpose |
+| --- | --- |
+| `npx expo run:android` | Build and open the Android native project |
+| `npm test` | Run Jest tests |
+| `npm run test:watch` | Run Jest in watch mode |
+
+## Project layout
+
+- `app` - Expo Router routes and screens
+- `components` - Shared UI components
+- `contexts` - Shared application state and providers
+- `services` and `api` - Backend and third-party integrations
+- `assets` - Images, fonts, and sounds
+- `tests` - Mobile unit and component tests
+
+The backend should be running before using API-backed features. Do not commit `.env`, signing credentials, or service-account secrets.

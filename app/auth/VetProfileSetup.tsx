@@ -40,6 +40,7 @@ export default function VetProfileSetupScreen() {
   const [phone, setPhone] = useState("");
   const [shortBio, setShortBio] = useState("");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geocodedLocationText, setGeocodedLocationText] = useState("");
 
   const [clinicName, setClinicName] = useState("");
   const [clinicAddress, setClinicAddress] = useState("");
@@ -61,12 +62,13 @@ export default function VetProfileSetupScreen() {
     clinicName: string; clinicAddress: string; licenseNumber: string;
     yearsOfExperience: string; payHereMerchantId: string; merchantSecret: string;
     payHereAppId: string; payHereAppSecret: string;
+    geocodedLocationText: string;
   } | null>(null);
 
   // Mirror all field changes into the persist ref
   useEffect(() => {
-    formPersistRef.current = { profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret, payHereAppId, payHereAppSecret };
-  }, [profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret, payHereAppId, payHereAppSecret]);
+    formPersistRef.current = { profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret, payHereAppId, payHereAppSecret, geocodedLocationText };
+  }, [profileImage, name, primaryLocation, phone, shortBio, coords, clinicName, clinicAddress, licenseNumber, yearsOfExperience, payHereMerchantId, merchantSecret, payHereAppId, payHereAppSecret, geocodedLocationText]);
 
   const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
     if (!uriOrAsset) return null;
@@ -164,6 +166,7 @@ export default function VetProfileSetupScreen() {
       if (saved.merchantSecret) setMerchantSecret(saved.merchantSecret);
       if (saved.payHereAppId) setPayHereAppId(saved.payHereAppId);
       if (saved.payHereAppSecret) setPayHereAppSecret(saved.payHereAppSecret);
+      if (saved.geocodedLocationText) setGeocodedLocationText(saved.geocodedLocationText);
     }
 
     const fetchUser = async () => {
@@ -241,6 +244,7 @@ export default function VetProfileSetupScreen() {
     if (address.length > 0) {
       const place = `${address[0].city || ""}, ${address[0].country || ""}`;
       setPrimaryLocation(place);
+      setGeocodedLocationText(place);
     }
   };
 
@@ -331,6 +335,20 @@ export default function VetProfileSetupScreen() {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) throw new Error("No authorization token found");
 
+      let finalCoords = coords;
+      if (primaryLocation.trim() !== geocodedLocationText.trim()) {
+        try {
+          const geo = await Location.geocodeAsync(primaryLocation);
+          if (geo.length > 0) {
+            finalCoords = { latitude: geo[0].latitude, longitude: geo[0].longitude };
+            setCoords(finalCoords);
+            setGeocodedLocationText(primaryLocation);
+          }
+        } catch (e) {
+          console.warn("Geocoding failed:", e);
+        }
+      }
+
       // Upload local files to Cloudinary first
       const uploadedImageUrl = await uploadToCloudinaryIfLocal(profileImage, token);
       const uploadedDocUrl = await uploadToCloudinaryIfLocal(licenseDocument, token);
@@ -356,8 +374,8 @@ export default function VetProfileSetupScreen() {
           merchantSecret,
           payHereAppId,
           payHereAppSecret,
-          latitude: coords?.latitude,
-          longitude: coords?.longitude,
+          latitude: finalCoords?.latitude,
+          longitude: finalCoords?.longitude,
         }),
       });
 

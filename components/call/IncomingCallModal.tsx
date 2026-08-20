@@ -21,6 +21,10 @@ export default function IncomingCallModal({ callerName, callerImage, onAccept, o
           <View style={styles.callerInfo}>
             {callerImage ? (
               <Image source={{ uri: callerImage }} style={styles.avatar} />
+            ) : callerName.includes("Anonymous Reporter") || callerName.includes("Anonymous Report") ? (
+              <View style={[styles.avatar, styles.placeholderAvatar, { backgroundColor: '#FEB94B' }]}>
+                <Text style={styles.initialsText}>AR</Text>
+              </View>
             ) : (
               <View style={[styles.avatar, styles.placeholderAvatar]}>
                 <Ionicons name="person" size={40} color="#999" />
@@ -84,10 +88,16 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  initialsText: {
+    fontSize: 32,
+    fontWeight: "bold",
+    color: "#FFFFFF",
+  },
   callerName: {
     fontSize: 24,
     fontWeight: "bold",
     color: "#111",
+    textAlign: "center",
   },
   buttonContainer: {
     flexDirection: "row",

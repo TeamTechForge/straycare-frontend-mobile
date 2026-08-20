@@ -69,8 +69,8 @@ function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): nu
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(lat1 * (Math.PI / 180)) *
-      Math.cos(lat2 * (Math.PI / 180)) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos(lat2 * (Math.PI / 180)) *
+    Math.sin(dLon / 2) ** 2;
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
@@ -158,7 +158,7 @@ export default function NearbyRescuersScreen() {
       try {
         console.log("[NearbyHelpMap] Fetching rescuers from:", `${API_BASE_URL}/api/rescue/rescuers`);
         const response = await axios.get(`${API_BASE_URL}/api/rescue/rescuers`);
-        
+
         const rawRescuers = (response.data as any).rescuers || [];
         console.log(`[NearbyHelpMap] Found ${rawRescuers.length} total rescuers in DB`);
 
@@ -343,7 +343,7 @@ export default function NearbyRescuersScreen() {
     try {
       console.log(`[NearbyHelpMap] Cancelling request ID: ${requestId}`);
       await axios.patch(`${API_BASE_URL}/api/rescue/request/${requestId}/cancel`);
-      
+
       Alert.alert(
         "Request Cancelled",
         "Your request was cancelled successfully. Finding the next nearest rescuer...",
@@ -403,7 +403,7 @@ export default function NearbyRescuersScreen() {
     <SafeAreaView style={styles.container}>
       {/* HEADER BAR */}
       <View style={styles.header}>
-        <BackButton 
+        <BackButton
           onPress={() => {
             if (workflowState !== "waiting" && workflowState !== "sending") {
               router.back();
@@ -501,7 +501,7 @@ export default function NearbyRescuersScreen() {
                     title="Send Request to Nearest Rescuer"
                     onPress={handleSendRequest}
                   />
-                  
+
                   {filteredRescuers.length > 1 && (
                     <PrimaryButton
                       title="Find Next Nearest"

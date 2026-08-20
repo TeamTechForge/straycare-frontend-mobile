@@ -38,6 +38,7 @@ export default function VolunteerProfileSetupScreen() {
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geocodedLocationText, setGeocodedLocationText] = useState("");
 
   const [errors, setErrors] = useState({
     name: "",
@@ -170,6 +171,7 @@ export default function VolunteerProfileSetupScreen() {
     if (address.length > 0) {
       const place = `${address[0].city || ""}, ${address[0].country || ""}`;
       setLocation(place);
+      setGeocodedLocationText(place);
     }
   };
 
@@ -211,6 +213,20 @@ export default function VolunteerProfileSetupScreen() {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) throw new Error("No authorization token found");
 
+      let finalCoords = coords;
+      if (location.trim() !== geocodedLocationText.trim()) {
+        try {
+          const geo = await Location.geocodeAsync(location);
+          if (geo.length > 0) {
+            finalCoords = { latitude: geo[0].latitude, longitude: geo[0].longitude };
+            setCoords(finalCoords);
+            setGeocodedLocationText(location);
+          }
+        } catch (e) {
+          console.warn("Geocoding failed:", e);
+        }
+      }
+
       const uploadedImageUrl = await uploadToCloudinaryIfLocal(profileImage, token);
 
       const response = await fetch(`${API_URL}/profiles/volunteer`, {
@@ -225,8 +241,8 @@ export default function VolunteerProfileSetupScreen() {
           location,
           bio,
           profileImage: uploadedImageUrl,
-          latitude: coords?.latitude,
-          longitude: coords?.longitude,
+          latitude: finalCoords?.latitude,
+          longitude: finalCoords?.longitude,
         }),
       });
 

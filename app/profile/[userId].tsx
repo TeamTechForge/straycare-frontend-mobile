@@ -83,7 +83,7 @@ interface Rescue {
 export default function PublicProfileScreen() {
   const router = useRouter();
   const { userId } = useLocalSearchParams();
-  const { user } = useAuth();
+  const { user, refreshUser } = useAuth();
   const { createConversation } = useChatApi();
   const { startCall } = useCall();
 
@@ -283,6 +283,7 @@ export default function PublicProfileScreen() {
       if (response.ok) {
         Alert.alert("Success", resData.message);
         setMenuVisible(false);
+        refreshUser();
       } else {
         Alert.alert("Error", resData.message || "Failed to block user.");
       }

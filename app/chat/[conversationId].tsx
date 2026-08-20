@@ -89,6 +89,10 @@ export default function ChatRoomScreen() {
           const data: any = await response.json();
           setCanMessage(data.permissions?.canMessage ?? true);
           setCanCall(data.permissions?.canCall ?? true);
+        } else if (response.status === 403) {
+          // Blocked by user
+          setCanMessage(false);
+          setCanCall(false);
         }
       } catch (err) {
         console.error("Failed to fetch permissions", err);
@@ -424,7 +428,7 @@ export default function ChatRoomScreen() {
     );
   };
 
-  const isRecipientOnline = recipientId ? onlineUsers.has(recipientId) : false;
+  const isRecipientOnline = (recipientId && canMessage) ? onlineUsers.has(recipientId) : false;
 
   return (
     <View style={styles.container}>

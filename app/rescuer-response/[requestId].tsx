@@ -316,9 +316,10 @@ export default function RescuerResponseScreen() {
     const isAnonymous = caseDetails?.reporterName === "Anonymous Reporter" || caseDetails?.anonymous;
     const caseMongoId = caseDetails?.rescueRequestId;
     let fullCaseId = caseDetails?.caseId || caseMongoId?.toString() || 'Anon';
+    let displayCaseId = fullCaseId.length > 4 ? fullCaseId.slice(-4) : fullCaseId;
 
     const reporterName = isAnonymous
-      ? `Anonymous Reporter (${fullCaseId})`
+      ? `Anonymous Reporter (${displayCaseId})`
       : (caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter");
 
     const reporterAvatar = isAnonymous
@@ -358,9 +359,10 @@ export default function RescuerResponseScreen() {
       );
 
       let fullCaseId = caseDetails?.caseId || caseMongoId?.toString() || 'Anon';
+      let displayCaseId = fullCaseId.length > 4 ? fullCaseId.slice(-4) : fullCaseId;
 
       const reporterName = isAnonymous
-        ? `Anonymous Reporter (${fullCaseId})`
+        ? `Anonymous Reporter (${displayCaseId})`
         : (otherParticipant?.name || caseDetails?.reporter?.name || caseDetails?.reporterName || "Reporter");
 
       const reporterImage = isAnonymous

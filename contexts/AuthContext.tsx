@@ -18,6 +18,9 @@ type UserData = {
   profileStatus?: "Pending" | "Verified" | "Rejected";
   messagingPrivacy?: string;
   callingPrivacy?: string;
+  blockedUsers?: string[];
+  profileImage?: string;
+  avatar?: string;
 };
 
 type AuthContextType = {
@@ -32,8 +35,8 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   token: null,
   isLoading: true,
-  refreshUser: async () => {},
-  logout: async () => {},
+  refreshUser: async () => { },
+  logout: async () => { },
 });
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
