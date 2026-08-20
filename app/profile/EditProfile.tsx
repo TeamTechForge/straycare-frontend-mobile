@@ -31,6 +31,8 @@ export default function EditProfileScreen() {
   const [location, setLocation] = useState("");
   const [bio, setBio] = useState("");
   const [profileImage, setProfileImage] = useState<string | null>(null);
+  const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
+  const [geocodedLocationText, setGeocodedLocationText] = useState("");
 
   // Vet & NGO Common
   const [merchantId, setMerchantId] = useState("");
@@ -226,10 +228,13 @@ export default function EditProfileScreen() {
     if (status !== "granted") return;
 
     const loc = await Location.getCurrentPositionAsync({});
+    setCoords({ latitude: loc.coords.latitude, longitude: loc.coords.longitude });
     const address = await Location.reverseGeocodeAsync(loc.coords);
 
     if (address.length > 0) {
-      setLocation(`${address[0].city || ""}, ${address[0].country || ""}`);
+      const place = `${address[0].city || ""}, ${address[0].country || ""}`;
+      setLocation(place);
+      setGeocodedLocationText(place);
     }
   };
 
@@ -249,6 +254,20 @@ export default function EditProfileScreen() {
       const token = await SecureStore.getItemAsync("authToken");
       if (!token) throw new Error("No authorization token found");
 
+      let finalCoords = coords;
+      if (location.trim() !== geocodedLocationText.trim()) {
+        try {
+          const geo = await Location.geocodeAsync(location);
+          if (geo.length > 0) {
+            finalCoords = { latitude: geo[0].latitude, longitude: geo[0].longitude };
+            setCoords(finalCoords);
+            setGeocodedLocationText(location);
+          }
+        } catch (e) {
+          console.warn("Geocoding failed:", e);
+        }
+      }
+
       const uploadedImageUrl = await uploadToCloudinaryIfLocal(profileImage, token);
 
       let endpoint = "/profiles/general";
@@ -256,10 +275,10 @@ export default function EditProfileScreen() {
 
       if (role === "general_user") {
         endpoint = "/profiles/general";
-        body = { name, phone, location, bio, profileImage: uploadedImageUrl };
+        body = { name, phone, location, bio, profileImage: uploadedImageUrl, latitude: finalCoords?.latitude, longitude: finalCoords?.longitude };
       } else if (role === "volunteer") {
         endpoint = "/profiles/volunteer";
-        body = { name, phone, location, bio, profileImage: uploadedImageUrl };
+        body = { name, phone, location, bio, profileImage: uploadedImageUrl, latitude: finalCoords?.latitude, longitude: finalCoords?.longitude };
       } else if (role === "vet") {
         endpoint = "/profiles/vet";
         const uploadedDocUrl = await uploadToCloudinaryIfLocal(licenseDocument, token);
@@ -278,6 +297,8 @@ export default function EditProfileScreen() {
           merchantSecret,
           payHereAppId,
           payHereAppSecret,
+          latitude: finalCoords?.latitude,
+          longitude: finalCoords?.longitude,
         };
       } else if (role === "ngo") {
         endpoint = "/profiles/ngo";
@@ -296,6 +317,8 @@ export default function EditProfileScreen() {
           merchantSecret,
           payHereAppId,
           payHereAppSecret,
+          latitude: finalCoords?.latitude,
+          longitude: finalCoords?.longitude,
         };
       }
 
