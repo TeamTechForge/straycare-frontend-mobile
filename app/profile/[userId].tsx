@@ -18,6 +18,15 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import { SafeAreaView } from "react-native-safe-area-context";
 import BackButton from "../../components/BackButton";
 
+// PublicProfileScreen ([userId].tsx)
+//
+// User Profile and Case Summary Showcase Screen.
+// Features:
+// 1. User Profile Showcase with profile photo, role badge, and rescue/report statistics.
+// 2. Case Summary cards for reported and rescued cases.
+// 3. Privacy controls: Anonymous reports are automatically excluded from public profile lists.
+// 4. In-app communication (Call / Message) and case sharing.
+
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { useChatApi } from "../../hooks/useChatApi";
@@ -45,6 +54,7 @@ interface Post {
   comments?: number;
   createdAt: string;
 }
+
 
 interface Report {
   _id: string;

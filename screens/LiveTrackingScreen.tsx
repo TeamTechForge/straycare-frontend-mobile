@@ -12,6 +12,16 @@ import { Ionicons } from "@expo/vector-icons";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { io as ioClient } from "socket.io-client";
 
+// LiveTrackingScreen.tsx
+//
+// Real-Time Live Rescue Tracking Screen.
+// Features:
+// 1. Live Map showing reporter location and moving rescuer coordinates via Socket.io.
+// 2. Real-time distance (km) and estimated arrival time (ETA) updates.
+// 3. Location sharing status alerts (when rescuer enables/disables GPS sharing).
+// 4. In-app communication (calling and chat) with privacy preservation for anonymous reporters.
+// 5. Rescue progress updates and timeline milestones.
+
 import MapViewWrapper, { Marker } from "../components/MapViewWrapper";
 import PrimaryButton from "../components/PrimaryButton";
 import BackButton from "../components/BackButton";
@@ -38,16 +48,20 @@ export default function LiveTrackingScreen() {
   const { requestId, fromProfile, source } = useLocalSearchParams<Params>();
   const requestIdValue = getFirstParam(requestId) ?? "";
   const isFromProfile = getFirstParam(fromProfile) === "true" || getFirstParam(source) === "profile";
+  
+  // Current user and communication context hooks
   const { user } = useAuth();
   const { startCall } = useCall();
   const { createConversation } = useChatApi();
 
+  /* ── Screen States ─────────────────────────────────────────────────── */
   const [tracking, setTracking] = useState<LiveTrackingResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isLocationShared, setIsLocationShared] = useState<boolean>(false);
   const [liveRescuerLocation, setLiveRescuerLocation] = useState<{ latitude: number; longitude: number } | null>(null);
 
+  // Check if current logged-in user is the person who reported the animal
   const isReporter = useMemo(() => {
     if (!user || !tracking) return false;
     const currentUserId = String((user as any)._id || (user as any).id || "");
@@ -60,6 +74,7 @@ export default function LiveTrackingScreen() {
     return isFromProfile || (Boolean(currentUserId && reporterId) && currentUserId === reporterId);
   }, [user, tracking, isFromProfile]);
 
+  // Check if current logged-in user is the assigned rescuer
   const isRescuer = useMemo(() => {
     if (!user || !tracking) return false;
     const currentUserId = (user as any)._id || (user as any).id;
@@ -67,6 +82,7 @@ export default function LiveTrackingScreen() {
     return currentUserId && rescuerUserId && String(currentUserId) === String(rescuerUserId);
   }, [user, tracking]);
 
+  // Information of the counterparty (rescuer for the reporter, or reporter for the rescuer)
   const otherParty = useMemo(() => {
     if (!tracking) return null;
     if (isReporter) {
@@ -94,6 +110,7 @@ export default function LiveTrackingScreen() {
   useEffect(() => {
     if (!requestIdValue) return;
 
+    // Connect to the /rescue namespace on the backend
     const rescueSocket = ioClient(`${BASE_URL}/rescue`, {
       transports: ["websocket"],
       autoConnect: true,
@@ -102,6 +119,7 @@ export default function LiveTrackingScreen() {
 
     const targetCaseId = tracking?.case?.caseId;
 
+    // Join the rescue case room once connected
     rescueSocket.on("connect", () => {
       rescueSocket.emit("join_rescue", String(requestIdValue));
       if (targetCaseId && targetCaseId !== requestIdValue) {
@@ -109,6 +127,7 @@ export default function LiveTrackingScreen() {
       }
     });
 
+    // Listen for live location updates broadcasted by the rescuer
     rescueSocket.on("location_update", (data: any) => {
       console.log("[LiveTracking] location_update received:", data);
       if (data?.isSharing === false) {
@@ -131,6 +150,7 @@ export default function LiveTrackingScreen() {
       }
     });
 
+    // Listen for location sharing toggle status (on/off)
     rescueSocket.on("location_sharing_status", (data: any) => {
       console.log("[LiveTracking] location_sharing_status received:", data);
       if (typeof data?.isSharing === "boolean") {
@@ -141,10 +161,12 @@ export default function LiveTrackingScreen() {
       }
     });
 
+    // Clean up and disconnect socket when leaving screen
     return () => {
       rescueSocket.disconnect();
     };
   }, [requestIdValue, tracking?.case?.caseId]);
+
 
   /* ── Load rescue tracking data ── */
   useEffect(() => {
