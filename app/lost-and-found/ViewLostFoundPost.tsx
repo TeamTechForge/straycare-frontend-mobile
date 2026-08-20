@@ -8,6 +8,7 @@ import {
   Dimensions,
   Image,
   Linking,
+  Modal,
   RefreshControl,
   ScrollView,
   StatusBar,
@@ -24,6 +25,7 @@ import { useChatApi } from '../../hooks/useChatApi';
 import { BASE_URL } from '../../constants/config.constants';
 import OwnerActionButtons from '../../components/OwnerActionButtons';
 import BackButton from '../../components/BackButton';
+import { getDisplayAnimalName } from '../../utils/lostAndFoundDisplay';
 
 // ─── Colour changes were made ────────────────────────────────────────────────────────────
 const C = {
@@ -194,6 +196,7 @@ const ViewAnimalPost = () => {
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
   const [isReporting, setIsReporting] = useState(false);
+  const [isImagePreviewVisible, setIsImagePreviewVisible] = useState(false);
 
   // ─── Animations ────────────────────────────────────────────────────────────
   const fadeAnim = useRef(new Animated.Value(0)).current;
@@ -392,18 +395,26 @@ const ViewAnimalPost = () => {
         {/* ── Hero image ── */}
         <View style={s.imageContainer}>
           {imageUrl ? (
-            <Animated.Image
-              source={{ uri: imageUrl }}
+            <TouchableOpacity
+              activeOpacity={0.9}
               style={s.heroImage}
-              resizeMode="cover"
-            />
+              onPress={() => setIsImagePreviewVisible(true)}
+              accessibilityRole="button"
+              accessibilityLabel="View animal photo full screen"
+            >
+              <Animated.Image
+                source={{ uri: imageUrl }}
+                style={s.heroImage}
+                resizeMode="cover"
+              />
+            </TouchableOpacity>
           ) : (
             <View style={s.imagePlaceholder}>
               <Ionicons name="paw" size={64} color="rgba(255,255,255,0.4)" />
               <Text style={s.imagePlaceholderText}>No photo provided</Text>
             </View>
           )}
-          <View style={s.imageOverlay} />
+          <View pointerEvents="none" style={s.imageOverlay} />
 
           <View style={s.backBtnWrapper}>
             <BackButton onPress={() => router.back()} />
@@ -433,7 +444,9 @@ const ViewAnimalPost = () => {
           </View>
 
           {/* Pet name */}
-          <Text style={s.petName}>{post.name || 'Unknown Name'}</Text>
+          {getDisplayAnimalName(post.name) ? (
+            <Text style={s.petName}>{getDisplayAnimalName(post.name)}</Text>
+          ) : null}
 
           {/* Description */}
           <Text style={s.description}>{post.description}</Text>
@@ -446,7 +459,9 @@ const ViewAnimalPost = () => {
               <Ionicons name="location" size={18} color={C.primary} />
             </View>
             <View style={s.infoText}>
-              <Text style={s.infoLabel}>Last Seen</Text>
+              <Text style={s.infoLabel}>
+                {post.status === 'found' ? 'Found Location' : 'Last Seen Location'}
+              </Text>
               <Text style={s.infoValue}>{post.location}</Text>
             </View>
           </View>
@@ -457,7 +472,9 @@ const ViewAnimalPost = () => {
               <Ionicons name="calendar" size={18} color={C.primary} />
             </View>
             <View style={s.infoText}>
-              <Text style={s.infoLabel}>Date Reported</Text>
+              <Text style={s.infoLabel}>
+                {post.status === 'found' ? 'Found Date' : 'Last Seen Date'}
+              </Text>
               <Text style={s.infoValue}>{post.date}</Text>
             </View>
           </View>
@@ -481,9 +498,11 @@ const ViewAnimalPost = () => {
                     <Ionicons name="person" size={24} color="#A0A0A0" />
                   </View>
                 )}
-                <View>
+                <View style={s.contactText}>
                   <Text style={s.contactLabel}>Contact Owner</Text>
-                  <Text style={s.contactName}>{post.contactName}</Text>
+                  <Text style={s.contactName} numberOfLines={2} ellipsizeMode="tail">
+                    {post.contactName}
+                  </Text>
                 </View>
               </TouchableOpacity>
               
@@ -512,6 +531,28 @@ const ViewAnimalPost = () => {
 
         <View style={{ height: 40 }} />
       </ScrollView>
+
+      <Modal
+        visible={isImagePreviewVisible}
+        transparent
+        animationType="fade"
+        statusBarTranslucent
+        onRequestClose={() => setIsImagePreviewVisible(false)}
+      >
+        <View style={s.imagePreviewBackdrop}>
+          {imageUrl ? (
+            <Image source={{ uri: imageUrl }} style={s.imagePreview} resizeMode="contain" />
+          ) : null}
+          <TouchableOpacity
+            style={s.imagePreviewClose}
+            onPress={() => setIsImagePreviewVisible(false)}
+            accessibilityRole="button"
+            accessibilityLabel="Close photo"
+          >
+            <Ionicons name="close" size={28} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      </Modal>
     </View>
   );
 };
@@ -553,6 +594,27 @@ const s = StyleSheet.create({
   imageOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: 'rgba(0,0,0,0.18)',
+  },
+  imagePreviewBackdrop: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.96)',
+  },
+  imagePreview: {
+    width: '100%',
+    height: '100%',
+  },
+  imagePreviewClose: {
+    position: 'absolute',
+    top: 52,
+    right: 20,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(0,0,0,0.55)',
   },
   backBtnWrapper: {
     position: 'absolute',
@@ -687,15 +749,23 @@ const s = StyleSheet.create({
   contactLabel: { fontSize: 13, color: C.textSub, marginBottom: 2 },
   contactName: { fontSize: 16, fontWeight: '700', color: C.textMain },
   contactInfo: {
+    flex: 1,
+    minWidth: 0,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
+    marginRight: 12,
+  },
+  contactText: {
+    flex: 1,
+    minWidth: 0,
   },
   contactAvatar: {
     width: 48,
     height: 48,
     borderRadius: 24,
     backgroundColor: '#E0E0E0',
+    flexShrink: 0,
   },
   contactAvatarPlaceholder: {
     width: 48,
@@ -704,10 +774,12 @@ const s = StyleSheet.create({
     backgroundColor: '#E0E0E0',
     alignItems: 'center',
     justifyContent: 'center',
+    flexShrink: 0,
   },
   contactActions: {
     flexDirection: 'row',
     gap: 8,
+    flexShrink: 0,
   },
   actionBtn: {
     width: 36,

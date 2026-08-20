@@ -3,17 +3,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
-  Dimensions,
   Image,
   Pressable,
   SafeAreaView,
+  ScrollView,
   StyleSheet,
   Text,
   View,
 } from "react-native";
 import BackButton from "../../components/BackButton";
-
-const { width } = Dimensions.get("window");
 
 const dogImage = require("../../assets/images/dog main.webp");
 const catImage = require("../../assets/images/cat main.jpeg");
@@ -40,19 +38,24 @@ export default function LostAndFoundScreen() {
         </Pressable>
       </View>
 
-      {/* Hero Section */}
-      <View style={styles.heroSection}>
-        <Text style={styles.heroTitle}>
-          <Text style={styles.heroHighlight}>Reuniting</Text>
-          {" pets with\ntheir families."}
-        </Text>
-        <Text style={styles.heroSubtitle}>
-          We're here to help you every step of the way.
-        </Text>
-      </View>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Hero Section */}
+        <View style={styles.heroSection}>
+          <Text style={styles.heroTitle}>
+            <Text style={styles.heroHighlight}>Reuniting</Text>
+            {" pets with\ntheir families."}
+          </Text>
+          <Text style={styles.heroSubtitle}>
+            We're here to help you every step of the way.
+          </Text>
+        </View>
 
-      {/* Cards */}
-      <View style={styles.cardsContainer}>
+        {/* Cards */}
+        <View style={styles.cardsContainer}>
         {/* Lost Pet Card */}
         <Pressable
           style={({ pressed }) => [
@@ -112,18 +115,25 @@ export default function LostAndFoundScreen() {
             </Text>
           </View>
         </Pressable>
-      </View>
+        </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
-const CARD_IMAGE_HEIGHT = 160; // reduced for better text visibility
 const CARD_RADIUS = 28;
 
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
     backgroundColor: "#fdfdfd",
+  },
+  scroll: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 24,
   },
 
   // Header
@@ -173,12 +183,15 @@ const styles = StyleSheet.create({
 
   // Cards
   cardsContainer: {
-    flex: 1,
+    width: "100%",
+    maxWidth: 720,
+    alignSelf: "center",
     paddingHorizontal: 20,
-    gap: 20,
-    paddingBottom: 24,
+    gap: 28,
   },
   card: {
+    width: "100%",
+    minWidth: 0,
     backgroundColor: "#ffffff",
     borderRadius: CARD_RADIUS,
     overflow: "hidden",
@@ -187,7 +200,6 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.08,
     shadowRadius: 12,
     elevation: 3,
-    flex: 1,
   },
   cardPressed: {
     transform: [{ scale: 0.98 }],
@@ -196,8 +208,8 @@ const styles = StyleSheet.create({
   },
 
   imageContainer: {
-    height: CARD_IMAGE_HEIGHT,
     width: "100%",
+    aspectRatio: 16 / 8,
     position: "relative",
   },
   cardImage: {
@@ -217,9 +229,11 @@ const styles = StyleSheet.create({
     bottom: 16,
     left: 16,
     right: 16,
+    maxWidth: "100%",
   },
   badge: {
     alignSelf: "flex-start",
+    maxWidth: "100%",
     backgroundColor: "rgba(255,255,255,0.22)",
     borderColor: "rgba(255,255,255,0.32)",
     borderWidth: 1,
@@ -233,16 +247,20 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     letterSpacing: 0.2,
+    flexShrink: 1,
   },
   cardTitle: {
     color: "#ffffff",
     fontSize: 24,
     fontWeight: "800",
+    flexShrink: 1,
+    flexWrap: "wrap",
+    lineHeight: 30,
   },
 
   cardBody: {
     paddingHorizontal: 20,
-    paddingVertical: 16,
+    paddingVertical: 20,
     backgroundColor: "#ffffff",
     flexDirection: "row",
     alignItems: "center",
@@ -253,6 +271,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: "500",
     flex: 1,
+    flexShrink: 1,
+    flexWrap: "wrap",
+    lineHeight: 20,
+    minWidth: 0,
   },
   chevronContainer: {
     marginLeft: 8,

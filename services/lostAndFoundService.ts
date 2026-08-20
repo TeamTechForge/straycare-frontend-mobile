@@ -73,6 +73,8 @@ export interface AnimalPost {
     name?: string;
     description: string;
     location: string;
+    latitude?: number | null;
+    longitude?: number | null;
     date?: string;
     contactName?: string;
     contactNumber?: string;
@@ -90,6 +92,8 @@ export interface CreateAnimalPostPayload {
     name?: string;
     description: string;
     location: string;
+    latitude?: number | null;
+    longitude?: number | null;
     date?: string;
     contactName?: string;
     contactNumber?: string;
