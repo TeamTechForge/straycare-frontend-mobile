@@ -1,6 +1,7 @@
-import React, { createContext, useContext, useState, useEffect } from "react";
+import React, { createContext, useContext, useState, useEffect, useRef } from "react";
 import * as SecureStore from "expo-secure-store";
 import { API_URL } from "../constants/config.constants";
+import { pushNotificationService } from "../services/pushNotificationService";
 
 export interface Notification {
   _id: string;
@@ -50,6 +51,8 @@ interface NotificationProviderProps {
 export const NotificationProvider: React.FC<NotificationProviderProps> = ({ children }) => {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [loading, setLoading] = useState(false);
+  const seenNotificationIdsRef = useRef<Set<string>>(new Set());
+  const initialFetchDoneRef = useRef(false);
 
   // Fetch notifications from backend
   const fetchNotifications = React.useCallback(async () => {
@@ -84,7 +87,28 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       }
 
       const data = (await response.json()) as any;
-      setNotifications(Array.isArray(data) ? data : []);
+      const list: Notification[] = Array.isArray(data) ? data : [];
+      setNotifications(list);
+
+      // Trigger local OS banner notification for newly arrived unread notifications
+      if (initialFetchDoneRef.current) {
+        list.forEach((notif) => {
+          if (!notif.read && notif._id && !seenNotificationIdsRef.current.has(notif._id)) {
+            void pushNotificationService.presentLocalNotification(notif.title, notif.message, {
+              caseId: notif.caseId,
+              rescueRequestId: notif.rescueRequestId,
+              event: notif.event,
+            });
+          }
+        });
+      } else {
+        initialFetchDoneRef.current = true;
+      }
+
+      // Mark all current IDs as seen in ref
+      list.forEach((notif) => {
+        if (notif._id) seenNotificationIdsRef.current.add(notif._id);
+      });
     } catch (error: any) {
       if (timeoutId) clearTimeout(timeoutId);
       if (error?.name !== "AbortError") {
