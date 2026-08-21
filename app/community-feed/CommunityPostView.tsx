@@ -166,8 +166,7 @@ export default function CommunityPostView() {
       setError(false);
       const postData = await getCommunityPost(id);
       setPost(postData);
-    } catch (err) {
-      console.error("Fetch community post error:", err);
+    } catch {
       setError(true);
     } finally {
       setLoading(false);
@@ -180,8 +179,7 @@ export default function CommunityPostView() {
       setCommentsLoading(true);
       const result = await getCommunityComments(id);
       setComments(result.comments);
-    } catch (err) {
-      console.error("Fetch community comments error:", err);
+    } catch {
     } finally {
       setCommentsLoading(false);
     }
@@ -223,7 +221,7 @@ export default function CommunityPostView() {
           prev ? { ...prev, isLiked: res.isLiked, likeCount: res.likeCount } : null
         );
       }
-    } catch (err) {
+    } catch {
       // Revert on failure
       setPost((prev) =>
         prev ? { ...prev, isLiked: currentlyLiked, likeCount: currentCount } : null
@@ -252,7 +250,7 @@ export default function CommunityPostView() {
         const res = await saveCommunityPost(post._id);
         setPost((prev) => (prev ? { ...prev, isSaved: res.isSaved } : null));
       }
-    } catch (err) {
+    } catch {
       // Revert on failure
       setPost((prev) => (prev ? { ...prev, isSaved: currentlySaved } : null));
     } finally {

@@ -180,8 +180,10 @@ const CreatePost = () => {
       updateForm('location', place.description || prediction.description);
       setSelectedRegion({ latitude: place.latitude, longitude: place.longitude });
       setLocationPredictions([]);
+
     } catch (error: any) {
       setLocationSearchError(error?.message || 'Could not preview that location.');
+    
     } finally {
       setIsSearchingLocation(false);
     }
@@ -255,6 +257,7 @@ const CreatePost = () => {
         break;
       case 'breed':
         // Required only for dogs and cats
+        
         if ((form.type === 'dog' || form.type === 'cat') && !form.breed)
           message = 'Please select a breed.';
         else if (form.breed === 'Other' && !form.otherBreed.trim())
@@ -592,6 +595,7 @@ const CreatePost = () => {
               <Text style={s.uploadSub}>Tap to pick & crop from your library</Text>
             </TouchableOpacity>
           ) : (
+
             // Preview state: shows selected image with remove (X) and change (pencil) buttons
             <View style={s.imagePreviewWrapper}>
               <Image source={{ uri: form.images[0] }} style={s.imagePreview} />
@@ -749,6 +753,7 @@ const CreatePost = () => {
       </View>
 
       <View style={{ height: 40 }} />
+      
       {/* Bottom spacer so content clears the action buttons */}
     </ScrollView>
   );

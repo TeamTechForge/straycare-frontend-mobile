@@ -3,22 +3,19 @@ import * as ImagePicker from "expo-image-picker";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import { ActivityIndicator, Alert, Image, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from "react-native";
-import { getCommunityPost, updateCommunityPost } from "../../services/communityService";
+import { getApiErrorMessage, getCommunityPost, updateCommunityPost } from "../../services/communityService";
 import PrimaryButton from "../../components/PrimaryButton";
 import BackButton from "../../components/BackButton";
 import { colors } from "../../constants/colors.constants";
 
-const CATEGORIES = [
-  "Pet Care Tips", "Health & First Aid", "Stray Animal Help", "Training & Behavior",
-  "Animal Welfare & Rights Awareness", "Success Stories", "Events & Campaigns",
-];
+import { appendImageToFormData, COMMUNITY_POST_CATEGORIES } from "./communityPost.utils";
 
 export default function EditCommunityPost() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
   const [title, setTitle] = useState("");
   const [content, setContent] = useState("");
-  const [category, setCategory] = useState(CATEGORIES[0]);
+  const [category, setCategory] = useState<string>(COMMUNITY_POST_CATEGORIES[0]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [currentImageUrl, setCurrentImageUrl] = useState<string | null>(null);
@@ -31,10 +28,10 @@ export default function EditCommunityPost() {
       if (!post.isOwner) throw new Error("Only the post owner may edit this post");
       setTitle(post.title || "");
       setContent(post.content || "");
-      setCategory(post.category || CATEGORIES[0]);
+      setCategory(post.category || COMMUNITY_POST_CATEGORIES[0]);
       setCurrentImageUrl(post.imageUrl || null);
-    }).catch((error) => {
-      Alert.alert("Unable to edit post", error?.response?.data?.message || error.message);
+    }).catch((error: unknown) => {
+      Alert.alert("Unable to edit post", getApiErrorMessage(error, "Please try again."));
       router.back();
     }).finally(() => setLoading(false));
   }, [id, router]);
@@ -74,20 +71,15 @@ export default function EditCommunityPost() {
       formData.append("category", category);
       formData.append("content", trimmedContent);
       if (replacementImageUri) {
-        const filename = replacementImageUri.split("/").pop() || "photo.jpg";
-        const extension = filename.split(".").pop()?.toLowerCase();
-        formData.append("image", {
-          uri: replacementImageUri,
-          name: filename,
-          type: extension === "png" ? "image/png" : "image/jpeg",
-        } as any);
+        appendImageToFormData(formData, replacementImageUri);
       } else if (imageRemoved) {
+        // Tell the backend to remove the existing image when no replacement was chosen.
         formData.append("removeImage", "true");
       }
       await updateCommunityPost(id, formData);
       router.replace({ pathname: "/community-feed/CommunityPostView", params: { id } });
-    } catch (error: any) {
-      Alert.alert("Unable to update post", error?.response?.data?.message || "Please try again.");
+    } catch (error: unknown) {
+      Alert.alert("Unable to update post", getApiErrorMessage(error, "Please try again."));
     } finally {
       setSaving(false);
     }
@@ -107,7 +99,7 @@ export default function EditCommunityPost() {
         <Text style={styles.label}>Post Title <Text style={styles.required}>*</Text></Text>
         <TextInput style={styles.input} value={title} onChangeText={setTitle} />
         <Text style={styles.label}>Category <Text style={styles.required}>*</Text></Text>
-        <View style={styles.chips}>{CATEGORIES.map((item) => (
+        <View style={styles.chips}>{COMMUNITY_POST_CATEGORIES.map((item) => (
           <TouchableOpacity key={item} style={[styles.chip, category === item && styles.chipActive]} onPress={() => setCategory(item)}>
             <Text style={[styles.chipText, category === item && styles.chipTextActive]}>{item}</Text>
           </TouchableOpacity>
