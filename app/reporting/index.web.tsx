@@ -1,8 +1,15 @@
 import { Text, View, StyleSheet } from "react-native";
 
+/**
+ * Web fallback component for the Reporting Map Screen.
+ *
+ * Displays an informational message explaining that native interactive map features
+ * are optimized for mobile platforms.
+ */
 export default function ReportingMapScreen() {
   return (
     <View style={styles.container}>
+      {/* Notice Card Container */}
       <View style={styles.messageBox}>
         <Text style={styles.text}>
           Map view is only available on the mobile app.
@@ -39,3 +46,4 @@ const styles = StyleSheet.create({
     color: "#666",
   },
 });
+

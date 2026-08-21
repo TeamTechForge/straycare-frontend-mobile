@@ -14,15 +14,28 @@ import {
 import PrimaryButton from "../../components/PrimaryButton";
 import BackButton from "../../components/BackButton";
 
+/**
+ * Safely resolves a URL parameter to a single string value.
+ *
+ * @param value - Search parameter value from Expo Router
+ * @returns Evaluated string representation or empty string fallback
+ */
+const safe = (value: string | string[] | undefined): string =>
+  Array.isArray(value) ? value[0] : value || "";
+
+/**
+ * Photo Selection & Camera Capture Screen Component.
+ *
+ * Step in the reporting wizard flow allowing users to pick up to 5 photos from the media
+ * library or capture new photos using device camera before continuing to report review.
+ */
 export default function UploadPhotos() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const safe = (v: string | string[] | undefined): string =>
-    Array.isArray(v) ? v[0] : v || "";
-
   const isEditing = safe(params.mode) === "edit";
 
+  /** Parsed initial photo URIs passed from existing wizard params */
   const initialPhotos: string[] = (() => {
     if (!params.photos) return [];
     try {
@@ -38,14 +51,17 @@ export default function UploadPhotos() {
   const [images, setImages] = useState<string[]>(initialPhotos);
   const [photoError, setPhotoError] = useState<string | null>(null);
 
+  /** Checks if additional photos can be attached (max 5) */
   const canAddMore = () => images.length < 5;
 
+  /** Removes a photo at the specified index from selection list */
   const removeImage = (index: number) => {
     const nextImages = images.filter((_, i) => i !== index);
     setImages(nextImages);
     if (nextImages.length > 0) setPhotoError(null);
   };
 
+  /** Prompts media gallery permission and launches multi-image picker */
   const pickImages = async () => {
     if (!canAddMore()) {
       Alert.alert("Limit reached", "You can upload a maximum of 5 photos.");
@@ -78,6 +94,7 @@ export default function UploadPhotos() {
     }
   };
 
+  /** Prompts camera permission and captures a new photo */
   const openCamera = async () => {
     if (!canAddMore()) {
       Alert.alert("Limit reached", "You can upload a maximum of 5 photos.");
@@ -98,6 +115,7 @@ export default function UploadPhotos() {
     }
   };
 
+  /** Validates photo selection requirements and navigates to report Review screen */
   const handleNext = () => {
     if (images.length === 0) {
       setPhotoError("Add at least one photo before continuing.");
@@ -117,13 +135,17 @@ export default function UploadPhotos() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
+        {/* Navigation Header Bar */}
+        <View style={styles.headerBar}>
           <BackButton onPress={() => router.back()} />
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.header, { marginBottom: 0, paddingTop: 0, textAlign: 'center' }]}>Upload Photos</Text>
+          <View style={styles.headerTitleWrapper}>
+            <Text style={styles.headerTitle}>Upload Photos</Text>
           </View>
-          <View style={{ width: 40 }} />
+          {/* Spacer to balance back button width */}
+          <View style={styles.headerSpacer} />
         </View>
+
+        {/* Section Instructions & Requirement Label */}
         <Text style={styles.photoLabel}>
           Report Photos <Text style={styles.requiredMark}>*</Text>
         </Text>
@@ -131,6 +153,7 @@ export default function UploadPhotos() {
           Add between 1 and 5 clear photos. Photos upload when you submit the report.
         </Text>
 
+        {/* Primary Selected Photo Preview Card */}
         <View style={[styles.sectionCard, photoError && styles.errorBorder]}>
           {images.length > 0 ? (
             <Image source={{ uri: images[0] }} style={styles.mainPhoto} />
@@ -140,6 +163,7 @@ export default function UploadPhotos() {
         </View>
         {photoError ? <Text style={styles.errorText}>{photoError}</Text> : null}
 
+        {/* Photo Thumbnail Grid & Add Button Card */}
         <View style={styles.sectionCard}>
           <View style={styles.grid}>
             {images.map((uri, index) => (
@@ -167,6 +191,7 @@ export default function UploadPhotos() {
           </View>
         </View>
 
+        {/* Quick Camera Capture Floating Button */}
         <TouchableOpacity
           accessibilityLabel="Take a photo"
           style={styles.cameraButton}
@@ -177,6 +202,7 @@ export default function UploadPhotos() {
         </TouchableOpacity>
       </ScrollView>
 
+      {/* Primary Bottom Action Bar */}
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
           title={isEditing ? "Save Changes" : "Next Step"}
@@ -188,16 +214,24 @@ export default function UploadPhotos() {
 }
 
 const styles = StyleSheet.create({
+  // ── Layout & Containers ──────────────────────────────────────────────────────
   container: { flex: 1, backgroundColor: "#FAFAFA" },
   scrollContent: { padding: 20, paddingBottom: 160 },
-  header: {
+  headerBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  headerTitleWrapper: { flex: 1 },
+  headerTitle: {
     fontSize: 22,
     fontWeight: "700",
     color: "#333333",
-    marginBottom: 8,
     textAlign: "center",
-    paddingTop: 22,
   },
+  headerSpacer: { width: 40 },
+
+  // ── Typography & Field Labels ────────────────────────────────────────────────
   subtext: {
     fontSize: 14,
     color: "#666666",
@@ -212,6 +246,8 @@ const styles = StyleSheet.create({
   requiredMark: { color: "#D32F2F", fontWeight: "700" },
   errorText: { color: "#D32F2F", fontSize: 12, marginTop: -2, marginBottom: 6 },
   errorBorder: { borderColor: "#D32F2F", borderWidth: 1.5 },
+
+  // ── Photo Card & Thumbnail Grid ──────────────────────────────────────────────
   sectionCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 12,
@@ -260,6 +296,8 @@ const styles = StyleSheet.create({
     alignItems: "center",
     backgroundColor: "#F9F9F9",
   },
+
+  // ── Camera Action Button ─────────────────────────────────────────────────────
   cameraButton: {
     position: "absolute",
     bottom: 140,
@@ -281,6 +319,8 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     marginTop: 1,
   },
+
+  // ── Bottom Fixed Action Bar ──────────────────────────────────────────────────
   bottomButtonWrapper: {
     position: "absolute",
     bottom: 30,

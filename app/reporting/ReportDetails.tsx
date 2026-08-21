@@ -18,20 +18,20 @@ import { typography } from "../../constants/typography.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { getStoredItem } from "../../utils/storage";
 
+/** Color constants used in ReportDetails screen */
 const colors = {
   primary: "#FEB94B",
-  white: "#FFFFFF",
-  background: "#FFFFFF",
-  card: "#F6E3BF",
-  border: "#E0B35A",
-  text: "#111111",
-  error: "#FF3B30",
 };
 
-
-
+/** Default animal placeholder image URL */
 const DEFAULT_PHOTO = "https://images.unsplash.com/photo-1535930749574-1399327ce78f?w=400&h=300&fit=crop&q=80";
 
+/**
+ * Resolves a photo URI to a fully qualified URL.
+ *
+ * @param url - Relative path or remote URL string
+ * @returns Fully qualified HTTP(S) image URL
+ */
 const resolvePhotoUrl = (url: string | undefined): string => {
   if (!url) return DEFAULT_PHOTO;
   if (url.startsWith("http://") || url.startsWith("https://")) {
@@ -41,16 +41,24 @@ const resolvePhotoUrl = (url: string | undefined): string => {
   return `${API_URL}${cleanUrl}`;
 };
 
+/**
+ * Report Details Screen Component.
+ *
+ * Displays detailed information about a reported stray animal rescue case, including animal overview,
+ * rescuer notes, interactive location map, timeline history, and attached photos.
+ */
 export default function ReportDetailsScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const caseId = Array.isArray(params.caseId) ? params.caseId[0] : params.caseId;
   const { token } = useAuth();
 
+  // Screen state
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [report, setReport] = useState<any>(null);
 
+  // Fetch report details from API endpoint
   useEffect(() => {
     const fetchReportDetails = async () => {
       if (!caseId) {
@@ -77,6 +85,7 @@ export default function ReportDetailsScreen() {
     fetchReportDetails();
   }, [caseId, token]);
 
+  // Loading spinner view
   if (loading) {
     return (
       <SafeAreaView style={styles.centerContainer}>
@@ -86,6 +95,7 @@ export default function ReportDetailsScreen() {
     );
   }
 
+  // Error screen view
   if (error || !report) {
     return (
       <SafeAreaView style={styles.centerContainer}>
@@ -97,9 +107,9 @@ export default function ReportDetailsScreen() {
     );
   }
 
+  // Extract report fields with fallbacks
   const animalType = report.animalType || "Not specified";
   const breed = report.breed || "Not specified";
-  const category = report.category || report.reportCategory || "General Report";
   const status = report.status || "Under Rescue";
   const caseIdText = report.caseId || caseId;
   const descriptionText = report.notes || report.description || "No initial notes provided.";
@@ -123,7 +133,7 @@ export default function ReportDetailsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* HEADER */}
+      {/* Navigation Header */}
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Rescue Details</Text>
@@ -131,7 +141,7 @@ export default function ReportDetailsScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* STATUS BANNER */}
+        {/* Case Status & ID Banner */}
         <View style={styles.statusBanner}>
           <View style={styles.statusBadge}>
             <Text style={styles.statusBadgeText}>{status.toUpperCase()}</Text>
@@ -139,7 +149,7 @@ export default function ReportDetailsScreen() {
           <Text style={styles.caseIdBadge}>Case ID: {caseIdText}</Text>
         </View>
 
-        {/* ANIMAL & REPORT SUMMARY CARD */}
+        {/* Animal & Report Overview Card */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Animal & Report Overview</Text>
 
@@ -155,8 +165,6 @@ export default function ReportDetailsScreen() {
             <Text style={styles.detailValue}>{breed}</Text>
           </View>
 
-
-
           <View style={styles.divider} />
 
           <View style={styles.detailRow}>
@@ -165,7 +173,7 @@ export default function ReportDetailsScreen() {
           </View>
         </View>
 
-        {/* RESCUE PROGRESS & NOTES CARD */}
+        {/* Rescue Progress & Notes Card */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Rescue Progress & Notes</Text>
 
@@ -182,7 +190,7 @@ export default function ReportDetailsScreen() {
           </View>
         </View>
 
-        {/* LOCATION & MAP CARD */}
+        {/* Rescue Location & Map Card */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Rescue Location</Text>
           <Text style={styles.addressText}>📍 {locationAddress}</Text>
@@ -209,7 +217,7 @@ export default function ReportDetailsScreen() {
           )}
         </View>
 
-        {/* RESCUE TIMELINE HISTORY */}
+        {/* Rescue Timeline Progress Card */}
         {timeline.length > 0 && (
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Rescue Timeline Progress</Text>
@@ -237,7 +245,7 @@ export default function ReportDetailsScreen() {
           </View>
         )}
 
-        {/* PHOTOS SECTION */}
+        {/* Attached Photos Carousel Card */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Attached Photos ({photos.length})</Text>
           {photos.length > 0 ? (
@@ -305,21 +313,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#E5E7EB",
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-  },
-  backIcon: {
-    fontSize: 20,
-    color: "#111827",
-    fontWeight: "700",
   },
   headerTitle: {
     fontSize: 18,
@@ -396,20 +389,6 @@ const styles = StyleSheet.create({
     fontFamily: typography.medium,
     color: "#374151",
     lineHeight: 20,
-  },
-  categoryBadge: {
-    alignSelf: "flex-start",
-    backgroundColor: "#FFF1CC",
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#F5A623",
-  },
-  categoryBadgeText: {
-    fontSize: 13,
-    fontFamily: typography.bold,
-    color: "#D97706",
   },
   divider: {
     height: 1,

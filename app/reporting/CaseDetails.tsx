@@ -1,24 +1,27 @@
-import { useLocalSearchParams, useRouter } from "expo-router";
-import { useCallback, useEffect, useRef, useState } from "react";
 import { useFocusEffect } from "@react-navigation/native";
+import axios from "axios";
+import { useLocalSearchParams, useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ActivityIndicator,
+  Alert,
   Image,
   ScrollView,
   StyleSheet,
   Text,
   View,
-  Alert,
 } from "react-native";
-import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { getReportByCaseId, updateCaseStatus } from "../../api/strayApiService";
-import PrimaryButton from "../../components/PrimaryButton";
 import BackButton from "../../components/BackButton";
-import { useAuth } from "../../contexts/AuthContext";
+import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
+import PrimaryButton from "../../components/PrimaryButton";
 import { API_URL } from "../../constants/config.constants";
-import axios from "axios";
+import { useAuth } from "../../contexts/AuthContext";
 
+/**
+ * Interface defining the structure of a stray animal report payload.
+ */
 type Report = {
   caseId: string;
   animalType: string;
@@ -45,6 +48,12 @@ type Report = {
   }[];
 };
 
+/**
+ * Returns the theme color associated with a given case status.
+ *
+ * @param status - Current status string of the report
+ * @returns Hex color string for status badge/timeline dots
+ */
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Needs Help":
@@ -60,9 +69,21 @@ const getStatusColor = (status: string) => {
   }
 };
 
+/**
+ * Resolves the appropriate text color for status badges based on background contrast.
+ *
+ * @param status - Current status string of the report
+ * @returns Hex color string for badge text
+ */
 const getStatusTextColor = (status: string) =>
   status === "Under Rescue" ? "#2B2B2B" : "#FFFFFF";
 
+/**
+ * Determines the next valid status progression.
+ *
+ * @param current - Current status string
+ * @returns Next status string or null if terminal status
+ */
 const getNextStatus = (current: string) => {
   switch (current) {
     case "Needs Help":
@@ -76,14 +97,23 @@ const getNextStatus = (current: string) => {
   }
 };
 
+/**
+ * Case Details Screen Component.
+ *
+ * Displays full details, timeline, photo gallery, location map, and rescuer management controls
+ * for a specific stray care report.
+ */
 export default function CaseDetailsScreen() {
   const { caseId, focus, source } = useLocalSearchParams();
   const router = useRouter();
   const { user } = useAuth();
+
+  // Navigation source tracking (whether screen was opened from Profile or Map)
   const openedFromProfile = source === "profile";
   const returnToPreviousScreen = () =>
     router.replace(openedFromProfile ? "/profile" : "/(tabs)/Report");
 
+  // Case Data & UI State
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -92,34 +122,38 @@ export default function CaseDetailsScreen() {
   const scrollViewRef = useRef<ScrollView>(null);
   const [statusUpdateY, setStatusUpdateY] = useState<number | null>(null);
 
-  // 🔔 Notification States
+  // Notification Banner States
   const [showNotification, setShowNotification] = useState(false);
   const [notificationMessage, setNotificationMessage] = useState("");
 
-  // 🔒 Check if user is a rescuer
+  // Role Checks (Rescuer vs Reporter permissions)
   const isRescuer = user && ["volunteer", "ngo", "vet", "rescuer"].includes(user.role);
   const isReporter = user && !isRescuer;
 
-  // 📡 Real-time updates via Socket.io
+  /**
+   * Fetches latest case details by case ID from backend API.
+   */
   const loadCase = useCallback(async () => {
     setLoadError(null);
-      try {
-        const data = await getReportByCaseId(caseId as string);
-        setReport(data);
-      } catch (err: any) {
-        console.log("Error loading case:", err);
-        setLoadError(err?.message || "Failed to load case details.");
-      } finally {
-        setLoading(false);
-      }
+    try {
+      const data = await getReportByCaseId(caseId as string);
+      setReport(data);
+    } catch (err: any) {
+      console.log("Error loading case:", err);
+      setLoadError(err?.message || "Failed to load case details.");
+    } finally {
+      setLoading(false);
+    }
   }, [caseId]);
 
+  // Reload case data on screen focus
   useFocusEffect(
     useCallback(() => {
       void loadCase();
     }, [loadCase])
   );
 
+  // Auto-scroll to status update section if focused via deep link parameter
   useEffect(() => {
     if (focus !== "status-update" || loading || statusUpdateY === null) return;
     const frame = requestAnimationFrame(() => {
@@ -128,10 +162,13 @@ export default function CaseDetailsScreen() {
     return () => cancelAnimationFrame(frame);
   }, [focus, loading, statusUpdateY]);
 
+  /**
+   * Handles status progression (e.g. Needs Help -> Under Rescue -> Treated -> Ready for Adoption).
+   */
   const handleStatusUpdate = async () => {
     if (!report) return;
 
-    // 🔒 Check if user is a rescuer
+    // Check rescuer permissions
     if (!isRescuer || !report.permissions?.canUpdate) {
       Alert.alert(
         "Access Denied",
@@ -150,6 +187,7 @@ export default function CaseDetailsScreen() {
       await updateCaseStatus(report.caseId, next);
       await loadCase();
 
+      // Redirect to adoption post creation if case reaches Ready for Adoption
       if (next === "Ready for Adoption") {
         router.push({
           pathname: "/adoption-corner/CreateAdoptionPost",
@@ -158,7 +196,7 @@ export default function CaseDetailsScreen() {
         return;
       }
 
-      // 🔔 Show banner immediately when status changes
+      // Show notification banner on successful update
       setNotificationMessage(`Case updated: ${next}`);
       setShowNotification(true);
       setTimeout(() => setShowNotification(false), 3000);
@@ -179,6 +217,7 @@ export default function CaseDetailsScreen() {
     }
   };
 
+  // Render loading indicator
   if (loading) {
     return (
       <View style={styles.center}>
@@ -188,6 +227,7 @@ export default function CaseDetailsScreen() {
     );
   }
 
+  // Render error message or missing report state
   if (loadError || !report) {
     return (
       <View style={styles.center}>
@@ -202,6 +242,10 @@ export default function CaseDetailsScreen() {
 
   const statusColor = getStatusColor(report.status);
   const nextStatus = getNextStatus(report.status);
+
+  /**
+   * Prompts rescuer to accept and take ownership of the rescue case.
+   */
   const acceptRescue = async () => {
     Alert.alert(
       "Accept this case?",
@@ -244,13 +288,14 @@ export default function CaseDetailsScreen() {
   return (
     <ScrollView ref={scrollViewRef} style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
 
-      {/* 🔔 Notification Banner */}
+      {/* Notification Banner */}
       {showNotification && (
         <View style={styles.notificationBanner}>
           <Text style={styles.notificationText}>{notificationMessage}</Text>
         </View>
       )}
 
+      {/* Navigation Header */}
       <View style={{ flexDirection: "row", alignItems: "center", marginBottom: 12, justifyContent: "center" }}>
         <View style={{ position: "absolute", left: 0, zIndex: 1 }}>
           <BackButton onPress={() => router.back()} />
@@ -258,12 +303,14 @@ export default function CaseDetailsScreen() {
         <Text style={[styles.caseId, { marginBottom: 0, textAlign: "center" }]}>Case ID: {report.caseId}</Text>
       </View>
 
+      {/* Status Badge */}
       <View style={[styles.statusBadge, { backgroundColor: statusColor }]}>
         <Text style={[styles.statusText, { color: getStatusTextColor(report.status) }]}>
           {report.status}
         </Text>
       </View>
 
+      {/* Photos Carousel */}
       <Text style={styles.label}>Photos</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginTop: 10 }}>
         {report.photos && report.photos.length > 0 ? (
@@ -275,7 +322,7 @@ export default function CaseDetailsScreen() {
         )}
       </ScrollView>
 
-      {/* Case Details */}
+      {/* Animal & Location Details Section */}
       <View style={styles.sectionCard}>
         <Text style={styles.label}>Animal Type</Text>
         <Text style={styles.value}>{report.animalType}</Text>
@@ -290,6 +337,7 @@ export default function CaseDetailsScreen() {
         <Text style={styles.value}>{report.location?.address || "Unknown"}</Text>
       </View>
 
+      {/* Reporter Information Card */}
       <View style={[styles.sectionCard, report.anonymous ? styles.anonymousCard : styles.reporterCard]}>
         <Text style={styles.label}>Reported By</Text>
         <Text style={styles.reporterName}>{report.reportedBy || "Reporter"}</Text>
@@ -298,6 +346,7 @@ export default function CaseDetailsScreen() {
         ) : null}
       </View>
 
+      {/* Incident Location Map View */}
       {report.location?.lat != null && report.location?.lng != null && (
         <MapViewWrapper
           provider="google"
@@ -318,13 +367,13 @@ export default function CaseDetailsScreen() {
         </MapViewWrapper>
       )}
 
-      {/* Notes */}
+      {/* Condition Notes Section */}
       <View style={styles.sectionCard}>
         <Text style={styles.label}>Notes</Text>
         <Text style={styles.value}>{report.notes || "No additional notes"}</Text>
       </View>
 
-      {/* ✅ Status Update Button - Rescuers Only */}
+      {/* Rescuer Status Progression Button */}
       <View onLayout={(event) => setStatusUpdateY(event.nativeEvent.layout.y)}>
         {nextStatus && report.permissions?.canUpdate && (
           <PrimaryButton
@@ -335,7 +384,7 @@ export default function CaseDetailsScreen() {
         )}
       </View>
 
-      {/* Accept Rescue Button - controlled by the server-side case permission */}
+      {/* Accept Rescue Case Button */}
       {isRescuer && report.permissions?.canAccept && (
         <PrimaryButton
           title={acceptingRescue ? "Accepting..." : "Accept This Case"}
@@ -344,7 +393,7 @@ export default function CaseDetailsScreen() {
         />
       )}
 
-      {/* 🔒 Info Message for Non-Rescuers / Case Reporter */}
+      {/* Restricted Access Information Notice */}
       {nextStatus && !report.permissions?.canUpdate && (!report.permissions?.canAccept || report.isOwner) && (
         <View style={styles.restrictedMessage}>
           <Text style={styles.restrictedText}>
@@ -355,10 +404,11 @@ export default function CaseDetailsScreen() {
         </View>
       )}
 
+      {/* Timeline History */}
       <Text style={styles.label}>Rescue Timeline :</Text>
 
       {report.timeline && report.timeline.length > 0 ? (
-        report.timeline.map((entry: any, index: number) => (
+        report.timeline.map((entry, index) => (
           <View key={index} style={styles.timelineItem}>
             <View
               style={[
@@ -369,14 +419,14 @@ export default function CaseDetailsScreen() {
             <View style={styles.timelineContent}>
               <Text style={styles.timelineStatus}>{entry.status}</Text>
 
-              {/* Show message with rescuer info if available */}
+              {/* Timeline message */}
               <Text style={styles.timelineMessage}>
                 {entry.status === "Needs Help" && entry.message === "Case created"
                   ? `Case reported by ${report.anonymous ? "Anonymous" : report.reportedBy || "Reporter"}`
                   : entry.message}
               </Text>
 
-              {/* Show rescuer details card if available */}
+              {/* Rescuer information tag */}
               {entry.actorName && (
                 <View style={styles.rescuerInfoBox}>
                   <Text style={styles.rescuerInfoLabel}>
@@ -395,6 +445,7 @@ export default function CaseDetailsScreen() {
         <Text style={styles.value}>No timeline updates yet</Text>
       )}
 
+      {/* Screen Navigation Action Button */}
       <PrimaryButton
         title={openedFromProfile ? "Back to Profile" : "Back to Map"}
         onPress={returnToPreviousScreen}
@@ -411,7 +462,6 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 20,
     alignItems: "center",
-
   },
   notificationText: {
     color: "black",
@@ -509,40 +559,16 @@ const styles = StyleSheet.create({
     borderLeftColor: "#999",
     backgroundColor: "#f5f5f5",
   },
-  anonymousBadge: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#666",
-    marginBottom: 8,
-  },
   anonymousHint: {
     fontSize: 13,
     color: "#666",
     marginTop: 4,
-  },
-  reporterAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: "#ddd",
   },
   reporterName: {
     fontSize: 16,
     fontWeight: "700",
     color: "#222",
   },
-  reporterRole: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#F5A623",
-    marginTop: 4,
-  },
-  reporterContact: {
-    fontSize: 13,
-    color: "#555",
-    marginTop: 3,
-  },
-
   restrictedMessage: {
     backgroundColor: "#e3f2fd",
     borderLeftWidth: 4,
@@ -551,14 +577,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginVertical: 16,
   },
-
   restrictedText: {
     fontSize: 14,
     fontWeight: "500",
     color: "#1565c0",
     textAlign: "center",
   },
-
   rescuerInfoBox: {
     backgroundColor: "#f5f5f5",
     borderLeftWidth: 3,
@@ -568,17 +592,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 8,
   },
-
   rescuerInfoLabel: {
     fontSize: 13,
     fontWeight: "600",
     color: "#333",
-  },
-
-  rescuerInfoRole: {
-    fontSize: 12,
-    color: "#F5A623",
-    fontWeight: "500",
-    marginTop: 4,
   },
 });

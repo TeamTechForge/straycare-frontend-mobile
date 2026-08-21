@@ -16,16 +16,22 @@ import { Ionicons, Feather } from "@expo/vector-icons";
 import BackButton from "../../components/BackButton";
 
 import { API_URL } from "../../constants/config.constants";
-import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { getStoredItem } from "../../utils/storage";
 import ImageViewer from "../../components/ui/ImageViewer";
 
+/** Default fallback image URL when no case photo is available */
 const DEFAULT_PHOTO =
   "https://images.unsplash.com/photo-1548199973-03cce0bbc87b?w=600&h=400&fit=crop&q=80";
 
+/**
+ * Normalizes a photo path into a fully qualified image URL.
+ *
+ * @param url - Relative image path or absolute HTTP URL string
+ * @returns Complete URL string for image rendering
+ */
 const resolvePhotoUrl = (url: string | undefined): string => {
   if (!url) return DEFAULT_PHOTO;
   if (url.startsWith("http://") || url.startsWith("https://")) {
@@ -35,18 +41,28 @@ const resolvePhotoUrl = (url: string | undefined): string => {
   return `${API_URL}${cleanUrl}`;
 };
 
+/**
+ * Case Summary Screen Component.
+ *
+ * Displays a public-facing summary report of a stray animal rescue case, including photo gallery,
+ * case overview details, reporter notes, progress timeline milestones, and privacy protection notices.
+ */
 export default function CaseSummaryScreen() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const caseId = Array.isArray(params.caseId) ? params.caseId[0] : params.caseId;
   const { token } = useAuth();
 
+  // Screen State
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [caseData, setCaseData] = useState<any>(null);
   const [selectedPhoto, setSelectedPhoto] = useState<string | null>(null);
 
+  /**
+   * Fetches case summary data across primary and fallback API endpoints.
+   */
   const fetchCaseSummary = useCallback(async () => {
     if (!caseId) {
       setError("Invalid Case ID");
@@ -60,7 +76,7 @@ export default function CaseSummaryScreen() {
       const authToken = token || (await getStoredItem("authToken"));
       const headers = authToken ? { Authorization: `Bearer ${authToken}` } : {};
 
-      // 1. Fetch from Stray Reports
+      // 1. Primary endpoint: Stray Reports
       try {
         const res = await axios.get(`${API_URL}/strays/report/${caseId}`, { headers });
         if (res.data) {
@@ -71,7 +87,7 @@ export default function CaseSummaryScreen() {
         // Fallback to rescue status endpoint if not found in stray reports
       }
 
-      // 2. Fallback: Fetch from Rescue status
+      // 2. Fallback endpoint 1: Rescue Status
       try {
         const rescueRes = await axios.get(`${API_URL}/rescue/status/${caseId}`, { headers });
         if (rescueRes.data) {
@@ -79,10 +95,10 @@ export default function CaseSummaryScreen() {
           return;
         }
       } catch (_rescueErr) {
-        // Fallback to rescues endpoint
+        // Fallback to general rescues endpoint
       }
 
-      // 3. Fallback: Fetch from rescues
+      // 3. Fallback endpoint 2: Rescues
       const altRes = await axios.get(`${API_URL}/rescues/${caseId}`, { headers });
       setCaseData(altRes.data);
     } catch (err: any) {
@@ -94,15 +110,25 @@ export default function CaseSummaryScreen() {
     }
   }, [caseId, token]);
 
+  // Initial load effect
   useEffect(() => {
     fetchCaseSummary();
   }, [fetchCaseSummary]);
 
+  /**
+   * Pull-to-refresh handler.
+   */
   const onRefresh = () => {
     setRefreshing(true);
     fetchCaseSummary();
   };
 
+  /**
+   * Resolves visual color theme (background, text, border, label) based on status string.
+   *
+   * @param statusStr - Case status string
+   * @returns Style object with theme colors and label
+   */
   const getStatusTheme = (statusStr?: string) => {
     const s = (statusStr || "").toLowerCase();
     if (s.includes("need") || s.includes("help") || s.includes("urgent")) {
@@ -123,6 +149,7 @@ export default function CaseSummaryScreen() {
     return { bg: "#F3F4F6", text: "#4B5563", border: "#E5E7EB", label: statusStr || "Reported" };
   };
 
+  // Loading state render
   if (loading) {
     return (
       <SafeAreaView style={styles.centerContainer}>
@@ -132,6 +159,7 @@ export default function CaseSummaryScreen() {
     );
   }
 
+  // Error state render
   if (error || !caseData) {
     return (
       <SafeAreaView style={styles.centerContainer}>
@@ -144,6 +172,7 @@ export default function CaseSummaryScreen() {
     );
   }
 
+  // Processed Case Fields
   const animalType = caseData.animalType || caseData.animalDetails?.type || "Stray Animal";
   const breed = caseData.breed || caseData.animalDetails?.breed || "";
   const category = caseData.category || caseData.reportCategory || "Rescue Case";
@@ -174,7 +203,7 @@ export default function CaseSummaryScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      {/* ── Header ── */}
+      {/* Navigation Header */}
       <View style={styles.header}>
         <BackButton onPress={() => router.back()} />
         <Text style={styles.headerTitle}>Case Summary</Text>
@@ -188,7 +217,7 @@ export default function CaseSummaryScreen() {
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor="#F5A623" />
         }
       >
-        {/* ── Status & Case ID Banner ── */}
+        {/* Case ID & Status Banner */}
         <View style={styles.bannerCard}>
           <View>
             <Text style={styles.caseIdLabel}>CASE ID</Text>
@@ -206,7 +235,7 @@ export default function CaseSummaryScreen() {
           </View>
         </View>
 
-        {/* ── Photos Carousel / Main Image ── */}
+        {/* Photos Horizontal Scroll View */}
         {photos.length > 0 ? (
           <View style={styles.photoSection}>
             <ScrollView
@@ -234,7 +263,7 @@ export default function CaseSummaryScreen() {
           </View>
         ) : null}
 
-        {/* ── Quick Overview Card ── */}
+        {/* Quick Overview Details Card */}
         <View style={styles.card}>
           <Text style={styles.cardSectionTitle}>Case Overview</Text>
 
@@ -275,13 +304,13 @@ export default function CaseSummaryScreen() {
           </View>
         </View>
 
-        {/* ── Summary & Notes Card ── */}
+        {/* Case Notes & Summary Description Card */}
         <View style={styles.card}>
           <Text style={styles.cardSectionTitle}>Case Summary</Text>
           <Text style={styles.bodyDescription}>{descriptionText}</Text>
         </View>
 
-        {/* ── Public Timeline / Milestones ── */}
+        {/* Public Timeline & Progress Milestones */}
         {timeline.length > 0 ? (
           <View style={styles.card}>
             <Text style={styles.cardSectionTitle}>Progress Milestones</Text>
@@ -323,7 +352,7 @@ export default function CaseSummaryScreen() {
           </View>
         ) : null}
 
-        {/* ── Privacy Notice Banner ── */}
+        {/* Public Privacy Protection Banner */}
         <View style={styles.privacyCard}>
           <Feather name="shield" size={16} color="#4B5563" style={{ marginRight: 8, marginTop: 2 }} />
           <Text style={styles.privacyText}>
@@ -332,7 +361,7 @@ export default function CaseSummaryScreen() {
         </View>
       </ScrollView>
 
-      {/* ── Image Viewer Modal ── */}
+      {/* Fullscreen Photo Viewer Modal */}
       <ImageViewer
         imageUrl={selectedPhoto}
         visible={Boolean(selectedPhoto)}
@@ -387,16 +416,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
     borderBottomWidth: 1,
     borderBottomColor: "#F3F4F6",
-  },
-  backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F9FAFB",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
   },
   headerTitle: {
     fontSize: 17,

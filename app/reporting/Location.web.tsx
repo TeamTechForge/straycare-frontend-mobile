@@ -5,15 +5,23 @@ import {
   StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
   View,
 } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 
+/**
+ * Incident Location Picker Component (Web implementation).
+ *
+ * Provides a manual text input interface for entering incident location addresses on web,
+ * where native interactive map dragging is not supported.
+ */
 export default function LocationPicker() {
   const router = useRouter();
   const [address, setAddress] = useState("");
 
+  /**
+   * Navigates to AnimalDetails form screen with entered address data.
+   */
   const handleConfirm = () => {
     router.push({
       pathname: "/reporting/AnimalDetails",
@@ -27,12 +35,14 @@ export default function LocationPicker() {
 
   return (
     <ScrollView style={styles.container}>
+      {/* Form Card Container */}
       <View style={styles.card}>
         <Text style={styles.title}>Location</Text>
         <Text style={styles.note}>
           Map selection is only available on mobile. Please enter the address manually:
         </Text>
 
+        {/* Address Input Field */}
         <TextInput
           style={styles.input}
           placeholder="Enter location address"
@@ -41,6 +51,7 @@ export default function LocationPicker() {
           multiline
         />
 
+        {/* Primary Action Button */}
         <PrimaryButton title="Confirm Location" onPress={handleConfirm} />
       </View>
     </ScrollView>

@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   Image,
   ScrollView,
@@ -8,17 +9,31 @@ import {
   Text,
   TouchableOpacity,
   View,
-  ActivityIndicator,
 } from "react-native";
 import { submitReport } from "../../api/strayApiService";
 import PrimaryButton from "../../components/PrimaryButton";
 
+/** Allowed animal condition categories */
 type Category = "Injured" | "Abandoned" | "Aggressive";
+
+/** List of permitted animal condition category values */
 const ALLOWED_CATEGORIES: Category[] = ["Injured", "Abandoned", "Aggressive"];
 
+/**
+ * Safely resolves a query parameter string value or single array element.
+ *
+ * @param value - Search parameter value from URL/router
+ * @returns Evaluated string representation or empty string
+ */
 const safe = (value: string | string[] | undefined): string =>
   Array.isArray(value) ? value[0] : value || "";
 
+/**
+ * Safely parses a JSON string representation of a string array.
+ *
+ * @param value - Raw search parameter value containing serialized JSON array
+ * @returns Parsed string array or empty array fallback
+ */
 const parseStringArray = (value: string | string[] | undefined): string[] => {
   try {
     const parsed = JSON.parse(safe(value));
@@ -30,6 +45,13 @@ const parseStringArray = (value: string | string[] | undefined): string[] => {
   }
 };
 
+/**
+ * Parses and validates category options from query parameters.
+ *
+ * @param categoriesValue - Serialized JSON string array of categories
+ * @param legacyCategoryValue - Comma-separated fallback string of categories
+ * @returns Array of validated Category values
+ */
 const parseCategories = (
   categoriesValue: string | string[] | undefined,
   legacyCategoryValue: string | string[] | undefined
@@ -41,9 +63,18 @@ const parseCategories = (
   );
 };
 
+/** Cloudinary image upload endpoint URL */
 const CLOUDINARY_URL = "https://api.cloudinary.com/v1_1/dljp2yzpb/image/upload";
+
+/** Cloudinary unsigned upload preset identifier */
 const CLOUDINARY_UPLOAD_PRESET = "straycare_report_images";
 
+/**
+ * Uploads a local image URI to Cloudinary cloud storage.
+ *
+ * @param imageUri - Local device image URI or existing remote URL
+ * @returns Secure HTTPS image URL or null if upload failed
+ */
 const uploadToCloudinary = async (imageUri: string): Promise<string | null> => {
   if (imageUri.startsWith("http")) return imageUri;
 
@@ -72,24 +103,29 @@ const uploadToCloudinary = async (imageUri: string): Promise<string | null> => {
   }
 };
 
+/**
+ * Report Review & Confirmation Screen Component.
+ *
+ * Final step in the stray reporting wizard flow. Summarizes collected incident data (photos,
+ * animal details, location), uploads images to Cloudinary, and submits report payload to backend API.
+ */
 export default function Review() {
   const router = useRouter();
   const params = useLocalSearchParams();
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Screen State
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [caseId] = useState(
     () => safe(params.caseId) || "STRAY-" + Math.floor(10000 + Math.random() * 90000)
   );
 
-  // ---------------------------------------------------------
-  // PHOTOS
-  // ---------------------------------------------------------
+  // Parsed report metadata
   const photos = parseStringArray(params.photos);
   const categories = parseCategories(params.categories, params.category);
 
-  // ---------------------------------------------------------
-  // SUBMIT REPORT
-  // ---------------------------------------------------------
+  /**
+   * Validates form parameters, uploads photos to Cloudinary, and submits stray report to backend.
+   */
   const handleSubmit = async () => {
     // Prevent double-submit
     if (isSubmitting) return;
@@ -198,10 +234,7 @@ export default function Review() {
     }
   };
 
-  // ---------------------------------------------------------
-  // EDIT HANDLERS
-  // ---------------------------------------------------------
-
+  /** Navigates back to AnimalDetails step in edit mode */
   const editAnimalDetails = () => {
     router.push({
       pathname: "/reporting/AnimalDetails",
@@ -214,6 +247,7 @@ export default function Review() {
     });
   };
 
+  /** Navigates back to Location step in edit mode */
   const editLocation = () => {
     router.push({
       pathname: "/reporting/Location",
@@ -226,6 +260,7 @@ export default function Review() {
     });
   };
 
+  /** Navigates back to UploadPhotos step in edit mode */
   const editPhotos = () => {
     router.push({
       pathname: "/reporting/UploadPhotos",
@@ -240,14 +275,13 @@ export default function Review() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
-
-      {/* CASE ID */}
+      {/* Case ID Badge Card */}
       <View style={styles.caseCard}>
         <Text style={styles.caseLabel}>CASE ID</Text>
         <Text style={styles.caseValue}>{caseId}</Text>
       </View>
 
-      {/* PHOTOS SECTION HEADER */}
+      {/* Photos Section Header */}
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Photos</Text>
         <TouchableOpacity onPress={editPhotos}>
@@ -255,14 +289,14 @@ export default function Review() {
         </TouchableOpacity>
       </View>
 
-      {/* MAIN PHOTO */}
+      {/* Main Cover Photo */}
       {photos.length > 0 && (
         <TouchableOpacity onPress={editPhotos}>
           <Image source={{ uri: photos[0] }} style={styles.mainPhoto} />
         </TouchableOpacity>
       )}
 
-      {/* OTHER PHOTOS */}
+      {/* Additional Photos Grid */}
       <View style={styles.grid}>
         {photos.slice(1).map((uri: string, index: number) => (
           <TouchableOpacity key={index} onPress={editPhotos}>
@@ -271,7 +305,7 @@ export default function Review() {
         ))}
       </View>
 
-      {/* ANIMAL DETAILS */}
+      {/* Animal Details Section */}
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Animal Details</Text>
         <TouchableOpacity onPress={editAnimalDetails}>
@@ -298,7 +332,7 @@ export default function Review() {
         </Text>
       </View>
 
-      {/* LOCATION */}
+      {/* Location Section */}
       <View style={styles.sectionHeaderRow}>
         <Text style={styles.sectionTitle}>Rescue Location</Text>
         <TouchableOpacity onPress={editLocation}>
@@ -310,7 +344,7 @@ export default function Review() {
         <Text style={styles.value}>{safe(params.locationAddress)}</Text>
       </View>
 
-      {/* SUBMIT BUTTON */}
+      {/* Primary Submit Button */}
       <PrimaryButton
         title={isSubmitting ? "Submitting..." : "Submit Report"}
         onPress={handleSubmit}
@@ -333,7 +367,6 @@ const styles = StyleSheet.create({
     paddingTop: 35,
     backgroundColor: "#fafafa",
   },
-
   caseCard: {
     backgroundColor: "#fdefc3ff",
     padding: 20,
@@ -343,14 +376,12 @@ const styles = StyleSheet.create({
     borderColor: "#acababff",
     alignItems: "center",
   },
-
   caseLabel: {
     fontSize: 14,
     fontWeight: "500",
     color: "#333",
     textAlign: "center",
   },
-
   caseValue: {
     fontSize: 22,
     fontWeight: "700",
@@ -358,7 +389,6 @@ const styles = StyleSheet.create({
     color: "#333",
     textAlign: "center",
   },
-
   sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -366,39 +396,33 @@ const styles = StyleSheet.create({
     marginTop: 10,
     marginBottom: 6,
   },
-
   sectionTitle: {
     fontSize: 20,
     fontWeight: "700",
     color: "#333",
   },
-
   editText: {
     fontSize: 14,
     color: "#007AFF",
     fontWeight: "600",
   },
-
   mainPhoto: {
     width: "100%",
     height: 220,
     borderRadius: 12,
     marginBottom: 20,
   },
-
   grid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
     marginBottom: 30,
   },
-
   smallPhoto: {
     width: 90,
     height: 90,
     borderRadius: 12,
   },
-
   infoBox: {
     backgroundColor: "white",
     padding: 16,
@@ -407,20 +431,17 @@ const styles = StyleSheet.create({
     borderColor: "#ddd",
     marginBottom: 20,
   },
-
   label: {
     fontSize: 14,
     fontWeight: "500",
     color: "#333",
     marginTop: 10,
   },
-
   value: {
     fontSize: 16,
     marginTop: 2,
     color: "#333",
   },
-
   loadingContainer: {
     flexDirection: "row",
     alignItems: "center",
@@ -430,7 +451,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
     borderRadius: 8,
   },
-
   loadingText: {
     marginLeft: 12,
     fontSize: 16,

@@ -11,57 +11,58 @@ import { colors } from "../../constants/colors.constants";
 import { spacing } from "../../constants/spacing.constants";
 import { typography } from "../../constants/typography.constants";
 
+/**
+ * Safely resolves a URL search parameter to a single string value.
+ *
+ * @param value - Search parameter value from Expo Router (string, string[], or undefined)
+ * @param fallback - Default string return value if parameter is missing
+ * @returns Evaluated string representation
+ */
+const safeParam = (
+  value: string | string[] | undefined,
+  fallback = ""
+): string => (Array.isArray(value) ? value[0] : value || fallback);
+
+/**
+ * Report Submission Success Screen Component.
+ *
+ * Displays confirmation for a successfully submitted animal rescue report with entrance
+ * spring/fade animations, summary Case ID card, and action buttons to search for nearby
+ * rescuers, view case details, or return to home screen.
+ */
 export default function Success() {
   const router = useRouter();
   const params = useLocalSearchParams();
 
-  const caseId = Array.isArray(params.caseId)
-    ? params.caseId[0]
-    : params.caseId || "UNKNOWN";
+  // Safely extract route search parameters
+  const caseId = safeParam(params.caseId, "UNKNOWN");
+  const lat = safeParam(params.lat);
+  const lng = safeParam(params.lng);
+  const animalType = safeParam(params.animalType);
+  const animalPhoto = safeParam(params.animalPhoto);
+  const description = safeParam(params.description);
 
-  const lat = Array.isArray(params.lat)
-    ? params.lat[0]
-    : params.lat || "";
-
-  const lng = Array.isArray(params.lng)
-    ? params.lng[0]
-    : params.lng || "";
-
-  const animalType = Array.isArray(params.animalType)
-    ? params.animalType[0]
-    : params.animalType || "";
-
-  const animalPhoto = Array.isArray(params.animalPhoto)
-    ? params.animalPhoto[0]
-    : params.animalPhoto || "";
-
-  const description = Array.isArray(params.description)
-    ? params.description[0]
-    : params.description || "";
-
-  const requestId = Array.isArray(params.requestId)
-    ? params.requestId[0]
-    : params.requestId || "";
-
-  const rescuerId = Array.isArray(params.rescuerId)
-    ? params.rescuerId[0]
-    : params.rescuerId || "";
-
-  // ── Entrance animations ─────────────────────────────────────────────────────
+  // ── Entrance Animation Drivers ───────────────────────────────────────────────
+  /** Scale animation driver for checkmark icon badge spring pop-in */
   const scaleAnim = useRef(new Animated.Value(0)).current;
+
+  /** Opacity animation driver for text content and action buttons fade-in */
   const fadeAnim = useRef(new Animated.Value(0)).current;
+
+  /** TranslateY animation driver for text content and action buttons slide-up */
   const slideAnim = useRef(new Animated.Value(30)).current;
 
+  // Trigger entrance sequence when component mounts
   useEffect(() => {
     Animated.sequence([
-      // 1. Checkmark pops in
+      // 1. Checkmark badge pops in with spring bounce
       Animated.spring(scaleAnim, {
         toValue: 1,
         friction: 4,
         tension: 60,
         useNativeDriver: true,
       }),
-      // 2. Text and buttons fade-slide in
+      // 2. Main content and buttons simultaneously fade and slide up
       Animated.parallel([
         Animated.timing(fadeAnim, {
           toValue: 1,
@@ -75,8 +76,11 @@ export default function Success() {
         }),
       ]),
     ]).start();
-  }, []);
+  }, [scaleAnim, fadeAnim, slideAnim]);
 
+  /**
+   * Navigates user to nearby rescuers search screen with incident location and details.
+   */
   const goToFindingRescuer = () => {
     router.push({
       pathname: "/nearby-rescuers",
@@ -89,6 +93,23 @@ export default function Success() {
         description,
       },
     } as never);
+  };
+
+  /**
+   * Navigates user to detailed view for the submitted report case.
+   */
+  const goToCaseDetails = () => {
+    router.push({
+      pathname: "/reporting/CaseDetails",
+      params: { caseId },
+    });
+  };
+
+  /**
+   * Navigates user back to the app home dashboard, replacing navigation stack.
+   */
+  const goToHome = () => {
+    router.replace("/(tabs)/Home");
   };
 
   return (
@@ -108,7 +129,7 @@ export default function Success() {
         </View>
       </Animated.View>
 
-      {/* TEXT — animated fade-slide */}
+      {/* TEXT & ACTIONS — animated fade-slide */}
       <Animated.View
         style={{
           opacity: fadeAnim,
@@ -143,19 +164,14 @@ export default function Success() {
           {/* VIEW CASE DETAILS */}
           <PrimaryButton
             title="View Case"
-            onPress={() =>
-              router.push({
-                pathname: "/reporting/CaseDetails",
-                params: { caseId },
-              })
-            }
+            onPress={goToCaseDetails}
             variant="outline"
           />
 
           {/* BACK TO HOME */}
           <PrimaryButton
             title="Back to Home"
-            onPress={() => router.replace("/(tabs)/Home")}
+            onPress={goToHome}
             variant="outline"
           />
         </View>

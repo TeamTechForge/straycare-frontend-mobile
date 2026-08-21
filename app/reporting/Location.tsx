@@ -7,6 +7,7 @@ import PrimaryButton from "../../components/PrimaryButton";
 import BackButton from "../../components/BackButton";
 import { SafeAreaView } from "react-native-safe-area-context";
 
+/** Geographic region boundary configuration interface */
 type MapRegion = {
   latitude: number;
   longitude: number;
@@ -14,9 +15,16 @@ type MapRegion = {
   longitudeDelta: number;
 };
 
+/**
+ * Safely resolves a query parameter string value or single array element.
+ *
+ * @param value - Search parameter value from URL/router
+ * @returns Evaluated string representation or empty string
+ */
 const safe = (value: string | string[] | undefined): string =>
   Array.isArray(value) ? value[0] : value || "";
 
+/** Fallback map region covering Sri Lanka */
 const DEFAULT_SRI_LANKA_REGION = {
   latitude: 7.8731,
   longitude: 80.7718,
@@ -24,15 +32,28 @@ const DEFAULT_SRI_LANKA_REGION = {
   longitudeDelta: 3.2,
 };
 
+/**
+ * Incident Location Picker Screen Component.
+ *
+ * Allows reporters to pin and adjust the exact geographic location of a stray animal incident
+ * using interactive map marker dragging and reverse geocoding.
+ */
 export default function LocationPicker() {
   const router = useRouter();
   const params = useLocalSearchParams();
+
+  // Check if screen was opened in edit mode from Review screen
   const isEditing = safe(params.mode) === "edit";
+
+  // Component State
   const [region, setRegion] = useState<MapRegion | null>(null);
   const [address, setAddress] = useState(safe(params.locationAddress));
   const [loading, setLoading] = useState(true);
   const [locationError, setLocationError] = useState<string | null>(null);
 
+  /**
+   * Reverse-geocodes a latitude and longitude into a readable address string.
+   */
   const fetchAddress = useCallback(async (latitude: number, longitude: number) => {
     try {
       const result = await Location.reverseGeocodeAsync({ latitude, longitude });
@@ -51,6 +72,9 @@ export default function LocationPicker() {
     }
   }, []);
 
+  /**
+   * Requests device location permissions and gets current GPS coordinates.
+   */
   const requestCurrentLocation = useCallback(async () => {
     setLoading(true);
     setLocationError(null);
@@ -89,6 +113,7 @@ export default function LocationPicker() {
     }
   }, [fetchAddress]);
 
+  // Initial location hydration effect (loads saved edit location or requests GPS)
   useEffect(() => {
     const savedLatitude = Number(safe(params.locationLat));
     const savedLongitude = Number(safe(params.locationLng));
@@ -119,6 +144,9 @@ export default function LocationPicker() {
     void requestCurrentLocation();
   }, [fetchAddress, isEditing, params.locationAddress, params.locationLat, params.locationLng, requestCurrentLocation]);
 
+  /**
+   * Updates marker position and reverse-geocodes address when marker dragging completes.
+   */
   const onMarkerDragEnd = (event: {
     nativeEvent: { coordinate: { latitude: number; longitude: number } };
   }) => {
@@ -129,6 +157,9 @@ export default function LocationPicker() {
     void fetchAddress(latitude, longitude);
   };
 
+  /**
+   * Validates location selection and navigates to the next reporting step (UploadPhotos or Review screen if editing).
+   */
   const handleNext = () => {
     if (!region) {
       setLocationError("Select a valid incident location before continuing.");
@@ -153,6 +184,7 @@ export default function LocationPicker() {
     router.push({ pathname: "/reporting/UploadPhotos", params: nextParams });
   };
 
+  // Loading spinner render
   if (loading) {
     return (
       <View style={styles.center}>
@@ -162,6 +194,7 @@ export default function LocationPicker() {
     );
   }
 
+  // Error screen render when region cannot be resolved
   if (!region) {
     return (
       <View style={styles.errorScreen}>
@@ -184,14 +217,17 @@ export default function LocationPicker() {
 
   return (
     <View style={styles.container}>
+      {/* Interactive Map View with Draggable Location Marker */}
       <MapViewWrapper style={styles.map} region={region}>
         <Marker coordinate={region} draggable onDragEnd={onMarkerDragEnd} />
       </MapViewWrapper>
 
+      {/* Floating Back Navigation Button */}
       <SafeAreaView style={{ position: "absolute", top: 0, left: 0, right: 0, paddingHorizontal: 16, paddingTop: 16 }} pointerEvents="box-none">
         <BackButton onPress={() => router.back()} style={{ shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 4 }} />
       </SafeAreaView>
 
+      {/* Resolved Address & Instruction Card */}
       <View style={[styles.addressBox, locationError && styles.errorBorder]}>
         <Text style={styles.label}>
           Incident Location <Text style={styles.requiredMark}>*</Text>
@@ -210,6 +246,7 @@ export default function LocationPicker() {
         ) : null}
       </View>
 
+      {/* Bottom Action Button */}
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
           title={isEditing ? "Save Changes" : "Continue Report"}

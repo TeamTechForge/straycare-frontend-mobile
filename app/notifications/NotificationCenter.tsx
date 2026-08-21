@@ -7,30 +7,41 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Alert,
 } from "react-native";
 import { useNotification, Notification } from "../../contexts/NotificationContext";
-import * as SecureStore from "expo-secure-store";
-import { API_URL } from "../../constants/config.constants";
 import { useRouter } from "expo-router";
 import BackButton from "../../components/BackButton";
 
+/**
+ * Central Notification Feed & Activity Screen Component.
+ *
+ * Displays a real-time list of user notifications, unread badges, pull-to-refresh control,
+ * and handles deep-linking navigation to relevant cases, discussions, or comments.
+ */
 export default function NotificationCenter() {
   const router = useRouter();
   const { notifications, unreadCount, fetchNotifications, markAsRead, loading } =
     useNotification();
   const [refreshing, setRefreshing] = React.useState(false);
 
+  // Initial fetch of notifications on component mount
   useEffect(() => {
     void fetchNotifications();
   }, [fetchNotifications]);
 
+  /** Handles pull-to-refresh action on notification feed */
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchNotifications();
     setRefreshing(false);
   };
 
+  /**
+   * Resolves left accent border color based on notification type severity.
+   *
+   * @param type - Notification type identifier (success, error, warning, info)
+   * @returns Hex color string
+   */
   const getTypeColor = (type: string) => {
     switch (type) {
       case "success":
@@ -46,6 +57,12 @@ export default function NotificationCenter() {
     }
   };
 
+  /**
+   * Formats ISO timestamp string into human-readable relative time string.
+   *
+   * @param dateString - ISO string timestamp
+   * @returns Relative time string (e.g., '5m ago', '2h ago', '3d ago', or formatted date)
+   */
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const now = new Date();
@@ -66,10 +83,16 @@ export default function NotificationCenter() {
     return date.toLocaleDateString();
   };
 
+  /**
+   * Marks notification as read and navigates to target post, discussion, or rescue case.
+   *
+   * @param item - Target notification object
+   */
   const handlePressNotification = async (item: Notification) => {
-    // Mark as read
+    // Mark notification as read in storage / backend
     await markAsRead(item._id);
 
+    // Deep-link to post comments
     if (item.event === "post_comment" && item.postId) {
       router.push({
         pathname: "/community-feed/CommunityPostComments",
@@ -78,7 +101,7 @@ export default function NotificationCenter() {
       return;
     }
 
-    // If notification is for a discussion thread reply or new discussion
+    // Deep-link to discussion thread reply or new discussion
     if (
       (item.title && (item.title.includes("Discussion") || item.title.includes("Reply"))) ||
       (item.message && (item.message.includes("replied to your thread") || item.message.includes("started a new discussion")))
@@ -97,6 +120,7 @@ export default function NotificationCenter() {
       }
     }
 
+    // Deep-link to case details
     if (item.caseId) {
       router.push({
         pathname: "/reporting/CaseDetails",
@@ -105,12 +129,14 @@ export default function NotificationCenter() {
       return;
     }
 
+    // Deep-link to rescue request details
     if (item.rescueRequestId) {
       router.push(`/rescue-details/${item.rescueRequestId}` as any);
       return;
     }
   };
 
+  /** Renders an individual notification card item */
   const renderNotification = ({ item }: { item: Notification }) => (
     <TouchableOpacity
       style={[
@@ -134,6 +160,7 @@ export default function NotificationCenter() {
     </TouchableOpacity>
   );
 
+  // Full-screen loading indicator for initial fetch
   if (loading && notifications.length === 0) {
     return (
       <View style={styles.centerContainer}>
@@ -145,8 +172,9 @@ export default function NotificationCenter() {
 
   return (
     <View style={styles.container}>
+      {/* Screen Header Bar */}
       <View style={styles.header}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+        <View style={styles.headerLeft}>
           <BackButton onPress={() => router.back()} />
           <Text style={styles.headerTitle}>Notifications</Text>
         </View>
@@ -157,6 +185,7 @@ export default function NotificationCenter() {
         )}
       </View>
 
+      {/* Main Notification List or Empty State */}
       {notifications.length === 0 ? (
         <View style={styles.centerContainer}>
           <Text style={styles.emptyText}>No notifications yet</Text>
@@ -201,6 +230,11 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
     borderBottomWidth: 1,
     borderBottomColor: "#e0e0e0",
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
   },
   headerTitle: {
     fontSize: 20,

@@ -4,11 +4,13 @@ import { Platform } from "react-native";
 import Constants, { ExecutionEnvironment } from "expo-constants";
 import { API_URL } from "../constants/config.constants";
 
-// Check if app is running inside Expo Go (StoreClient)
+/**
+ * Flag indicating whether the app is executing inside the Expo Go client app.
+ */
 const isExpoGo =
   Constants.executionEnvironment === ExecutionEnvironment.StoreClient;
 
-// Configure notification handler safely so local notification banners show alerts and sounds
+// Configure global Expo notification handler so local/push banners display alerts and play sound
 try {
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
@@ -20,32 +22,63 @@ try {
     }),
   });
 } catch (_err) {
-  // Ignore notification handler setup error in constrained environments
+  // Gracefully ignore handler setup errors in constrained or test environments
 }
 
+/** In-flight promise tracker to deduplicate concurrent push token backend registrations */
 let tokenRegistrationPromise: Promise<void> | null = null;
+
+/** Active session auth token associated with the registered push token */
 let registeredSessionAuthToken: string | null = null;
+
+/** Event subscription reference for foreground notification listener */
 let foregroundNotificationSubscription: Notifications.EventSubscription | null = null;
+
+/** Event subscription reference for notification tap/response listener */
 let notificationResponseSubscription: Notifications.EventSubscription | null = null;
 
+/** Category identifier for rescue case update notification actions */
 export const CASE_UPDATE_CATEGORY_ID = "case_update";
+
+/** Action identifier for opening case details from notification banner */
 export const VIEW_CASE_ACTION_ID = "view_case";
 
+/**
+ * Type payload for rescue case push notifications.
+ */
 export type CaseNotificationData = {
+  /** Event trigger type identifier */
   event?: "rescue_accepted" | "case_status_updated" | string;
+  /** Unique case ID associated with the notification */
   caseId?: string;
+  /** Unique rescue request ID */
   rescueRequestId?: string;
+  /** Updated rescue case status string */
   status?: string;
+  /** Animal classification type */
   animalType?: string;
+  /** Assigned rescuer display name */
   assignedRescuerName?: string;
+  /** Target UI action identifier */
   action?: "view_case" | string;
+  /** Notification alert severity type */
   type?: "info" | "success" | "warning" | "error";
 };
 
+/**
+ * Service singleton managing push notification setup, permissions, token synchronization
+ * with backend servers, incoming event listeners, and local fallback presentations.
+ */
 export const pushNotificationService = {
-  // Request notification permissions and setup push notifications
+  /**
+   * Requests device notification permissions, registers notification categories/channels,
+   * and generates an Expo Push Token.
+   *
+   * @returns Expo Push Token string or null if permission was denied or token generation failed
+   */
   async setupPushNotifications(): Promise<string | null> {
     try {
+      // Register notification category with actionable buttons
       await Notifications.setNotificationCategoryAsync(CASE_UPDATE_CATEGORY_ID, [
         {
           identifier: VIEW_CASE_ACTION_ID,
@@ -54,6 +87,7 @@ export const pushNotificationService = {
         },
       ]);
 
+      // Configure Android high-priority notification channels
       if (Platform.OS === "android") {
         await Notifications.setNotificationChannelAsync("rescue-alerts", {
           name: "Rescue Alerts",
@@ -76,11 +110,11 @@ export const pushNotificationService = {
         });
       }
 
-      // Get current permissions
+      // Check existing notification permissions
       const { status: existingStatus } = await Notifications.getPermissionsAsync();
       let finalStatus = existingStatus;
 
-      // If permission not granted, request it
+      // Request permission if not already granted
       if (existingStatus !== "granted") {
         const { status } = await Notifications.requestPermissionsAsync();
         finalStatus = status;
@@ -91,6 +125,7 @@ export const pushNotificationService = {
         return null;
       }
 
+      // Resolve EAS project ID from constants config
       const projectId =
         Constants?.expoConfig?.extra?.eas?.projectId ??
         Constants?.easConfig?.projectId;
@@ -110,7 +145,12 @@ export const pushNotificationService = {
     }
   },
 
-  // Send push token to backend
+  /**
+   * Registers the device's Expo push token with backend user profile.
+   *
+   * @param pushToken - Expo Push Token string generated from device
+   * @returns True if backend push token registration succeeded
+   */
   async sendTokenToBackend(pushToken: string): Promise<boolean> {
     try {
       const authToken = await SecureStore.getItemAsync("authToken");
@@ -142,7 +182,11 @@ export const pushNotificationService = {
     }
   },
 
-  // Remove push token from backend (when user opts out)
+  /**
+   * Unregisters push token from backend user profile when user opts out or logs out.
+   *
+   * @returns True if token removal succeeded on backend
+   */
   async removeTokenFromBackend(): Promise<boolean> {
     try {
       const authToken = await SecureStore.getItemAsync("authToken");
@@ -169,7 +213,12 @@ export const pushNotificationService = {
     }
   },
 
-  // Listen for incoming push notifications
+  /**
+   * Subscribes to incoming push notification events while the app is running.
+   *
+   * @param onNotification - Callback invoked when a notification is received or tapped
+   * @returns Unsubscribe teardown function to clean up event listeners
+   */
   listenForNotifications(
     onNotification: (notification: Notifications.Notification) => void
   ): () => void {
@@ -181,13 +230,13 @@ export const pushNotificationService = {
       foregroundNotificationSubscription?.remove();
       notificationResponseSubscription?.remove();
 
-      // Listen for notifications when app is in foreground
+      // Listen for notifications received while app is in foreground
       foregroundNotificationSubscription = Notifications.addNotificationReceivedListener((notification) => {
         console.log("[PUSH] Notification received:", notification);
         onNotification(notification);
       });
 
-      // Listen for notification taps (when user taps the notification)
+      // Listen for user tap interactions on notification banners
       notificationResponseSubscription = Notifications.addNotificationResponseReceivedListener(
         (response) => {
           console.log("[PUSH] Notification tapped:", response.notification);
@@ -206,7 +255,11 @@ export const pushNotificationService = {
     }
   },
 
-  // Initialize push notifications (call this on app startup)
+  /**
+   * Initializes push notification capabilities on app startup if enabled by user preferences.
+   *
+   * @param onNotification - Optional callback invoked when a notification is received
+   */
   async initializePushNotifications(
     onNotification?: (notification: Notifications.Notification) => void
   ): Promise<void> {
@@ -219,7 +272,7 @@ export const pushNotificationService = {
 
       await this.ensureAuthenticatedTokenRegistered();
 
-      // Setup listeners if callback provided
+      // Setup event listeners if callback is provided
       if (onNotification) {
         this.listenForNotifications(onNotification);
       }
@@ -230,15 +283,17 @@ export const pushNotificationService = {
     }
   },
 
+  /**
+   * Ensures the current authenticated user's session has registered its Expo push token
+   * with backend servers, deduplicating concurrent registration attempts across component renders.
+   */
   async ensureAuthenticatedTokenRegistered(): Promise<void> {
     const authToken = await SecureStore.getItemAsync("authToken");
     if (!authToken || registeredSessionAuthToken === authToken) {
       return;
     }
 
-    // The root layout can rerender while authentication and navigation settle.
-    // Share one in-flight registration so those renders cannot post the same
-    // Expo token to the backend repeatedly.
+    // Share single in-flight promise to prevent concurrent duplicate backend calls
     if (tokenRegistrationPromise) {
       return tokenRegistrationPromise;
     }
@@ -258,6 +313,12 @@ export const pushNotificationService = {
     return tokenRegistrationPromise;
   },
 
+  /**
+   * Subscribes specifically to user notification interaction/tap responses.
+   *
+   * @param onResponse - Callback function invoked on notification response
+   * @returns Unsubscribe function
+   */
   listenForNotificationResponses(
     onResponse: (response: Notifications.NotificationResponse) => void
   ): () => void {
@@ -272,15 +333,27 @@ export const pushNotificationService = {
     };
   },
 
+  /**
+   * Retrieves the last notification response that opened or launched the app.
+   */
   getLastNotificationResponse(): Notifications.NotificationResponse | null {
     return Notifications.getLastNotificationResponse();
   },
 
+  /**
+   * Clears the cached last notification response.
+   */
   clearLastNotificationResponse(): void {
     Notifications.clearLastNotificationResponse();
   },
 
-  // Trigger local OS banner notification fallback
+  /**
+   * Schedules an immediate local OS banner notification fallback.
+   *
+   * @param title - Notification banner title string
+   * @param body - Notification banner message body
+   * @param data - Optional key-value payload attached to notification
+   */
   async presentLocalNotification(title: string, body: string, data?: Record<string, any>): Promise<void> {
     try {
       if (Platform.OS === "android") {

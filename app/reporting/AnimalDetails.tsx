@@ -14,15 +14,38 @@ import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
 import BackButton from "../../components/BackButton";
 
+/**
+ * Animal reporting category options.
+ */
 type Category = "Injured" | "Abandoned" | "Aggressive";
+
+/**
+ * Pre-defined animal type selection options.
+ */
 type AnimalTypeOption = "Dog" | "Cat" | "Other" | "";
 
+/** Supported predefined animal types list */
 const ANIMAL_TYPES: Exclude<AnimalTypeOption, "">[] = ["Dog", "Cat", "Other"];
+
+/** Supported category tags list */
 const CATEGORIES: Category[] = ["Injured", "Abandoned", "Aggressive"];
 
+/**
+ * Safely resolves a query parameter string value or single array element.
+ *
+ * @param value - Search parameter value from URL/router
+ * @returns Evaluated string representation or empty string
+ */
 const safe = (value: string | string[] | undefined): string =>
   Array.isArray(value) ? value[0] : value || "";
 
+/**
+ * Parses and sanitizes category input from route parameters (JSON string or comma-separated legacy string).
+ *
+ * @param categoriesValue - Primary serialized categories (JSON or string array format)
+ * @param legacyCategoryValue - Fallback legacy comma-separated category string
+ * @returns Array of validated Category values
+ */
 const parseCategories = (
   categoriesValue: string | string[] | undefined,
   legacyCategoryValue: string | string[] | undefined
@@ -46,6 +69,9 @@ const parseCategories = (
   );
 };
 
+/**
+ * Form validation error state interface for the AnimalDetails form.
+ */
 type FormErrors = {
   animalType?: string;
   otherAnimalType?: string;
@@ -54,6 +80,9 @@ type FormErrors = {
   notes?: string;
 };
 
+/**
+ * Component for rendering form labels with an indicated red asterisk required indicator.
+ */
 function RequiredLabel({ children }: { children: string }) {
   return (
     <Text style={styles.label}>
@@ -62,13 +91,22 @@ function RequiredLabel({ children }: { children: string }) {
   );
 }
 
+/**
+ * Animal Details Form Screen.
+ *
+ * Captures information about the reported animal (type, breed, category tags, condition notes, and anonymity preference)
+ * during the stray care incident reporting flow.
+ */
 export default function AnimalDetails() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const scrollRef = useRef<ScrollView>(null);
   const categoryOffsetRef = useRef(0);
+
+  // Check if form is in edit mode from Review screen
   const isEditing = safe(params.mode) === "edit";
 
+  // Parse initial route parameter states for edit/pre-fill scenarios
   const savedAnimalType = safe(params.animalType).trim();
   const knownType = ANIMAL_TYPES.find(
     (type) => type !== "Other" && type === savedAnimalType
@@ -77,6 +115,7 @@ export default function AnimalDetails() {
   const initialOtherType =
     initialType === "Other" && savedAnimalType !== "Other" ? savedAnimalType : "";
 
+  // Form State
   const [animalType, setAnimalType] = useState<AnimalTypeOption>(initialType);
   const [otherAnimalType, setOtherAnimalType] = useState(initialOtherType);
   const [showDropdown, setShowDropdown] = useState(false);
@@ -88,10 +127,16 @@ export default function AnimalDetails() {
   const [anonymous, setAnonymous] = useState(safe(params.anonymous) === "true");
   const [errors, setErrors] = useState<FormErrors>({});
 
+  /**
+   * Helper function to update or clear a specific field's error message.
+   */
   const updateError = (field: keyof FormErrors, message?: string) => {
     setErrors((current) => ({ ...current, [field]: message }));
   };
 
+  /**
+   * Toggles selection state of a category tag chip and clears category errors if any tag is active.
+   */
   const toggleCategory = (category: Category) => {
     const next = selectedCategories.includes(category)
       ? selectedCategories.filter((item) => item !== category)
@@ -100,12 +145,16 @@ export default function AnimalDetails() {
     if (next.length > 0) updateError("categories");
   };
 
+  /**
+   * Validates form input fields and navigates to the next step (Location screen or Review screen if editing).
+   */
   const handleNext = () => {
     const nextErrors: FormErrors = {};
     const trimmedOtherType = otherAnimalType.trim();
     const trimmedBreed = breed.trim();
     const trimmedNotes = notes.trim();
 
+    // Validate required animal type selection & custom animal type text length
     if (!animalType) nextErrors.animalType = "Select an animal type.";
     if (animalType === "Other") {
       if (!trimmedOtherType) {
@@ -114,17 +163,25 @@ export default function AnimalDetails() {
         nextErrors.otherAnimalType = "Animal type must be 50 characters or fewer.";
       }
     }
+
+    // Validate optional breed string length
     if (trimmedBreed.length > 60) {
       nextErrors.breed = "Breed must be 60 characters or fewer.";
     }
+
+    // Validate category selection requirement (at least 1 category selected)
     if (selectedCategories.length === 0) {
       nextErrors.categories = "Select at least one category.";
     }
+
+    // Validate condition notes length limit
     if (trimmedNotes.length > 500) {
       nextErrors.notes = "Condition notes must be 500 characters or fewer.";
     }
 
     setErrors(nextErrors);
+
+    // Auto-scroll to error position if validation fails
     if (Object.keys(nextErrors).length > 0) {
       const onlyCategoryOrNotes =
         !nextErrors.animalType &&
@@ -137,6 +194,7 @@ export default function AnimalDetails() {
       return;
     }
 
+    // Consolidate parameters for next navigation step
     const resolvedAnimalType =
       animalType === "Other" ? trimmedOtherType : animalType;
     const nextParams = {
@@ -148,6 +206,7 @@ export default function AnimalDetails() {
       anonymous: anonymous.toString(),
     };
 
+    // Navigate to Review screen if editing, otherwise proceed to Location selection screen
     if (isEditing) {
       router.push({
         pathname: "/reporting/Review",
@@ -166,6 +225,7 @@ export default function AnimalDetails() {
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
       >
+        {/* Navigation Header */}
         <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 15 }}>
           <BackButton onPress={() => router.back()} />
           <View style={{ flex: 1 }}>
@@ -173,10 +233,13 @@ export default function AnimalDetails() {
           </View>
           <View style={{ width: 40 }} />
         </View>
+
+        {/* Required Fields Subtitle */}
         <Text style={styles.requiredHint}>
           <Text style={styles.requiredMark}>*</Text> Required fields
         </Text>
 
+        {/* Animal Type Dropdown Selection */}
         <RequiredLabel>Animal Type</RequiredLabel>
         <TouchableOpacity
           accessibilityRole="button"
@@ -196,6 +259,7 @@ export default function AnimalDetails() {
         </TouchableOpacity>
         {errors.animalType ? <Text style={styles.errorText}>{errors.animalType}</Text> : null}
 
+        {/* Dropdown Options List */}
         {showDropdown ? (
           <View style={styles.dropdownList}>
             {ANIMAL_TYPES.map((type, index) => (
@@ -224,6 +288,7 @@ export default function AnimalDetails() {
           </View>
         ) : null}
 
+        {/* Custom Animal Type Input (when "Other" is selected) */}
         {animalType === "Other" ? (
           <InputField
             label="Specify Animal Type *"
@@ -237,6 +302,7 @@ export default function AnimalDetails() {
           />
         ) : null}
 
+        {/* Optional Breed Input */}
         <InputField
           label="Breed (Optional)"
           placeholder="Enter breed (e.g., Labrador)"
@@ -248,6 +314,7 @@ export default function AnimalDetails() {
           }}
         />
 
+        {/* Category Tags Selection Grid */}
         <View onLayout={(event) => (categoryOffsetRef.current = event.nativeEvent.layout.y)}>
           <RequiredLabel>Categories</RequiredLabel>
           <Text style={styles.helperText}>Select all that apply.</Text>
@@ -281,6 +348,7 @@ export default function AnimalDetails() {
           {errors.categories ? <Text style={styles.errorText}>{errors.categories}</Text> : null}
         </View>
 
+        {/* Optional Condition Notes Input */}
         <Text style={styles.label}>Condition Notes (Optional)</Text>
         <TextInput
           accessibilityLabel="Condition notes"
@@ -303,6 +371,7 @@ export default function AnimalDetails() {
           </Text>
         </View>
 
+        {/* Anonymous Reporting Switch */}
         <View style={styles.toggleRow}>
           <View style={styles.toggleCopy}>
             <Text style={styles.toggleLabel}>Report Anonymously</Text>
@@ -318,6 +387,7 @@ export default function AnimalDetails() {
         </View>
       </ScrollView>
 
+      {/* Bottom Sticky Action Button */}
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
           title={isEditing ? "Save Changes" : "Next Step"}
@@ -421,3 +491,4 @@ const styles = StyleSheet.create({
   toggleCopy: { flex: 1 },
   bottomButtonWrapper: { position: "absolute", bottom: 30, left: 20, right: 20 },
 });
+

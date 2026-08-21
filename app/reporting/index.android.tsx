@@ -22,12 +22,14 @@ import {
   searchPlaces,
 } from "../../services/places.service";
 
+/** Supported stray animal case statuses */
 type CaseStatus =
   | "Needs Help"
   | "Under Rescue"
   | "Treated"
   | "Ready for Adoption";
 
+/** Interface for stray animal report marker data */
 type Report = {
   caseId: string;
   animalType: string;
@@ -40,13 +42,19 @@ type Report = {
   };
 };
 
+/** Geographic coordinate representation */
 type MapCoordinate = {
   latitude: number;
   longitude: number;
 };
 
+/** Polling interval for live report refreshes (5 seconds) */
 const POLL_INTERVAL_MS = 5000;
+
+/** Default zoom delta value for camera focus */
 const MAP_DELTA = 0.025;
+
+/** Fallback initial map region (Colombo, Sri Lanka) */
 const DEFAULT_REGION = {
   latitude: 6.9271,
   longitude: 79.8612,
@@ -54,6 +62,7 @@ const DEFAULT_REGION = {
   longitudeDelta: 0.05,
 };
 
+/** Status filter configuration options with pin colors */
 const STATUS_OPTIONS: { status: CaseStatus; color: string }[] = [
   { status: "Needs Help", color: "#D32F2F" },
   { status: "Under Rescue", color: "#FBC02D" },
@@ -61,13 +70,16 @@ const STATUS_OPTIONS: { status: CaseStatus; color: string }[] = [
   { status: "Ready for Adoption", color: "#1976D2" },
 ];
 
+/** Map of case statuses to marker pin colors */
 const MARKER_COLORS: Record<CaseStatus, string> = Object.fromEntries(
   STATUS_OPTIONS.map(({ status, color }) => [status, color])
 ) as Record<CaseStatus, string>;
 
+/** Type guard checking if a string matches a valid CaseStatus */
 const isCaseStatus = (status: string): status is CaseStatus =>
   STATUS_OPTIONS.some((option) => option.status === status);
 
+/** Validates whether a report has finite geographic coordinates */
 const hasValidLocation = (report: Report): boolean =>
   Boolean(
     report.location &&
@@ -75,11 +87,18 @@ const hasValidLocation = (report: Report): boolean =>
     Number.isFinite(Number(report.location.lng))
   );
 
+/** Generates a unique Google Places autocomplete session token */
 const createSessionToken = (): string =>
   `${Date.now()}-${Math.random().toString(36).slice(2)}-${Math.random()
     .toString(36)
     .slice(2)}`;
 
+/**
+ * Reporting Map Screen (Android native implementation).
+ *
+ * Renders an interactive map displaying stray care reports with status filtering,
+ * place search autocomplete, user location centering, auto-polling refresh, and navigation to reporting details.
+ */
 export default function ReportingMapScreen() {
   const router = useRouter();
   const mapRef = useRef<MapView>(null);
@@ -91,6 +110,7 @@ export default function ReportingMapScreen() {
   const fallbackFittedRef = useRef(false);
   const searchSessionRef = useRef<string | null>(null);
 
+  // Component State
   const [reports, setReports] = useState<Report[]>([]);
   const [initialLoading, setInitialLoading] = useState(true);
   const [refreshError, setRefreshError] = useState<string | null>(null);
@@ -109,6 +129,9 @@ export default function ReportingMapScreen() {
   const [searchError, setSearchError] = useState<string | null>(null);
   const [searchSelectionLocked, setSearchSelectionLocked] = useState(false);
 
+  /**
+   * Smoothly animates the map camera to a specific coordinate.
+   */
   const animateToCoordinate = useCallback((coordinate: MapCoordinate) => {
     if (!mapReadyRef.current) {
       pendingCameraRef.current = coordinate;
@@ -125,6 +148,9 @@ export default function ReportingMapScreen() {
     );
   }, []);
 
+  /**
+   * Adjusts the map view bounds to encompass all valid report markers.
+   */
   const fitAllReports = useCallback((sourceReports: Report[]) => {
     if (!mapReadyRef.current) return false;
 
@@ -148,6 +174,9 @@ export default function ReportingMapScreen() {
     return true;
   }, [animateToCoordinate]);
 
+  /**
+   * Fetches the latest stray reports from the backend server.
+   */
   const loadReports = useCallback(async () => {
     if (requestInFlightRef.current) return;
     requestInFlightRef.current = true;
@@ -170,6 +199,7 @@ export default function ReportingMapScreen() {
     }
   }, []);
 
+  // Screen focus & periodic polling setup
   useFocusEffect(
     useCallback(() => {
       screenActiveRef.current = true;
@@ -183,6 +213,9 @@ export default function ReportingMapScreen() {
     }, [loadReports])
   );
 
+  /**
+   * Requests device location permission and centers the map on current coordinates.
+   */
   const moveToCurrentLocation = useCallback(async () => {
     setLocating(true);
     setLocationMessage(null);
@@ -223,10 +256,12 @@ export default function ReportingMapScreen() {
     }
   }, [animateToCoordinate, fitAllReports]);
 
+  // Request current location on component mount
   useEffect(() => {
     void moveToCurrentLocation();
   }, [moveToCurrentLocation]);
 
+  // Fit all reports if initial positioning requires fallback
   useEffect(() => {
     if (
       shouldFitReports &&
@@ -238,6 +273,7 @@ export default function ReportingMapScreen() {
     }
   }, [fitAllReports, mapReady, reports, shouldFitReports]);
 
+  // Debounced location search effect using Google Places Autocomplete
   useEffect(() => {
     const input = searchQuery.trim();
     if (searchSelectionLocked || input.length < 2) {
@@ -276,6 +312,9 @@ export default function ReportingMapScreen() {
     };
   }, [searchQuery, searchSelectionLocked]);
 
+  /**
+   * Handles selection of a place prediction from the search dropdown.
+   */
   const choosePrediction = useCallback(
     async (prediction: PlacePrediction) => {
       const sessionToken = searchSessionRef.current || createSessionToken();
@@ -305,6 +344,7 @@ export default function ReportingMapScreen() {
     [animateToCoordinate]
   );
 
+  // Computes filtered list of reports based on active status selections
   const filteredReports = useMemo(
     () =>
       reports.filter(
@@ -316,6 +356,9 @@ export default function ReportingMapScreen() {
     [reports, selectedStatuses]
   );
 
+  /**
+   * Toggles inclusion of a case status filter.
+   */
   const toggleStatus = (status: CaseStatus) => {
     setSelectedStatuses((current) => {
       const next = new Set(current);
@@ -325,6 +368,7 @@ export default function ReportingMapScreen() {
     });
   };
 
+  // Intercept Android hardware back button to navigate Home
   useEffect(() => {
     const onBackPress = () => {
       router.push("/(tabs)/Home");
@@ -336,11 +380,13 @@ export default function ReportingMapScreen() {
 
   return (
     <View style={styles.container}>
+      {/* Header Banner */}
       <View style={styles.sectionCard}>
         <Text style={styles.header}>Rescue Cases Map</Text>
         <Text style={styles.subtext}>Tap a marker to view case details.</Text>
       </View>
 
+      {/* Map Renderer */}
       <MapView
         ref={mapRef}
         provider="google"
@@ -359,6 +405,7 @@ export default function ReportingMapScreen() {
           }
         }}
       >
+        {/* Report Pins */}
         {filteredReports.map((report) => (
           <Marker
             key={report.caseId}
@@ -379,6 +426,7 @@ export default function ReportingMapScreen() {
         ))}
       </MapView>
 
+      {/* Search & Filter Floating Overlay */}
       <View style={styles.controlsOverlay} pointerEvents="box-none">
         <View style={styles.searchRow}>
           <Ionicons name="search-outline" size={20} color="#6B7280" />
@@ -428,6 +476,7 @@ export default function ReportingMapScreen() {
           </TouchableOpacity>
         </View>
 
+        {/* Search Results Dropdown Panel */}
         {predictions.length > 0 ? (
           <View style={styles.resultsPanel}>
             {predictions.map((prediction, index) => (
@@ -453,6 +502,7 @@ export default function ReportingMapScreen() {
           </View>
         ) : null}
 
+        {/* Filter Selection Panel */}
         {filtersOpen ? (
           <View style={styles.filterPanel}>
             <Text style={styles.filterTitle}>Case status and marker colours</Text>
@@ -494,6 +544,7 @@ export default function ReportingMapScreen() {
         ) : null}
       </View>
 
+      {/* Location Warning Banner */}
       {locationMessage ? (
         <View style={styles.locationBanner}>
           <Ionicons name="information-circle-outline" size={18} color="#7A4B00" />
@@ -501,12 +552,14 @@ export default function ReportingMapScreen() {
         </View>
       ) : null}
 
+      {/* Auto-Refresh Retry Banner */}
       {refreshError ? (
         <View style={styles.refreshBanner}>
           <Text style={styles.refreshBannerText}>{refreshError}</Text>
         </View>
       ) : null}
 
+      {/* Initial Loading Overlay */}
       {initialLoading ? (
         <View style={styles.loadingOverlay} pointerEvents="none">
           <ActivityIndicator size="large" color="#F5A623" />
@@ -514,6 +567,7 @@ export default function ReportingMapScreen() {
         </View>
       ) : null}
 
+      {/* Floating My-Location Button */}
       <TouchableOpacity
         style={styles.locationButton}
         accessibilityLabel="Go to my current location"
@@ -527,6 +581,7 @@ export default function ReportingMapScreen() {
         )}
       </TouchableOpacity>
 
+      {/* Primary Action Button */}
       <View style={styles.bottomButtonWrapper}>
         <PrimaryButton
           title="Report a Case +"
