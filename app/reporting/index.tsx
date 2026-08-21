@@ -12,6 +12,7 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { getAllReports } from "../../api/strayApiService";
+import { Ionicons } from "@expo/vector-icons";
 import BackButton from "../../components/BackButton";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";

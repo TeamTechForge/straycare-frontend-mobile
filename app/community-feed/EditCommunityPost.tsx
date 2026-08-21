@@ -8,7 +8,7 @@ import PrimaryButton from "../../components/PrimaryButton";
 import BackButton from "../../components/BackButton";
 import { colors } from "../../constants/colors.constants";
 
-import { appendImageToFormData, COMMUNITY_POST_CATEGORIES } from "./communityPost.utils";
+import { appendImageToFormData, COMMUNITY_POST_CATEGORIES } from "../../utils/communityPost.utils";
 
 export default function EditCommunityPost() {
   const router = useRouter();

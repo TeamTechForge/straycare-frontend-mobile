@@ -35,7 +35,7 @@ import {
   unlikeCommunityPost,
   unsaveCommunityPost,
 } from "../../services/communityService";
-import { COMMUNITY_POST_CATEGORIES } from "./communityPost.utils";
+import { COMMUNITY_POST_CATEGORIES } from "../../utils/communityPost.utils";
 
 // ─────────────────────────────────────────────
 // COLORS
@@ -392,7 +392,7 @@ export default function CommunityPostMain() {
             {/* OTHER CATEGORIES */}
 
             {COMMUNITY_POST_CATEGORIES.map(
-              (category) => {
+              (category: string) => {
                 const isActive =
                   activeCategory ===
                   category;

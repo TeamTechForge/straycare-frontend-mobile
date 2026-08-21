@@ -149,6 +149,12 @@ export default function CaseDetailsScreen() {
     }
   }, [caseId]);
 
+  const onRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await loadCase();
+    setRefreshing(false);
+  }, [loadCase]);
+
   // Reload case data on screen focus
   useFocusEffect(
     useCallback(() => {

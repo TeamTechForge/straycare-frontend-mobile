@@ -26,7 +26,7 @@ import {
   CommunityPostFormErrors,
   CommunityPostFormField,
   validateCommunityPost,
-} from "./communityPost.utils";
+} from "../../utils/communityPost.utils";
 
 export default function CreateCommunityPost() {
   const router = useRouter();
