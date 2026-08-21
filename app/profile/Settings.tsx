@@ -12,6 +12,11 @@ import { pushNotificationService } from "../../services/pushNotificationService"
 
 const BRAND_COLOR = "#F5A623";
 
+/**
+ * SettingsScreen
+ * Purpose: Manages user preferences, account deletion, and logout.
+ * Features: Push notification toggle, navigation to privacy/password settings, app version display.
+ */
 export default function SettingsScreen() {
   const router = useRouter();
   const { logout } = useAuth();

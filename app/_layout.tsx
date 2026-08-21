@@ -68,14 +68,14 @@ function InitialLayout() {
           // If they explicitly navigate back to RoleSelection or RescuerTypeSelection to change their role, allow it
           if (onRoleSelection) {
             // Do nothing, let them stay on the selection screen
-          } else if (user.role === "ngo" && segments[1] !== "NgoProfileSetup") {
-            router.replace("/auth/NgoProfileSetup");
-          } else if (user.role === "vet" && segments[1] !== "VetProfileSetup") {
-            router.replace("/auth/VetProfileSetup");
-          } else if (user.role === "volunteer" && segments[1] !== "VolunteerProfileSetup") {
-            router.replace("/auth/VolunteerProfileSetup");
-          } else if (user.role === "general_user" && segments[1] !== "ReporterProfileSetup") {
-            router.replace("/auth/ReporterProfileSetup");
+          } else if (user.role === "ngo" && segments[1] !== "ProfileSetup") {
+            router.replace({ pathname: "/auth/ProfileSetup", params: { role: "ngo" } } as any);
+          } else if (user.role === "vet" && segments[1] !== "ProfileSetup") {
+            router.replace({ pathname: "/auth/ProfileSetup", params: { role: "vet" } } as any);
+          } else if (user.role === "volunteer" && segments[1] !== "ProfileSetup") {
+            router.replace({ pathname: "/auth/ProfileSetup", params: { role: "volunteer" } } as any);
+          } else if (user.role === "general_user" && segments[1] !== "ProfileSetup") {
+            router.replace({ pathname: "/auth/ProfileSetup", params: { role: "reporter" } } as any);
           }
         }
       } else {
@@ -84,7 +84,7 @@ function InitialLayout() {
         const isApproved = user.profileStatus === "Verified";
 
         if (needsApproval && !isApproved) {
-          const onProfileSetup = segments[1] === "NgoProfileSetup" || segments[1] === "VetProfileSetup";
+          const onProfileSetup = segments[1] === "ProfileSetup";
           const isAllowedScreen = segments[1] === "VerificationPending" ||
             segments[1] === "VerificationRejected" ||
             segments[1] === "CompletedProfileSetup" ||
@@ -105,10 +105,7 @@ function InitialLayout() {
             const onCompletedProfileSetup = segments[1] === "CompletedProfileSetup";
             const onTermsPrivacyScreen = segments[1] === "TermsPrivacyScreen";
             const seg = segments[1]?.toLowerCase();
-            const onSetupScreens = seg === "reporterprofilesetup" || 
-                                   seg === "volunteerprofilesetup" || 
-                                   seg === "ngoprofilesetup" || 
-                                   seg === "vetprofilesetup";
+            const onSetupScreens = seg === "profilesetup";
 
             // If they are on a setup screen, let the component handle its own navigation
             if (!onCompletedProfileSetup && !onTermsPrivacyScreen && !onSetupScreens) {

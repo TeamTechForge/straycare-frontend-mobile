@@ -72,13 +72,13 @@ export default function RescuerTypeScreen() {
 
       // Navigate to profile setup without passing userId as a param
       if (selectedType === "volunteer") {
-        router.replace("/auth/VolunteerProfileSetup");
+        router.replace({ pathname: "/auth/ProfileSetup", params: { role: "volunteer" } } as any);
       } else if (selectedType === "ngo") {
-        router.replace("/auth/NgoProfileSetup");
+        router.replace({ pathname: "/auth/ProfileSetup", params: { role: "ngo" } } as any);
       } else if (selectedType === "vet") {
         // Use replace to ensure the user cannot return to the type selection screen 
         // once they begin entering their professional vet details.
-        router.replace("/auth/VetProfileSetup");
+        router.replace({ pathname: "/auth/ProfileSetup", params: { role: "vet" } } as any);
       }
     } catch (error: any) {
       console.error("Rescuer type error:", error);

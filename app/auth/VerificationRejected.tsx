@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback } from "react";
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, StyleSheet, View } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
+import VerificationStatusLayout from "../../components/auth/VerificationStatusLayout";
 import { useAuth } from "../../contexts/AuthContext";
 
 const BRAND_COLOR = "#F5A623";
@@ -30,9 +31,9 @@ export default function VerificationRejectedScreen() {
 
   const handleResubmit = () => {
     if (user?.role === "ngo") {
-      router.replace("/auth/NgoProfileSetup");
+      router.replace({ pathname: "/auth/ProfileSetup", params: { role: "ngo" } } as any);
     } else if (user?.role === "vet") {
-      router.replace("/auth/VetProfileSetup");
+      router.replace({ pathname: "/auth/ProfileSetup", params: { role: "vet" } } as any);
     }
   };
 
@@ -43,36 +44,14 @@ export default function VerificationRejectedScreen() {
 
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerSpacer} />
-        <Text style={styles.headerTitle}>Verification Status</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {/* Illustration Area */}
-      <View style={styles.illustrationWrapper}>
-        <View style={styles.largeCircle}>
-          <View style={styles.docCard}>
-            <Ionicons name="document-text-outline" size={52} color="#EF4444" />
-          </View>
-
-          <View style={styles.closeBadge}>
-            <Ionicons name="close-outline" size={24} color="#fff" />
-          </View>
-        </View>
-      </View>
-
-      {/* Title */}
-      <Text style={styles.title}>Verification Rejected</Text>
-
-      {/* Description */}
-      <Text style={styles.description}>
-        Unfortunately your submitted verification documents were not approved.{"\n"}
-        Please review your information and submit the required documents again.
-      </Text>
-
+    <VerificationStatusLayout
+      title="Verification Rejected"
+      description={`Unfortunately your submitted verification documents were not approved.\nPlease review your information and submit the required documents again.`}
+      circleColor="#FEE2E2"
+      iconColor="#EF4444"
+      badgeColor="#EF4444"
+      badgeIcon="close-outline"
+    >
       <View style={styles.buttonWrapper}>
         <PrimaryButton 
           title="Resubmit Documents" 
@@ -95,98 +74,12 @@ export default function VerificationRejectedScreen() {
           onPress={handleLogout} 
         />
       </View>
-    </View>
+    </VerificationStatusLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    padding: 16,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111",
-  },
-  headerSpacer: {
-    width: 22,
-  },
-  illustrationWrapper: {
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 28,
-  },
-  largeCircle: {
-    width: 195,
-    height: 195,
-    borderRadius: 97.5,
-    backgroundColor: "#FEE2E2",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  docCard: {
-    width: 94,
-    height: 110,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  closeBadge: {
-    position: "absolute",
-    bottom: 36,
-    right: 30,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#EF4444",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: {
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1D1D1D",
-    lineHeight: 30,
-    marginBottom: 16,
-  },
-  description: {
-    textAlign: "center",
-    fontSize: 15,
-    lineHeight: 24,
-    color: "#666",
-    marginHorizontal: 8,
-    marginBottom: 20,
-  },
   buttonWrapper: {
-    marginTop: 20,
     paddingHorizontal: 10,
-  },
-  supportRow: {
-    marginTop: 16,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 4,
-  },
-  supportText: {
-    fontSize: 13,
-    color: "#666",
   },
 });

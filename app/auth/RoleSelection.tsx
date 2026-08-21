@@ -77,7 +77,7 @@ export default function SelectRoleScreen() {
 
           // Role selection is a critical setup step; replace current route 
           // to ensure back button doesn't loop back to role choice.
-          router.replace("/auth/ReporterProfileSetup");
+          router.replace({ pathname: "/auth/ProfileSetup", params: { role: "reporter" } } as any);
         } else {
           Alert.alert(data.message || "Failed to select role");
         }

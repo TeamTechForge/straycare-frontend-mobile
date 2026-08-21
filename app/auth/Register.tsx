@@ -18,6 +18,8 @@ import { useGoogleAuth, handleGoogleSignIn } from "../../services/googleAuthServ
 
 import InputField from "../../components/InputField";
 import PrimaryButton from "../../components/PrimaryButton";
+import AuthDivider from "../../components/auth/AuthDivider";
+import GoogleSignInButton from "../../components/auth/GoogleSignInButton";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import CustomAlertModal from "../../components/CustomAlertModal";
@@ -313,32 +315,14 @@ export default function RegisterScreen() {
           disabled={isLoading}
         />
 
-        <View style={styles.dividerContainer}>
-          <View style={styles.line} />
-          <Text style={styles.orText}>OR</Text>
-          <View style={styles.line} />
-        </View>
+        <AuthDivider />
 
         {!isExpoGo && (
-          <TouchableOpacity
-            style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
+          <GoogleSignInButton
+            isLoading={isLoading || isGoogleLoading}
+            isReady={isGoogleReady}
             onPress={() => promptAsync()}
-            disabled={isLoading || isGoogleLoading || !isGoogleReady}
-          >
-            {isGoogleLoading ? (
-              <ActivityIndicator size="small" color="#DB4437" style={{ marginRight: 8 }} />
-            ) : (
-              <MaterialCommunityIcons
-                name="google"
-                size={18}
-                color="#DB4437"
-                style={{ marginRight: 8 }}
-              />
-            )}
-            <Text style={styles.googleText}>
-              {isGoogleLoading ? "Signing in..." : "Continue with Google"}
-            </Text>
-          </TouchableOpacity>
+          />
         )}
 
         <View style={styles.loginContainer}>
@@ -423,39 +407,6 @@ const styles = StyleSheet.create({
     fontSize: 13,
     marginLeft: 8,
     color: "#444",
-  },
-
-  dividerContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 20,
-  },
-
-  line: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E5E7EB",
-  },
-
-  orText: {
-    marginHorizontal: 10,
-    fontSize: 12,
-    color: "#999",
-  },
-
-  googleButton: {
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    padding: 14,
-    borderRadius: 10,
-    backgroundColor: "#FFFFFF",
-  },
-
-  googleText: {
-    fontWeight: "500",
   },
 
   loginContainer: {

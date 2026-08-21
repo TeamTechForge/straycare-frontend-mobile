@@ -5,6 +5,10 @@ import BackButton from "../../components/BackButton";
 
 const BRAND_COLOR = "#F5A623";
 
+/**
+ * AboutScreen
+ * Displays information about the StrayCare application and its mission.
+ */
 export default function AboutScreen() {
   const router = useRouter();
 
