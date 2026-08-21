@@ -15,6 +15,9 @@ import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import axios from "axios";
 
+/**
+ * Interface defining the structure of a stray animal report payload on web.
+ */
 type Report = {
   caseId: string;
   animalType: string;
@@ -30,12 +33,24 @@ type Report = {
   };
 };
 
+/**
+ * Determines the next valid status progression in the rescue workflow lifecycle.
+ *
+ * @param status - Current status string of the report
+ * @returns Next status string or null if terminal status
+ */
 const getNextStatus = (status: string) => {
   if (status === "Under Rescue") return "Treated";
   if (status === "Treated") return "Ready for Adoption";
   return null;
 };
 
+/**
+ * Returns the hex color associated with a given case status for web badges.
+ *
+ * @param status - Current status string of the report
+ * @returns Hex color string for status badge background
+ */
 const getStatusColor = (status: string) => {
   switch (status) {
     case "Needs Help":
@@ -51,18 +66,30 @@ const getStatusColor = (status: string) => {
   }
 };
 
+/**
+ * Web implementation of the Case Details Screen component.
+ *
+ * Provides a lightweight web interface to view stray incident details, accept rescue cases,
+ * update case statuses, and navigate back to profile or case lists.
+ */
 export default function CaseDetails() {
   const router = useRouter();
   const { user } = useAuth();
   const params = useLocalSearchParams();
+
+  // Component State
   const [report, setReport] = useState<Report | null>(null);
   const [loading, setLoading] = useState(true);
   const [acceptingRescue, setAcceptingRescue] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
 
+  /**
+   * Helper function to safely evaluate route parameter strings.
+   */
   const safe = (v: string | string[] | undefined): string =>
     Array.isArray(v) ? v[0] : v || "";
 
+  // Route Parameters & User Context
   const caseId = safe(params.caseId);
   const isProfileStatusUpdate = safe(params.source) === "profile";
   const returnToPreviousScreen = () =>
@@ -72,6 +99,7 @@ export default function CaseDetails() {
   );
   const nextStatus = report ? getNextStatus(report.status) : null;
 
+  // Fetch report details on component mount / caseId change
   useEffect(() => {
     (async () => {
       try {
@@ -85,6 +113,7 @@ export default function CaseDetails() {
     })();
   }, [caseId]);
 
+  // Render activity loading spinner
   if (loading) {
     return (
       <View style={styles.center}>
@@ -93,6 +122,7 @@ export default function CaseDetails() {
     );
   }
 
+  // Render missing case fallback error UI
   if (!report) {
     return (
       <View style={styles.center}>
@@ -101,6 +131,9 @@ export default function CaseDetails() {
     );
   }
 
+  /**
+   * Assigns the case to the current rescuer and redirects to response workflow.
+   */
   const acceptRescue = async () => {
     setAcceptingRescue(true);
     try {
@@ -122,12 +155,17 @@ export default function CaseDetails() {
     }
   };
 
+  /**
+   * Updates the status of the current case to the next progression step.
+   */
   const handleStatusUpdate = async () => {
     if (!report || !nextStatus || !report.permissions?.canUpdate) return;
     setUpdatingStatus(true);
     try {
       const updated = await updateCaseStatus(report.caseId, nextStatus);
       setReport(updated);
+
+      // Redirect to adoption post creation if case reaches Ready for Adoption
       if (nextStatus === "Ready for Adoption") {
         router.push({
           pathname: "/adoption-corner/CreateAdoptionPost",
@@ -144,8 +182,10 @@ export default function CaseDetails() {
   return (
     <ScrollView style={styles.container}>
       <View style={styles.card}>
+        {/* Animal Type Header */}
         <Text style={styles.title}>{report.animalType}</Text>
 
+        {/* Current Case Status Badge */}
         <View
           style={[
             styles.statusBadge,
@@ -155,6 +195,7 @@ export default function CaseDetails() {
           <Text style={styles.statusText}>{report.status}</Text>
         </View>
 
+        {/* Accept Rescue Case Button (Rescuers only) */}
         {isRescuer && report.permissions?.canAccept && (
           <PrimaryButton
             title={acceptingRescue ? "Accepting..." : "Accept This Case"}
@@ -163,6 +204,7 @@ export default function CaseDetails() {
           />
         )}
 
+        {/* Status Progression Button (Authorized Rescuer only) */}
         {isProfileStatusUpdate && nextStatus && report.permissions?.canUpdate && (
           <PrimaryButton
             title={updatingStatus ? "Updating..." : `Mark as "${nextStatus}"`}
@@ -171,11 +213,13 @@ export default function CaseDetails() {
           />
         )}
 
+        {/* Case Category Details */}
         <View style={styles.section}>
           <Text style={styles.label}>Category:</Text>
           <Text style={styles.value}>{report.category}</Text>
         </View>
 
+        {/* Optional Animal Breed */}
         {report.breed && (
           <View style={styles.section}>
             <Text style={styles.label}>Breed:</Text>
@@ -183,11 +227,13 @@ export default function CaseDetails() {
           </View>
         )}
 
+        {/* Incident Location Address */}
         <View style={styles.section}>
           <Text style={styles.label}>Location:</Text>
-          <Text style={styles.value}>{report.location.address}</Text>
+          <Text style={styles.value}>{report.location?.address || "Unknown location"}</Text>
         </View>
 
+        {/* Condition Notes */}
         {report.notes && (
           <View style={styles.section}>
             <Text style={styles.label}>Notes:</Text>
@@ -195,12 +241,14 @@ export default function CaseDetails() {
           </View>
         )}
 
+        {/* Web Map Placeholder Notice */}
         <View style={styles.mapPlaceholder}>
           <Text style={styles.mapText}>
             📍 Map view available on mobile app
           </Text>
         </View>
 
+        {/* Navigation Action Button */}
         <PrimaryButton
           title={isProfileStatusUpdate ? "Back to Profile" : "Back to Cases"}
           onPress={returnToPreviousScreen}

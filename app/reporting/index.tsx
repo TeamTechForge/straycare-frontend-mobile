@@ -10,15 +10,13 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
-import { getAllReports } from "../../api/strayApiService";
-import PrimaryButton from "../../components/PrimaryButton";
-import BackButton from "../../components/BackButton";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { io } from "socket.io-client";
-import { Ionicons } from "@expo/vector-icons";
-import { BASE_URL } from "../../constants/config.constants";
+import { getAllReports } from "../../api/strayApiService";
+import BackButton from "../../components/BackButton";
+import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
+import PrimaryButton from "../../components/PrimaryButton";
 
+/** Interface representing stray animal report data on the main map screen */
 type Report = {
   caseId: string;
   animalType: string;
@@ -31,8 +29,15 @@ type Report = {
   };
 };
 
+/** List of selectable case status filter categories */
 const MAP_STATUSES = ["Needs Help", "Under Rescue", "Treated", "Ready for Adoption"] as const;
 
+/**
+ * Resolves map marker pin colors corresponding to case status state.
+ *
+ * @param status - Current case status string
+ * @returns Color string for map pin marker
+ */
 const getMarkerColor = (status: string) => {
   switch (status) {
     case "Needs Help":
@@ -55,6 +60,12 @@ const getMarkerColor = (status: string) => {
   }
 };
 
+/**
+ * RadarMarker Component.
+ *
+ * Renders an animated radar pulse effect marker for cases actively searching for a rescuer ("Pending"/"Request Sent"),
+ * or a standard color-coded pin marker for confirmed case statuses.
+ */
 const RadarMarker = ({
   coordinate,
   status,
@@ -67,6 +78,7 @@ const RadarMarker = ({
   const isSearching = status === "Pending" || status === "Request Sent";
   const radarAnim = useRef(new Animated.Value(0)).current;
 
+  // Pulse animation loop for active rescue search requests
   useEffect(() => {
     if (isSearching) {
       Animated.loop(
@@ -88,6 +100,7 @@ const RadarMarker = ({
     }
   }, [isSearching, radarAnim]);
 
+  // Render animated pulse marker during active search
   if (isSearching) {
     return (
       <Marker coordinate={coordinate} onPress={onPress} anchor={{ x: 0.5, y: 0.5 }}>
@@ -116,6 +129,7 @@ const RadarMarker = ({
     );
   }
 
+  // Render standard pin marker
   return (
     <Marker
       coordinate={coordinate}
@@ -125,10 +139,18 @@ const RadarMarker = ({
   );
 };
 
+/**
+ * Main Reporting Map Screen Component (Cross-platform default).
+ *
+ * Renders an interactive map of reported stray care cases with real-time status filtering,
+ * animated radar markers for pending dispatches, auto-viewport bounds fitting, and reporting entry points.
+ */
 export default function ReportingMapScreen() {
   const mapRef = useRef<any>(null);
   const router = useRouter();
   const insets = useSafeAreaInsets();
+
+  // Screen State
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
   const [mapReady, setMapReady] = useState(false);
@@ -136,6 +158,9 @@ export default function ReportingMapScreen() {
     () => new Set(["Needs Help"])
   );
 
+  /**
+   * Toggles selection state of a case status filter chip.
+   */
   const toggleStatus = (status: string) => {
     setSelectedStatuses((current) => {
       const next = new Set(current);
@@ -145,6 +170,9 @@ export default function ReportingMapScreen() {
     });
   };
 
+  /**
+   * Fetches latest stray reports from backend API.
+   */
   const loadReports = useCallback(async () => {
     try {
       const data = await getAllReports();
@@ -156,59 +184,19 @@ export default function ReportingMapScreen() {
     }
   }, []);
 
+  // Fetch reports on mount
   useEffect(() => {
     void loadReports();
   }, [loadReports]);
 
+  // Refresh reports on screen focus
   useFocusEffect(
     useCallback(() => {
       void loadReports();
     }, [loadReports])
   );
 
-  // 📡 Real-time live socket listener for map marker status updates
-  useEffect(() => {
-    const socket = io(`${BASE_URL}/rescue`, {
-      transports: ["websocket"],
-      reconnection: true,
-    });
-
-    socket.on("status_update", (data: any) => {
-      if (data?.caseId && data?.status) {
-        setReports((prevReports) =>
-          prevReports.map((r) =>
-            r.caseId === data.caseId ? { ...r, status: data.status } : r
-          )
-        );
-      }
-    });
-
-    socket.on("report_updated", (data: any) => {
-      if (data?.caseId && data?.status) {
-        setReports((prevReports) =>
-          prevReports.map((r) =>
-            r.caseId === data.caseId ? { ...r, status: data.status } : r
-          )
-        );
-      }
-    });
-
-    socket.on("report_deleted", (data: any) => {
-      if (data?.caseId) {
-        setReports((prevReports) => prevReports.filter((r) => r.caseId !== data.caseId));
-      }
-    });
-
-    return () => {
-      socket.disconnect();
-    };
-  }, []);
-
-  // The map's initialRegion only applies on first mount and never recenters,
-  // so it was hiding every case outside that fixed Colombo box (including new
-  // ones reported elsewhere). Refit the viewport whenever the report list changes.
-  // fitToCoordinates is a no-op until the native map has actually finished
-  // initializing, so this also waits on onMapReady rather than just the mount.
+  // Auto-fit map camera viewport to encompass all active report markers
   useEffect(() => {
     if (!mapReady) return;
 
@@ -231,7 +219,7 @@ export default function ReportingMapScreen() {
     }
   }, [reports, mapReady, selectedStatuses]);
 
-  // Override hardware back button to navigate to Home
+  // Intercept Android hardware back button to return to Home tab
   useEffect(() => {
     const onBackPress = () => {
       router.push("/(tabs)/Home");
@@ -241,6 +229,7 @@ export default function ReportingMapScreen() {
     return () => subscription.remove();
   }, [router]);
 
+  // Render loading indicator overlay
   if (loading) {
     return (
       <View style={styles.center}>
@@ -269,7 +258,7 @@ export default function ReportingMapScreen() {
         </View>
       </View>
 
-      {/* Map View */}
+      {/* Interactive Map View */}
       <MapViewWrapper
         ref={mapRef}
         provider="google"
@@ -282,6 +271,7 @@ export default function ReportingMapScreen() {
           longitudeDelta: 0.05,
         }}
       >
+        {/* Render Case Markers */}
         {reports.filter((report) => selectedStatuses.has(report.status)).map((report) => {
           if (
             !report.location ||
@@ -314,6 +304,7 @@ export default function ReportingMapScreen() {
         })}
       </MapViewWrapper>
 
+      {/* Floating Status Filter Card */}
       <View style={styles.filterCard}>
         <Text style={styles.filterTitle}>Case status filters</Text>
         <View style={styles.filterRow}>
@@ -334,7 +325,7 @@ export default function ReportingMapScreen() {
         </View>
       </View>
 
-      {/* Add Case Button */}
+      {/* Bottom Sticky Action Button to add a case */}
       <View style={[styles.bottomButtonWrapper, { bottom: insets.bottom + 115 }]}>
         <PrimaryButton
           title="Report a Case +"

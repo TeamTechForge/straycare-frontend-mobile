@@ -11,6 +11,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 
+/** Color theme constants used across ReportPostModal */
 const C = {
   white: "#FFFFFF",
   text: "#121C2C",
@@ -21,6 +22,7 @@ const C = {
   darkOrange: "#B75D00",
 };
 
+/** Predefined list of selectable content report reasons */
 const REPORT_REASONS = [
   "Misleading or sensational",
   "Violent or repulsive",
@@ -30,12 +32,22 @@ const REPORT_REASONS = [
   "Other",
 ];
 
+/** Props for the ReportPostModal component */
 export interface ReportPostModalProps {
+  /** Controls modal visibility state */
   visible: boolean;
+  /** Callback triggered to close modal without submitting */
   onClose: () => void;
+  /** Async or sync callback triggered with selected report reason string */
   onSubmit: (reason: string) => Promise<void> | void;
 }
 
+/**
+ * Report Post Modal Component.
+ *
+ * Renders a dialog allowing users to flag community posts or rescue content for moderation,
+ * providing preset violation options and an optional custom explanation field.
+ */
 export default function ReportPostModal({
   visible,
   onClose,
@@ -45,6 +57,7 @@ export default function ReportPostModal({
   const [otherReason, setOtherReason] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
+  /** Reset form fields and dismiss modal if submission is not in progress */
   const handleClose = () => {
     if (submitting) return;
     setSelectedReason("");
@@ -52,6 +65,7 @@ export default function ReportPostModal({
     onClose();
   };
 
+  /** Handles selecting a preset reason option */
   const handleSelectReason = (reason: string) => {
     setSelectedReason(reason);
     if (reason !== "Other") {
@@ -59,6 +73,7 @@ export default function ReportPostModal({
     }
   };
 
+  /** Validates selection and dispatches submission request */
   const handleSubmit = async () => {
     if (!selectedReason) {
       Alert.alert("Select a reason", "Please select a reason for reporting this post.");
@@ -94,17 +109,20 @@ export default function ReportPostModal({
       animationType="fade"
       onRequestClose={handleClose}
     >
+      {/* Backdrop Overlay */}
       <Pressable style={styles.overlay} onPress={handleClose}>
+        {/* Modal Card Container */}
         <Pressable style={styles.modalContent} onPress={(e) => e.stopPropagation()}>
-          {/* Header */}
+          {/* Header Title & Close Button */}
           <View style={styles.header}>
-            <View style={{ flex: 1 }}>
+            <View style={styles.headerTextWrapper}>
               <Text style={styles.title}>Submit a report</Text>
               <Text style={styles.description}>
                 Tell us why you are reporting this post.
               </Text>
             </View>
             <TouchableOpacity
+              accessibilityLabel="Close report modal"
               style={styles.closeButton}
               disabled={submitting}
               onPress={handleClose}
@@ -113,7 +131,7 @@ export default function ReportPostModal({
             </TouchableOpacity>
           </View>
 
-          {/* Reasons List */}
+          {/* Preset Reason Radio List */}
           {REPORT_REASONS.map((reason) => {
             const isSelected = selectedReason === reason;
             return (
@@ -135,7 +153,7 @@ export default function ReportPostModal({
             );
           })}
 
-          {/* Custom Input for 'Other' */}
+          {/* Custom Reason Text Input (Shown when 'Other' is selected) */}
           {selectedReason === "Other" && (
             <View style={styles.otherInputWrapper}>
               <Text style={styles.otherInputLabel}>Tell us your reason</Text>
@@ -152,7 +170,7 @@ export default function ReportPostModal({
             </View>
           )}
 
-          {/* Buttons */}
+          {/* Footer Action Buttons */}
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={styles.cancelButton}
@@ -190,6 +208,7 @@ export default function ReportPostModal({
 }
 
 const styles = StyleSheet.create({
+  // ── Overlay & Modal Container ───────────────────────────────────────────────
   overlay: {
     flex: 1,
     backgroundColor: "rgba(18, 28, 44, 0.45)",
@@ -209,10 +228,15 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.15,
     shadowRadius: 12,
   },
+
+  // ── Header & Title ──────────────────────────────────────────────────────────
   header: {
     flexDirection: "row",
     alignItems: "flex-start",
     marginBottom: 16,
+  },
+  headerTextWrapper: {
+    flex: 1,
   },
   title: {
     fontSize: 18,
@@ -227,6 +251,8 @@ const styles = StyleSheet.create({
   closeButton: {
     padding: 4,
   },
+
+  // ── Reason Selection List & Radio Buttons ───────────────────────────────────
   reasonRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -266,6 +292,8 @@ const styles = StyleSheet.create({
     fontWeight: "600",
     color: C.darkOrange,
   },
+
+  // ── Custom Reason Input ─────────────────────────────────────────────────────
   otherInputWrapper: {
     marginTop: 8,
     marginBottom: 12,
@@ -292,6 +320,8 @@ const styles = StyleSheet.create({
     textAlign: "right",
     marginTop: 4,
   },
+
+  // ── Action Buttons ──────────────────────────────────────────────────────────
   buttonRow: {
     flexDirection: "row",
     justifyContent: "flex-end",
