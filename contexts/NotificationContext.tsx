@@ -93,12 +93,14 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
       // Trigger local OS banner notification for newly arrived unread notifications
       if (initialFetchDoneRef.current) {
         list.forEach((notif) => {
-          if (!notif.read && notif._id && !seenNotificationIdsRef.current.has(notif._id)) {
+          const id = String(notif._id || "");
+          if (id && !notif.read && !seenNotificationIdsRef.current.has(id)) {
             void pushNotificationService.presentLocalNotification(notif.title, notif.message, {
               caseId: notif.caseId,
               rescueRequestId: notif.rescueRequestId,
               event: notif.event,
             });
+            seenNotificationIdsRef.current.add(id);
           }
         });
       } else {
@@ -107,7 +109,8 @@ export const NotificationProvider: React.FC<NotificationProviderProps> = ({ chil
 
       // Mark all current IDs as seen in ref
       list.forEach((notif) => {
-        if (notif._id) seenNotificationIdsRef.current.add(notif._id);
+        const id = String(notif._id || "");
+        if (id) seenNotificationIdsRef.current.add(id);
       });
     } catch (error: any) {
       if (timeoutId) clearTimeout(timeoutId);
