@@ -11,10 +11,7 @@ import {
 } from "react-native";
 import { deletePost } from "@/services/adoptionService";
 
-// ─────────────────────────────────────────────────────────────────────────────
-// OPTION A — Use as a standalone screen (place at app/adoption-corner/DeleteConfirm.tsx)
-// Navigate to it: router.push(`/adoption-corner/DeleteConfirm?postId=${id}&postName=${name}`)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Standalone Delete Confirmation Screen ───────────────────────────────────
 
 export default function DeleteConfirmScreen() {
   const router = useRouter();
@@ -31,6 +28,7 @@ export default function DeleteConfirmScreen() {
       await deletePost(postId!);
       // Go back to listing after delete
       router.replace("/adoption-corner" as any);
+    
     } catch {
       setDeleting(false);
       // Show inline error — no Alert so the screen stays visible
@@ -85,19 +83,7 @@ export default function DeleteConfirmScreen() {
   );
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// OPTION B — Use as an inline Modal inside any screen
-// Import: import { DeleteConfirmModal } from "@/components/DeleteConfirmModal"
-// Usage:
-//   const [showDelete, setShowDelete] = useState(false);
-//   <DeleteConfirmModal
-//     visible={showDelete}
-//     postId={post._id}
-//     postName={post.name}
-//     onClose={() => setShowDelete(false)}
-//     onDeleted={() => router.replace("/adoption-corner/AdoptionPostMain")}
-//   />
-// ─────────────────────────────────────────────────────────────────────────────
+// ─── Reusable Delete Confirmation Modal ──────────────────────────────────────
 
 export function DeleteConfirmModal({
   visible,

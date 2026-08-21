@@ -1,6 +1,3 @@
-// services/adoptionService.ts
-// Single file for all API calls + Cloudinary image upload
-
 import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as SecureStore from "expo-secure-store";
@@ -28,14 +25,14 @@ api.interceptors.request.use(async (config: any) => {
   let token: string | null = null;
   try {
     token = await SecureStore.getItemAsync("authToken");
-  } catch (_err) {
+  } catch {
     // SecureStore unsupported or failed on web
   }
 
   if (!token) {
     try {
       token = (await AsyncStorage.getItem("authToken")) ?? (await AsyncStorage.getItem("token"));
-    } catch (_err) {
+    } catch {
       // AsyncStorage fallback check
     }
   }
@@ -108,6 +105,7 @@ const uploadSingleImage = async (
   localUri: string,
   index: number
 ): Promise<string> => {
+  
   // If image is already a remote HTTP/HTTPS URL, don't re-upload
   if (localUri.startsWith("http://") || localUri.startsWith("https://")) {
     return localUri;
@@ -157,7 +155,7 @@ const uploadSingleImage = async (
       if (json?.message) {
         errorText = json.message;
       }
-    } catch (_e) {
+    } catch {
       // ignore JSON parse errors
     }
     throw new Error(errorText);
@@ -186,8 +184,7 @@ export const getPostById = async (postId: string): Promise<Post> => {
   return data;
 };
 
-// POST create new post — used in PostPetAdoption
-// Pass localImageUris (from expo-image-picker) — upload to Cloudinary happens here
+// ─── Create Post and Upload Local Images ─────────────────────────────────────
 export const createPost = async (
   payload: CreatePostPayload,
   localImageUris: string[]
@@ -217,6 +214,7 @@ export const updatePost = async (
     uploadedUrls = await uploadImages(newLocalImageUris);
   }
 
+  // Preserve retained remote images and append only newly uploaded selections.
   const combinedImages = [...(existingImages || []), ...uploadedUrls];
 
   const { data } = await api.put<Post>(`/${postId}`, {

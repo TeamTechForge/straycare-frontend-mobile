@@ -1,17 +1,14 @@
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import React from "react";
 import { SafeAreaView, StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
 
 export default function AdoptionSubmitSuccess() {
   const router = useRouter();
-  const { postId } = useLocalSearchParams<{ postId: string }>();
-
   return (
     <SafeAreaView style={styles.container}>
       <View style={styles.content}>
-        {/* Success Icon */}
         <View style={styles.iconWrapper}>
           <Ionicons name="checkmark-circle" size={90} color="#F5A623" />
         </View>

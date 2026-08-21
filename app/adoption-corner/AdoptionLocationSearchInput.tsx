@@ -21,6 +21,8 @@ export default function AdoptionLocationSearchInput({ value, hasError, hasValidC
   const [error, setError] = useState("");
   const [selectionLocked, setSelectionLocked] = useState(false);
   const sessionTokenRef = useRef(createSessionToken());
+
+  // Only the latest request may update suggestions, preventing stale results from winning a race.
   const requestIdRef = useRef(0);
 
   useEffect(() => {
@@ -42,10 +44,10 @@ export default function AdoptionLocationSearchInput({ value, hasError, hasValidC
         if (requestId !== requestIdRef.current) return;
         setSuggestions(results);
         if (results.length === 0) setError("No matching locations found.");
-      } catch (requestError: any) {
+      } catch (requestError: unknown) {
         if (requestId !== requestIdRef.current) return;
         setSuggestions([]);
-        setError(requestError?.message || "Location search is unavailable. Please try again.");
+        setError(requestError instanceof Error ? requestError.message : "Location search is unavailable. Please try again.");
       } finally {
         if (requestId === requestIdRef.current) setLoading(false);
       }
@@ -71,9 +73,11 @@ export default function AdoptionLocationSearchInput({ value, hasError, hasValidC
         longitude: details.longitude,
       });
       sessionTokenRef.current = createSessionToken();
-    } catch (requestError: any) {
+
+    } catch (requestError: unknown) {
       if (requestId !== requestIdRef.current) return;
-      setError(requestError?.message || "Could not load that location. Please try again.");
+      
+      setError(requestError instanceof Error ? requestError.message : "Could not load that location. Please try again.");
     } finally {
       if (requestId === requestIdRef.current) setLoading(false);
     }

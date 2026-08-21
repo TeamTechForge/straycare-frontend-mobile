@@ -21,8 +21,21 @@ import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { useAuth } from "../../contexts/AuthContext";
 import { getReportByCaseId } from "../../api/strayApiService";
 import { createPost } from "../../services/adoptionService";
-import { ANIMAL_BREEDS, AnimalCategory } from "../../constants/breeds.constants";
 import AdoptionLocationSearchInput from "./AdoptionLocationSearchInput";
+import {
+  AdoptionCategory as Category,
+  AdoptionFormErrors as Errors,
+  AdoptionGender as Gender,
+  AdoptionHealthStatus as HealthStatus,
+  AdoptionStatus as Status,
+  BREEDS_BY_CATEGORY,
+  GENDERS,
+  getAdoptionRequestError,
+  HEALTH_STATUSES,
+  STATUSES,
+  TRAITS,
+  validateAdoptionForm,
+} from "./adoptionForm";
 
 // Centralized color tokens matching Lost & Found
 const C = {
@@ -42,11 +55,6 @@ const C = {
   amberDim: "#FFF8E7",
 };
 
-type Category = AnimalCategory;
-type Gender = "Male" | "Female";
-type Status = "Available" | "Pending" | "Adopted";
-type HealthStatus = "Healthy" | "Needs Care" | "Under Treatment" | "Special Needs";
-
 type CaseReport = {
   caseId: string;
   animalType?: string;
@@ -54,36 +62,6 @@ type CaseReport = {
   notes?: string;
   location?: { lat?: number; lng?: number; address?: string };
   photos?: string[];
-};
-
-const BREEDS_BY_CATEGORY = ANIMAL_BREEDS;
-
-const GENDERS: Gender[] = ["Male", "Female"];
-const STATUSES: Status[] = ["Available", "Pending", "Adopted"];
-const HEALTH_STATUSES: HealthStatus[] = [
-  "Healthy",
-  "Needs Care",
-  "Under Treatment",
-  "Special Needs",
-];
-const TRAITS = [
-  "Vaccinated",
-  "Neutered",
-  "Microchipped",
-  "House trained",
-  "Good with kids",
-  "Good with pets",
-];
-
-type Errors = {
-  name?: string;
-  age?: string;
-  description?: string;
-  customCategory?: string;
-  breed?: string;
-  otherBreed?: string;
-  location?: string;
-  images?: string;
 };
 
 export default function CreateAdoptionPost() {
@@ -107,8 +85,8 @@ export default function CreateAdoptionPost() {
   const [healthStatus, setHealthStatus] = useState<HealthStatus>("Healthy");
   const [healthDropdownOpen, setHealthDropdownOpen] = useState(false);
   const [description, setDescription] = useState("");
-  const [selectedTraits, setSelectedTraits] = useState<string[]>([]); // Initially unselected
-  const [notes, setNotes] = useState("");
+  const [selectedTraits, setSelectedTraits] = useState<string[]>([]);
+  const notes = "";
   const [location, setLocation] = useState("");
   const [images, setImages] = useState<string[]>([]);
 
@@ -129,6 +107,8 @@ export default function CreateAdoptionPost() {
         const report = (await getReportByCaseId(caseId)) as CaseReport;
         const animalType = report.animalType?.trim() || "";
         const normalizedAnimalType = animalType.toLowerCase();
+        
+        // Report categories outside Dog and Cat remain available through the form's Other category.
         const mappedCategory: Category =
           normalizedAnimalType === "dog" ? "Dog" : normalizedAnimalType === "cat" ? "Cat" : "Other";
         const reportedBreed = report.breed?.trim() || "";
@@ -138,13 +118,16 @@ export default function CreateAdoptionPost() {
         if (mappedCategory === "Other") {
           setBreed("");
           setOtherBreed("");
+        
         } else if (BREEDS_BY_CATEGORY[mappedCategory].includes(reportedBreed)) {
           setBreed(reportedBreed);
           setOtherBreed("");
+        
         } else {
           setBreed(reportedBreed ? "Other" : "Unknown");
           setOtherBreed(reportedBreed);
         }
+        
         setDescription(report.notes?.trim() || "");
         setLocation(
           report.location?.address?.trim() ||
@@ -156,9 +139,10 @@ export default function CreateAdoptionPost() {
           setSelectedRegion({ latitude: report.location.lat, longitude: report.location.lng });
         }
         setImages((report.photos || []).slice(0, 6));
-      } catch (error) {
-        console.error("Failed to prefill adoption form from case:", error);
+      
+      } catch {
         Alert.alert("Case details unavailable", "You can still complete the adoption form manually.");
+      
       } finally {
         setPrefillingCase(false);
       }
@@ -221,39 +205,13 @@ export default function CreateAdoptionPost() {
 
   // ── Validation ────────────────────────────────────────────────────────────
   const validateForm = (): boolean => {
-    const newErrors: Errors = {};
-
-    if (!name.trim()) newErrors.name = "Pet name is required.";
-
-    if (age.trim() && !/^\d+(\s*(year|years|month|months|week|weeks))?$/i.test(age.trim())) {
-      newErrors.age = "Enter a valid age (e.g. 2 years, 6 months).";
-    }
-
-    if (!description.trim()) {
-      newErrors.description = "Please enter a description.";
-    } else if (description.trim().length < 20) {
-      newErrors.description = "Description must be at least 20 characters.";
-    }
-
-    if (category === "Other") {
-      if (!customCategory.trim()) {
-        newErrors.customCategory = "Please specify the animal type.";
-      }
-    } else {
-      if (!breed) {
-        newErrors.breed = "Please select a breed.";
-      } else if (breed === "Other" && !otherBreed.trim()) {
-        newErrors.otherBreed = "Please specify the breed.";
-      }
-    }
-
-    if (!location.trim() || !selectedRegion) {
-      newErrors.location = "Select a valid location suggestion or choose a location on the map.";
-    }
-
-    if (images.length === 0) {
-      newErrors.images = "Please add at least one photo.";
-    }
+    
+    // Creation requires an image, while shared field rules stay aligned with editing.
+    const newErrors = validateAdoptionForm({
+      name, age, description, category, customCategory, breed, otherBreed, location,
+      hasSelectedRegion: Boolean(selectedRegion), requireImage: true, imageCount: images.length,
+      emptyDescriptionMessage: "Please enter a description.",
+    });
 
     setErrors(newErrors);
     const firstErr = Object.values(newErrors).find(Boolean);
@@ -302,12 +260,11 @@ export default function CreateAdoptionPost() {
       );
 
       router.push(`/adoption-corner/AdoptionSubmitSuccess?postId=${post._id}`);
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        "Could not submit your post. Please check your connection and try again.";
+    } catch (error: unknown) {
+      const msg = getAdoptionRequestError(
+        error,
+        "Could not submit your post. Please check your connection and try again."
+      );
       setErrorMessage(msg);
       Alert.alert("Submission Failed", msg);
     } finally {
@@ -690,7 +647,8 @@ export default function CreateAdoptionPost() {
             placeholderTextColor={C.textPlaceholder}
             multiline
             scrollEnabled={descriptionHeight >= 180}
-            onContentSizeChange={(event) => setDescriptionHeight(Math.min(180, Math.max(96, event.nativeEvent.contentSize.height + 24)))}
+            onContentSizeChange={
+              (event) => setDescriptionHeight(Math.min(180, Math.max(96, event.nativeEvent.contentSize.height + 24)))}
             textAlignVertical="top"
             value={description}
             onChangeText={(v) => {
@@ -795,6 +753,7 @@ export default function CreateAdoptionPost() {
             </View>
           ) : <><View style={s.mapIconCircle}><Ionicons name="location-outline" size={28} color={C.amber} /></View><Text style={s.mapTitle}>Select Location</Text><Text style={s.mapText}>Tap here to select location</Text></>}
         </TouchableOpacity>
+        
         <View style={s.fieldGroup}>
           <FieldLabel text="Adoption Location *" />
           <AdoptionLocationSearchInput
@@ -819,6 +778,7 @@ export default function CreateAdoptionPost() {
             disabled={submitting}
           />
         </View>
+        
         <View style={{ flex: 2, marginLeft: 12 }}>
           <PrimaryButton
             title={submitting ? "Submitting…" : "Submit Post"}
