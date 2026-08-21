@@ -35,6 +35,7 @@ import {
   unlikeCommunityPost,
   unsaveCommunityPost,
 } from "../../services/communityService";
+import { COMMUNITY_POST_CATEGORIES } from "./communityPost.utils";
 
 // ─────────────────────────────────────────────
 // COLORS
@@ -58,16 +59,6 @@ const C = {
 // ─────────────────────────────────────────────
 // CATEGORIES
 // ─────────────────────────────────────────────
-
-const CATEGORIES = [
-  "Pet Care Tips",
-  "Health & First Aid",
-  "Stray Animal Help",
-  "Training & Behavior",
-  "Animal Welfare & Rights Awareness",
-  "Success Stories",
-  "Events & Campaigns",
-];
 
 // ─────────────────────────────────────────────
 // COMMUNITY FEED SCREEN
@@ -102,7 +93,7 @@ export default function CommunityPostMain() {
   // FETCH POSTS
   // ─────────────────────────────────────────────
 
-  const fetchPosts = async () => {
+  const fetchPosts = useCallback(async () => {
     try {
       setLoading(true);
       setError(false);
@@ -115,22 +106,17 @@ export default function CommunityPostMain() {
           ? postsData
           : []
       );
-    } catch (err) {
-      console.error(
-        "Community feed error:",
-        err
-      );
-
+    } catch {
       setError(true);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useFocusEffect(
     useCallback(() => {
-      fetchPosts();
-    }, [])
+      void fetchPosts();
+    }, [fetchPosts])
   );
 
   // ─────────────────────────────────────────────
@@ -140,6 +126,7 @@ export default function CommunityPostMain() {
   const handleLikePost = async (post: CommunityPost) => {
     if (pendingLikeIds.current.has(post._id)) return;
 
+    // Update immediately for responsiveness, then replace with the server's canonical state.
     const nextIsLiked = !post.isLiked;
     const previousLikeCount = post.likeCount || 0;
     const optimisticLikeCount = Math.max(0, previousLikeCount + (nextIsLiked ? 1 : -1));
@@ -161,13 +148,13 @@ export default function CommunityPostMain() {
           ? { ...item, isLiked: state.isLiked, likeCount: state.likeCount }
           : item
       ));
-    } catch (likeError) {
+    } catch {
+      // Restore the original values when the request fails.
       setPosts((current) => current.map((item) =>
         item._id === post._id
           ? { ...item, isLiked: post.isLiked, likeCount: previousLikeCount }
           : item
       ));
-      console.error("Community like error:", likeError);
       Alert.alert("Unable to update like", "Please try again.");
     } finally {
       pendingLikeIds.current.delete(post._id);
@@ -180,6 +167,8 @@ export default function CommunityPostMain() {
 
   const handleSavePost = async (post: CommunityPost) => {
     if (pendingSaveIds.current.has(post._id)) return;
+
+    // Prevent duplicate requests while keeping the save action responsive.
     const nextIsSaved = !post.isSaved;
     pendingSaveIds.current.add(post._id);
     setPosts((current) => current.map((item) =>
@@ -193,11 +182,11 @@ export default function CommunityPostMain() {
       setPosts((current) => current.map((item) =>
         item._id === post._id ? { ...item, isSaved: state.isSaved } : item
       ));
-    } catch (saveError) {
+    } catch {
+      // Restore the previous saved state when the request fails.
       setPosts((current) => current.map((item) =>
         item._id === post._id ? { ...item, isSaved: post.isSaved } : item
       ));
-      console.error("Community save error:", saveError);
       Alert.alert("Unable to update saved post", "Please try again.");
     } finally {
       pendingSaveIds.current.delete(post._id);
@@ -218,8 +207,7 @@ export default function CommunityPostMain() {
           try {
             await deleteCommunityPost(post._id);
             setPosts((current) => current.filter((item) => item._id !== post._id));
-          } catch (deleteError) {
-            console.error("Delete community post error:", deleteError);
+          } catch {
             Alert.alert("Unable to delete post", "Please try again.");
           }
         },
@@ -236,23 +224,8 @@ export default function CommunityPostMain() {
     reason: string
   ) => {
     try {
-      // Calls your service function
-      await reportCommunityPost(
-        postId,
-        reason
-      );
-
-      console.log(
-        "Community post reported successfully"
-      );
+      await reportCommunityPost(postId, reason);
     } catch (error) {
-      console.error(
-        "Report post error:",
-        error
-      );
-
-      // Throw the error back to the card
-      // so the component can show an Alert
       throw error;
     }
   };
@@ -261,11 +234,7 @@ export default function CommunityPostMain() {
   // FILTER POSTS
   // ─────────────────────────────────────────────
 
-  const filteredPosts = (
-    Array.isArray(posts)
-      ? posts
-      : []
-  ).filter((post) => {
+  const filteredPosts = posts.filter((post) => {
     const search =
       searchText
         .trim()
@@ -422,7 +391,7 @@ export default function CommunityPostMain() {
 
             {/* OTHER CATEGORIES */}
 
-            {CATEGORIES.map(
+            {COMMUNITY_POST_CATEGORIES.map(
               (category) => {
                 const isActive =
                   activeCategory ===

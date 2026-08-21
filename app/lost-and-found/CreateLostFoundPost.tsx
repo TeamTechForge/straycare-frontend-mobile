@@ -4,7 +4,7 @@ import * as ImageManipulator from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
   ActivityIndicator,
   Alert,
@@ -79,13 +79,7 @@ const CreatePost = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);           // Disables submit button while API call is in progress
   const { user } = useAuth();                                        // Authenticated user
 
-  useEffect(() => {
-    if (isEditMode) {
-      loadPost();
-    }
-  }, [postId]);
-
-  const loadPost = async () => {
+  const loadPost = useCallback(async () => {
     try {
       const post = await getAnimalPostById(postId as string);
       skipNextLocationSearch.current = true;
@@ -121,12 +115,17 @@ const CreatePost = () => {
           setSelectedRegion(null);
         }
       }
-    } catch (err) {
-      console.error(err);
+    } catch {
       Alert.alert("Error", "Could not load post");
       router.back();
     }
-  };
+  }, [postId, router]);
+
+  useEffect(() => {
+    if (isEditMode) {
+      loadPost();
+    }
+  }, [isEditMode, loadPost]);
 
   // Updates a single form field and clears its error and the global banner
   const updateForm = (key: string, value: any) => {
@@ -181,8 +180,10 @@ const CreatePost = () => {
       updateForm('location', place.description || prediction.description);
       setSelectedRegion({ latitude: place.latitude, longitude: place.longitude });
       setLocationPredictions([]);
+
     } catch (error: any) {
       setLocationSearchError(error?.message || 'Could not preview that location.');
+    
     } finally {
       setIsSearchingLocation(false);
     }
@@ -256,6 +257,7 @@ const CreatePost = () => {
         break;
       case 'breed':
         // Required only for dogs and cats
+        
         if ((form.type === 'dog' || form.type === 'cat') && !form.breed)
           message = 'Please select a breed.';
         else if (form.breed === 'Other' && !form.otherBreed.trim())
@@ -593,6 +595,7 @@ const CreatePost = () => {
               <Text style={s.uploadSub}>Tap to pick & crop from your library</Text>
             </TouchableOpacity>
           ) : (
+
             // Preview state: shows selected image with remove (X) and change (pencil) buttons
             <View style={s.imagePreviewWrapper}>
               <Image source={{ uri: form.images[0] }} style={s.imagePreview} />
@@ -750,6 +753,7 @@ const CreatePost = () => {
       </View>
 
       <View style={{ height: 40 }} />
+      
       {/* Bottom spacer so content clears the action buttons */}
     </ScrollView>
   );

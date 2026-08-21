@@ -10,7 +10,6 @@ const LostPostSubmittedView = () => {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.content}>
-                {/* Icon wrapper for a premium feel */}
                 <View style={styles.iconWrapper}>
                     <Ionicons name="checkmark-circle" size={90} color="#F5A623" />
                 </View>
@@ -18,7 +17,7 @@ const LostPostSubmittedView = () => {
                 <Text style={styles.title}>Thank You!</Text>
                 
                 <Text style={styles.message}>
-                    Your post has been submitted successfully. We will notify you if there's any update.
+                    {"Your post has been submitted successfully. We will notify you if there's any update."}
                 </Text>
 
                 <View style={styles.buttonContainer}>
@@ -55,7 +54,7 @@ const styles = StyleSheet.create({
         width: 140,
         height: 140,
         borderRadius: 70,
-        backgroundColor: '#FFF7E6', // Light amber background
+        backgroundColor: '#FFF7E6',
         justifyContent: 'center',
         alignItems: 'center',
         marginBottom: 32,

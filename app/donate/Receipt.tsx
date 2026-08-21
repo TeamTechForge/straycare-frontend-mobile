@@ -9,6 +9,7 @@ import BackButton from "../../components/BackButton";
 export default function Receipt() {
   const router = useRouter();
   const { donation } = useLocalSearchParams();
+  // Receipt details are passed from the selected history card.
   const parsed = donation ? JSON.parse(donation as string) : null;
 
   if (!parsed) {
@@ -21,13 +22,14 @@ export default function Receipt() {
 
   async function getLogoBase64() {
     try {
+      // Embed the logo in the PDF so it works without an internet connection.
       const asset = Asset.fromModule(require("../../assets/images/LogoNew.png"));
       await asset.downloadAsync();
       const base64 = await FileSystem.readAsStringAsync(asset.localUri!, {
         encoding: "base64",
       });
       return `data:image/png;base64,${base64}`;
-    } catch (err) {
+    } catch {
       return null;
     }
   }
@@ -36,6 +38,7 @@ export default function Receipt() {
     try {
       const logo = await getLogoBase64();
 
+      // Create the receipt as HTML before converting it to a PDF.
       const html = `
         <html>
           <head>
@@ -97,12 +100,15 @@ export default function Receipt() {
         </html>
       `;
 
+      // Expo Print creates a temporary PDF file from the receipt HTML.
       const { uri } = await Print.printToFileAsync({ html });
 
+      // Remove unsafe filename characters from the order ID.
       const safeOrderId = String(parsed.orderId || "receipt").replace(/[^a-zA-Z0-9_-]/g, "-");
       const fileName = `StrayCare-Receipt-${safeOrderId}.pdf`;
 
       if (Platform.OS === "android") {
+        // Let Android users choose the folder where the PDF is saved.
         const permission = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
         if (!permission.granted) {
           Alert.alert("Save cancelled", "Choose a folder to save the receipt.");
@@ -122,6 +128,7 @@ export default function Receipt() {
         });
         Alert.alert("Receipt saved", `${fileName} was saved to the selected folder.`);
       } else {
+        // Other platforms save the PDF in the app's document folder.
         const destinationUri = `${FileSystem.documentDirectory}${fileName}`;
         const existing = await FileSystem.getInfoAsync(destinationUri);
         if (existing.exists) {

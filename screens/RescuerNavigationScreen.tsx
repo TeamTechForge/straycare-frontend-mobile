@@ -11,6 +11,15 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
 import axios from "axios";
 
+// RescuerNavigationScreen.tsx
+//
+// In-App Navigation Screen for Rescuers.
+// Features:
+// 1. Live GPS tracking of the rescuer's device using expo-location.
+// 2. Real-time mathematical distance calculation using Haversine formula.
+// 3. Dynamic ETA (Estimated Time of Arrival) based on live distance to the animal.
+// 4. Interactive Map showing rescuer marker ("You") and target animal location.
+
 import MapViewWrapper, { Marker } from "../components/MapViewWrapper";
 import BackButton from "../components/BackButton";
 import { colors } from "../constants/colors.constants";
@@ -26,9 +35,12 @@ type Params = {
 const getFirstParam = (value: string | string[] | undefined) =>
   Array.isArray(value) ? value[0] : value;
 
-// Haversine formula to calculate distance between two coordinates in km
+/**
+ * Calculates the great-circle distance between two GPS coordinates in kilometers
+ * using the Haversine formula.
+ */
 function calculateDistanceKm(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
+  const R = 6371; // Earth's mean radius in kilometers
   const dLat = (lat2 - lat1) * (Math.PI / 180);
   const dLon = (lon2 - lon1) * (Math.PI / 180);
   const a =
@@ -43,18 +55,21 @@ export default function RescuerNavigationScreen() {
   const { requestId } = useLocalSearchParams<Params>();
   const requestIdValue = getFirstParam(requestId) ?? "";
 
+  /* ── Navigation States ─────────────────────────────────────────────── */
   const [tracking, setTracking] = useState<LiveTrackingResponse | null>(null);
   const [deviceLocation, setDeviceLocation] = useState<{ latitude: number; longitude: number } | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // 📡 1. Live GPS tracking from device
+  // 📡 1. Live GPS tracking from rescuer's device using watchPositionAsync
   useEffect(() => {
     let locationSubscription: Location.LocationSubscription | null = null;
     (async () => {
       try {
+        // Request foreground location permissions
         const { status } = await Location.requestForegroundPermissionsAsync();
         if (status === "granted") {
+          // Get immediate initial position
           const currentPos = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.Balanced });
           if (currentPos?.coords) {
             setDeviceLocation({
@@ -62,6 +77,7 @@ export default function RescuerNavigationScreen() {
               longitude: currentPos.coords.longitude,
             });
           }
+          // Watch and update coordinates whenever the rescuer moves by 10 meters
           locationSubscription = await Location.watchPositionAsync(
             { accuracy: Location.Accuracy.Balanced, distanceInterval: 10 },
             (loc) => {
@@ -79,6 +95,7 @@ export default function RescuerNavigationScreen() {
       }
     })();
 
+    // Remove location listener on unmount
     return () => {
       if (locationSubscription) {
         locationSubscription.remove();
@@ -111,12 +128,14 @@ export default function RescuerNavigationScreen() {
 
         if (!active || !response) return;
 
+        // Resolve target destination coordinates of the reported animal
         const targetLocation =
           response.reporterLocation ||
           response.rescueLocation ||
           response.location ||
           (response.location?.lat ? { latitude: response.location.lat, longitude: response.location.lng } : null);
 
+        // Resolve current rescuer coordinates
         const currentRescuerLoc =
           deviceLocation ||
           response.rescuerLocation ||
@@ -125,6 +144,7 @@ export default function RescuerNavigationScreen() {
         let derivedDistanceKm: number = typeof response.distanceKm === "number" ? response.distanceKm : 0;
         let derivedEtaMinutes: number = typeof response.etaMinutes === "number" ? response.etaMinutes : 5;
 
+        // Recalculate distance and ETA dynamically using current GPS coordinates
         if (currentRescuerLoc && targetLocation) {
           derivedDistanceKm = calculateDistanceKm(
             currentRescuerLoc.latitude,
@@ -162,6 +182,7 @@ export default function RescuerNavigationScreen() {
       clearInterval(interval);
     };
   }, [requestIdValue, deviceLocation]);
+
 
   const initialRegion = useMemo(() => {
     const location = deviceLocation ?? tracking?.rescuerLocation ?? tracking?.reporterLocation ?? tracking?.case?.location;

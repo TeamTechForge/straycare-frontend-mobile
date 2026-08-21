@@ -12,43 +12,21 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { createCommunityPost } from "../../services/communityService";
+import {
+  createCommunityPost,
+  getApiErrorMessage,
+} from "../../services/communityService";
 import PrimaryButton from "../../components/PrimaryButton";
 import BackButton from "../../components/BackButton";
 import { colors } from "../../constants/colors.constants";
 
-// ── Category options ─────────────────────────────────────────────────────────
-const CATEGORIES = [
-  "Pet Care Tips",
-  "Health & First Aid",
-  "Stray Animal Help",
-  "Training & Behavior",
-  "Animal Welfare & Rights Awareness",
-  "Success Stories",
-  "Events & Campaigns",
-];
-
-// ── Validation ───────────────────────────────────────────────────────────────
-function validateForm(
-  title: string,
-  content: string
-): Record<string, string> {
-  const errors: Record<string, string> = {};
-
-  if (!title.trim()) {
-    errors.title = "Please fill in the post title.";
-  } else if (title.trim().length < 5) {
-    errors.title = "Title must be at least 5 characters.";
-  }
-
-  if (!content.trim()) {
-    errors.content = "Please fill in the post content.";
-  } else if (content.trim().length < 20) {
-    errors.content = "Content must be at least 20 characters.";
-  }
-
-  return errors;
-}
+import {
+  appendImageToFormData,
+  COMMUNITY_POST_CATEGORIES,
+  CommunityPostFormErrors,
+  CommunityPostFormField,
+  validateCommunityPost,
+} from "./communityPost.utils";
 
 export default function CreateCommunityPost() {
   const router = useRouter();
@@ -62,8 +40,8 @@ export default function CreateCommunityPost() {
   const [imageUri, setImageUri] = useState<string | null>(null);
 
   // Validation state
-  const [errors, setErrors] = useState<Record<string, string>>({});
-  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [errors, setErrors] = useState<CommunityPostFormErrors>({});
+  const [touched, setTouched] = useState<Partial<Record<CommunityPostFormField, boolean>>>({});
 
   // Loading state
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -94,9 +72,9 @@ export default function CreateCommunityPost() {
   const handleRemoveImage = () => setImageUri(null);
 
   // ── Blur handler ────────────────────────────────────────────────────────────
-  const handleBlur = (field: string) => {
+  const handleBlur = (field: CommunityPostFormField) => {
     setTouched((prev) => ({ ...prev, [field]: true }));
-    setErrors(validateForm(title, content));
+    setErrors(validateCommunityPost(title, content));
   };
 
   // ── Submit ──────────────────────────────────────────────────────────────────
@@ -104,7 +82,7 @@ export default function CreateCommunityPost() {
     // Mark all fields touched so all errors become visible
     setTouched({ title: true, content: true });
 
-    const newErrors = validateForm(title, content);
+    const newErrors = validateCommunityPost(title, content);
     setErrors(newErrors);
     if (Object.keys(newErrors).length > 0) return;
 
@@ -119,15 +97,7 @@ export default function CreateCommunityPost() {
 
       // Only attach image if the user picked one
       if (imageUri) {
-        const filename = imageUri.split("/").pop() ?? "photo.jpg";
-        const ext = filename.split(".").pop()?.toLowerCase() ?? "jpg";
-        const mimeType = ext === "png" ? "image/png" : "image/jpeg";
-
-        formData.append("image", {
-          uri: imageUri,
-          name: filename,
-          type: mimeType,
-        } as any);
+        appendImageToFormData(formData, imageUri);
       }
 
       const savedPost = await createCommunityPost(formData);
@@ -139,12 +109,13 @@ export default function CreateCommunityPost() {
       } else {
         Alert.alert("Error", "Something went wrong. Please try again.");
       }
-    } catch (error: any) {
-      console.log("Submit error:", error?.response?.data || error);
-      const serverMessage = error?.response?.data?.message || error?.message;
+    } catch (error: unknown) {
       Alert.alert(
         "Error",
-        serverMessage || "Failed to submit post. Please check your connection and try again."
+        getApiErrorMessage(
+          error,
+          "Failed to submit post. Please check your connection and try again."
+        )
       );
     } finally {
       setIsSubmitting(false);
@@ -152,7 +123,8 @@ export default function CreateCommunityPost() {
   };
 
   // Helper: only show error if the field has been touched
-  const showError = (field: string) => touched[field] && errors[field];
+  const showError = (field: CommunityPostFormField) =>
+    Boolean(touched[field] && errors[field]);
 
   return (
     <View style={styles.container}>
@@ -180,7 +152,7 @@ export default function CreateCommunityPost() {
             value={title}
             onChangeText={(text) => {
               setTitle(text);
-              if (touched.title) setErrors(validateForm(text, content));
+              if (touched.title) setErrors(validateCommunityPost(text, content));
             }}
             onBlur={() => handleBlur("title")}
           />
@@ -193,7 +165,7 @@ export default function CreateCommunityPost() {
         <View style={styles.section}>
           <Text style={styles.label}>Select Category <Text style={styles.required}>*</Text></Text>
           <View style={styles.chipsContainer}>
-            {CATEGORIES.map((cat) => (
+            {COMMUNITY_POST_CATEGORIES.map((cat) => (
               <TouchableOpacity
                 key={cat}
                 style={[
@@ -229,7 +201,7 @@ export default function CreateCommunityPost() {
             value={content}
             onChangeText={(text) => {
               setContent(text);
-              if (touched.content) setErrors(validateForm(title, text));
+              if (touched.content) setErrors(validateCommunityPost(title, text));
             }}
             onBlur={() => handleBlur("content")}
             multiline

@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import BackButton from '../../components/BackButton';
 
@@ -9,6 +8,7 @@ import DonationHistory from './History';
 import ReceivedDonations from './ReceivedDonations';
 
 export default function DonationHub() {
+  // The selected tab decides which donation list is visible.
   const [activeTab, setActiveTab] = useState<'made' | 'received'>('made');
   const router = useRouter();
 
@@ -21,6 +21,7 @@ export default function DonationHub() {
       </View>
 
       <View style={styles.tabContainer}>
+        {/* Donors and organizations can move between both views here. */}
         <TouchableOpacity 
           style={[styles.tab, activeTab === 'made' && styles.activeTab]}
           onPress={() => setActiveTab('made')}
@@ -40,6 +41,7 @@ export default function DonationHub() {
       </View>
 
       <View style={styles.content}>
+        {/* Show donation history or received donations in the selected tab. */}
         {activeTab === 'made' ? <DonationHistory hideHeader /> : <ReceivedDonations />}
       </View>
     </SafeAreaView>

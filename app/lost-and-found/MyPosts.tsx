@@ -1,8 +1,7 @@
-import { Ionicons, MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
-  Alert,
   FlatList,
   Image,
   StyleSheet,
@@ -21,27 +20,29 @@ export default function MyPostsScreen() {
   const [pets, setPets] = useState<AnimalPost[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    if (user?._id) {
-      loadPosts();
-    } else {
-      setLoading(false);
-    }
-  }, [user]);
+  const userId = user?._id;
 
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
+    if (!userId) {
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
-      const response = await getMyAnimalPosts(user!._id);
+      const response = await getMyAnimalPosts(userId);
       const payload = Array.isArray(response) ? response : (response as any)?.data ?? [];
       setPets(Array.isArray(payload) ? payload : []);
-    } catch (error) {
-      console.log("Error fetching my posts:", error);
+    } catch {
       setPets([]);
     } finally {
       setLoading(false);
     }
-  };
+  }, [userId]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
 
   const formatType = (value?: string) => {
     const normalized = (value || "").toLowerCase();
@@ -140,7 +141,7 @@ export default function MyPostsScreen() {
         </View>
       ) : pets.length === 0 ? (
         <View style={styles.center}>
-          <Text style={styles.emptyText}>You haven't reported any lost or found pets yet.</Text>
+          <Text style={styles.emptyText}>{"You haven't reported any lost or found pets yet."}</Text>
         </View>
       ) : (
         <FlatList
@@ -175,14 +176,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: "700",
     color: "#062425",
-  },
-  iconBtn: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#f4f3f3",
-    alignItems: "center",
-    justifyContent: "center",
   },
   listContent: {
     paddingHorizontal: 20,
@@ -279,37 +272,5 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 5,
     borderRadius: 20,
-  },
-  actionRow: {
-    flexDirection: "row",
-    borderTopWidth: 1,
-    borderTopColor: "#F1F1F1",
-    padding: 12,
-    justifyContent: "flex-end",
-    gap: 12,
-  },
-  actionBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-    gap: 6,
-  },
-  editBtn: {
-    backgroundColor: "#f4f3f3",
-  },
-  deleteBtn: {
-    backgroundColor: "#FFF0F0",
-  },
-  editText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#062425",
-  },
-  deleteText: {
-    fontSize: 13,
-    fontWeight: "600",
-    color: "#FF5A5A",
   },
 });

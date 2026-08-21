@@ -7,6 +7,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  RefreshControl,
   ScrollView,
   StyleSheet,
   Text,
@@ -32,7 +33,7 @@ type Report = {
   anonymous?: boolean;
   reportedBy?: string;
   isOwner?: boolean;
-  permissions?: { canAccept: boolean; canUpdate: boolean };
+  permissions?: { canAccept: boolean; canUpdate: boolean; canDelete?: boolean; isSelfReported?: boolean };
   location: {
     lat: number;
     lng: number;
@@ -119,6 +120,8 @@ export default function CaseDetailsScreen() {
   const [loadError, setLoadError] = useState<string | null>(null);
   const [updating, setUpdating] = useState(false);
   const [acceptingRescue, setAcceptingRescue] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
   const [statusUpdateY, setStatusUpdateY] = useState<number | null>(null);
 
@@ -189,11 +192,27 @@ export default function CaseDetailsScreen() {
 
       // Redirect to adoption post creation if case reaches Ready for Adoption
       if (next === "Ready for Adoption") {
-        router.push({
-          pathname: "/adoption-corner/CreateAdoptionPost",
-          params: { caseId: report.caseId },
-        } as never);
-        return;
+        Alert.alert(
+          "Ready for Adoption",
+          "Case marked as Ready for Adoption! Would you like to create an adoption listing now?",
+          [
+            { text: "Later", style: "cancel" },
+            {
+              text: "Create Listing",
+              onPress: () => {
+                router.push({
+                  pathname: "/adoption-corner/CreateAdoptionPost",
+                  params: { caseId: report.caseId },
+                } as never);
+              },
+            },
+          ]
+        );
+      } else {
+        //  Show banner immediately when status changes
+        setNotificationMessage(`Case updated: ${next}`);
+        setShowNotification(true);
+        setTimeout(() => setShowNotification(false), 3000);
       }
 
       // Show notification banner on successful update
@@ -286,7 +305,12 @@ export default function CaseDetailsScreen() {
   };
 
   return (
-    <ScrollView ref={scrollViewRef} style={styles.container} contentContainerStyle={{ paddingBottom: 80 }}>
+    <ScrollView
+      ref={scrollViewRef}
+      style={styles.container}
+      contentContainerStyle={{ paddingBottom: 80 }}
+      refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+    >
 
       {/* Notification Banner */}
       {showNotification && (
@@ -397,7 +421,9 @@ export default function CaseDetailsScreen() {
       {nextStatus && !report.permissions?.canUpdate && (!report.permissions?.canAccept || report.isOwner) && (
         <View style={styles.restrictedMessage}>
           <Text style={styles.restrictedText}>
-            {isReporter || report.isOwner
+            {report.permissions?.isSelfReported && isRescuer && report.status === "Needs Help"
+              ? "You reported this case. Rescuers cannot accept cases reported by themselves. Another rescuer will handle this case."
+              : isReporter || report.isOwner
               ? "You can track this case here. Only the assigned rescuer can update the rescue status."
               : "Only the assigned rescuer can change the status of this case."}
           </Text>

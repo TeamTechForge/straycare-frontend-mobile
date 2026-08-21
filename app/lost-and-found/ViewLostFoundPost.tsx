@@ -2,12 +2,10 @@ import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
-  ActivityIndicator,
   Alert,
   Animated,
   Dimensions,
   Image,
-  Linking,
   Modal,
   RefreshControl,
   ScrollView,
@@ -17,8 +15,11 @@ import {
   TouchableOpacity,
   View,
 } from 'react-native';
-import { getAnimalPostById, reportAnimalPost } from '../../api/apiService';
-import { AnimalPost, deleteAnimalPost } from '../../services/lostAndFoundService';
+import {
+  AnimalPost,
+  deleteAnimalPost,
+  getAnimalPostById,
+} from '../../services/lostAndFoundService';
 import { useCall } from '../../contexts/CallContext';
 import { useAuth } from '../../contexts/AuthContext';
 import { useChatApi } from '../../hooks/useChatApi';
@@ -27,7 +28,6 @@ import OwnerActionButtons from '../../components/OwnerActionButtons';
 import BackButton from '../../components/BackButton';
 import { getDisplayAnimalName } from '../../utils/lostAndFoundDisplay';
 
-// ─── Colour changes were made ────────────────────────────────────────────────────────────
 const C = {
   bg: '#F9F9FF',
   surface: '#FFFFFF',
@@ -48,8 +48,6 @@ const C = {
 
 const { width: SCREEN_W } = Dimensions.get('window');
 const IMAGE_HEIGHT = 280;
-// BASE_URL is imported from constants
-
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 const getAnimalLabel = (post: AnimalPost) => {
   if (!post.type || post.type === 'other') return post.customType || 'Animal';
@@ -195,21 +193,20 @@ const ViewAnimalPost = () => {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
-  const [isReporting, setIsReporting] = useState(false);
   const [isImagePreviewVisible, setIsImagePreviewVisible] = useState(false);
 
   // ─── Animations ────────────────────────────────────────────────────────────
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(28)).current;
 
-  const runEntranceAnim = () => {
+  const runEntranceAnim = useCallback(() => {
     fadeAnim.setValue(0);
     slideAnim.setValue(28);
     Animated.parallel([
       Animated.timing(fadeAnim, { toValue: 1, duration: 380, useNativeDriver: true }),
       Animated.spring(slideAnim, { toValue: 0, tension: 75, friction: 9, useNativeDriver: true }),
     ]).start();
-  };
+  }, [fadeAnim, slideAnim]);
 
   // ─── Fetch post from DB ─────────────────────────────────────────────────────
   const fetchPost = useCallback(async (isRefresh = false) => {
@@ -220,7 +217,11 @@ const ViewAnimalPost = () => {
     }
 
     try {
-      isRefresh ? setRefreshing(true) : setLoading(true);
+      if (isRefresh) {
+        setRefreshing(true);
+      } else {
+        setLoading(true);
+      }
       setError('');
 
       const data = await getAnimalPostById(id);
@@ -236,7 +237,7 @@ const ViewAnimalPost = () => {
       setLoading(false);
       setRefreshing(false);
     }
-  }, [id]);
+  }, [id, runEntranceAnim]);
 
   useEffect(() => {
     fetchPost();
@@ -315,38 +316,8 @@ const ViewAnimalPost = () => {
               await deleteAnimalPost(post._id);
               Alert.alert('Deleted', 'Your post has been deleted.');
               router.back();
-            } catch (err) {
+            } catch {
               Alert.alert("Error", "Failed to delete the post.");
-            }
-          },
-        },
-      ]
-    );
-  };
-
-  // ─── Report handler ─────────────────────────────────────────────────────────
-  const handleReport = () => {
-    if (!post) return;
-    Alert.alert(
-      'Report Post',
-      'Are you sure you want to report this post as inappropriate?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Report',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              setIsReporting(true);
-              await reportAnimalPost(post._id);
-              Alert.alert('Reported', 'Thank you. This post has been reported for review.');
-            } catch (err: any) {
-              Alert.alert(
-                'Error',
-                err?.response?.data?.message || 'Failed to report post. Please try again.'
-              );
-            } finally {
-              setIsReporting(false);
             }
           },
         },

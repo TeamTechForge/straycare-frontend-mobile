@@ -248,7 +248,13 @@ export default function ReportingMapScreen() {
             <Text style={styles.header}>Rescue Cases Map</Text>
             <Text style={styles.subtext}>Tap a marker to view case details.</Text>
           </View>
-          <View style={{ width: 40 }} />
+          <TouchableOpacity
+            onPress={() => void loadReports()}
+            style={{ width: 40, alignItems: "center", justifyContent: "center" }}
+            accessibilityLabel="Refresh Map"
+          >
+            <Ionicons name="refresh" size={22} color="#333" />
+          </TouchableOpacity>
         </View>
       </View>
 

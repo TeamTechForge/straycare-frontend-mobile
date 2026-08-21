@@ -14,6 +14,16 @@ import { useLocalSearchParams, useRouter } from "expo-router";
 import * as Location from "expo-location";
 import axios from "axios";
 
+// NearbyRescuersScreen (index.tsx)
+//
+// Proximity-Based Rescuer Discovery and Direct Dispatch Screen.
+// Features:
+// 1. 5 km radius search to discover active rescuers near the reported animal.
+// 2. Interactive Map displaying discovered rescuers and reported animal location.
+// 3. Nearest Rescuer selection card with distance, ETA, rating, and avatar.
+// 4. "No Rescuers Nearby" fallback screen with option to publish case to the public map.
+// 5. Direct dispatch workflow with live status polling (Accepted, Rejected, Cancelled).
+
 import { useAuth } from "../../contexts/AuthContext";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import PrimaryButton from "../../components/PrimaryButton";
@@ -37,7 +47,9 @@ import { BASE_URL } from "../../constants/config.constants";
 
 const API_BASE_URL = BASE_URL;
 
-// Resolve photo URL (handles absolute and relative backend paths)
+/**
+ * Resolves animal and user avatar photo URLs (handles relative backend paths and absolute web URLs).
+ */
 const resolvePhotoUrl = (url: string | undefined | null): string => {
   if (!url || typeof url !== "string" || !url.trim()) return "";
   if (url.startsWith("http://") || url.startsWith("https://") || url.startsWith("file://") || url.startsWith("data:")) {
@@ -47,9 +59,11 @@ const resolvePhotoUrl = (url: string | undefined | null): string => {
   return `${API_BASE_URL}${cleanUrl}`;
 };
 
-// Haversine distance formula (in km)
+/**
+ * Haversine formula to compute great-circle distance (in kilometers) between two coordinates.
+ */
 function getDistance(lat1: number, lon1: number, lat2: number, lon2: number): number {
-  const R = 6371;
+  const R = 6371; // Earth radius in km
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
   const dLon = ((lon2 - lon1) * Math.PI) / 180;
   const a =
@@ -67,11 +81,13 @@ export default function NearbyRescuersScreen() {
 
   const { caseId, animalType, animalPhoto, description } = params;
 
+  /* ── Coordinate and Discovery States ────────────────────────────────── */
   const [centerCoords, setCenterCoords] = useState<{ latitude: number; longitude: number } | null>(null);
   const [rescuers, setRescuers] = useState<any[]>([]);
   const [currentIndex, setCurrentIndex] = useState<number>(0);
   const [excludeIds, setExcludeIds] = useState<string[]>([]);
-
+  
+  /* ── Dispatch Workflow States ───────────────────────────────────────── */
   const [workflowState, setWorkflowState] = useState<WorkflowState>("selecting");
   const [requestId, setRequestId] = useState<string | null>(null);
   const [countdown, setCountdown] = useState<number>(30);
@@ -83,7 +99,7 @@ export default function NearbyRescuersScreen() {
 
   const hasRequestedLocation = useRef(false);
 
-  // Parse input coordinates or request device GPS
+  // 1. Resolve animal coordinates passed via URL parameters or retrieve current GPS position
   useEffect(() => {
     const latParam = Array.isArray(params.lat) ? params.lat[0] : params.lat;
     const lngParam = Array.isArray(params.lng) ? params.lng[0] : params.lng;
@@ -472,10 +488,6 @@ export default function NearbyRescuersScreen() {
                   <View style={styles.chip}>
                     <Ionicons name="time-outline" size={13} color={colors.primary} />
                     <Text style={styles.chipText}>~{etaMinutes} min</Text>
-                  </View>
-                  <View style={styles.chip}>
-                    <Ionicons name="checkmark-circle-outline" size={13} color="#10B981" />
-                    <Text style={styles.chipText}>Available</Text>
                   </View>
                 </View>
 
