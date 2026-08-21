@@ -1,4 +1,3 @@
-import { AntDesign, Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import * as SecureStore from "expo-secure-store";
 import { useEffect, useState } from "react";
@@ -8,12 +7,14 @@ import {
   Image,
   StyleSheet,
   Text,
-  TextInput,
   TouchableOpacity,
   View,
 } from "react-native";
 import CustomAlertModal from "../../components/CustomAlertModal";
 import PrimaryButton from "../../components/PrimaryButton";
+import InputField from "../../components/InputField";
+import AuthDivider from "../../components/auth/AuthDivider";
+import GoogleSignInButton from "../../components/auth/GoogleSignInButton";
 import { API_URL } from "../../constants/config.constants";
 import { useAuth } from "../../contexts/AuthContext";
 import { handleGoogleSignIn, useGoogleAuth } from "../../services/googleAuthService";
@@ -23,15 +24,19 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { Controller, useForm } from "react-hook-form";
 import { z } from "zod";
 
+// Schema for validating login form inputs
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email"),
   password: z.string().min(6, "Password must be at least 6 characters"),
 });
 
+/**
+ * LoginScreen handles user authentication via email/password
+ * or Google Sign-In. It also handles account suspension and warnings.
+ */
 export default function LoginScreen() {
   const router = useRouter();
   const { refreshUser } = useAuth();
-  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [isGoogleLoading, setIsGoogleLoading] = useState(false);
   const [isAccountNotFoundVisible, setIsAccountNotFoundVisible] = useState(false);
@@ -77,6 +82,7 @@ export default function LoginScreen() {
     resolver: zodResolver(loginSchema),
   });
 
+  // Authenticate user via backend API
   const onSubmit = async (data: any) => {
     setIsLoading(true);
     let timeoutId: any = null;
@@ -180,10 +186,8 @@ export default function LoginScreen() {
           control={control}
           name="email"
           render={({ field: { onChange, value } }) => (
-            <TextInput
-              style={styles.input}
+            <InputField
               placeholder="Email Address"
-              placeholderTextColor="#999"
               value={value}
               onChangeText={onChange}
               keyboardType="email-address"
@@ -203,28 +207,13 @@ export default function LoginScreen() {
           control={control}
           name="password"
           render={({ field: { onChange, value } }) => (
-            <View style={styles.passwordContainer}>
-              <TextInput
-                style={styles.passwordInput}
-                placeholder="Password"
-                placeholderTextColor="#999"
-                secureTextEntry={!isPasswordVisible}
-                value={value}
-                onChangeText={onChange}
-                editable={!isLoading}
-              />
-              <TouchableOpacity
-                onPress={() => setIsPasswordVisible(!isPasswordVisible)}
-                style={styles.eyeIcon}
-                disabled={isLoading}
-              >
-                <Ionicons
-                  name={isPasswordVisible ? "eye-off" : "eye"}
-                  size={20}
-                  color="#6B7280"
-                />
-              </TouchableOpacity>
-            </View>
+            <InputField
+              placeholder="Password"
+              value={value}
+              onChangeText={onChange}
+              secure
+              editable={!isLoading}
+            />
           )}
         />
 
@@ -251,28 +240,15 @@ export default function LoginScreen() {
         />
 
         {/* DIVIDER */}
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>OR</Text>
-          <View style={styles.dividerLine} />
-        </View>
+        <AuthDivider />
 
         {/* GOOGLE BUTTON (Only visible in Development Builds) */}
         {!isExpoGo && (
-          <TouchableOpacity
-            style={[styles.googleButton, (isLoading || isGoogleLoading || !isGoogleReady) && { opacity: 0.6 }]}
+          <GoogleSignInButton
+            isLoading={isLoading || isGoogleLoading}
+            isReady={isGoogleReady}
             onPress={() => promptAsync()}
-            disabled={isLoading || isGoogleLoading || !isGoogleReady}
-          >
-            {isGoogleLoading ? (
-              <ActivityIndicator size="small" color="#DB4437" style={styles.googleIcon} />
-            ) : (
-              <AntDesign name="google" size={18} color="#DB4437" style={styles.googleIcon} />
-            )}
-            <Text style={styles.googleButtonText}>
-              {isGoogleLoading ? "Signing in..." : "Continue with Google"}
-            </Text>
-          </TouchableOpacity>
+          />
         )}
 
         {/*  SIGNUP LINK */}
@@ -343,36 +319,6 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     marginBottom: 30,
   },
-  input: {
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginBottom: 16,
-    fontSize: 16,
-    backgroundColor: "#F9FAFB",
-  },
-  passwordContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    marginBottom: 16,
-    backgroundColor: "#F9FAFB",
-    color: "#333",
-  },
-  passwordInput: {
-    flex: 1,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    fontSize: 16,
-    color: "#333",
-  },
-  eyeIcon: {
-    paddingHorizontal: 12,
-  },
   forgotContainer: {
     alignSelf: "flex-end",
     marginBottom: 20,
@@ -395,38 +341,5 @@ const styles = StyleSheet.create({
     color: BRAND_COLOR,
     fontSize: 14,
     fontWeight: "bold",
-  },
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginVertical: 16,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E5E7EB",
-  },
-  dividerText: {
-    marginHorizontal: 12,
-    color: "#9CA3AF",
-    fontWeight: "600",
-  },
-  googleButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E5E7EB",
-    paddingVertical: 12,
-    borderRadius: 12,
-    backgroundColor: "#FFF",
-  },
-  googleIcon: {
-    marginRight: 10,
-  },
-  googleButtonText: {
-    fontSize: 15,
-    color: "#111827",
-    fontWeight: "600",
   },
 });

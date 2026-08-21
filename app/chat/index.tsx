@@ -22,6 +22,11 @@ import { useChatApi } from "../../hooks/useChatApi";
 
 const BRAND_COLOR = "#F5A623";
 
+/**
+ * ChatsScreen
+ * Displays a list of all active conversations for the current user.
+ * Supports real-time updates when new messages arrive.
+ */
 export default function ChatsScreen() {
     const router = useRouter();
     const { user } = useAuth();
@@ -30,11 +35,12 @@ export default function ChatsScreen() {
 
     const [conversations, setConversations] = useState<any[]>([]);
     const [search, setSearch] = useState("");
-    const [loading, setLoading] = useState(true);
-    const [refreshing, setRefreshing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-    const handleLongPressConversation = (conversationId: string) => {
-        Alert.alert(
+  /** Handles long-pressing a conversation to prompt for deletion */
+  const handleLongPressConversation = (conversationId: string) => {
+    Alert.alert(
             "Delete Chat",
             "Are you sure you want to delete this chat? This will remove it from your chat list.",
             [
@@ -139,7 +145,7 @@ export default function ChatsScreen() {
         return other;
     };
 
-    // Format time for display
+    /** Format time into a readable string (e.g. '12:30 PM' or 'Yesterday') for the list */
     const formatTime = (dateString: string) => {
         if (!dateString) return "";
         const date = new Date(dateString);

@@ -10,6 +10,11 @@ import { chatService } from "../../services/chatService";
 
 const BRAND_COLOR = "#F5A623";
 
+/**
+ * CallHistoryScreen
+ * Displays a list of past audio/video calls (incoming, outgoing, missed).
+ * Allows users to call back, start a chat, or manage their call logs.
+ */
 export default function CallHistoryScreen() {
   const router = useRouter();
   const { startCall } = useCall();
@@ -23,6 +28,7 @@ export default function CallHistoryScreen() {
     markAsSeen();
   }, []);
 
+  /** Marks all unseen call logs as seen, resetting any notification badges */
   const markAsSeen = async () => {
     try {
       await CallLogService.markSeen();
@@ -32,6 +38,7 @@ export default function CallHistoryScreen() {
     }
   };
 
+  /** Fetches the user's call history from the backend */
   const fetchHistory = async () => {
     try {
       setLoading(true);
@@ -44,6 +51,7 @@ export default function CallHistoryScreen() {
     }
   };
 
+  /** Clears all call history for the current user after confirmation */
   const handleClear = () => {
     Alert.alert("Clear Call History", "Are you sure you want to delete all call logs?", [
       { text: "Cancel", style: "cancel" },
@@ -62,6 +70,7 @@ export default function CallHistoryScreen() {
     ]);
   };
 
+  /** Deletes a single specific call log by its ID */
   const handleDelete = (id: string) => {
     Alert.alert("Delete Log", "Remove this call log?", [
       { text: "Cancel", style: "cancel" },
@@ -80,6 +89,7 @@ export default function CallHistoryScreen() {
     ]);
   };
 
+  /** Formats a call duration in seconds to MM:SS format */
   const formatDuration = (seconds: number) => {
     if (!seconds) return "";
     const m = Math.floor(seconds / 60);
@@ -87,12 +97,14 @@ export default function CallHistoryScreen() {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
+  /** Formats the creation timestamp of a call log into a locale time string (e.g., 2:30 PM) */
   const formatTime = (isoString: string) => {
     if (!isoString) return "";
     const date = new Date(isoString);
     return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   };
 
+  /** Starts a text chat conversation with the user from the call log */
   const navigateToChat = async (otherUser: any) => {
     if (!token) return;
     try {
@@ -112,6 +124,7 @@ export default function CallHistoryScreen() {
     }
   };
 
+  /** Renders an individual call log item in the FlatList */
   const renderItem = ({ item }: { item: any }) => {
     const isIncoming = item.direction === "INCOMING";
     const otherUser = isIncoming ? item.caller : item.receiver;

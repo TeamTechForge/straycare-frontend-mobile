@@ -1,8 +1,9 @@
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import { useCallback, useEffect } from "react";
-import { Alert, AppState, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Alert, AppState, StyleSheet, Text, View } from "react-native";
 import PrimaryButton from "../../components/PrimaryButton";
+import VerificationStatusLayout from "../../components/auth/VerificationStatusLayout";
 import { useAuth } from "../../contexts/AuthContext";
 import { useSocket } from "../../contexts/SocketContext";
 
@@ -75,37 +76,14 @@ export default function VerificationPendingScreen() {
 
 
   return (
-    <View style={styles.container}>
-      {/* Header */}
-      <View style={styles.header}>
-        <View style={styles.headerSpacer} />
-        <Text style={styles.headerTitle}>Verification Status</Text>
-        <View style={styles.headerSpacer} />
-      </View>
-
-      {/* Illustration Area */}
-      <View style={styles.illustrationWrapper}>
-        <View style={styles.largeCircle}>
-          <View style={styles.docCard}>
-            <Ionicons name="document-text-outline" size={52} color="#E8D8B8" />
-          </View>
-
-          <View style={styles.searchBadge}>
-            <Ionicons name="search-outline" size={20} color="#fff" />
-          </View>
-        </View>
-      </View>
-
-      {/* Title */}
-      <Text style={styles.title}>We're Checking the{"\n"}Details</Text>
-
-      {/* Description */}
-      <Text style={styles.description}>
-        Your account is under review by StrayCare admins. We take this step to
-        ensure the safety of our community and the animals. You will be notified
-        via email once verification is complete.
-      </Text>
-
+    <VerificationStatusLayout
+      title="We're Checking the\nDetails"
+      description="Your account is under review by StrayCare admins. We take this step to ensure the safety of our community and the animals. You will be notified via email once verification is complete."
+      circleColor="#FCF6EA"
+      iconColor="#E8D8B8"
+      badgeColor={BRAND_COLOR}
+      badgeIcon="search-outline"
+    >
       {/* Time Note */}
       <View style={styles.noteBox}>
         <Ionicons name="information-circle-outline" size={14} color={BRAND_COLOR} />
@@ -117,92 +95,19 @@ export default function VerificationPendingScreen() {
           title="Contact Support"
           onPress={handleContactSupport}
         />
+        <View style={{ height: 12 }} />
         <PrimaryButton
           title="Sign Out"
           onPress={handleLogout}
           variant="outline"
         />
       </View>
-    </View>
+    </VerificationStatusLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    padding: 16,
-  },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  headerTitle: {
-    flex: 1,
-    textAlign: "center",
-    fontSize: 18,
-    fontWeight: "600",
-    color: "#111",
-  },
-  headerSpacer: {
-    width: 22,
-  },
-  illustrationWrapper: {
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 28,
-  },
-  largeCircle: {
-    width: 195,
-    height: 195,
-    borderRadius: 97.5,
-    backgroundColor: "#FCF6EA",
-    justifyContent: "center",
-    alignItems: "center",
-    position: "relative",
-  },
-  docCard: {
-    width: 94,
-    height: 110,
-    borderRadius: 10,
-    backgroundColor: "#fff",
-    justifyContent: "center",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 },
-    elevation: 3,
-  },
-  searchBadge: {
-    position: "absolute",
-    bottom: 36,
-    right: 30,
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: BRAND_COLOR,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: {
-    textAlign: "center",
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#1D1D1D",
-    lineHeight: 30,
-    marginBottom: 16,
-  },
-  description: {
-    textAlign: "center",
-    fontSize: 15,
-    lineHeight: 24,
-    color: "#666",
-    marginHorizontal: 8,
-  },
   noteBox: {
-    marginTop: 18,
     alignSelf: "center",
     flexDirection: "row",
     alignItems: "center",
@@ -218,17 +123,7 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
   buttonWrapper: {
-    marginTop: 34,
-  },
-  supportRow: {
-    marginTop: 30,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 4,
-  },
-  supportText: {
-    fontSize: 13,
-    color: "#666",
+    marginTop: 20,
+    paddingHorizontal: 10,
   },
 });

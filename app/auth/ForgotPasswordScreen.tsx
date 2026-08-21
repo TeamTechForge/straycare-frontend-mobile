@@ -15,15 +15,19 @@ import { API_URL } from "../../constants/config.constants";
 
 const BRAND_COLOR = "#f59e0b";
 
+// Handles the two-step password recovery process:
 export default function ForgotPasswordScreen() {
   const router = useRouter();
 
+  // Stores the values entered during the password recovery process.
   const [email, setEmail] = useState("");
   const [step, setStep] = useState(1); // 1: Request, 2: Reset
   const [token, setToken] = useState("");
   const [newPassword, setNewPassword] = useState("");
+  // Prevents repeated submissions while an API request is in progress.
   const [loading, setLoading] = useState(false);
 
+  // Requests a password reset code from the backend.
   const handleRequestReset = async () => {
     if (!email) {
       Alert.alert("Please enter your email");
@@ -41,6 +45,7 @@ export default function ForgotPasswordScreen() {
       const data: any = await response.json();
       if (response.ok) {
         Alert.alert(data.message);
+        // Move to the second step after the reset request succeeds.
         setStep(2);
       } else {
         Alert.alert(data.message || "Request failed");
@@ -53,6 +58,7 @@ export default function ForgotPasswordScreen() {
     }
   };
 
+  // Sends the reset code and new password to the backend.
   const handlePasswordReset = async () => {
     if (!token || !newPassword) {
       Alert.alert("Please enter both the 6-digit code and a new password");
@@ -86,7 +92,7 @@ export default function ForgotPasswordScreen() {
   return (
     <View style={styles.container}>
 
-      {/* 🔙 Header */}
+      {/* Header with navigation back to the previous screen. */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()}>
           <Ionicons name="arrow-back" size={22} color="#000" />
@@ -94,15 +100,15 @@ export default function ForgotPasswordScreen() {
         <Text style={styles.headerTitle}>Forgot Password</Text>
       </View>
 
-      {/* 🔒 Icon */}
+      {/* Changes the icon depending on the current reset step. */}
       <View style={styles.iconContainer}>
         <Ionicons name={step === 1 ? "lock-closed" : "key"} size={40} color={BRAND_COLOR} />
       </View>
 
-      {/* 📝 Title */}
+      {/* Title */}
       <Text style={styles.title}>{step === 1 ? "Forgot Password?" : "Reset Password"}</Text>
 
-      {/* 📄 Description */}
+      {/* Description */}
       <Text style={styles.description}>
         {step === 1
           ? "No worries! Enter the email address associated with your StrayCare account and we'll send you a 6-digit code to reset your password."
@@ -111,7 +117,7 @@ export default function ForgotPasswordScreen() {
 
       {step === 1 ? (
         <>
-          {/* 📧 Email Input */}
+          {/* Email Input */}
           <Text style={styles.label}>Email Address</Text>
           <InputField
             placeholder="example@mail.com"
@@ -120,7 +126,7 @@ export default function ForgotPasswordScreen() {
             icon="mail-outline"
           />
 
-          {/* 🔘 Button */}
+          {/* Request Reset Code Button */}
           <View style={{ marginTop: 20 }}>
             <PrimaryButton
               title={loading ? "Sending..." : "Send the 6-digit reset code"}
@@ -131,7 +137,7 @@ export default function ForgotPasswordScreen() {
         </>
       ) : (
         <>
-          {/* 🔑 Token Input */}
+          {/* Token Input */}
           <Text style={styles.label}>6-Digit Reset Code</Text>
           <InputField
             placeholder="123456"
@@ -141,7 +147,7 @@ export default function ForgotPasswordScreen() {
             keyboardType="numeric"
           />
 
-          {/* 🔒 New Password Input */}
+          {/* New Password Input */}
           <Text style={styles.label}>New Password</Text>
           <InputField
             placeholder="********"
@@ -151,7 +157,7 @@ export default function ForgotPasswordScreen() {
             icon="lock-closed-outline"
           />
 
-          {/* 🔘 Button */}
+          {/* Reset Password Button */}
           <View style={{ marginTop: 20 }}>
             <PrimaryButton
               title={loading ? "Resetting..." : "Reset Password"}
@@ -170,7 +176,7 @@ export default function ForgotPasswordScreen() {
         </>
       )}
 
-      {/* 🔗 Login Redirect */}
+      {/* Login Redirect */}
       <View style={styles.bottomTextContainer}>
         <Text style={styles.bottomText}>
           Remember your password?{" "}
@@ -183,7 +189,7 @@ export default function ForgotPasswordScreen() {
         </Text>
       </View>
 
-      {/* 🐾 Footer Icon */}
+      {/* Footer Icon */}
       <View style={styles.footer}>
         <Ionicons name="paw" size={50} color="#ddd" />
       </View>

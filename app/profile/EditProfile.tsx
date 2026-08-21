@@ -18,6 +18,12 @@ import BackButton from "../../components/BackButton";
 
 const BRAND_COLOR = "#F5A623";
 
+/**
+ * EditProfileScreen
+ * Purpose: Allows the user to edit their profile information.
+ * Features: Handles dynamic fields depending on user role (Vet, NGO, General User).
+ * Supports uploading profile pictures, location updates, and verification documents.
+ */
 export default function EditProfileScreen() {
   const router = useRouter();
 
@@ -59,6 +65,11 @@ export default function EditProfileScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isViewerVisible, setIsViewerVisible] = useState(false);
 
+  /**
+   * uploadToCloudinaryIfLocal
+   * Uploads an image or document to the Cloudinary backend API.
+   * Resolves local URIs and content:// URIs correctly before uploading.
+   */
   const uploadToCloudinaryIfLocal = async (uriOrAsset: any, token: string) => {
     if (!uriOrAsset) return null;
 
