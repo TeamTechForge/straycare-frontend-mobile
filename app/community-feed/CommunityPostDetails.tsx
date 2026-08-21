@@ -18,6 +18,10 @@ import type {
   CommunityPost,
 } from "../../services/communityService";
 
+// ─────────────────────────────────────────────
+// PRESENTATION CONTRACT
+// ─────────────────────────────────────────────
+
 interface CommunityPostDetailsProps {
   post: CommunityPost;
   comments: CommunityComment[];
@@ -37,6 +41,10 @@ interface CommunityPostDetailsProps {
   onDelete: () => void;
 }
 
+// ─────────────────────────────────────────────
+// DISPLAY HELPERS
+// ─────────────────────────────────────────────
+
 function formatDate(dateStr?: string): string {
   if (!dateStr) return "";
   const date = new Date(dateStr);
@@ -50,6 +58,10 @@ function formatDate(dateStr?: string): string {
 }
 
 const getImageUrl = (imageUrl?: string | null) => imageUrl || null;
+
+// ─────────────────────────────────────────────
+// POST DETAILS, ACTIONS, AND COMMENTS LAYOUT
+// ─────────────────────────────────────────────
 
 export default function CommunityPostDetails({
   post,
@@ -296,6 +308,10 @@ export default function CommunityPostDetails({
   );
 }
 
+// ─────────────────────────────────────────────
+// COMMENTS AND NESTED REPLIES
+// ─────────────────────────────────────────────
+
 interface CommentsSectionProps {
   comments: CommunityComment[];
   loading: boolean;
@@ -499,6 +515,10 @@ function CommentsSection({
     </View>
   );
 }
+
+// ─────────────────────────────────────────────
+// POST DETAILS STYLES
+// ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   scrollContent: {
@@ -759,6 +779,10 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
 });
+
+// ─────────────────────────────────────────────
+// COMMENTS AND REPLIES STYLES
+// ─────────────────────────────────────────────
 
 const commentsStyles = StyleSheet.create({
   commentsSection: {

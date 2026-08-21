@@ -51,7 +51,7 @@ import { useAuth } from "../../contexts/AuthContext";
 import CommunityPostDetails from "./CommunityPostDetails";
 
 // ─────────────────────────────────────────────
-// DATES
+// SCREEN STATE AND BEHAVIOR
 // ─────────────────────────────────────────────
 
 // ─────────────────────────────────────────────
@@ -376,7 +376,7 @@ export default function CommunityPostView() {
           </View>
         )}
 
-        {/* POST CONTENT */}
+        {/* POST DETAILS AND COMMENTS */}
         {!loading && !error && post && (
           <CommunityPostDetails
             post={post}
@@ -457,7 +457,7 @@ export default function CommunityPostView() {
           </View>
         )}
 
-        {/* REPORT POST MODAL */}
+        {/* REPORT FLOW */}
         <ReportPostModal
           visible={reportVisible}
           onClose={() => setReportVisible(false)}
@@ -471,7 +471,7 @@ export default function CommunityPostView() {
 }
 
 // ─────────────────────────────────────────────
-// STYLES
+// SCREEN-LEVEL STYLES
 // ─────────────────────────────────────────────
 
 const styles = StyleSheet.create({
