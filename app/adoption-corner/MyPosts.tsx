@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   FlatList,
@@ -40,8 +40,7 @@ export default function MyAdoptionPostsScreen() {
     try {
       const data = await getMyPosts();
       setPosts(Array.isArray(data) ? data : []);
-    } catch (error) {
-      console.log("Error fetching my adoption posts:", error);
+    } catch {
       setPosts([]);
     } finally {
       setLoading(false);
@@ -166,7 +165,7 @@ export default function MyAdoptionPostsScreen() {
           </View>
           <Text style={styles.emptyTitle}>No Adoption Posts</Text>
           <Text style={styles.emptySubtitle}>
-            You haven't listed any pets for adoption yet.
+            You haven{"'"}t listed any pets for adoption yet.
           </Text>
           <TouchableOpacity
             style={styles.createBtn}

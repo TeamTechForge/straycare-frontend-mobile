@@ -126,7 +126,7 @@ export default function ViewAdoptionPost() {
         const data = await getPostById(postId);
         setPost(data);
         setError(null);
-      } catch (_err) {
+      } catch {
         if (!post) {
           setError("Could not load post. Please try again.");
         }

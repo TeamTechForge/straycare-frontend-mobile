@@ -20,8 +20,21 @@ import ChatLocationPicker from "../../components/chat/ChatLocationPicker";
 import MapViewWrapper, { Marker } from "../../components/MapViewWrapper";
 import { useAuth } from "../../contexts/AuthContext";
 import { getPostById, updatePost } from "../../services/adoptionService";
-import { ANIMAL_BREEDS, AnimalCategory } from "../../constants/breeds.constants";
 import AdoptionLocationSearchInput from "./AdoptionLocationSearchInput";
+import {
+  AdoptionCategory as Category,
+  AdoptionFormErrors as Errors,
+  AdoptionGender as Gender,
+  AdoptionHealthStatus as HealthStatus,
+  AdoptionStatus as Status,
+  BREEDS_BY_CATEGORY,
+  GENDERS,
+  getAdoptionRequestError,
+  HEALTH_STATUSES,
+  STATUSES,
+  TRAITS,
+  validateAdoptionForm,
+} from "./adoptionForm";
 
 // Centralized color tokens matching Lost & Found
 const C = {
@@ -39,40 +52,6 @@ const C = {
   errorBg: "#FFF0F0",
   amber: "#F5A623",
   amberDim: "#FFF8E7",
-};
-
-type Category = AnimalCategory;
-type Gender = "Male" | "Female";
-type Status = "Available" | "Pending" | "Adopted";
-type HealthStatus = "Healthy" | "Needs Care" | "Under Treatment" | "Special Needs";
-
-const BREEDS_BY_CATEGORY = ANIMAL_BREEDS;
-
-const GENDERS: Gender[] = ["Male", "Female"];
-const STATUSES: Status[] = ["Available", "Pending", "Adopted"];
-const HEALTH_STATUSES: HealthStatus[] = [
-  "Healthy",
-  "Needs Care",
-  "Under Treatment",
-  "Special Needs",
-];
-const TRAITS = [
-  "Vaccinated",
-  "Neutered",
-  "Microchipped",
-  "House trained",
-  "Good with kids",
-  "Good with pets",
-];
-
-type Errors = {
-  name?: string;
-  age?: string;
-  description?: string;
-  customCategory?: string;
-  breed?: string;
-  otherBreed?: string;
-  location?: string;
 };
 
 export default function EditAdoptionPost() {
@@ -217,28 +196,12 @@ export default function EditAdoptionPost() {
 
   // ── Validation ────────────────────────────────────────────────────────────
   const validateForm = (): boolean => {
-    const newErrors: Errors = {};
-    if (!name.trim()) newErrors.name = "Pet name is required.";
-    if (age.trim() && !/^\d+(\s*(year|years|month|months|week|weeks))?$/i.test(age.trim())) {
-      newErrors.age = "Enter a valid age (e.g. 2 years, 6 months).";
-    }
-    if (!description.trim()) {
-      newErrors.description = "Please add a description.";
-    } else if (description.trim().length < 20) {
-      newErrors.description = "Description must be at least 20 characters.";
-    }
-    if (category === "Other") {
-      if (!customCategory.trim()) {
-        newErrors.customCategory = "Please specify the animal type.";
-      }
-    } else {
-      if (!breed) {
-        newErrors.breed = "Please select a breed.";
-      } else if (breed === "Other" && !otherBreed.trim()) {
-        newErrors.otherBreed = "Please specify the breed.";
-      }
-    }
-    if (!location.trim() || !selectedRegion) newErrors.location = "Select a valid location suggestion or choose a location on the map.";
+    // Editing keeps existing images optional and applies the same field rules as creation.
+    const newErrors = validateAdoptionForm({
+      name, age, description, category, customCategory, breed, otherBreed, location,
+      hasSelectedRegion: Boolean(selectedRegion),
+      emptyDescriptionMessage: "Please add a description.",
+    });
 
     setErrors(newErrors);
     const firstErr = Object.values(newErrors).find(Boolean);
@@ -291,12 +254,12 @@ export default function EditAdoptionPost() {
       Alert.alert("Updated!", "Your post has been updated successfully.", [
         { text: "OK", onPress: () => router.back() },
       ]);
-    } catch (err: any) {
-      const msg =
-        err?.response?.data?.error ||
-        err?.response?.data?.message ||
-        err?.message ||
-        "Could not update your post. Please check your connection and try again.";
+    
+    } catch (error: unknown) {
+      const msg = getAdoptionRequestError(
+        error,
+        "Could not update your post. Please check your connection and try again."
+      );
       setErrorMessage(msg);
       Alert.alert("Update Failed", msg);
     } finally {
@@ -358,7 +321,7 @@ export default function EditAdoptionPost() {
       <View style={s.titleBlock}>
         <Text style={s.headerTitle}>Edit Adoption Post</Text>
         <Text style={s.headerSub}>
-          Update the details of your pet's adoption profile.
+          Update the details of your pet{"'"}s adoption profile.
         </Text>
       </View>
 
