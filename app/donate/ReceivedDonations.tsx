@@ -24,6 +24,7 @@ export default function ReceivedDonations() {
   const { createConversation } = useChatApi();
 
   const [donations, setDonations] = useState<Donation[]>([]);
+  // Total contains the sum of all successful donations received.
   const [total, setTotal] = useState<number>(0);
   const [loading, setLoading] = useState(true);
   const [messagingId, setMessagingId] = useState<string | null>(null);
@@ -42,6 +43,7 @@ export default function ReceivedDonations() {
         headers: { Authorization: `Bearer ${token}` },
       });
 
+      // Check whether this organization can receive recurring donations.
       try {
         const profileRes: any = await axios.get(`${BASE_URL}/api/profiles/me`, {
           headers: { Authorization: `Bearer ${token}` },
@@ -51,6 +53,7 @@ export default function ReceivedDonations() {
         console.error("Error checking recurring donation setup:", profileError);
       }
 
+      // Prepare API records for display in the donation cards.
       const fetchedDonations = donRes.data.map((d: any) => ({
         id: d._id,
         donorId: d.donorId,
@@ -61,6 +64,7 @@ export default function ReceivedDonations() {
         plan: d.plan,
       }));
 
+      // Calculate the amount shown at the top of the page.
       const calculatedTotal = donRes.data.reduce((sum: number, d: any) => sum + parseFloat(d.amount), 0);
 
       setDonations(fetchedDonations);
@@ -78,6 +82,7 @@ export default function ReceivedDonations() {
     setMessagingId(item.id);
 
     try {
+      // Reuse an existing direct conversation or create a new one.
       const conversation = (await createConversation(item.donorId, "direct")) as any;
 
       const otherParticipant = conversation.participants?.find(
@@ -156,6 +161,7 @@ export default function ReceivedDonations() {
         <Text style={styles.totalAmount}>Rs. {total.toFixed(2)}</Text>
       </View>
 
+      {/* Show setup guidance only when recurring credentials are missing. */}
       {recurringEnabled === false && (
         <TouchableOpacity
           style={styles.recurringNotice}
@@ -173,6 +179,7 @@ export default function ReceivedDonations() {
         </TouchableOpacity>
       )}
 
+      {/* Keep an empty-state message when the organization has no donations. */}
       {donations.length === 0 ? (
         <Text style={{ textAlign: "center", color: "#999", marginTop: 40 }}>No donations received yet</Text>
       ) : (
