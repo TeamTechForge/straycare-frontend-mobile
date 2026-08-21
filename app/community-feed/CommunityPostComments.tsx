@@ -20,6 +20,7 @@ import CommentComposer from "../../components/forum/CommentComposer";
 import {
   CommunityComment,
   createCommunityComment,
+  getApiErrorMessage,
   getCommunityComments,
 } from "../../services/communityService";
 
@@ -51,8 +52,7 @@ export default function CommunityPostComments() {
       setError(false);
       const result = await getCommunityComments(id);
       setComments(result.comments);
-    } catch (loadError) {
-      console.error("Load community comments error:", loadError);
+    } catch {
       setError(true);
     } finally {
       setLoading(false);
@@ -61,6 +61,7 @@ export default function CommunityPostComments() {
 
   useFocusEffect(
     useCallback(() => {
+      // Refresh when returning from another community screen so comments stay current.
       setLoading(true);
       void loadComments();
     }, [loadComments])
@@ -75,11 +76,10 @@ export default function CommunityPostComments() {
       const result = await createCommunityComment(id, content);
       setComments((current) => [...current, result.comment]);
       return true;
-    } catch (submitError: any) {
-      console.error("Create community comment error:", submitError);
+    } catch (submitError: unknown) {
       Alert.alert(
         "Unable to add comment",
-        submitError?.response?.data?.message || "Please try again."
+        getApiErrorMessage(submitError, "Please try again.")
       );
       return false;
     } finally {
@@ -164,7 +164,6 @@ const styles = StyleSheet.create({
     backgroundColor: "#FFFFFF",
   },
   headerTitle: { flex: 1, textAlign: "center", fontSize: 18, fontWeight: "700", color: "#121C2C" },
-  headerSpacer: { width: 26 },
   list: { padding: 16, gap: 14 },
   emptyList: { flexGrow: 1 },
   centered: { flex: 1, alignItems: "center", justifyContent: "center", gap: 10, padding: 24 },

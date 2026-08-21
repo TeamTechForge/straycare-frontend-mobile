@@ -1,6 +1,6 @@
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   FlatList,
   Image,
@@ -36,20 +36,19 @@ export default function BaseAnimalListView({
   const [search, setSearch] = useState("");
   const [pets, setPets] = useState<AnimalPost[]>([]);
 
-  useEffect(() => {
-    loadPosts();
-  }, []);
-
-  const loadPosts = async () => {
+  const loadPosts = useCallback(async () => {
     try {
       const response = await fetchPostsFn();
       const payload = Array.isArray(response) ? response : (response as any)?.data ?? [];
       setPets(Array.isArray(payload) ? payload : []);
-    } catch (error) {
-      console.log("Error fetching posts:", error);
+    } catch {
       setPets([]);
     }
-  };
+  }, [fetchPostsFn]);
+
+  useEffect(() => {
+    loadPosts();
+  }, [loadPosts]);
 
   const formatType = (value?: string) => {
     const normalized = (value || "").toLowerCase();

@@ -92,3 +92,18 @@ export const updateCaseStatus = async (caseId, status) => {
     throw error;
   }
 };
+
+// 5.Deletes a report by sending a DELETE request to the backend. Allowed only for reporter before rescuer acceptance.
+export const deleteReport = async (caseId) => {
+  try {
+    const response = await fetch(`${BASE_URL}/report/${caseId}`, {
+      method: "DELETE",
+      headers: await authHeaders(),
+    });
+
+    return await parseOrThrow(response);
+  } catch (error) {
+    console.error("Error deleting report:", error);
+    throw error;
+  }
+};

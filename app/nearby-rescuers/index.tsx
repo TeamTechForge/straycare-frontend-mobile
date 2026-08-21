@@ -489,10 +489,6 @@ export default function NearbyRescuersScreen() {
                     <Ionicons name="time-outline" size={13} color={colors.primary} />
                     <Text style={styles.chipText}>~{etaMinutes} min</Text>
                   </View>
-                  <View style={styles.chip}>
-                    <Ionicons name="checkmark-circle-outline" size={13} color="#10B981" />
-                    <Text style={styles.chipText}>Available</Text>
-                  </View>
                 </View>
 
                 {/* Action Buttons */}
