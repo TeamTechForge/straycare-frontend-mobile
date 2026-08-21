@@ -34,7 +34,7 @@ import {
   STATUSES,
   TRAITS,
   validateAdoptionForm,
-} from "./adoptionForm";
+} from "../../utils/adoptionForm";
 
 // Centralized color tokens matching Lost & Found
 const C = {
@@ -400,7 +400,7 @@ export default function EditAdoptionPost() {
 
             {breedDropdownOpen && (
               <ScrollView style={s.dropdownList} nestedScrollEnabled={true}>
-                {BREEDS_BY_CATEGORY[category].map((b) => (
+                {BREEDS_BY_CATEGORY[category].map((b: string) => (
                   <TouchableOpacity
                     key={b}
                     style={[s.dropdownItem, breed === b && s.dropdownItemActive]}
