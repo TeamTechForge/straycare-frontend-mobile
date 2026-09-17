@@ -38,6 +38,10 @@ yarn-error.*
 .env
 .env*.local
 
+# Claude local config
+.claude/
+.claude/settings.local.json
+
 # typescript
 *.tsbuildinfo
 
@@ -53,4 +57,3 @@ app-example
 # Build logs
 build_log.txt
 *.build_log.txt
-
